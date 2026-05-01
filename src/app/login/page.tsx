@@ -16,8 +16,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
-import { Trophy, Loader2 } from 'lucide-react';
+import { Trophy, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -33,8 +34,8 @@ export default function LoginPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  // Background redirection if session is already active
   useEffect(() => {
     if (user && !isUserLoading) {
       const userEmail = user.email?.toLowerCase();
@@ -47,8 +48,18 @@ export default function LoginPage() {
   }, [user, isUserLoading, router]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
-    if (!auth) return;
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Authentication service is not ready. Please refresh.",
+      });
+      return;
+    }
+    
+    setAuthError(null);
     setIsLoading(true);
+    
     try {
       if (mode === 'login') {
         const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
@@ -56,10 +67,9 @@ export default function LoginPage() {
         
         toast({
           title: "Sign-in Success",
-          description: "Redirecting to your dashboard...",
+          description: "Welcome to Bracket Battles!",
         });
 
-        // Use window.location for a hard redirect to clear state and ensure Admin access
         const userEmail = loggedInUser.email?.toLowerCase();
         if (userEmail === ADMIN_EMAIL.toLowerCase()) {
           window.location.href = '/admin';
@@ -70,15 +80,22 @@ export default function LoginPage() {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
         toast({
           title: "Account Created",
-          description: "Welcome! You can now sign in with your credentials.",
+          description: "You can now sign in with your new account.",
         });
         setIsLoading(false);
       }
     } catch (error: any) {
+      let message = "An unexpected error occurred.";
+      if (error.code === 'auth/user-not-found') message = "No account found with this email. Please sign up first.";
+      if (error.code === 'auth/wrong-password') message = "Incorrect password. Please try again.";
+      if (error.code === 'auth/invalid-email') message = "Please enter a valid email address.";
+      if (error.code === 'auth/email-already-in-use') message = "This email is already registered. Try logging in.";
+      
+      setAuthError(message);
       toast({
         variant: "destructive",
         title: "Authentication Error",
-        description: error.message || "Invalid email or password.",
+        description: message,
       });
       setIsLoading(false);
     }
@@ -96,6 +113,7 @@ export default function LoginPage() {
   const handleSendOtp = async () => {
     if (!auth) return;
     setIsLoading(true);
+    setAuthError(null);
     try {
       setupRecaptcha();
       const verifier = (window as any).recaptchaVerifier;
@@ -106,6 +124,7 @@ export default function LoginPage() {
         description: "Please check your phone for the code.",
       });
     } catch (error: any) {
+      setAuthError(error.message);
       toast({
         variant: "destructive",
         title: "SMS Error",
@@ -119,6 +138,7 @@ export default function LoginPage() {
   const handleVerifyOtp = async () => {
     if (!confirmationResult) return;
     setIsLoading(true);
+    setAuthError(null);
     try {
       await confirmationResult.confirm(otp);
       toast({
@@ -127,6 +147,7 @@ export default function LoginPage() {
       });
       window.location.href = '/';
     } catch (error: any) {
+      setAuthError("Invalid OTP code.");
       toast({
         variant: "destructive",
         title: "Invalid Code",
@@ -138,8 +159,9 @@ export default function LoginPage() {
 
   if (isUserLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground font-medium animate-pulse">Initializing Arena Access...</p>
       </div>
     );
   }
@@ -153,6 +175,14 @@ export default function LoginPage() {
         <h1 className="text-3xl font-black uppercase tracking-tighter text-foreground">Arena Access</h1>
         <p className="text-muted-foreground text-sm font-medium">Log in to manage tournaments and view insights.</p>
       </div>
+
+      {authError && (
+        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{authError}</AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="email" className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1">
@@ -176,6 +206,7 @@ export default function LoginPage() {
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)} 
                   disabled={isLoading}
+                  autoComplete="email"
                 />
               </div>
               <div className="space-y-2">
@@ -186,6 +217,7 @@ export default function LoginPage() {
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
                   disabled={isLoading}
+                  autoComplete="current-password"
                 />
               </div>
             </CardContent>
@@ -228,6 +260,7 @@ export default function LoginPage() {
                     onChange={(e) => setPhoneNumber(e.target.value)} 
                     disabled={isLoading}
                   />
+                  <p className="text-[10px] text-muted-foreground">Example: +919876543210</p>
                 </div>
               ) : (
                 <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
@@ -266,6 +299,12 @@ export default function LoginPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      <div className="text-center">
+        <p className="text-xs text-muted-foreground">
+          By continuing, you agree to our <a href="/terms" className="underline hover:text-primary">Terms</a> and <a href="/privacy" className="underline hover:text-primary">Privacy Policy</a>.
+        </p>
+      </div>
     </div>
   );
 }
