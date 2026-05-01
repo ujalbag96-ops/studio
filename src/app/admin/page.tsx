@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { ShieldCheck, Search, Save, UserCheck, RefreshCw, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-const ADMIN_EMAIL = 'admin@example.com'; // Placeholder: Replace with your actual email
+const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function AdminPage() {
   const { user, isUserLoading } = useUser();
