@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,8 +7,7 @@ import {
   createUserWithEmailAndPassword, 
   RecaptchaVerifier, 
   signInWithPhoneNumber,
-  ConfirmationResult,
-  updateProfile
+  ConfirmationResult
 } from 'firebase/auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,8 +15,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
-import { Trophy, Mail, Phone, Loader2, ArrowRight } from 'lucide-react';
+import { Trophy, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function AuthPage() {
   const { auth } = useAuth();
@@ -35,7 +35,11 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (user && !isUserLoading) {
-      router.push('/');
+      if (user.email === ADMIN_EMAIL) {
+        router.push('/admin');
+      } else {
+        router.push('/');
+      }
     }
   }, [user, isUserLoading, router]);
 
@@ -44,11 +48,16 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       if (mode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        if (userCredential.user.email === ADMIN_EMAIL) {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
+        router.push('/');
       }
-      router.push('/');
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -96,8 +105,12 @@ export default function AuthPage() {
     if (!confirmationResult) return;
     setIsLoading(true);
     try {
-      await confirmationResult.confirm(otp);
-      router.push('/');
+      const userCredential = await confirmationResult.confirm(otp);
+      if (userCredential.user.email === ADMIN_EMAIL) {
+        router.push('/admin');
+      } else {
+        router.push('/');
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
