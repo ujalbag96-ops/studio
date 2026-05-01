@@ -33,6 +33,7 @@ export default function AuthPage() {
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
+  // Immediate redirection if user is already logged in
   useEffect(() => {
     if (user && !isUserLoading) {
       if (user.email === ADMIN_EMAIL) {
@@ -49,14 +50,17 @@ export default function AuthPage() {
     try {
       if (mode === 'login') {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        if (userCredential.user.email === ADMIN_EMAIL) {
-          router.push('/admin');
-        } else {
-          router.push('/');
-        }
+        toast({
+          title: "Welcome Back",
+          description: "Login successful.",
+        });
+        // Redirection is handled by the useEffect above
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
-        router.push('/');
+        toast({
+          title: "Account Created",
+          description: "Welcome to the Arena!",
+        });
       }
     } catch (error: any) {
       toast({
@@ -105,12 +109,11 @@ export default function AuthPage() {
     if (!confirmationResult) return;
     setIsLoading(true);
     try {
-      const userCredential = await confirmationResult.confirm(otp);
-      if (userCredential.user.email === ADMIN_EMAIL) {
-        router.push('/admin');
-      } else {
-        router.push('/');
-      }
+      await confirmationResult.confirm(otp);
+      toast({
+        title: "Verified",
+        description: "Phone login successful.",
+      });
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -142,15 +145,15 @@ export default function AuthPage() {
 
       <Tabs defaultValue="email" className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1">
-          <TabsTrigger value="email" className="data-[state=active]:bg-card font-bold">Email Login</TabsTrigger>
-          <TabsTrigger value="phone" className="data-[state=active]:bg-card font-bold">Phone Login</TabsTrigger>
+          <TabsTrigger value="email" className="data-[state=active]:bg-card font-bold">Email</TabsTrigger>
+          <TabsTrigger value="phone" className="data-[state=active]:bg-card font-bold">Phone</TabsTrigger>
         </TabsList>
 
         <TabsContent value="email" className="mt-6">
           <Card className="border-border/50 shadow-2xl">
             <CardHeader>
-              <CardTitle>Welcome Back</CardTitle>
-              <CardDescription>Login or create an account to start playing.</CardDescription>
+              <CardTitle>Login or Signup</CardTitle>
+              <CardDescription>Enter your credentials to continue.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -177,7 +180,7 @@ export default function AuthPage() {
               <Button 
                 className="w-full font-bold h-11" 
                 onClick={() => handleEmailAuth('login')}
-                disabled={isLoading}
+                disabled={isLoading || !email || !password}
               >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
               </Button>
@@ -185,7 +188,7 @@ export default function AuthPage() {
                 variant="outline" 
                 className="w-full font-bold h-11" 
                 onClick={() => handleEmailAuth('signup')}
-                disabled={isLoading}
+                disabled={isLoading || !email || !password}
               >
                 Create Account
               </Button>
@@ -235,7 +238,7 @@ export default function AuthPage() {
                   onClick={handleSendOtp}
                   disabled={isLoading || !phoneNumber}
                 >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Verification Code"}
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Code"}
                 </Button>
               ) : (
                 <div className="w-full space-y-3">
