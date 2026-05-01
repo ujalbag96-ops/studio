@@ -1,0 +1,148 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * BRACKET BATTLES SECURITY RULES
+     *
+     * Core Philosophy:
+     * This ruleset enforces a strict user-ownership model for personal data and a role-based access 
+     * model (RBAC) for administrative tasks. Public content like tournaments and matches are 
+     * globally readable but strictly protected for writes.
+     *
+     * Data Structure:
+     * - /users/{userId}: Private user profiles and their subcollections (votes, rewards, activities).
+     * - /tournaments: Public tournament data and nested match information.
+     * - /app_settings: Global configuration flags.
+     *
+     * Key Security Decisions:
+     * 1. Ownership Enforcement: Users can only read/write their own data trees under /users/{userId}.
+     * 2. Administrative Override: Users with the `isAdmin` flag in their profile have global write 
+     *    and list access across the entire database.
+     * 3. Public Readability: Tournament structures and match scores are public to allow for 
+     *    anonymous or non-authoritative viewing.
+     * 4. Relational Integrity: On creation, user-specific documents must include an internal 
+     *    ID field that matches the authenticated user's UID to ensure path-to-data consistency.
+     *
+     * Denormalization for Authorization:
+     * - `userId` is denormalized into subcollections (e.g., Vote.userId) to allow for 
+     *   authorization checks without parent-document lookups.
+     * - `isAdmin` is stored directly on the UserProfile document.
+     */
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the user's UID matches the provided ID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Checks if the document exists and the user is the owner. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    /** @description Checks if the authenticated user has administrative privileges. */
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for the root User Profile.
+     * @path /users/{userId}
+     * @allow (get) If the user is the profile owner or an admin.
+     * @deny (list) If a non-admin tries to list all user profiles.
+     * @principle Restricts sensitive profile data to owners and admins.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if (isOwner(userId) && request.resource.data.isAdmin == resource.data.isAdmin) || isAdmin();
+      allow delete: if isAdmin();
+
+      /**
+       * @description User's match votes.
+       * @path /users/{userId}/votes/{voteId}
+       * @allow (create) If the user is the owner and the userId in data matches the path.
+       * @deny (update) If a user tries to change the userId on an existing vote.
+       * @principle Enforces path-based ownership and relational integrity.
+       */
+      match /votes/{voteId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId) || isAdmin();
+      }
+
+      /**
+       * @description Rewards earned via referrals.
+       * @path /users/{userId}/referralRewards/{rewardId}
+       * @allow (list) If the user is the referrer (owner).
+       * @deny (write) If a non-admin tries to modify reward data.
+       * @principle Owners can view rewards; only system/admin can issue/update them.
+       */
+      match /referralRewards/{rewardId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create, update, delete: if isAdmin();
+      }
+
+      /**
+       * @description Tracking of completed Offer Wall tasks.
+       * @path /users/{userId}/offerWallActivities/{activityId}
+       * @allow (create) If the owner records a new activity with correct link.
+       * @deny (delete) If a user tries to remove an activity log.
+       * @principle Owners manage their activity logs; admins maintain oversight.
+       */
+      match /offerWallActivities/{activityId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isAdmin();
+      }
+    }
+
+    /**
+     * @description Public tournament information.
+     * @path /tournaments/{tournamentId}
+     * @allow (get, list) For all users, including anonymous.
+     * @deny (write) For any non-admin user.
+     * @principle Public consumption with admin-only management.
+     */
+    match /tournaments/{tournamentId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+
+      /**
+       * @description Specific matches within a tournament.
+       * @path /tournaments/{tournamentId}/matches/{matchId}
+       * @allow (get, list) Publicly visible scores and status.
+       * @deny (update) By standard users.
+       * @principle Ensures match integrity through admin-only score updates.
+       */
+      match /matches/{matchId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin();
+      }
+    }
+
+    /**
+     * @description Global application configuration settings.
+     * @path /app_settings/{settingId}
+     * @allow (get) Publicly visible (e.g., maintenance mode checks).
+     * @deny (write) By anyone except an admin.
+     * @principle Protects global app state from unauthorized changes.
+     */
+    match /app_settings/{settingId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
