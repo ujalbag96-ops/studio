@@ -50,7 +50,8 @@
         "deviceId": { "type": "string" },
         "coins": { "type": "number" },
         "referralCode": { "type": "string" },
-        "referredBy": { "type": "string" }
+        "referredBy": { "type": "string" },
+        "isAdmin": { "type": "boolean" }
       }
     },
     "LedgerEntry": {
@@ -74,7 +75,7 @@
     }
   },
   "auth": {
-    "providers": ["phone"]
+    "providers": ["phone", "password"]
   },
   "firestore": {
     "/tournaments/{tournamentId}": {
