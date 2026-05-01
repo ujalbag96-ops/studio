@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -78,7 +77,7 @@ export default function Navbar() {
             </>
           ) : (
             <Button asChild size="sm" className="font-bold">
-              <Link href="/auth">
+              <Link href="/login">
                 <LogIn className="h-4 w-4 mr-2" /> Login
               </Link>
             </Button>

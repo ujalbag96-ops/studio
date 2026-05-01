@@ -23,10 +23,10 @@ export default function Home() {
           </p>
           <div className="flex flex-wrap gap-4">
             <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-bold px-8">
-              <Link href="/tournaments">Start Playing</Link>
+              <Link href="/login">Start Playing</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-primary-foreground/30 bg-white/10 hover:bg-white/20 font-bold backdrop-blur-sm">
-              <Link href="/auth">Register Now</Link>
+              <Link href="/login">Register Now</Link>
             </Button>
           </div>
         </div>

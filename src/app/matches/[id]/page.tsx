@@ -1,4 +1,3 @@
-
 'use client';
 
 import { MOCK_MATCHES } from '@/app/lib/mock-data';
@@ -26,7 +25,7 @@ export default function MatchPage() {
 
   const handleVote = (team: 'A' | 'B') => {
     if (!user) {
-      router.push('/auth');
+      router.push('/login');
       return;
     }
     // Voting logic will go here once Firestore is connected
