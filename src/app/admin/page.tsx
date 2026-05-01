@@ -17,9 +17,6 @@ export default function AdminPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
-  // Redirect or show access denied if not the admin
-  const isAuthorized = user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -28,37 +25,40 @@ export default function AdminPage() {
     );
   }
 
+  // Final check for authorization
+  const isAuthorized = user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
   if (!isAuthorized) {
     return (
-      <div className="max-w-md mx-auto mt-20 p-8 text-center space-y-6">
+      <div className="max-w-md mx-auto mt-20 p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
         <div className="mx-auto h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
           <Lock className="h-10 w-10 text-destructive" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-black uppercase tracking-tighter">Access Denied</h1>
+          <h1 className="text-2xl font-black uppercase tracking-tighter">Restricted Area</h1>
           <p className="text-muted-foreground text-sm">
-            This dashboard is restricted to authorized administrators. 
-            {user ? ` Logged in as: ${user.email}` : " Please log in to continue."}
+            This dashboard is only accessible to the system administrator. 
+            {user ? ` Current user: ${user.email}` : " Please log in with admin credentials."}
           </p>
         </div>
-        <Button onClick={() => router.push('/login')} className="w-full font-bold">Sign In as Admin</Button>
+        <Button onClick={() => router.push('/login')} className="w-full font-bold">Login as Admin</Button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-12 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-12 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b pb-8">
         <div className="space-y-1">
           <h1 className="text-3xl font-black uppercase tracking-tight flex items-center gap-3">
             <ShieldCheck className="h-8 w-8 text-primary" />
             Admin Command Center
           </h1>
-          <p className="text-muted-foreground font-medium">Welcome back, {user?.email}. System status: <span className="text-green-500 font-bold">OPERATIONAL</span></p>
+          <p className="text-muted-foreground font-medium">System Operator: <span className="text-primary font-bold">{user?.email}</span></p>
         </div>
         <div className="flex items-center gap-4">
            <Button variant="outline" className="font-bold border-border bg-card">
-              <RefreshCw className="h-4 w-4 mr-2" /> Maintenance Mode: OFF
+              <RefreshCw className="h-4 w-4 mr-2" /> Maintenance: OFF
            </Button>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function AdminPage() {
                 <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-amber-500 uppercase">System Insight</p>
-                  <p className="text-[10px] text-amber-200/70 leading-relaxed">2 users detected using the same device fingerprint in the last 24 hours. Consider enabling strict hardware locking.</p>
+                  <p className="text-[10px] text-amber-200/70 leading-relaxed">2 users detected using the same device fingerprint in the last 24 hours. Hardware locking recommended.</p>
                 </div>
               </div>
             </CardContent>
