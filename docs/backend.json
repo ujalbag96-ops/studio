@@ -1,488 +1,101 @@
+
 {
   "entities": {
-    "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserProfile",
-      "type": "object",
-      "description": "Represents a user's profile within the Bracket Battles application, storing personal details, financial ledger, virtual currency, and referral information. Authentication is handled by an external system (Firebase Auth).",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
-        },
-        "firebaseAuthUid": {
-          "type": "string",
-          "description": "Unique identifier from the Firebase Authentication system, linking to the external authentication system."
-        },
-        "mobileNumber": {
-          "type": "string",
-          "description": "The user's mobile phone number, used for authentication (OTP) and administrative search/filter."
-        },
-        "deviceId": {
-          "type": "string",
-          "description": "Unique identifier of the user's device (e.g., IMEI/Android ID), used for restricting multiple accounts per device and user management."
-        },
-        "registrationDate": {
-          "type": "string",
-          "description": "The date and time when the user registered their account.",
-          "format": "date-time"
-        },
-        "totalDeposit": {
-          "type": "number",
-          "description": "The cumulative total amount of money the user has deposited into their account."
-        },
-        "totalWithdrawal": {
-          "type": "number",
-          "description": "The cumulative total amount of money the user has withdrawn from their account."
-        },
-        "downlineIncome": {
-          "type": "number",
-          "description": "The cumulative income earned by the user from their referred users (downline), as part of the referral rewards system."
-        },
-        "coins": {
-          "type": "number",
-          "description": "The current balance of virtual currency ('coins') the user possesses, earned from Offer Wall tasks and used for tournament entry fees."
-        },
-        "referredByUserId": {
-          "type": "string",
-          "description": "Reference to the UserProfile ID of the user who referred this user. (Relationship: UserProfile 1:N UserProfile)"
-        },
-        "isAdmin": {
-          "type": "boolean",
-          "description": "A flag indicating whether the user has administrative privileges."
-        }
-      },
-      "required": [
-        "id",
-        "firebaseAuthUid",
-        "mobileNumber",
-        "deviceId",
-        "registrationDate",
-        "totalDeposit",
-        "totalWithdrawal",
-        "downlineIncome",
-        "coins",
-        "isAdmin"
-      ]
-    },
     "Tournament": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Tournament",
+      "description": "Details of a competitive gaming tournament.",
       "type": "object",
-      "description": "Represents a competition or series of matches in the Bracket Battles application.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Tournament entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The official name of the tournament."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the tournament, including rules, format, and prize information."
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the tournament (e.g., 'Upcoming', 'Active', 'Completed', 'Canceled')."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The scheduled start date and time of the tournament.",
-          "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "The scheduled end date and time of the tournament.",
-          "format": "date-time"
-        },
-        "entryFeeCoins": {
-          "type": "number",
-          "description": "The amount of virtual currency (coins) required for a user to enter this tournament."
-        }
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "upcoming", "completed"] },
+        "game": { "type": "string" },
+        "prizePool": { "type": "string" },
+        "startDate": { "type": "string", "format": "date" },
+        "banner": { "type": "string" }
       },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "status",
-        "startDate",
-        "endDate",
-        "entryFeeCoins"
-      ]
+      "required": ["name", "status", "game", "prizePool"]
     },
     "Match": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Match",
+      "description": "A specific match within a tournament.",
       "type": "object",
-      "description": "Represents a single match within a tournament, displaying live scores, status, and player/team information.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Match entity."
-        },
-        "tournamentId": {
-          "type": "string",
-          "description": "Reference to the Tournament entity this match belongs to. (Relationship: Tournament 1:N Match)"
-        },
-        "player1Name": {
-          "type": "string",
-          "description": "The name of the first player or team participating in the match."
-        },
-        "player2Name": {
-          "type": "string",
-          "description": "The name of the second player or team participating in the match."
-        },
-        "score1": {
-          "type": "number",
-          "description": "The current or final score for Player/Team 1."
-        },
-        "score2": {
-          "type": "number",
-          "description": "The current or final score for Player/Team 2."
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the match (e.g., 'Scheduled', 'Live', 'Completed', 'Postponed')."
-        },
-        "startTime": {
-          "type": "string",
-          "description": "The scheduled start date and time of the match.",
-          "format": "date-time"
-        },
-        "endTime": {
-          "type": "string",
-          "description": "The actual or estimated end date and time of the match, recorded once the match concludes.",
-          "format": "date-time"
-        },
-        "aiInsight": {
-          "type": "string",
-          "description": "AI-generated summary or insight for the match, based on match data."
-        }
+        "tournamentId": { "type": "string" },
+        "teamA": { "$ref": "#/backend/entities/Team" },
+        "teamB": { "$ref": "#/backend/entities/Team" },
+        "scoreA": { "type": "number" },
+        "scoreB": { "type": "number" },
+        "status": { "type": "string", "enum": ["live", "scheduled", "finished"] },
+        "startTime": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" },
+        "votesA": { "type": "number" },
+        "votesB": { "type": "number" }
       },
-      "required": [
-        "id",
-        "tournamentId",
-        "player1Name",
-        "player2Name",
-        "score1",
-        "score2",
-        "status",
-        "startTime"
-      ]
+      "required": ["tournamentId", "teamA", "teamB", "status"]
     },
-    "Vote": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Vote",
+    "Team": {
+      "title": "Team",
       "type": "object",
-      "description": "Represents a user's vote on a match outcome, favorite player, or other predefined tournament elements.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Vote entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity of the user who cast the vote. (Relationship: UserProfile 1:N Vote)"
-        },
-        "matchId": {
-          "type": "string",
-          "description": "Reference to the Match entity this vote is cast for. (Relationship: Match 1:N Vote)"
-        },
-        "votedForPlayerName": {
-          "type": "string",
-          "description": "The name of the player or team the user voted for (e.g., 'Player1 Name' or 'Player2 Name' from the associated Match)."
-        },
-        "voteTimestamp": {
-          "type": "string",
-          "description": "The date and time when the vote was cast.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "matchId",
-        "votedForPlayerName",
-        "voteTimestamp"
-      ]
+        "name": { "type": "string" },
+        "logo": { "type": "string" }
+      }
     },
-    "ReferralReward": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ReferralReward",
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Extended user data including rewards and device identification.",
       "type": "object",
-      "description": "Tracks the status and details of rewards earned by users for referring new players.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ReferralReward entity."
-        },
-        "referrerUserId": {
-          "type": "string",
-          "description": "Reference to the UserProfile ID of the user who made the referral. (Relationship: UserProfile 1:N ReferralReward)"
-        },
-        "referredUserId": {
-          "type": "string",
-          "description": "Reference to the UserProfile ID of the user who was referred. (Relationship: UserProfile 1:N ReferralReward)"
-        },
-        "referralDate": {
-          "type": "string",
-          "description": "The date and time when the referral occurred.",
-          "format": "date-time"
-        },
-        "rewardAmountCoins": {
-          "type": "number",
-          "description": "The amount of virtual currency (coins) awarded to the referrer upon successful referral conditions."
-        },
-        "isRewardClaimed": {
-          "type": "boolean",
-          "description": "A boolean indicating if the reward has been claimed by the referrer."
-        },
-        "referredUserMadeFirstPaidEntry": {
-          "type": "boolean",
-          "description": "A boolean indicating if the referred user has completed their first paid tournament entry, triggering reward eligibility."
-        }
-      },
-      "required": [
-        "id",
-        "referrerUserId",
-        "referredUserId",
-        "referralDate",
-        "rewardAmountCoins",
-        "isRewardClaimed",
-        "referredUserMadeFirstPaidEntry"
-      ]
+        "mobile": { "type": "string" },
+        "deviceId": { "type": "string" },
+        "coins": { "type": "number" },
+        "referralCode": { "type": "string" },
+        "referredBy": { "type": "string" }
+      }
     },
-    "OfferWallActivity": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "OfferWallActivity",
+    "LedgerEntry": {
+      "title": "Ledger Entry",
+      "description": "A financial transaction for a user.",
       "type": "object",
-      "description": "Records a user's activity and earnings from completing tasks on the CPA Lead Offer Wall.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the OfferWallActivity entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity of the user who completed the offer. (Relationship: UserProfile 1:N OfferWallActivity)"
-        },
-        "offerName": {
-          "type": "string",
-          "description": "The name or title of the offer completed from the CPA Lead Offer Wall."
-        },
-        "offerDescription": {
-          "type": "string",
-          "description": "A brief description of the offer that was completed."
-        },
-        "rewardCoins": {
-          "type": "number",
-          "description": "The amount of virtual currency (coins) earned by the user for completing this offer."
-        },
-        "completionDate": {
-          "type": "string",
-          "description": "The date and time when the offer was marked as completed.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the offer completion (e.g., 'Pending', 'Completed', 'Rejected')."
-        },
-        "externalOfferId": {
-          "type": "string",
-          "description": "An optional identifier from the external CPA Lead system for tracking purposes."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "offerName",
-        "offerDescription",
-        "rewardCoins",
-        "completionDate",
-        "status"
-      ]
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["deposit", "withdrawal", "income"] },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["pending", "completed", "failed"] }
+      }
     },
-    "AppSetting": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AppSetting",
+    "AppSettings": {
+      "title": "App Settings",
       "type": "object",
-      "description": "Stores global application settings and configurations, such as maintenance mode status.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the AppSetting entity (e.g., 'MAINTENANCE_MODE_ENABLED', 'PUSH_NOTIFICATIONS_STATUS')."
-        },
-        "settingName": {
-          "type": "string",
-          "description": "A human-readable name for the application setting."
-        },
-        "settingValue": {
-          "type": "string",
-          "description": "The value of the setting, stored as a string. This can represent boolean, numeric, or textual values depending on the setting type."
-        },
-        "description": {
-          "type": "string",
-          "description": "A clear description of what this application setting controls."
-        },
-        "lastUpdatedByUserId": {
-          "type": "string",
-          "description": "Reference to the UserProfile ID of the administrator who last updated this setting. (Relationship: UserProfile 1:N AppSetting)"
-        },
-        "lastUpdatedAt": {
-          "type": "string",
-          "description": "The date and time when this setting was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "settingName",
-        "settingValue",
-        "description",
-        "lastUpdatedByUserId",
-        "lastUpdatedAt"
-      ]
+        "maintenanceMode": { "type": "boolean" }
+      }
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["phone"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores individual user profile data. The document ID `{userId}` corresponds to the Firebase Authentication UID (`UserProfile.firebaseAuthUid`), enabling direct path-based access and ownership checks. Includes `isAdmin` for global role-based access control.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the user, serving as the document ID for their profile."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/votes/{voteId}",
-        "definition": {
-          "entityName": "Vote",
-          "schema": {
-            "$ref": "#/backend/entities/Vote"
-          },
-          "description": "Collection of votes cast by a specific user on various match outcomes. The `userId` in the path matches `Vote.userId` (denormalized) for robust ownership-based security.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the user who cast the vote."
-            },
-            {
-              "name": "voteId",
-              "description": "Unique identifier for a specific user's vote."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/referralRewards/{rewardId}",
-        "definition": {
-          "entityName": "ReferralReward",
-          "schema": {
-            "$ref": "#/backend/entities/ReferralReward"
-          },
-          "description": "Collection of referral rewards earned by this user as a referrer. The `userId` in the path matches `ReferralReward.referrerUserId` (denormalized) for clear ownership and authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the referrer user."
-            },
-            {
-              "name": "rewardId",
-              "description": "Unique identifier for a specific referral reward."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/offerWallActivities/{activityId}",
-        "definition": {
-          "entityName": "OfferWallActivity",
-          "schema": {
-            "$ref": "#/backend/entities/OfferWallActivity"
-          },
-          "description": "Collection of Offer Wall activities completed by this user. The `userId` in the path matches `OfferWallActivity.userId` (denormalized) for robust ownership-based security.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the user who completed the offer."
-            },
-            {
-              "name": "activityId",
-              "description": "Unique identifier for a specific Offer Wall activity."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/tournaments/{tournamentId}",
-        "definition": {
-          "entityName": "Tournament",
-          "schema": {
-            "$ref": "#/backend/entities/Tournament"
-          },
-          "description": "Master collection for all tournaments. Publicly readable by all users. Writable only by administrators.",
-          "params": [
-            {
-              "name": "tournamentId",
-              "description": "Unique identifier for a tournament."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/tournaments/{tournamentId}/matches/{matchId}",
-        "definition": {
-          "entityName": "Match",
-          "schema": {
-            "$ref": "#/backend/entities/Match"
-          },
-          "description": "Subcollection of matches belonging to a specific tournament. Publicly readable. Writable only by administrators for score updates. Includes `tournamentId` (denormalized) for authorization independence.",
-          "params": [
-            {
-              "name": "tournamentId",
-              "description": "Unique identifier for the parent tournament."
-            },
-            {
-              "name": "matchId",
-              "description": "Unique identifier for a specific match within the tournament."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/app_settings/{settingId}",
-        "definition": {
-          "entityName": "AppSetting",
-          "schema": {
-            "$ref": "#/backend/entities/AppSetting"
-          },
-          "description": "Global application settings and configurations (e.g., maintenance mode). Publicly readable by all users. Writable only by administrators.",
-          "params": [
-            {
-              "name": "settingId",
-              "description": "Unique identifier for a specific application setting (e.g., 'MAINTENANCE_MODE_ENABLED')."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is designed following the core principles of Authorization Independence, Structural Segregation, and DBAC, prioritizing simple and robust security rules. \n\n**Authorization Independence:**\n1.  **User-specific data:** All user-owned subcollections (`/users/{userId}/votes`, `/users/{userId}/referralRewards`, `/users/{userId}/offerWallActivities`) embed the `userId` directly in the path. The documents within these subcollections (`Vote.userId`, `ReferralReward.referrerUserId`, `OfferWallActivity.userId`) also contain a denormalized reference to the owning user's ID. This eliminates the need for `get()` calls to parent documents for authorization, as rules can simply compare `request.auth.uid` with the path's `userId` segment and the document's denormalized `userId` field, enabling atomic writes and simplified debugging.\n2.  **Tournament and Match data:** `Match` documents include the `tournamentId` field. This ensures that a `Match` document can be understood and authorized in isolation if needed, preventing dependencies on `get()` calls to the parent `Tournament` document for its core identification or relationship. For public read access, this denormalization is less about preventing `get()` and more about clarity and potential future rule complexity.\n3.  **Admin Roles (DBAC):** The `UserProfile.isAdmin` field is used to grant administrative privileges. While checking this field requires a `get()` call to the user's *own* profile (`/users/$(request.auth.uid)`), this is an acceptable and common pattern for self-authorization based on database-stored roles, as it's directly tied to `request.auth.uid` rather than a separate, unrelated parent document. This approach adheres to the mandate of storing roles in the database and relying solely on `request.auth.uid` for authorization, avoiding external Firebase Auth custom claims.\n\n**QAPs (Rules are not Filters):**\n1.  **Public Collections:** The `/tournaments` and `/tournaments/{tournamentId}/matches` collections are structured to be publicly readable. This allows clients to `list` documents directly without requiring security rules to filter the results, ensuring QAP compliance for public views like \"Tournament Overview\" and \"Real-time Match Viewer.\"\n2.  **User-Owned Data:** For private user data (`votes`, `referralRewards`, `offerWallActivities`), the `/users/{userId}` path segment inherently restricts access to the authenticated user (`request.auth.uid == userId`). This means `list` operations on these subcollections automatically only return data owned by the requesting user, making them QAP compliant as rules do not need to filter. \n3.  **Admin Access:** Administrators are granted broad `list` and `write` access to sensitive collections (e.g., all `/users` documents for \"Admin User Search and Filter,\" or `AppSetting` for \"Maintenance Mode Toggle\") based on their `isAdmin` status. This is QAP compliant as the `list` operation is performed by an explicitly authorized role.\n\n**Structural Segregation:**\n*   User-specific and private data are strictly segregated under `/users/{userId}`.\n*   Publicly viewable data (`Tournaments`, `Matches`) are in dedicated top-level collections or subcollections with consistent public read access.\n*   Global application settings (`AppSetting`) are in their own collection with specific admin-only write access."
+    "/tournaments/{tournamentId}": {
+      "schema": "Tournament",
+      "description": "Collection of all tournaments."
+    },
+    "/matches/{matchId}": {
+      "schema": "Match",
+      "description": "Real-time match data across all tournaments."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User account and reward details."
+    },
+    "/users/{userId}/ledger/{entryId}": {
+      "schema": "LedgerEntry",
+      "description": "Transaction history per user."
+    },
+    "/settings/global": {
+      "schema": "AppSettings",
+      "description": "Global application configuration."
+    }
   }
 }
