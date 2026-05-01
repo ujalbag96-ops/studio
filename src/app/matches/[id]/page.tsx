@@ -122,8 +122,10 @@ export default async function MatchPage({ params }: { params: { id: string } }) 
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">Facing issues with voting or scores? Join our Telegram support.</p>
-              <Button className="w-full bg-[#0088cc] hover:bg-[#0088cc]/90 text-white font-bold">
-                Join Telegram Support
+              <Button asChild className="w-full bg-[#0088cc] hover:bg-[#0088cc]/90 text-white font-bold">
+                <a href="https://t.me/bracketbattles" target="_blank" rel="noopener noreferrer">
+                  Join Telegram Support
+                </a>
               </Button>
             </CardContent>
           </Card>

@@ -1,11 +1,41 @@
+'use client';
+
+import { useUser } from '@/firebase';
 import { MOCK_MATCHES } from '@/app/lib/mock-data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { ShieldCheck, Search, Save, UserCheck, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Search, Save, UserCheck, RefreshCw, Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+const ADMIN_EMAIL = 'admin@example.com'; // Placeholder: Replace with your actual email
 
 export default function AdminPage() {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  if (isUserLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user || user.email !== ADMIN_EMAIL) {
+    return (
+      <div className="max-w-md mx-auto mt-20 p-8 text-center space-y-6">
+        <div className="mx-auto h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
+          <Lock className="h-10 w-10 text-destructive" />
+        </div>
+        <h1 className="text-2xl font-black uppercase">Access Denied</h1>
+        <p className="text-muted-foreground">This area is restricted to authorized administrators only.</p>
+        <Button onClick={() => router.push('/')} className="w-full font-bold">Return Home</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -14,7 +44,7 @@ export default function AdminPage() {
             <ShieldCheck className="h-8 w-8 text-primary" />
             Admin Dashboard
           </h1>
-          <p className="text-muted-foreground">Authorized access only. Update scores and manage users securely.</p>
+          <p className="text-muted-foreground">Authorized access for {user.email}. Manage tournaments and users.</p>
         </div>
         <div className="flex items-center gap-4">
            <Button variant="outline" className="font-bold border-border">

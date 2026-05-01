@@ -1,7 +1,9 @@
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Gift, Share2, Users, Coins, CheckCircle2 } from 'lucide-react';
+import { Gift, Share2, Users, Coins, CheckCircle2, LayoutDashboard } from 'lucide-react';
 
 export default function RewardsPage() {
   return (
@@ -34,6 +36,34 @@ export default function RewardsPage() {
           icon={<Coins className="text-yellow-500" />} 
         />
       </div>
+
+      {/* CPA Lead Offer Wall Section */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-2">
+          <LayoutDashboard className="h-6 w-6 text-primary" />
+          <h2 className="text-2xl font-black uppercase tracking-tight">Offer Wall</h2>
+        </div>
+        <Card className="border-2 border-primary/10 overflow-hidden">
+          <CardHeader>
+            <CardTitle>Earn Coins Fast</CardTitle>
+            <CardDescription>Complete quick tasks and surveys from CPA Lead to earn coins for tournament entries.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 border-t">
+            {/* WebView Integration for CPA Lead */}
+            <div className="relative w-full aspect-video md:aspect-[21/9] bg-muted/20">
+              <iframe 
+                src="https://www.cpalead.com/mobile/offers.php?id=YOUR_CPA_LEAD_ID_HERE" 
+                className="w-full h-full border-none"
+                title="CPA Lead Offer Wall"
+              />
+              <div className="absolute inset-0 pointer-events-none border-2 border-primary/5 rounded-b-lg shadow-inner"></div>
+            </div>
+          </CardContent>
+          <CardFooter className="bg-muted/10 p-4">
+             <p className="text-[10px] text-muted-foreground italic">Note: Coins are credited automatically within 24 hours of offer completion.</p>
+          </CardFooter>
+        </Card>
+      </section>
 
       <Card className="max-w-xl mx-auto border-2 border-primary/20 bg-primary/5">
         <CardHeader>
