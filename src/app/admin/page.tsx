@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser } from '@/firebase';
@@ -6,9 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, Search, Save, UserCheck, RefreshCw, Lock, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -17,7 +18,7 @@ export default function AdminPage() {
   const router = useRouter();
 
   // Redirect or show access denied if not the admin
-  const isAuthorized = user && user.email === ADMIN_EMAIL;
+  const isAuthorized = user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   if (isUserLoading) {
     return (
@@ -40,7 +41,7 @@ export default function AdminPage() {
             {user ? ` Logged in as: ${user.email}` : " Please log in to continue."}
           </p>
         </div>
-        <Button onClick={() => router.push('/')} className="w-full font-bold">Return Home</Button>
+        <Button onClick={() => router.push('/login')} className="w-full font-bold">Sign In as Admin</Button>
       </div>
     );
   }
@@ -153,13 +154,5 @@ export default function AdminPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-function Badge({ children, variant, className }: { children: React.ReactNode; variant?: "destructive" | "default"; className?: string }) {
-  return (
-    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${variant === 'destructive' ? 'bg-red-500/20 text-red-500 border border-red-500/50' : 'bg-primary/20 text-primary border border-primary/50'} ${className}`}>
-      {children}
-    </span>
   );
 }

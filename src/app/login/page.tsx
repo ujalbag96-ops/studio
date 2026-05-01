@@ -37,10 +37,11 @@ export default function LoginPage() {
   // Background redirection if session is already active
   useEffect(() => {
     if (user && !isUserLoading) {
-      if (user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-        router.push('/admin');
+      const userEmail = user.email?.toLowerCase();
+      if (userEmail === ADMIN_EMAIL.toLowerCase()) {
+        router.replace('/admin');
       } else {
-        router.push('/');
+        router.replace('/');
       }
     }
   }, [user, isUserLoading, router]);
@@ -55,11 +56,12 @@ export default function LoginPage() {
         
         toast({
           title: "Success",
-          description: "Signed in successfully.",
+          description: "Signed in successfully. Redirecting...",
         });
 
         // Immediate redirection based on email
-        if (loggedInUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+        const userEmail = loggedInUser.email?.toLowerCase();
+        if (userEmail === ADMIN_EMAIL.toLowerCase()) {
           router.push('/admin');
         } else {
           router.push('/');
@@ -68,7 +70,7 @@ export default function LoginPage() {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
         toast({
           title: "Account Created",
-          description: "Welcome to the Arena!",
+          description: "Welcome to the Arena! You can now sign in.",
         });
       }
     } catch (error: any) {
@@ -77,7 +79,6 @@ export default function LoginPage() {
         title: "Auth Error",
         description: error.message || "Something went wrong. Please check your credentials.",
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -118,12 +119,11 @@ export default function LoginPage() {
     if (!confirmationResult) return;
     setIsLoading(true);
     try {
-      const result = await confirmationResult.confirm(otp);
+      await confirmationResult.confirm(otp);
       toast({
         title: "Verified",
         description: "Login successful.",
       });
-      // Redirect phone users to home
       router.push('/');
     } catch (error: any) {
       toast({
@@ -131,7 +131,6 @@ export default function LoginPage() {
         title: "Error",
         description: "Invalid OTP code.",
       });
-    } finally {
       setIsLoading(false);
     }
   };
