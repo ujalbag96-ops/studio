@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
-import { Trophy, Loader2, Mail, Phone } from 'lucide-react';
+import { Trophy, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
@@ -33,9 +34,10 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
+  // Background redirection if session is already active
   useEffect(() => {
     if (user && !isUserLoading) {
-      if (user.email === ADMIN_EMAIL) {
+      if (user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         router.push('/admin');
       } else {
         router.push('/');
@@ -48,13 +50,22 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       if (mode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        const loggedInUser = userCredential.user;
+        
         toast({
-          title: "Welcome Back",
-          description: "Sign-in successful.",
+          title: "Success",
+          description: "Signed in successfully.",
         });
+
+        // Immediate redirection based on email
+        if (loggedInUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword(auth, email.trim(), password);
         toast({
           title: "Account Created",
           description: "Welcome to the Arena!",
@@ -64,7 +75,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Auth Error",
-        description: error.message,
+        description: error.message || "Something went wrong. Please check your credentials.",
       });
     } finally {
       setIsLoading(false);
@@ -107,11 +118,13 @@ export default function LoginPage() {
     if (!confirmationResult) return;
     setIsLoading(true);
     try {
-      await confirmationResult.confirm(otp);
+      const result = await confirmationResult.confirm(otp);
       toast({
         title: "Verified",
         description: "Login successful.",
       });
+      // Redirect phone users to home
+      router.push('/');
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -132,42 +145,64 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto p-4 pt-12 space-y-8">
+    <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-500">
       <div className="text-center space-y-2">
         <div className="mx-auto h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-xl mb-4">
           <Trophy className="h-10 w-10 text-primary-foreground" />
         </div>
-        <h1 className="text-3xl font-black uppercase tracking-tighter">Enter the Arena</h1>
-        <p className="text-muted-foreground text-sm">Join tournaments & win rewards.</p>
+        <h1 className="text-3xl font-black uppercase tracking-tighter text-foreground">Enter the Arena</h1>
+        <p className="text-muted-foreground text-sm font-medium">Join tournaments & win rewards.</p>
       </div>
 
       <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1">
           <TabsTrigger value="email" className="font-bold">Email</TabsTrigger>
           <TabsTrigger value="phone" className="font-bold">Phone</TabsTrigger>
         </TabsList>
 
         <TabsContent value="email" className="mt-6">
-          <Card>
+          <Card className="border-border/50 shadow-xl bg-card/50">
             <CardHeader>
-              <CardTitle>Sign In</CardTitle>
+              <CardTitle className="text-xl font-bold">Account Access</CardTitle>
               <CardDescription>Use your email to access your account.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="name@example.com"
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  disabled={isLoading}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  disabled={isLoading}
+                />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
-              <Button className="w-full font-bold" onClick={() => handleEmailAuth('login')} disabled={isLoading || !email || !password}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
+              <Button 
+                className="w-full font-bold h-11" 
+                onClick={() => handleEmailAuth('login')} 
+                disabled={isLoading || !email || !password}
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Sign In"}
               </Button>
-              <Button variant="outline" className="w-full font-bold" onClick={() => handleEmailAuth('signup')} disabled={isLoading || !email || !password}>
+              <Button 
+                variant="outline" 
+                className="w-full font-bold h-11 border-primary/20 hover:bg-primary/5" 
+                onClick={() => handleEmailAuth('signup')} 
+                disabled={isLoading || !email || !password}
+              >
                 Create New Account
               </Button>
             </CardFooter>
@@ -175,9 +210,9 @@ export default function LoginPage() {
         </TabsContent>
 
         <TabsContent value="phone" className="mt-6">
-          <Card>
+          <Card className="border-border/50 shadow-xl bg-card/50">
             <CardHeader>
-              <CardTitle>Phone Login</CardTitle>
+              <CardTitle className="text-xl font-bold">Phone Login</CardTitle>
               <CardDescription>Verify your mobile number.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -185,23 +220,47 @@ export default function LoginPage() {
               {!confirmationResult ? (
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" type="tel" placeholder="+91..." value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+                  <Input 
+                    id="phone" 
+                    type="tel" 
+                    placeholder="+91..." 
+                    value={phoneNumber} 
+                    onChange={(e) => setPhoneNumber(e.target.value)} 
+                    disabled={isLoading}
+                  />
+                  <p className="text-[10px] text-muted-foreground italic">Format: +[CountryCode][Number]</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
                   <Label htmlFor="otp">6-Digit OTP</Label>
-                  <Input id="otp" type="text" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value)} className="text-center text-xl font-bold" />
+                  <Input 
+                    id="otp" 
+                    type="text" 
+                    maxLength={6} 
+                    value={otp} 
+                    onChange={(e) => setOtp(e.target.value)} 
+                    className="text-center text-xl font-black tracking-widest"
+                    disabled={isLoading}
+                  />
                 </div>
               )}
             </CardContent>
             <CardFooter>
               {!confirmationResult ? (
-                <Button className="w-full font-bold" onClick={handleSendOtp} disabled={isLoading || !phoneNumber}>
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send OTP"}
+                <Button 
+                  className="w-full font-bold h-11" 
+                  onClick={handleSendOtp} 
+                  disabled={isLoading || !phoneNumber}
+                >
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Send OTP"}
                 </Button>
               ) : (
-                <Button className="w-full font-bold" onClick={handleVerifyOtp} disabled={isLoading || otp.length < 6}>
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify OTP"}
+                <Button 
+                  className="w-full font-bold h-11" 
+                  onClick={handleVerifyOtp} 
+                  disabled={isLoading || otp.length < 6}
+                >
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Verify OTP"}
                 </Button>
               )}
             </CardFooter>
