@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useUser, useCollection, useFirestore } from '@/firebase';
+import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { 
   LayoutDashboard, 
@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
@@ -37,9 +37,10 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'tournaments' | 'payments' | 'withdrawals' | 'settings'>('dashboard');
 
-  // Real-time Data Subscriptions
-  const usersQuery = useMemo(() => firestore ? collection(firestore, 'users') : null, [firestore]);
-  const matchesQuery = useMemo(() => firestore ? collection(firestore, 'matches') : null, [firestore]);
+  // Real-time Data Subscriptions using useMemoFirebase for proper stabilization
+  const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+  const matchesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'matches') : null, [firestore]);
+  
   const { data: usersData, isLoading: usersLoading } = useCollection(usersQuery);
   const { data: matchesData, isLoading: matchesLoading } = useCollection(matchesQuery);
 
@@ -166,7 +167,14 @@ export default function AdminDashboard() {
                           </TableCell>
                         </TableRow>
                       ))}
-                      {(!usersData || usersData.length === 0) && (
+                      {(usersLoading) && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="h-32 text-center text-muted-foreground italic">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {(!usersLoading && (!usersData || usersData.length === 0)) && (
                         <TableRow>
                           <TableCell colSpan={4} className="h-32 text-center text-muted-foreground italic">No users registered in the system yet.</TableCell>
                         </TableRow>
@@ -216,7 +224,12 @@ export default function AdminDashboard() {
                       </CardContent>
                     </Card>
                   ))}
-                  {(!matchesData || matchesData.length === 0) && (
+                  {matchesLoading && (
+                    <div className="flex justify-center p-8">
+                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  )}
+                  {!matchesLoading && (!matchesData || matchesData.length === 0) && (
                     <div className="text-center py-10 border-2 border-dashed border-white/5 rounded-2xl text-muted-foreground text-sm italic">
                       No active matches to display.
                     </div>
