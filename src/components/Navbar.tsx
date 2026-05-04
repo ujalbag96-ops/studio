@@ -1,25 +1,43 @@
 'use client';
 
 import Link from 'next/link';
-import { Trophy, Home, Gift, Wallet, Settings, LogIn, User } from 'lucide-react';
+import { Trophy, Home, Gift, Wallet, Settings, LogIn, User, LogOut } from 'lucide-react';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function Navbar() {
   const { user, isUserLoading } = useUser();
   const { auth } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
 
   const handleLogout = async () => {
     if (auth) {
-      await signOut(auth);
+      try {
+        await signOut(auth);
+        toast({
+          title: "Logged Out",
+          description: "You have been successfully signed out.",
+        });
+        // Force a hard redirect to login to clear all states
+        window.location.href = '/login';
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Logout Failed",
+          description: error.message,
+        });
+      }
     }
   };
 
-  const isAdmin = user && user.email === ADMIN_EMAIL;
+  const isAdmin = user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/80 backdrop-blur-md md:top-0 md:bottom-auto md:border-t-0 md:border-b">
@@ -69,8 +87,8 @@ export default function Navbar() {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive font-bold cursor-pointer">
-                    Sign Out
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive font-bold cursor-pointer flex items-center gap-2">
+                    <LogOut className="h-4 w-4" /> Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
