@@ -1,166 +1,287 @@
 
 'use client';
 
-import { useUser } from '@/firebase';
-import { MOCK_MATCHES } from '@/app/lib/mock-data';
+import { useUser, useCollection, useFirestore } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { 
+  LayoutDashboard, 
+  Users as UsersIcon, 
+  Trophy, 
+  CreditCard, 
+  ArrowUpRight, 
+  Settings, 
+  ShieldCheck, 
+  Search, 
+  Ban, 
+  Edit3, 
+  Trash2, 
+  Plus,
+  TrendingUp,
+  Activity,
+  Clock,
+  Lock,
+  Loader2
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, Search, Save, UserCheck, RefreshCw, Lock, AlertTriangle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useState, useMemo } from 'react';
+import { cn } from '@/lib/utils';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-export default function AdminPage() {
+export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
-  const router = useRouter();
+  const firestore = useFirestore();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'tournaments' | 'payments' | 'withdrawals' | 'settings'>('dashboard');
 
-  // Debugging log to see who is trying to access the admin page
-  useEffect(() => {
-    if (!isUserLoading) {
-      console.log('Admin Page Access Check: User =', user?.email);
-    }
-  }, [user, isUserLoading]);
+  // Real-time Data Subscriptions
+  const usersQuery = useMemo(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+  const matchesQuery = useMemo(() => firestore ? collection(firestore, 'matches') : null, [firestore]);
+  const { data: usersData, isLoading: usersLoading } = useCollection(usersQuery);
+  const { data: matchesData, isLoading: matchesLoading } = useCollection(matchesQuery);
 
   if (isUserLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
 
-  const userEmail = user?.email?.toLowerCase().trim();
-  const isAuthorized = user && userEmail === ADMIN_EMAIL.toLowerCase();
+  const isAuthorized = user?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
   if (!isAuthorized) {
     return (
-      <div className="max-w-md mx-auto mt-20 p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
-        <div className="mx-auto h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
-          <Lock className="h-10 w-10 text-destructive" />
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
+        <div className="p-4 rounded-full bg-destructive/10 mb-6">
+          <Lock className="h-12 w-12 text-destructive" />
         </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-black uppercase tracking-tighter">Restricted Access</h1>
-          <p className="text-muted-foreground text-sm">
-            This command center is reserved for the system administrator. 
-            {user ? ` Current user: ${user.email}` : " Please sign in with authorized credentials."}
-          </p>
-        </div>
-        <Button onClick={() => window.location.href = '/login'} className="w-full font-bold">Login as Admin</Button>
+        <h1 className="text-3xl font-black uppercase tracking-tighter mb-2">Restricted Area</h1>
+        <p className="text-muted-foreground mb-8 max-w-sm">
+          Access is strictly reserved for system administrators. Your credentials do not grant access to this sector.
+        </p>
+        <Button onClick={() => window.location.href = '/login'} className="font-bold">Return to Login</Button>
       </div>
     );
   }
 
-  return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-12 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b pb-8">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-black uppercase tracking-tight flex items-center gap-3">
-            <ShieldCheck className="h-8 w-8 text-primary" />
-            Admin Command Center
-          </h1>
-          <p className="text-muted-foreground font-medium">System Operator: <span className="text-primary font-bold">{user?.email}</span></p>
-        </div>
-        <div className="flex items-center gap-4">
-           <Button variant="outline" className="font-bold border-border bg-card">
-              <RefreshCw className="h-4 w-4 mr-2" /> Maintenance: OFF
-           </Button>
-        </div>
-      </div>
+  // Analytics Calculations
+  const totalRevenue = 12450.00; // Mocked for now
+  const activeUsersCount = usersData?.length || 0;
+  const liveMatchesCount = matchesData?.filter(m => m.status === 'live').length || 0;
+  const pendingRequests = 12; // Mocked for now
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Score Update Section */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Save className="h-5 w-5 text-primary" />
-              Live Score Control
-            </h2>
-            <Badge variant="default" className="bg-primary/10 text-primary border-primary/20">Active Matches: {MOCK_MATCHES.filter(m => m.status === 'live').length}</Badge>
+  return (
+    <div className="flex min-h-screen bg-[#0d0d12] text-foreground">
+      {/* Sidebar - Left Navigation */}
+      <aside className="w-64 border-r border-white/5 bg-card/30 backdrop-blur-2xl hidden md:flex flex-col fixed inset-y-0 left-0 z-50">
+        <div className="p-6 border-b border-white/5 flex items-center gap-3">
+          <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+            <ShieldCheck className="h-6 w-6 text-white" />
           </div>
-          <div className="grid gap-6">
-            {MOCK_MATCHES.filter(m => m.status === 'live').map(match => (
-              <Card key={match.id} className="border-l-4 border-l-primary shadow-lg hover:shadow-primary/5 transition-shadow">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{match.description}</span>
-                    <Badge variant="destructive" className="animate-pulse">LIVE TRACKING</Badge>
+          <span className="font-black tracking-tighter text-lg">BATTLE<span className="text-primary">ADMIN</span></span>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-2 mt-4">
+          <SidebarItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label="Dashboard" />
+          <SidebarItem active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<UsersIcon />} label="Users" />
+          <SidebarItem active={activeTab === 'tournaments'} onClick={() => setActiveTab('tournaments')} icon={<Trophy />} label="Tournaments" />
+          <SidebarItem active={activeTab === 'payments'} onClick={() => setActiveTab('payments')} icon={<CreditCard />} label="Payments" />
+          <SidebarItem active={activeTab === 'withdrawals'} onClick={() => setActiveTab('withdrawals')} icon={<ArrowUpRight />} label="Withdrawals" />
+          <SidebarItem active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings />} label="Settings" />
+        </nav>
+
+        <div className="p-6 border-t border-white/5 bg-black/20">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-black uppercase">AD</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold truncate">{user?.email}</p>
+              <p className="text-[9px] text-primary uppercase font-black tracking-widest">Root Admin</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 md:ml-64 p-6 md:p-10 space-y-8 pb-24">
+        {/* Analytics Header */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <AnalyticsCard title="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} icon={<TrendingUp />} color="primary" trend="+12.5%" />
+          <AnalyticsCard title="Active Users" value={activeUsersCount.toString()} icon={<UsersIcon />} color="secondary" trend="+5" />
+          <AnalyticsCard title="Live Matches" value={liveMatchesCount.toString()} icon={<Activity />} color="destructive" trend="Live Now" />
+          <AnalyticsCard title="Pending Requests" value={pendingRequests.toString()} icon={<Clock />} color="yellow" trend="Needs Review" />
+        </div>
+
+        {/* Dynamic Content Based on Tab */}
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {activeTab === 'dashboard' && (
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              {/* User Management Table */}
+              <Card className="xl:col-span-2 bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <UsersIcon className="h-5 w-5 text-primary" />
+                      User Management
+                    </CardTitle>
+                    <CardDescription>Monitor wallet balances and account statuses.</CardDescription>
                   </div>
-                  <div className="grid grid-cols-2 gap-8 py-2">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase text-muted-foreground">{match.teamA.name}</Label>
-                      <Input type="number" defaultValue={match.scoreA} className="font-black text-2xl h-14 text-center bg-muted/30 focus:ring-primary" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase text-muted-foreground">{match.teamB.name}</Label>
-                      <Input type="number" defaultValue={match.scoreB} className="font-black text-2xl h-14 text-center bg-muted/30 focus:ring-secondary" />
-                    </div>
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="Filter users..." className="pl-9 bg-black/20 border-white/10 h-9 text-xs" />
                   </div>
-                  <Button className="w-full font-bold h-12 text-lg shadow-xl shadow-primary/10">Publish Real-Time Update</Button>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader className="bg-black/20">
+                      <TableRow className="hover:bg-transparent border-white/5">
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest pl-6">UserID</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">User Details</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Wallet</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest pr-6 text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {usersData?.map((u) => (
+                        <TableRow key={u.id} className="border-white/5 hover:bg-white/5 transition-colors">
+                          <TableCell className="font-mono text-[10px] text-muted-foreground pl-6">#{u.id.slice(-6).toUpperCase()}</TableCell>
+                          <TableCell>
+                            <div className="space-y-0.5">
+                              <p className="text-sm font-bold">{u.mobile || u.email || 'Anonymous'}</p>
+                              <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">Device: {u.deviceId?.slice(0, 12) || '---'}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="bg-secondary/10 text-secondary border-secondary/20 font-black">
+                              {u.coins?.toLocaleString() || 0} 🪙
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right pr-6">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10">
+                              <Ban className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {(!usersData || usersData.length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="h-32 text-center text-muted-foreground italic">No users registered in the system yet.</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </div>
 
-        {/* User Monitoring & Security */}
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <UserCheck className="h-5 w-5 text-secondary" />
-            Security & User Monitoring
-          </h2>
-          <Card className="shadow-lg border-secondary/20">
-            <CardHeader>
-              <CardTitle className="text-lg">Fraud Detection Panel</CardTitle>
-              <CardDescription>Monitor Device IDs and Mobile Numbers to prevent multi-account exploitation.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search by mobile or device fingerprint..." className="pl-10 h-11" />
+              {/* Tournament/Match Manager Section */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-secondary" />
+                    Match Controller
+                  </h3>
+                  <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-bold">
+                    <Plus className="h-4 w-4 mr-1" /> New Match
+                  </Button>
                 </div>
-                <Button variant="secondary" className="font-bold px-6">Search</Button>
-              </div>
-
-              <div className="space-y-3">
-                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Recent Activity Flagged</p>
-                 <div className="rounded-xl border bg-card/50 p-4 space-y-3">
-                    <div className="flex justify-between items-center text-sm p-3 bg-background rounded-lg border border-border/50 hover:border-primary/30 transition-colors">
-                        <div className="space-y-1">
-                          <p className="font-black tracking-tight text-primary">+1 (555) 0123-456</p>
-                          <p className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded inline-block uppercase">ID: ANDROID_882x112</p>
+                
+                <div className="space-y-4">
+                  {matchesData?.map((match) => (
+                    <Card key={match.id} className="bg-card/20 backdrop-blur-lg border-white/5 hover:border-primary/30 transition-all group">
+                      <CardContent className="p-5 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <Badge variant={match.status === 'live' ? 'destructive' : 'outline'} className={cn("text-[10px] font-black uppercase tracking-widest", match.status === 'live' && "animate-pulse")}>
+                            {match.status}
+                          </Badge>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="h-7 w-7"><Edit3 className="h-3 w-3" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"><Trash2 className="h-3 w-3" /></Button>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" className="h-8 text-xs font-bold border-destructive/30 text-destructive hover:bg-destructive/10">Ban Device</Button>
+                        <div className="flex items-center justify-between px-2">
+                          <div className="text-center space-y-1">
+                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{match.teamA?.name}</p>
+                            <p className="text-2xl font-black">{match.scoreA}</p>
+                          </div>
+                          <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">VS</div>
+                          <div className="text-center space-y-1">
+                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{match.teamB?.name}</p>
+                            <p className="text-2xl font-black">{match.scoreB}</p>
+                          </div>
                         </div>
+                        <Button variant="outline" className="w-full h-8 text-[10px] font-black uppercase tracking-widest border-white/10 hover:bg-primary hover:text-white transition-colors">Update Live Score</Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {(!matchesData || matchesData.length === 0) && (
+                    <div className="text-center py-10 border-2 border-dashed border-white/5 rounded-2xl text-muted-foreground text-sm italic">
+                      No active matches to display.
                     </div>
-                    <div className="flex justify-between items-center text-sm p-3 bg-background rounded-lg border border-border/50 hover:border-primary/30 transition-colors">
-                        <div className="space-y-1">
-                          <p className="font-black tracking-tight text-primary">+1 (555) 9876-543</p>
-                          <p className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded inline-block uppercase">ID: IOS_v15_xyz99</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" className="h-8 text-xs font-bold border-destructive/30 text-destructive hover:bg-destructive/10">Ban Device</Button>
-                        </div>
-                    </div>
-                 </div>
-              </div>
-
-              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-xs font-bold text-amber-500 uppercase">System Insight</p>
-                  <p className="text-[10px] text-amber-200/70 leading-relaxed">2 users detected using the same device fingerprint in the last 24 hours. Hardware locking recommended.</p>
+                  )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
+
+          {activeTab !== 'dashboard' && (
+            <div className="h-[50vh] flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-white/5 rounded-3xl bg-card/10">
+              <Activity className="h-12 w-12 text-primary opacity-20 animate-pulse" />
+              <p className="text-muted-foreground font-medium italic">Section "{activeTab.toUpperCase()}" is currently under maintenance.</p>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
     </div>
+  );
+}
+
+function SidebarItem({ active, icon, label, onClick }: { active: boolean, icon: React.ReactNode, label: string, onClick: () => void }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={cn(
+        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300",
+        active 
+          ? "bg-primary text-white shadow-lg shadow-primary/20 font-bold" 
+          : "text-muted-foreground hover:bg-white/5 hover:text-white"
+      )}
+    >
+      <span className={cn("h-5 w-5", active ? "text-white" : "text-muted-foreground")}>{icon}</span>
+      <span className="text-sm tracking-tight">{label}</span>
+      {active && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white shadow-sm" />}
+    </button>
+  );
+}
+
+function AnalyticsCard({ title, value, icon, color, trend }: { title: string, value: string, icon: React.ReactNode, color: string, trend: string }) {
+  const colorMap: Record<string, string> = {
+    primary: "text-primary bg-primary/10 shadow-primary/10 border-primary/20",
+    secondary: "text-secondary bg-secondary/10 shadow-secondary/10 border-secondary/20",
+    destructive: "text-destructive bg-destructive/10 shadow-destructive/10 border-destructive/20",
+    yellow: "text-amber-500 bg-amber-500/10 shadow-amber-500/10 border-amber-500/20"
+  };
+
+  return (
+    <Card className="bg-card/40 backdrop-blur-xl border-white/5 overflow-hidden group hover:border-white/10 transition-all">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between">
+          <div className="space-y-4">
+            <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border shadow-inner", colorMap[color])}>
+              {icon}
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{title}</p>
+              <h4 className="text-2xl font-black tracking-tighter">{value}</h4>
+            </div>
+          </div>
+          <Badge variant="outline" className="text-[10px] font-black bg-white/5 border-white/10 text-white opacity-60 group-hover:opacity-100 transition-opacity">
+            {trend}
+          </Badge>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
