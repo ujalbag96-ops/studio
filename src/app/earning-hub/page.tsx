@@ -21,9 +21,10 @@ import { AppSettings } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import OfferWall from '@/components/OfferWall';
 
 export default function EarningHub() {
-  const { user } = useUser();
+  const { user } = userUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isVideoLoading, setIsVideoLoading] = useState(false);
@@ -119,7 +120,7 @@ export default function EarningHub() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Video Wall */}
         {showVideoWall ? (
           <Card className="bg-[#1a1a1a] border-primary/30 border-2 rounded-[2.5rem] overflow-hidden relative group hover:shadow-[0_0_30px_rgba(168,85,247,0.2)] transition-all">
@@ -154,27 +155,29 @@ export default function EarningHub() {
           </Card>
         ) : <ModuleDisabledCard label="Video Wall" />}
 
-        {/* Offer Wall */}
+        {/* Offer Wall (Dynamic API Integration) */}
         {showOfferWall ? (
-          <Card className="bg-[#1a1a1a] border-secondary/30 border-2 rounded-[2.5rem] overflow-hidden relative group hover:shadow-[0_0_30px_rgba(103,232,249,0.2)] transition-all">
-             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
+          <Card className="lg:col-span-2 bg-[#1a1a1a] border-secondary/30 border-2 rounded-[2.5rem] overflow-hidden relative group hover:shadow-[0_0_30px_rgba(103,232,249,0.2)] transition-all">
+             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform pointer-events-none">
                <ClipboardList className="h-40 w-40 text-secondary" />
             </div>
             <CardHeader className="p-8">
-              <Badge className="bg-secondary/20 text-secondary border-secondary/20 w-fit mb-4 uppercase font-black">OFFER WALL</Badge>
-              <CardTitle className="text-3xl font-black uppercase tracking-tight">Arena Tasks</CardTitle>
-              <CardDescription className="text-base font-bold text-secondary italic">Earn 10-100 Coins</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Badge className="bg-secondary/20 text-secondary border-secondary/20 w-fit mb-4 uppercase font-black">OFFER WALL</Badge>
+                  <CardTitle className="text-3xl font-black uppercase tracking-tight">Arena Missions</CardTitle>
+                  <CardDescription className="text-base font-bold text-secondary italic">Android Exclusive • Instant Payouts</CardDescription>
+                </div>
+                <Badge variant="outline" className="border-secondary/20 text-secondary hidden md:flex">v1.2 LIVE</Badge>
+              </div>
             </CardHeader>
-            <CardContent className="px-8 pb-8 space-y-6">
-              <p className="text-sm text-muted-foreground leading-relaxed">Complete game downloads, level achievements, and registration tasks for massive rewards.</p>
-              <Button variant="outline" className="w-full h-16 border-secondary/40 text-secondary hover:bg-secondary/10 rounded-2xl font-black uppercase tracking-widest text-lg">
-                OPEN TASKS <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
+            <CardContent className="px-8 pb-8">
+               <OfferWall />
             </CardContent>
           </Card>
         ) : <ModuleDisabledCard label="Offer Wall" />}
 
-        {/* CPA Lead */}
+        {/* CPA Lead (Placeholder or Survey section) */}
         {showCpaLead ? (
           <Card className="bg-[#1a1a1a] border-white/10 border-2 rounded-[2.5rem] overflow-hidden relative group hover:border-white/30 transition-all">
              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
