@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Smartphone, ExternalLink, AlertCircle, Coins } from 'lucide-react';
+import { Loader2, Smartphone, ExternalLink, AlertCircle, Coins, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -28,18 +28,23 @@ export default function OfferWall() {
   const [error, setError] = useState<string | null>(null);
 
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
-  const { data: settings } = useDoc<AppSettings>(settingsRef);
+  const { data: settings, isLoading: settingsLoading } = useDoc<AppSettings>(settingsRef);
 
-  // Default: $1 = 50 user coins (100 base * 50% profit margin)
   const COIN_VALUE_PER_DOLLAR = settings?.coinValuePerDollar ?? 100;
   const ADMIN_PROFIT_PERCENT = settings?.adminProfitPercentage ?? 50;
+  const cpaLeadUrl = settings?.cpaLeadUrl;
 
   useEffect(() => {
     async function fetchOffers() {
+      if (!cpaLeadUrl) {
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch('https://www.cpalead.com/api/offers?id=774893&format=json');
+        const response = await fetch(cpaLeadUrl);
         if (!response.ok) throw new Error('Failed to reach CPALead Arena.');
         
         const data = await response.json();
@@ -52,20 +57,31 @@ export default function OfferWall() {
         setOffers(androidOffers.slice(0, 15));
       } catch (err: any) {
         console.error('CPA Fetch Error:', err);
-        setError('Connection to task server timed out. Please try again later.');
+        setError('Connection to task server timed out.');
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchOffers();
-  }, []);
+    if (cpaLeadUrl) {
+      fetchOffers();
+    }
+  }, [cpaLeadUrl]);
 
-  if (isLoading) {
+  if (settingsLoading || isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
         <Loader2 className="h-10 w-10 animate-spin text-secondary" />
         <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Scanning for new missions...</p>
+      </div>
+    );
+  }
+
+  if (!cpaLeadUrl) {
+    return (
+      <div className="p-12 text-center space-y-4 bg-black/20 rounded-3xl border border-dashed border-white/5">
+        <Lock className="h-10 w-10 text-muted-foreground mx-auto opacity-20" />
+        <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest italic">Offer Wall not configured by Admin.</p>
       </div>
     );
   }

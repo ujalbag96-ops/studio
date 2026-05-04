@@ -108,7 +108,8 @@
         "adminProfitPercentage": { "type": "number" },
         "videoWallEnabled": { "type": "boolean" },
         "offerWallEnabled": { "type": "boolean" },
-        "cpaLeadEnabled": { "type": "boolean" }
+        "cpaLeadEnabled": { "type": "boolean" },
+        "cpaLeadUrl": { "type": "string" }
       }
     }
   },
