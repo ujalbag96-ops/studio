@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -29,7 +30,6 @@ export default function ArenaHQ() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  // Real-time Data
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
     [firestore, user]
@@ -72,11 +72,12 @@ export default function ArenaHQ() {
     );
   }
 
-  const totalEarnings = recentActivity?.filter(l => l.type === 'income' || l.type === 'deposit').reduce((acc, curr) => acc + curr.amount, 0) || 0;
+  // Earnings are stored in coins in the ledger, so we convert to ₹ (10 coins = ₹1)
+  const totalCoinEarnings = recentActivity?.filter(l => l.type === 'income' || l.type === 'deposit').reduce((acc, curr) => acc + curr.amount, 0) || 0;
+  const totalRupeeEarnings = totalCoinEarnings / 10;
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-10 pb-32">
-      {/* Immersive Header */}
       <div className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-card to-background border border-white/5 p-8 md:p-12 shadow-2xl">
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
           <Shield className="h-64 w-64 text-primary" />
@@ -119,7 +120,6 @@ export default function ArenaHQ() {
         </div>
       </div>
 
-      {/* Stats Cluster */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <HQStatsCard 
           title="Current Balance" 
@@ -130,7 +130,7 @@ export default function ArenaHQ() {
         />
         <HQStatsCard 
           title="Battle Earnings" 
-          value={`₹${totalEarnings.toFixed(0)}`} 
+          value={`₹${totalRupeeEarnings.toFixed(2)}`} 
           icon={<TrendingUp />} 
           color="secondary"
         />
@@ -144,7 +144,6 @@ export default function ArenaHQ() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Battle Log */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between px-2">
              <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-3 italic">
@@ -186,7 +185,7 @@ export default function ArenaHQ() {
                             "text-2xl font-black tracking-tighter",
                             activity.type === 'withdrawal' ? "text-red-400" : "text-green-400"
                           )}>
-                            {activity.type === 'withdrawal' ? '-' : '+'}₹{activity.amount}
+                            {activity.type === 'withdrawal' ? '-' : '+'}₹{activity.type === 'withdrawal' ? activity.amount : (activity.amount / 10)}
                           </p>
                           <Badge variant="outline" className={cn(
                              "text-[9px] font-black uppercase px-3 py-0.5 border-2",
@@ -208,7 +207,6 @@ export default function ArenaHQ() {
           </Card>
         </div>
 
-        {/* Right Wing: Tactical Hub */}
         <div className="space-y-8">
           <Card className="bg-gradient-to-br from-[#1a1a24] to-card border-white/5 rounded-[2.5rem] p-8 text-center space-y-8">
              <div className="mx-auto h-20 w-20 rounded-3xl bg-secondary/10 flex items-center justify-center shadow-inner border border-secondary/20">

@@ -27,12 +27,12 @@ export default function OfferWall() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch Revenue Settings
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
+  // Default: $1 = 50 user coins (100 base * 50% profit margin)
   const COIN_VALUE_PER_DOLLAR = settings?.coinValuePerDollar ?? 100;
-  const ADMIN_PROFIT_PERCENT = settings?.adminProfitPercentage ?? 20;
+  const ADMIN_PROFIT_PERCENT = settings?.adminProfitPercentage ?? 50;
 
   useEffect(() => {
     async function fetchOffers() {
@@ -83,9 +83,6 @@ export default function OfferWall() {
   return (
     <div className="grid gap-4 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
       {offers.map((offer, index) => {
-        // Calculate dynamic coin payout:
-        // 1. Convert dollar payout to base coins
-        // 2. Subtract admin profit margin
         const rawDollarValue = parseFloat(offer.payout);
         const totalBaseCoins = rawDollarValue * COIN_VALUE_PER_DOLLAR;
         const userCoins = Math.round(totalBaseCoins * (1 - ADMIN_PROFIT_PERCENT / 100));

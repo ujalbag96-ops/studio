@@ -47,10 +47,8 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'tournaments' | 'matches' | 'support' | 'transactions' | 'settings' | 'revenue'>('dashboard');
 
-  // Verify Admin status safely
   const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
-  // Queries only run if Admin is fully authenticated
   const usersQuery = useMemoFirebase(() => 
     (firestore && isAdminUser) ? collection(firestore, 'users') : null, 
     [firestore, isAdminUser]
@@ -88,9 +86,8 @@ export default function AdminDashboard() {
   const [roomPass, setRoomPass] = useState('');
   const [telegramInput, setTelegramInput] = useState('');
   
-  // Revenue Settings State
   const [coinValue, setCoinValue] = useState<string>('100');
-  const [profitMargin, setProfitMargin] = useState<string>('20');
+  const [profitMargin, setProfitMargin] = useState<string>('50');
 
   useEffect(() => {
     if (settings) {
@@ -107,7 +104,7 @@ export default function AdminDashboard() {
         coinValuePerDollar: parseFloat(coinValue),
         adminProfitPercentage: parseFloat(profitMargin)
       }, { merge: true });
-      toast({ title: "Revenue Settings Updated", description: "Values applied to all offer calculations." });
+      toast({ title: "Revenue Settings Updated", description: "Offer rewards re-calculated." });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Update Failed", description: e.message });
     }
@@ -227,7 +224,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#0d0d12] text-foreground">
-      {/* Sidebar for Desktop */}
       <aside className="w-64 border-r border-white/5 bg-card/30 backdrop-blur-2xl hidden md:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-6 border-b border-white/5 flex items-center gap-3">
           <ShieldCheck className="h-6 w-6 text-primary" />
@@ -244,9 +240,7 @@ export default function AdminDashboard() {
         </nav>
       </aside>
 
-      {/* Main Content Area */}
       <main className="flex-1 md:ml-64 p-4 md:p-10 space-y-8 pb-32 pt-20 md:pt-10">
-        {/* Mobile Tab Switcher */}
         <div className="md:hidden overflow-x-auto flex gap-2 pb-2 no-scrollbar fixed top-16 left-0 right-0 z-40 bg-[#0d0d12] p-4 border-b border-white/5">
           <Button size="sm" variant={activeTab === 'dashboard' ? 'default' : 'outline'} onClick={() => setActiveTab('dashboard')} className="whitespace-nowrap">Dash</Button>
           <Button size="sm" variant={activeTab === 'tournaments' ? 'default' : 'outline'} onClick={() => setActiveTab('tournaments')} className="whitespace-nowrap">Event</Button>
@@ -291,7 +285,7 @@ export default function AdminDashboard() {
                       placeholder="e.g. 100" 
                       className="bg-black/40 border-white/10 h-14 rounded-2xl font-black text-lg"
                     />
-                    <p className="text-[9px] text-muted-foreground italic">Standard: 100 coins = $1.00</p>
+                    <p className="text-[9px] text-muted-foreground italic">User Reward Scaling</p>
                   </div>
 
                   <div className="space-y-3">
@@ -302,20 +296,21 @@ export default function AdminDashboard() {
                       type="number" 
                       value={profitMargin} 
                       onChange={(e) => setProfitMargin(e.target.value)}
-                      placeholder="e.g. 20" 
+                      placeholder="e.g. 50" 
                       className="bg-black/40 border-white/10 h-14 rounded-2xl font-black text-lg"
                     />
-                    <p className="text-[9px] text-muted-foreground italic">Your cut from every user completion.</p>
+                    <p className="text-[9px] text-muted-foreground italic">Percent deducted from base coin value.</p>
                   </div>
                </div>
 
                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 space-y-2">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">Calculation Preview</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">Target: $1 = 50 Coins</p>
                   <p className="text-sm font-medium text-muted-foreground">
-                    If an offer pays $1.00:<br />
-                    Total Coins: {coinValue} 🪙<br />
-                    User gets: {Math.round(parseFloat(coinValue) * (1 - parseFloat(profitMargin) / 100))} 🪙<br />
-                    Your profit: {Math.round(parseFloat(coinValue) * (parseFloat(profitMargin) / 100))} 🪙
+                    If $1 Payout from CPA:<br />
+                    Base Coins: {coinValue}<br />
+                    Admin Margin: {profitMargin}%<br />
+                    <strong>User gets: {Math.round(parseFloat(coinValue) * (1 - parseFloat(profitMargin) / 100))} Coins</strong><br />
+                    (With 10 coins = ₹1, user earns ₹{Math.round(parseFloat(coinValue) * (1 - parseFloat(profitMargin) / 100)) / 10})
                   </p>
                </div>
 
@@ -326,7 +321,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Other tabs remain the same... */}
         {activeTab === 'tournaments' && (
           <div className="space-y-8">
             <Card className="bg-card/30 border-white/5 p-6 rounded-[2rem]">
