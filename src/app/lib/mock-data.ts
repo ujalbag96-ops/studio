@@ -1,3 +1,4 @@
+
 import { Tournament, Match, UserLedgerEntry } from './types';
 
 export const MOCK_TOURNAMENTS: Tournament[] = [
@@ -6,7 +7,7 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     name: 'Cyber Strike Masters',
     status: 'active',
     game: 'Tactical Shooter',
-    prizePool: '$10,000',
+    prizePool: '₹10,000',
     startDate: '2024-05-20',
     banner: 'https://picsum.photos/seed/cyberstrike/800/400'
   },
@@ -15,7 +16,7 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     name: 'Nebula League Season 4',
     status: 'upcoming',
     game: 'MOBA Elite',
-    prizePool: '$5,000',
+    prizePool: '₹5,000',
     startDate: '2024-06-15',
     banner: 'https://picsum.photos/seed/nebula/800/400'
   }

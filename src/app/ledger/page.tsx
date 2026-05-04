@@ -1,3 +1,6 @@
+
+'use client';
+
 import { MOCK_LEDGER } from '@/app/lib/mock-data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -25,9 +28,9 @@ export default function LedgerPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard title="Total Deposits" value={`$${stats.totalDeposit.toFixed(2)}`} icon={<ArrowDownCircle className="text-green-500" />} />
-        <StatCard title="Total Withdrawals" value={`$${stats.totalWithdrawal.toFixed(2)}`} icon={<ArrowUpCircle className="text-red-500" />} />
-        <StatCard title="Referral Income" value={`$${stats.totalIncome.toFixed(2)}`} icon={<TrendingUp className="text-primary" />} />
+        <StatCard title="Total Deposits" value={`₹${stats.totalDeposit.toFixed(2)}`} icon={<ArrowDownCircle className="text-green-500" />} />
+        <StatCard title="Total Withdrawals" value={`₹${stats.totalWithdrawal.toFixed(2)}`} icon={<ArrowUpCircle className="text-red-500" />} />
+        <StatCard title="Referral Income" value={`₹${stats.totalIncome.toFixed(2)}`} icon={<TrendingUp className="text-primary" />} />
       </div>
 
       <Card>
@@ -50,7 +53,7 @@ export default function LedgerPage() {
                   <TableCell className="font-medium">{entry.date}</TableCell>
                   <TableCell className="capitalize">{entry.type}</TableCell>
                   <TableCell className={entry.type === 'withdrawal' ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>
-                    {entry.type === 'withdrawal' ? '-' : '+'}${entry.amount.toFixed(2)}
+                    {entry.type === 'withdrawal' ? '-' : '+'}₹{entry.amount.toFixed(2)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={entry.status === 'completed' ? 'default' : 'outline'} className={entry.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50' : ''}>
