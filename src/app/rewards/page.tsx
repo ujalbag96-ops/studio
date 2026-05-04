@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -6,9 +5,9 @@ import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestor
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Gift, Users, PlayCircle, Sparkles, Loader2, LayoutDashboard } from 'lucide-react';
+import { Gift, Users, PlayCircle, Sparkles, Loader2, LayoutDashboard, Clock } from 'lucide-react';
 import { AppSettings, UserProfile } from '@/app/lib/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function RewardsPage() {
@@ -16,9 +15,36 @@ export default function RewardsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: settings, isLoading: isSettingsLoading } = useDoc<AppSettings>(settingsRef);
+
+  // Cooldown Logic
+  useEffect(() => {
+    const checkCooldown = () => {
+      const lastWatchTime = localStorage.getItem('last_video_watch_time');
+      if (lastWatchTime) {
+        const elapsed = Date.now() - parseInt(lastWatchTime);
+        const cooldownMs = 5 * 60 * 1000; // 5 minutes
+        if (elapsed < cooldownMs) {
+          setCooldownRemaining(Math.ceil((cooldownMs - elapsed) / 1000));
+        } else {
+          setCooldownRemaining(0);
+        }
+      }
+    };
+
+    checkCooldown();
+    const interval = setInterval(checkCooldown, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatCooldown = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleWatchVideo = async () => {
     if (!user || !firestore) {
@@ -26,6 +52,15 @@ export default function RewardsPage() {
         variant: "destructive", 
         title: "Sign-in Required", 
         description: "You must be logged in to earn and save rewards." 
+      });
+      return;
+    }
+
+    if (cooldownRemaining > 0) {
+      toast({
+        variant: "destructive",
+        title: "Cooldown Active",
+        description: `Please wait ${formatCooldown(cooldownRemaining)} before watching another video.`,
       });
       return;
     }
@@ -39,7 +74,6 @@ export default function RewardsPage() {
         const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
         // 1. Atomic Update: Increment coins directly in the user document
-        // This follows the structure: users/{uid} { coins: number }
         await updateDoc(userRef, {
           coins: increment(5)
         });
@@ -52,6 +86,10 @@ export default function RewardsPage() {
           status: 'completed',
           description: 'Rewarded Video Watch Bonus'
         });
+
+        // 3. Set Cooldown
+        localStorage.setItem('last_video_watch_time', Date.now().toString());
+        setCooldownRemaining(300); // Start 5 min countdown
 
         toast({
           title: "Reward Claimed!",
@@ -98,25 +136,38 @@ export default function RewardsPage() {
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Earnings</p>
                 <p className="text-2xl font-black text-secondary">5 🪙</p>
               </div>
-              <Sparkles className="h-8 w-8 text-secondary animate-pulse" />
+              {cooldownRemaining > 0 ? (
+                <div className="flex items-center gap-2 text-destructive font-black">
+                  <Clock className="h-4 w-4 animate-spin" />
+                  <span>{formatCooldown(cooldownRemaining)}</span>
+                </div>
+              ) : (
+                <Sparkles className="h-8 w-8 text-secondary animate-pulse" />
+              )}
             </div>
             <Button 
               onClick={handleWatchVideo} 
-              disabled={isVideoLoading} 
-              className="w-full bg-secondary text-secondary-foreground font-black h-14 rounded-2xl shadow-lg shadow-secondary/20 hover:scale-[1.02] transition-transform"
+              disabled={isVideoLoading || cooldownRemaining > 0} 
+              className="w-full bg-secondary text-secondary-foreground font-black h-14 rounded-2xl shadow-lg shadow-secondary/20 hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:grayscale"
             >
               {isVideoLoading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   Playing Ad...
                 </>
+              ) : cooldownRemaining > 0 ? (
+                <>WAIT {formatCooldown(cooldownRemaining)}</>
               ) : (
                 <>CLAIM VIDEO REWARD</>
               )}
             </Button>
           </CardContent>
           <CardFooter>
-            <p className="text-[10px] text-muted-foreground italic">Video rewards are processed automatically upon completion.</p>
+            <p className="text-[10px] text-muted-foreground italic">
+              {cooldownRemaining > 0 
+                ? "Cooldown active to protect system integrity." 
+                : "Video rewards are processed automatically upon completion."}
+            </p>
           </CardFooter>
         </Card>
 
@@ -138,7 +189,10 @@ export default function RewardsPage() {
                     readOnly 
                     className="bg-transparent border-white/10 font-mono text-xs" 
                   />
-                  <Button size="sm" className="bg-primary font-bold">COPY</Button>
+                  <Button size="sm" className="bg-primary font-bold" onClick={() => {
+                    navigator.clipboard.writeText(`https://bracketbattles.in/ref/${user?.uid?.slice(0, 6) || ''}`);
+                    toast({ title: "Copied!", description: "Referral link copied to clipboard." });
+                  }}>COPY</Button>
                 </div>
              </div>
           </CardContent>
