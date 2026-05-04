@@ -1,3 +1,4 @@
+
 import { MOCK_TOURNAMENTS, MOCK_MATCHES } from './lib/mock-data';
 import TournamentCard from '@/components/TournamentCard';
 import MatchCard from '@/components/MatchCard';

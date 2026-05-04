@@ -10,12 +10,20 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, Search, Save, UserCheck, RefreshCw, Lock, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function AdminPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+
+  // Debugging log to see who is trying to access the admin page
+  useEffect(() => {
+    if (!isUserLoading) {
+      console.log('Admin Page Access Check: User =', user?.email);
+    }
+  }, [user, isUserLoading]);
 
   if (isUserLoading) {
     return (
@@ -25,27 +33,23 @@ export default function AdminPage() {
     );
   }
 
-  // Debugging info
   const userEmail = user?.email?.toLowerCase().trim();
-  console.log('Admin Page Access Check: Current User Email:', userEmail);
-  
   const isAuthorized = user && userEmail === ADMIN_EMAIL.toLowerCase();
 
   if (!isAuthorized) {
-    console.warn('Admin Page: Unauthorized access attempt by:', userEmail || 'Anonymous');
     return (
       <div className="max-w-md mx-auto mt-20 p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
         <div className="mx-auto h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
           <Lock className="h-10 w-10 text-destructive" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-black uppercase tracking-tighter">Restricted Area</h1>
+          <h1 className="text-2xl font-black uppercase tracking-tighter">Restricted Access</h1>
           <p className="text-muted-foreground text-sm">
-            This dashboard is only accessible to the system administrator. 
-            {user ? ` Current user: ${user.email}` : " Please log in with admin credentials."}
+            This command center is reserved for the system administrator. 
+            {user ? ` Current user: ${user.email}` : " Please sign in with authorized credentials."}
           </p>
         </div>
-        <Button onClick={() => router.push('/login')} className="w-full font-bold">Login as Admin</Button>
+        <Button onClick={() => window.location.href = '/login'} className="w-full font-bold">Login as Admin</Button>
       </div>
     );
   }

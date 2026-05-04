@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth, useUser } from '@/firebase';
 import { 
+  getAuth,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   RecaptchaVerifier, 
@@ -23,7 +24,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function LoginPage() {
-  const { auth } = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
@@ -40,10 +40,10 @@ export default function LoginPage() {
   useEffect(() => {
     if (user && !isUserLoading) {
       const userEmail = user.email?.toLowerCase().trim();
-      console.log('Login Page: Current User Detected:', userEmail);
+      console.log('Login Page: Auth state changed. Current User:', userEmail);
       if (userEmail === ADMIN_EMAIL.toLowerCase()) {
-        console.log('Login Page: Admin detected, redirecting to /admin');
-        router.push('/admin');
+        console.log('Login Page: Admin session detected, redirecting to /admin');
+        window.location.href = '/admin';
       } else {
         router.push('/');
       }
@@ -51,39 +51,38 @@ export default function LoginPage() {
   }, [user, isUserLoading, router]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
-    console.log(`Login Page: Initiating ${mode} for email:`, email);
-    
-    if (!auth) {
-      const msg = "Authentication system is not ready. Please refresh the page.";
-      console.error(msg);
-      setAuthError(msg);
-      return;
-    }
+    const trimmedEmail = email.trim();
+    console.log(`Login Page: Attempting ${mode} for: ${trimmedEmail}`);
     
     setAuthError(null);
     setIsLoading(true);
     
     try {
+      // Get auth instance directly to be absolutely sure it's available
+      const authInstance = getAuth();
+      
       if (mode === 'login') {
-        const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        console.log('Login Page: Calling signInWithEmailAndPassword...');
+        const userCredential = await signInWithEmailAndPassword(authInstance, trimmedEmail, password);
         const loggedInUser = userCredential.user;
-        console.log('Login Page: Sign-in successful:', loggedInUser.email);
+        console.log('Login Page: Sign-in successful for:', loggedInUser.email);
         
         toast({
           title: "Sign-in Success",
           description: "Welcome to the Arena!",
         });
 
-        // Hard redirect for admin to bypass any potential routing lag
+        // Forced hard redirect for admin
         if (loggedInUser.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase()) {
-          console.log('Login Page: Admin confirmed, performing hard redirect');
+          console.log('Login Page: Admin confirmed. Performing hard redirect to /admin');
           window.location.href = '/admin';
         } else {
           window.location.href = '/';
         }
       } else {
-        const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        console.log('Login Page: Sign-up successful:', userCredential.user.email);
+        console.log('Login Page: Calling createUserWithEmailAndPassword...');
+        const userCredential = await createUserWithEmailAndPassword(authInstance, trimmedEmail, password);
+        console.log('Login Page: Sign-up successful for:', userCredential.user.email);
         toast({
           title: "Account Created",
           description: "Your account is ready. You can now sign in.",
@@ -91,18 +90,18 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     } catch (error: any) {
-      console.error('Login Page: Auth Error:', error);
+      console.error('Login Page: Firebase Auth Error:', error.code, error.message);
       let message = error.message || "An unexpected error occurred.";
-      if (error.code === 'auth/user-not-found') message = "No account found with this email.";
-      if (error.code === 'auth/wrong-password') message = "Incorrect password.";
-      if (error.code === 'auth/invalid-email') message = "Invalid email address format.";
-      if (error.code === 'auth/email-already-in-use') message = "This email is already in use.";
-      if (error.code === 'auth/invalid-credential') message = "Invalid credentials. Please check your email and password.";
+      
+      if (error.code === 'auth/user-not-found') message = "No account found with this email. Please register first.";
+      if (error.code === 'auth/wrong-password') message = "Incorrect password. Please try again.";
+      if (error.code === 'auth/invalid-credential') message = "Invalid email or password. Please check your credentials.";
+      if (error.code === 'auth/email-already-in-use') message = "This email is already registered. Please sign in instead.";
       
       setAuthError(message);
       toast({
         variant: "destructive",
-        title: "Auth Error",
+        title: "Authentication Failed",
         description: message,
       });
       setIsLoading(false);
@@ -110,22 +109,22 @@ export default function LoginPage() {
   };
 
   const setupRecaptcha = () => {
-    if (!auth) return;
+    const authInstance = getAuth();
     if (!(window as any).recaptchaVerifier) {
-      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(authInstance, 'recaptcha-container', {
         size: 'invisible',
       });
     }
   };
 
   const handleSendOtp = async () => {
-    if (!auth) return;
     setIsLoading(true);
     setAuthError(null);
     try {
+      const authInstance = getAuth();
       setupRecaptcha();
       const verifier = (window as any).recaptchaVerifier;
-      const result = await signInWithPhoneNumber(auth, phoneNumber, verifier);
+      const result = await signInWithPhoneNumber(authInstance, phoneNumber, verifier);
       setConfirmationResult(result);
       toast({ title: "OTP Sent", description: "Check your phone messages." });
     } catch (error: any) {
@@ -152,7 +151,7 @@ export default function LoginPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground font-medium">Preparing Arena Access...</p>
+        <p className="text-muted-foreground font-medium">Verifying Credentials...</p>
       </div>
     );
   }
@@ -170,22 +169,22 @@ export default function LoginPage() {
       {authError && (
         <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Attention</AlertTitle>
+          <AlertTitle>Attention Required</AlertTitle>
           <AlertDescription>{authError}</AlertDescription>
         </Alert>
       )}
 
       <Tabs defaultValue="email" className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1">
-          <TabsTrigger value="email" className="font-bold">Email</TabsTrigger>
-          <TabsTrigger value="phone" className="font-bold">Phone</TabsTrigger>
+          <TabsTrigger value="email" className="font-bold">Email Login</TabsTrigger>
+          <TabsTrigger value="phone" className="font-bold">Phone OTP</TabsTrigger>
         </TabsList>
 
         <TabsContent value="email" className="mt-6">
           <Card className="border-border/50 shadow-xl bg-card/50">
             <CardHeader>
               <CardTitle>Welcome Back</CardTitle>
-              <CardDescription>Enter your credentials to continue.</CardDescription>
+              <CardDescription>Enter your email and password below.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -193,7 +192,7 @@ export default function LoginPage() {
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="name@example.com"
+                  placeholder="ujalbag96@gmail.com"
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)} 
                 />
@@ -231,8 +230,8 @@ export default function LoginPage() {
         <TabsContent value="phone" className="mt-6">
           <Card className="border-border/50 shadow-xl bg-card/50">
             <CardHeader>
-              <CardTitle>Phone OTP</CardTitle>
-              <CardDescription>Secure login via mobile verification.</CardDescription>
+              <CardTitle>Phone Verification</CardTitle>
+              <CardDescription>Enter your mobile number to receive a code.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div id="recaptcha-container"></div>
@@ -268,7 +267,7 @@ export default function LoginPage() {
                   onClick={handleSendOtp} 
                   disabled={isLoading || !phoneNumber}
                 >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Code"}
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Verification Code"}
                 </Button>
               ) : (
                 <Button 
@@ -276,7 +275,7 @@ export default function LoginPage() {
                   onClick={handleVerifyOtp} 
                   disabled={isLoading || otp.length < 6}
                 >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify Code"}
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify & Sign In"}
                 </Button>
               )}
             </CardFooter>
