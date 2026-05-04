@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth, useUser } from '@/firebase';
+import { useUser } from '@/firebase';
 import { 
   getAuth,
   signInWithEmailAndPassword, 
@@ -37,10 +36,12 @@ export default function LoginPage() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Immediate redirection if user is already logged in
   useEffect(() => {
     if (user && !isUserLoading) {
       const userEmail = user.email?.toLowerCase().trim();
       if (userEmail === ADMIN_EMAIL.toLowerCase()) {
+        console.log("Admin detected, redirecting to /admin...");
         window.location.href = '/admin';
       } else {
         router.push('/');
@@ -64,6 +65,7 @@ export default function LoginPage() {
           description: "Welcome back to the Arena!",
         });
 
+        // Explicit check for immediate redirect
         if (loggedInUser.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase()) {
           window.location.href = '/admin';
         } else {
@@ -78,6 +80,7 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     } catch (error: any) {
+      console.error("Auth error:", error);
       let message = error.message || "An unexpected error occurred.";
       if (error.code === 'auth/user-not-found') message = "No account found with this email.";
       if (error.code === 'auth/wrong-password') message = "Incorrect password.";
@@ -162,7 +165,7 @@ export default function LoginPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground font-medium">Verifying Credentials...</p>
+        <p className="text-muted-foreground font-medium">Verifying Arena Access...</p>
       </div>
     );
   }
@@ -233,7 +236,12 @@ export default function LoginPage() {
                 onClick={() => handleEmailAuth('login')} 
                 disabled={isLoading || !email || !password}
               >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Authenticating...
+                  </>
+                ) : "Sign In"}
               </Button>
               <Button 
                 variant="outline" 
