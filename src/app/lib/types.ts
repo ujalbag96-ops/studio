@@ -1,5 +1,6 @@
 
 export type TournamentStatus = 'active' | 'upcoming' | 'completed';
+export type GameType = 'BGMI' | 'Free Fire' | 'Ludo King' | 'Other';
 
 export interface Team {
   id: string;
@@ -26,14 +27,37 @@ export interface Tournament {
   name: string;
   status: TournamentStatus;
   game: string;
+  gameType: GameType;
   prizePool: string;
+  entryFee: number;
   startDate: string;
   banner: string;
+  roomCredentials?: {
+    roomId?: string;
+    roomPassword?: string;
+  };
+}
+
+export interface Registration {
+  id: string;
+  userId: string;
+  tournamentId: string;
+  gameId: string;
+  joinedAt: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  userId: string;
+  message: string;
+  aiResponse?: string;
+  isFlagged?: boolean;
+  timestamp: string;
 }
 
 export interface UserLedgerEntry {
   id: string;
-  type: 'deposit' | 'withdrawal' | 'income';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';
@@ -48,18 +72,12 @@ export interface UserProfile {
   referredBy?: string;
   isAdmin?: boolean;
   upiId?: string;
-  bankName?: string;
 }
 
 export interface AppSettings {
   id: string;
   maintenanceMode: boolean;
   cpaLeadUrl: string;
-  cpaLeadApiKey?: string;
-  cpaLeadPostbackUrl?: string;
-  withdrawalGateways?: string[];
-  videoAdProvider?: 'unity' | 'applovin';
-  videoAdPlacementId?: string;
   videoWallEnabled?: boolean;
   offerWallEnabled?: boolean;
   cpaLeadEnabled?: boolean;

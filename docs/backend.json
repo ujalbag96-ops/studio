@@ -9,11 +9,42 @@
         "name": { "type": "string" },
         "status": { "type": "string", "enum": ["active", "upcoming", "completed"] },
         "game": { "type": "string" },
+        "gameType": { "type": "string", "enum": ["BGMI", "Free Fire", "Ludo King", "Other"] },
         "prizePool": { "type": "string" },
-        "startDate": { "type": "string", "format": "date" },
-        "banner": { "type": "string" }
+        "entryFee": { "type": "number" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "banner": { "type": "string" },
+        "roomCredentials": {
+          "type": "object",
+          "properties": {
+            "roomId": { "type": "string" },
+            "roomPassword": { "type": "string" }
+          }
+        }
       },
-      "required": ["name", "status", "game", "prizePool"]
+      "required": ["name", "status", "game", "prizePool", "entryFee", "startDate"]
+    },
+    "Registration": {
+      "title": "Tournament Registration",
+      "description": "Record of a user joining a tournament.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "tournamentId": { "type": "string" },
+        "gameId": { "type": "string" },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "SupportMessage": {
+      "title": "Support Message",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "message": { "type": "string" },
+        "aiResponse": { "type": "string" },
+        "isFlagged": { "type": "boolean" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
     },
     "Match": {
       "title": "Match",
@@ -91,6 +122,14 @@
     "/tournaments/{tournamentId}": {
       "schema": "Tournament",
       "description": "Collection of all tournaments."
+    },
+    "/registrations/{regId}": {
+      "schema": "Registration",
+      "description": "Global tournament registrations."
+    },
+    "/support/{msgId}": {
+      "schema": "SupportMessage",
+      "description": "Support messages and AI chat logs."
     },
     "/matches/{matchId}": {
       "schema": "Match",

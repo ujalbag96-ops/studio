@@ -1,12 +1,7 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * BRACKET BATTLES SECURITY RULES
-     */
-
-    // --- Helper Functions ---
 
     function isSignedIn() {
       return request.auth != null;
@@ -16,14 +11,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    /** 
-     * @description Checks if the user is an admin.
-     * We check both the Firestore document and the specific admin email for bootstrapping.
-     */
     function isAdmin() {
       return isSignedIn() && (
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
@@ -32,33 +19,12 @@ service cloud.firestore {
       );
     }
 
-    // --- Collection Rules ---
-
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
       allow update: if (isOwner(userId) && request.resource.data.isAdmin == resource.data.isAdmin) || isAdmin();
       allow delete: if isAdmin();
-
-      match /votes/{voteId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-        allow delete: if isExistingOwner(userId) || isAdmin();
-      }
-
-      match /referralRewards/{rewardId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create, update, delete: if isAdmin();
-      }
-
-      match /offerWallActivities/{activityId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-        allow delete: if isAdmin();
-      }
 
       match /ledger/{entryId} {
         allow get, list: if isOwner(userId) || isAdmin();
@@ -70,11 +36,20 @@ service cloud.firestore {
     match /tournaments/{tournamentId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
+    }
 
-      match /matches/{matchId} {
-        allow get, list: if true;
-        allow create, update, delete: if isAdmin();
-      }
+    match /registrations/{regId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /support/{msgId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
     match /matches/{matchId} {
@@ -83,11 +58,6 @@ service cloud.firestore {
     }
 
     match /settings/{settingId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-    
-    match /app_settings/{settingId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
