@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Wallet, ArrowUpRight, Plus, CreditCard, Info, IndianRupee } from 'lucide-react';
+import { Wallet, ArrowUpRight, Plus, CreditCard, Info, IndianRupee, Send } from 'lucide-react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { UserProfile } from '@/app/lib/types';
@@ -30,6 +30,11 @@ export default function WalletModal({ children }: WalletModalProps) {
   const { data: profile } = useDoc<UserProfile>(userProfileRef);
 
   const balance = profile?.coins || 0;
+
+  const handleManualTopup = () => {
+    const message = encodeURIComponent('I want to add funds to my wallet');
+    window.open(`https://t.me/your_admin_id?text=${message}`, '_blank');
+  };
 
   return (
     <Dialog>
@@ -71,17 +76,23 @@ export default function WalletModal({ children }: WalletModalProps) {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-4">
-            <Button asChild className="bg-green-600 hover:bg-green-700 h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-green-900/20">
-              <Link href="/deposit">
-                <Plus className="h-5 w-5 mr-2" /> Deposit
-              </Link>
-            </Button>
-            <Button asChild className="bg-yellow-500 hover:bg-yellow-600 text-black h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-yellow-900/20">
-              <Link href="/withdraw">
-                Withdraw <ArrowUpRight className="h-5 w-5 ml-2" />
-              </Link>
-            </Button>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Button 
+                onClick={handleManualTopup}
+                className="bg-green-600 hover:bg-green-700 h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-green-900/20"
+              >
+                <Send className="h-5 w-5 mr-2" /> Add Funds
+              </Button>
+              <Button asChild className="bg-yellow-500 hover:bg-yellow-600 text-black h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-yellow-900/20">
+                <Link href="/withdraw">
+                  Withdraw <ArrowUpRight className="h-5 w-5 ml-2" />
+                </Link>
+              </Button>
+            </div>
+            <p className="text-[10px] text-center text-muted-foreground font-medium px-4 leading-relaxed">
+              As per our policy, all top-ups are handled manually via Telegram for 100% security.
+            </p>
           </div>
 
           {/* Withdrawal Info Section */}
