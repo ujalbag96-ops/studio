@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -50,8 +49,9 @@ export default function OfferWall() {
         const data = await response.json();
         const allOffers: CPALeadOffer[] = data.offers || [];
         
+        // Safety check for device property
         const androidOffers = allOffers.filter(offer => 
-          offer.device.toLowerCase().includes('android')
+          offer.device && offer.device.toLowerCase().includes('android')
         );
 
         setOffers(androidOffers.slice(0, 15));
@@ -99,7 +99,7 @@ export default function OfferWall() {
   return (
     <div className="grid gap-4 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
       {offers.map((offer, index) => {
-        const rawDollarValue = parseFloat(offer.payout);
+        const rawDollarValue = parseFloat(offer.payout) || 0;
         const totalBaseCoins = rawDollarValue * COIN_VALUE_PER_DOLLAR;
         const userCoins = Math.round(totalBaseCoins * (1 - ADMIN_PROFIT_PERCENT / 100));
         

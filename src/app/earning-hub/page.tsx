@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -6,14 +5,9 @@ import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestor
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  PlayCircle, 
-  ClipboardList, 
-  Sparkles, 
   Loader2, 
   Zap, 
-  Clock, 
-  MousePointerClick,
-  Ban
+  Clock 
 } from 'lucide-react';
 import { AppSettings } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
@@ -63,37 +57,43 @@ export default function EarningHub() {
     if (cooldownRemaining > 0) return;
 
     setIsVideoLoading(true);
-    setTimeout(async () => {
-      try {
-        const userRef = doc(firestore, 'users', user.uid);
-        const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
+    try {
+      // Simulate video ad duration
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
-        // VIDEO REWARDS GO TO WITHDRAWABLE BALANCE
-        await updateDoc(userRef, { 
-          coins: increment(5),
-          withdrawableCoins: increment(5)
-        });
-        
-        await addDoc(ledgerRef, {
-          type: 'income',
-          amount: 5,
-          date: new Date().toISOString().split('T')[0],
-          status: 'completed',
-          description: 'Earned from Video Ad (Winning Amount)'
-        });
+      const userRef = doc(firestore, 'users', user.uid);
+      const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
-        localStorage.setItem('last_video_watch_time', Date.now().toString());
-        setCooldownRemaining(300);
-        toast({ title: "Winning Reward Claimed!" });
-      } catch (error: any) {
-        toast({ variant: "destructive", title: "Sync Failed" });
-      } finally {
-        setIsVideoLoading(false);
-      }
-    }, 3000);
+      await updateDoc(userRef, { 
+        coins: increment(5),
+        withdrawableCoins: increment(5)
+      });
+      
+      await addDoc(ledgerRef, {
+        type: 'income',
+        amount: 5,
+        date: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        description: 'Earned from Video Ad (Winning Amount)'
+      });
+
+      localStorage.setItem('last_video_watch_time', Date.now().toString());
+      setCooldownRemaining(300);
+      toast({ title: "Winning Reward Claimed!" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Sync Failed" });
+    } finally {
+      setIsVideoLoading(false);
+    }
   };
 
-  if (settingsLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  if (settingsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
