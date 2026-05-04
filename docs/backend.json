@@ -111,7 +111,9 @@
         "videoWallEnabled": { "type": "boolean" },
         "offerWallEnabled": { "type": "boolean" },
         "cpaLeadEnabled": { "type": "boolean" },
-        "telegramUrl": { "type": "string" }
+        "telegramUrl": { "type": "string" },
+        "coinValuePerDollar": { "type": "number" },
+        "adminProfitPercentage": { "type": "number" }
       }
     }
   },

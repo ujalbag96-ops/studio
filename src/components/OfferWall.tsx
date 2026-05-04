@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Smartphone, ExternalLink, AlertCircle, Coins } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { AppSettings } from '@/app/lib/types';
 
 interface CPALeadOffer {
   title: string;
@@ -19,32 +22,34 @@ interface CPALeadOffer {
 }
 
 export default function OfferWall() {
+  const firestore = useFirestore();
   const [offers, setOffers] = useState<CPALeadOffer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const COIN_CONVERSION_RATE = 100; // $1.00 = 100 Coins
+  // Fetch Revenue Settings
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  const { data: settings } = useDoc<AppSettings>(settingsRef);
+
+  const COIN_VALUE_PER_DOLLAR = settings?.coinValuePerDollar ?? 100;
+  const ADMIN_PROFIT_PERCENT = settings?.adminProfitPercentage ?? 20;
 
   useEffect(() => {
     async function fetchOffers() {
       setIsLoading(true);
       setError(null);
       try {
-        // Fetching from CPALead API
         const response = await fetch('https://www.cpalead.com/api/offers?id=774893&format=json');
         if (!response.ok) throw new Error('Failed to reach CPALead Arena.');
         
         const data = await response.json();
-        
-        // CPALead returns an object with an 'offers' array
         const allOffers: CPALeadOffer[] = data.offers || [];
         
-        // Filter for Android devices only
         const androidOffers = allOffers.filter(offer => 
           offer.device.toLowerCase().includes('android')
         );
 
-        setOffers(androidOffers.slice(0, 15)); // Limit to top 15 for UI performance
+        setOffers(androidOffers.slice(0, 15));
       } catch (err: any) {
         console.error('CPA Fetch Error:', err);
         setError('Connection to task server timed out. Please try again later.');
@@ -75,18 +80,15 @@ export default function OfferWall() {
     );
   }
 
-  if (offers.length === 0) {
-    return (
-      <div className="p-8 text-center text-muted-foreground italic text-sm">
-        No Android missions currently available in your region.
-      </div>
-    );
-  }
-
   return (
     <div className="grid gap-4 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
       {offers.map((offer, index) => {
-        const coinPayout = Math.round(parseFloat(offer.payout) * COIN_CONVERSION_RATE);
+        // Calculate dynamic coin payout:
+        // 1. Convert dollar payout to base coins
+        // 2. Subtract admin profit margin
+        const rawDollarValue = parseFloat(offer.payout);
+        const totalBaseCoins = rawDollarValue * COIN_VALUE_PER_DOLLAR;
+        const userCoins = Math.round(totalBaseCoins * (1 - ADMIN_PROFIT_PERCENT / 100));
         
         return (
           <Card key={index} className="bg-black/40 border-white/5 hover:border-secondary/30 transition-all group rounded-2xl">
@@ -110,7 +112,7 @@ export default function OfferWall() {
               
               <div className="flex flex-col items-end gap-2">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xl font-black text-white">{coinPayout}</span>
+                  <span className="text-xl font-black text-white">{userCoins}</span>
                   <Coins className="h-4 w-4 text-amber-500" />
                 </div>
                 <Button 

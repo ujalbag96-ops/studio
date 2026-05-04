@@ -82,4 +82,6 @@ export interface AppSettings {
   offerWallEnabled?: boolean;
   cpaLeadEnabled?: boolean;
   telegramUrl?: string;
+  coinValuePerDollar?: number;
+  adminProfitPercentage?: number;
 }

@@ -21,7 +21,10 @@ import {
   Globe,
   CheckCircle2,
   XCircle,
-  Activity
+  Activity,
+  Coins,
+  TrendingUp,
+  Percent
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,7 +45,7 @@ export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tournaments' | 'matches' | 'support' | 'transactions' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tournaments' | 'matches' | 'support' | 'transactions' | 'settings' | 'revenue'>('dashboard');
 
   // Verify Admin status safely
   const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
@@ -73,7 +76,7 @@ export default function AdminDashboard() {
     [firestore, isAdminUser]
   );
 
-  const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
+  const { data: usersData } = useCollection<UserProfile>(usersQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: matchesData } = useCollection<Match>(matchesQuery);
   const { data: supportData } = useCollection<SupportMessage>(supportQuery);
@@ -84,12 +87,31 @@ export default function AdminDashboard() {
   const [roomId, setRoomId] = useState('');
   const [roomPass, setRoomPass] = useState('');
   const [telegramInput, setTelegramInput] = useState('');
+  
+  // Revenue Settings State
+  const [coinValue, setCoinValue] = useState<string>('100');
+  const [profitMargin, setProfitMargin] = useState<string>('20');
 
   useEffect(() => {
-    if (settings?.telegramUrl) {
-      setTelegramInput(settings.telegramUrl);
+    if (settings) {
+      if (settings.telegramUrl) setTelegramInput(settings.telegramUrl);
+      if (settings.coinValuePerDollar !== undefined) setCoinValue(settings.coinValuePerDollar.toString());
+      if (settings.adminProfitPercentage !== undefined) setProfitMargin(settings.adminProfitPercentage.toString());
     }
   }, [settings]);
+
+  const handleUpdateRevenue = async () => {
+    if (!firestore || !settingsRef) return;
+    try {
+      await setDoc(settingsRef, { 
+        coinValuePerDollar: parseFloat(coinValue),
+        adminProfitPercentage: parseFloat(profitMargin)
+      }, { merge: true });
+      toast({ title: "Revenue Settings Updated", description: "Values applied to all offer calculations." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Update Failed", description: e.message });
+    }
+  };
 
   const handleUpdateRoom = async () => {
     if (!firestore || !selectedTournament) return;
@@ -211,11 +233,12 @@ export default function AdminDashboard() {
           <ShieldCheck className="h-6 w-6 text-primary" />
           <span className="font-black tracking-tighter text-lg uppercase">Arena Admin</span>
         </div>
-        <nav className="flex-1 p-4 space-y-1 mt-4">
+        <nav className="flex-1 p-4 space-y-1 mt-4 overflow-y-auto no-scrollbar">
           <SidebarItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label="Overview" />
           <SidebarItem active={activeTab === 'tournaments'} onClick={() => setActiveTab('tournaments')} icon={<Trophy />} label="Tournaments" />
           <SidebarItem active={activeTab === 'matches'} onClick={() => setActiveTab('matches')} icon={<Activity />} label="Live Matches" />
           <SidebarItem active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} icon={<History />} label="Payments" />
+          <SidebarItem active={activeTab === 'revenue'} onClick={() => setActiveTab('revenue')} icon={<TrendingUp />} label="Revenue" />
           <SidebarItem active={activeTab === 'support'} onClick={() => setActiveTab('support')} icon={<MessageSquare />} label="AI Logs" />
           <SidebarItem active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings />} label="Global" />
         </nav>
@@ -228,6 +251,7 @@ export default function AdminDashboard() {
           <Button size="sm" variant={activeTab === 'dashboard' ? 'default' : 'outline'} onClick={() => setActiveTab('dashboard')} className="whitespace-nowrap">Dash</Button>
           <Button size="sm" variant={activeTab === 'tournaments' ? 'default' : 'outline'} onClick={() => setActiveTab('tournaments')} className="whitespace-nowrap">Event</Button>
           <Button size="sm" variant={activeTab === 'matches' ? 'default' : 'outline'} onClick={() => setActiveTab('matches')} className="whitespace-nowrap">Match</Button>
+          <Button size="sm" variant={activeTab === 'revenue' ? 'default' : 'outline'} onClick={() => setActiveTab('revenue')} className="whitespace-nowrap">Revenue</Button>
           <Button size="sm" variant={activeTab === 'transactions' ? 'default' : 'outline'} onClick={() => setActiveTab('transactions')} className="whitespace-nowrap">Finance</Button>
           <Button size="sm" variant={activeTab === 'support' ? 'default' : 'outline'} onClick={() => setActiveTab('support')} className="whitespace-nowrap">Logs</Button>
           <Button size="sm" variant={activeTab === 'settings' ? 'default' : 'outline'} onClick={() => setActiveTab('settings')} className="whitespace-nowrap">Global</Button>
@@ -242,6 +266,67 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {activeTab === 'revenue' && (
+          <div className="max-w-2xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Card className="bg-card/30 border-primary/20 p-8 rounded-[2.5rem] space-y-8">
+               <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+                     <TrendingUp className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black uppercase tracking-tight">Revenue Configuration</h2>
+                    <p className="text-xs text-muted-foreground font-medium">Control profit margins and coin valuation.</p>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                       <Coins className="h-3 w-3" /> Coin Value per Dollar ($)
+                    </Label>
+                    <Input 
+                      type="number" 
+                      value={coinValue} 
+                      onChange={(e) => setCoinValue(e.target.value)}
+                      placeholder="e.g. 100" 
+                      className="bg-black/40 border-white/10 h-14 rounded-2xl font-black text-lg"
+                    />
+                    <p className="text-[9px] text-muted-foreground italic">Standard: 100 coins = $1.00</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                       <Percent className="h-3 w-3" /> Admin Profit Margin (%)
+                    </Label>
+                    <Input 
+                      type="number" 
+                      value={profitMargin} 
+                      onChange={(e) => setProfitMargin(e.target.value)}
+                      placeholder="e.g. 20" 
+                      className="bg-black/40 border-white/10 h-14 rounded-2xl font-black text-lg"
+                    />
+                    <p className="text-[9px] text-muted-foreground italic">Your cut from every user completion.</p>
+                  </div>
+               </div>
+
+               <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">Calculation Preview</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    If an offer pays $1.00:<br />
+                    Total Coins: {coinValue} 🪙<br />
+                    User gets: {Math.round(parseFloat(coinValue) * (1 - parseFloat(profitMargin) / 100))} 🪙<br />
+                    Your profit: {Math.round(parseFloat(coinValue) * (parseFloat(profitMargin) / 100))} 🪙
+                  </p>
+               </div>
+
+               <Button onClick={handleUpdateRevenue} className="w-full h-16 bg-primary font-black uppercase tracking-widest text-lg rounded-2xl shadow-xl shadow-primary/20">
+                  Save Revenue Settings
+               </Button>
+            </Card>
+          </div>
+        )}
+
+        {/* Other tabs remain the same... */}
         {activeTab === 'tournaments' && (
           <div className="space-y-8">
             <Card className="bg-card/30 border-white/5 p-6 rounded-[2rem]">
