@@ -328,7 +328,10 @@ export default function AdminDashboard() {
                                 </div>
                              </TableCell>
                              <TableCell>
-                                <Select defaultValue={m.status} id={`st-${m.id}`}>
+                                <Select defaultValue={m.status} onValueChange={(v) => {
+                                   const statusEl = document.getElementById(`status-val-${m.id}`);
+                                   if (statusEl) statusEl.dataset.status = v;
+                                }}>
                                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                                    <SelectContent>
                                       <SelectItem value="scheduled">Scheduled</SelectItem>
@@ -336,15 +339,14 @@ export default function AdminDashboard() {
                                       <SelectItem value="finished">Finished</SelectItem>
                                    </SelectContent>
                                 </Select>
+                                <div id={`status-val-${m.id}`} data-status={m.status} className="hidden" />
                              </TableCell>
                              <TableCell>
                                 <Button size="sm" onClick={() => {
-                                   const sAInput = document.getElementById(`sA-${m.id}`) as HTMLInputElement;
-                                   const sBInput = document.getElementById(`sB-${m.id}`) as HTMLInputElement;
-                                   const statusSelect = document.getElementById(`st-${m.id}`) as any; // Select is custom
-                                   const sA = parseInt(sAInput.value);
-                                   const sB = parseInt(sBInput.value);
-                                   handleUpdateScore(m.id, sA, sB, 'live'); 
+                                   const sA = parseInt((document.getElementById(`sA-${m.id}`) as HTMLInputElement).value);
+                                   const sB = parseInt((document.getElementById(`sB-${m.id}`) as HTMLInputElement).value);
+                                   const status = (document.getElementById(`status-val-${m.id}`) as HTMLElement).dataset.status || m.status;
+                                   handleUpdateScore(m.id, sA, sB, status); 
                                 }}>Update</Button>
                              </TableCell>
                           </TableRow>
@@ -398,9 +400,9 @@ export default function AdminDashboard() {
             <Card className="bg-card/30 border-white/5 p-8 rounded-[2rem] space-y-8">
               <h2 className="text-lg font-black uppercase flex items-center gap-2"><Globe className="text-primary" /> Modules</h2>
               <div className="space-y-6">
-                <ModuleToggle label="Video Wall" enabled={settings?.videoWallEnabled ?? true} onToggle={(v) => handleToggleModule('videoWallEnabled', v)} />
-                <ModuleToggle label="Offer Wall" enabled={settings?.offerWallEnabled ?? true} onToggle={(v) => handleToggleModule('offerWallEnabled', v)} />
-                <ModuleToggle label="CPA Lead" enabled={settings?.cpaLeadEnabled ?? true} onToggle={(v) => handleToggleModule('cpaLeadEnabled', v)} />
+                <ModuleToggle label="Video Wall" enabled={settings?.videoWallEnabled ?? true} onToggle={(v: boolean) => handleToggleModule('videoWallEnabled', v)} />
+                <ModuleToggle label="Offer Wall" enabled={settings?.offerWallEnabled ?? true} onToggle={(v: boolean) => handleToggleModule('offerWallEnabled', v)} />
+                <ModuleToggle label="CPA Lead" enabled={settings?.cpaLeadEnabled ?? true} onToggle={(v: boolean) => handleToggleModule('cpaLeadEnabled', v)} />
               </div>
             </Card>
 

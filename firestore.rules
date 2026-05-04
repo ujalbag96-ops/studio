@@ -12,8 +12,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Robust admin check using lowercase comparison for the primary email
-      // and checking the isAdmin flag in the user's profile document.
+      // Simplified and robust admin check
       return isSignedIn() && (
         (request.auth.token.email != null && request.auth.token.email.lower() == 'ujalbag96@gmail.com') ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
