@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, increment, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, increment } from 'firebase/firestore';
 import { 
   LayoutDashboard, 
   Users as UsersIcon, 
@@ -21,10 +21,9 @@ import {
   Globe,
   CheckCircle2,
   XCircle,
-  Activity,
-  Trash2
+  Activity
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,12 +44,32 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'tournaments' | 'matches' | 'support' | 'transactions' | 'settings'>('dashboard');
 
-  const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
-  const tournamentsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'tournaments') : null, [firestore]);
-  const matchesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'matches'), orderBy('startTime', 'desc')) : null, [firestore]);
-  const supportQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'support'), orderBy('timestamp', 'desc')) : null, [firestore]);
-  const transactionsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'ledger'), orderBy('date', 'desc')) : null, [firestore]);
-  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  const isAdminUser = user?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
+
+  const usersQuery = useMemoFirebase(() => 
+    (firestore && isAdminUser) ? collection(firestore, 'users') : null, 
+    [firestore, isAdminUser]
+  );
+  const tournamentsQuery = useMemoFirebase(() => 
+    (firestore && isAdminUser) ? collection(firestore, 'tournaments') : null, 
+    [firestore, isAdminUser]
+  );
+  const matchesQuery = useMemoFirebase(() => 
+    (firestore && isAdminUser) ? query(collection(firestore, 'matches'), orderBy('startTime', 'desc')) : null, 
+    [firestore, isAdminUser]
+  );
+  const supportQuery = useMemoFirebase(() => 
+    (firestore && isAdminUser) ? query(collection(firestore, 'support'), orderBy('timestamp', 'desc')) : null, 
+    [firestore, isAdminUser]
+  );
+  const transactionsQuery = useMemoFirebase(() => 
+    (firestore && isAdminUser) ? query(collectionGroup(firestore, 'ledger'), orderBy('date', 'desc')) : null, 
+    [firestore, isAdminUser]
+  );
+  const settingsRef = useMemoFirebase(() => 
+    (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, 
+    [firestore, isAdminUser]
+  );
 
   const { data: usersData } = useCollection<UserProfile>(usersQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
@@ -180,8 +199,7 @@ export default function AdminDashboard() {
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
 
-  const isAuthorized = user?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
-  if (!isAuthorized) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1>Access Restricted</h1></div>;
+  if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1>Access Restricted</h1></div>;
 
   return (
     <div className="flex min-h-screen bg-[#0d0d12] text-foreground">
@@ -318,7 +336,6 @@ export default function AdminDashboard() {
                                 <Button size="sm" onClick={() => {
                                    const sA = parseInt((document.getElementById(`sA-${m.id}`) as HTMLInputElement).value);
                                    const sB = parseInt((document.getElementById(`sB-${m.id}`) as HTMLInputElement).value);
-                                   // Note: In real app, we'd use state or refs for these dynamic values
                                    handleUpdateScore(m.id, sA, sB, 'live'); 
                                 }}>Update</Button>
                              </TableCell>
