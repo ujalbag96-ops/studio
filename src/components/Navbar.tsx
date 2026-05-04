@@ -1,8 +1,7 @@
-
 'use client';
 
 import Link from 'next/link';
-import { Trophy, Home, Gift, Wallet, Settings, LogIn, User, LogOut } from 'lucide-react';
+import { Trophy, Home, Gift, Wallet, Settings, LogIn, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -61,6 +60,7 @@ export default function Navbar() {
         
         <div className="flex items-center gap-6 md:gap-8">
           <NavLink href="/" icon={<Home className="h-5 w-5" />} label="Home" />
+          <NavLink href="/dashboard" icon={<LayoutDashboard className="h-5 w-5" />} label="Dash" />
           <NavLink href="/tournaments" icon={<Trophy className="h-5 w-5" />} label="Events" />
           <NavLink href="/rewards" icon={<Gift className="h-5 w-5" />} label="Rewards" />
           <NavLink href="/ledger" icon={<Wallet className="h-5 w-5" />} label="Ledger" />
@@ -90,6 +90,9 @@ export default function Navbar() {
                     <p className="text-sm truncate font-bold">{user.email || user.phoneNumber}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard" className="cursor-pointer">My Dashboard</Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/ledger" className="cursor-pointer">Wallet Ledger</Link>
                   </DropdownMenuItem>
