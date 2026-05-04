@@ -8,14 +8,14 @@ export default function DepositPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirecting users as the manual top-up policy is now in place via Wallet Modal
-    router.replace('/');
+    // Redirect to the new unified Earning Hub
+    router.replace('/earning-hub');
   }, [router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      <p className="text-muted-foreground font-medium">Redirecting to home...</p>
+      <p className="text-muted-foreground font-medium">Entering Earning Hub...</p>
     </div>
   );
 }

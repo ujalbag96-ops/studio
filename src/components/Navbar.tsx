@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Trophy, Home, Gift, Wallet, Settings, LogIn, User, LogOut, LayoutDashboard, Crown } from 'lucide-react';
+import { Trophy, Home, Gift, Wallet, Settings, LogIn, User, LogOut, LayoutDashboard, Crown, Zap } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -21,7 +21,6 @@ export default function Navbar() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Real-time subscription to the user's profile to get coin balance
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
     [firestore, user]
@@ -62,8 +61,8 @@ export default function Navbar() {
         <div className="flex items-center gap-6 md:gap-8">
           <NavLink href="/" icon={<Home className="h-5 w-5" />} label="Home" />
           <NavLink href="/dashboard" icon={<LayoutDashboard className="h-5 w-5" />} label="Dash" />
+          <NavLink href="/earning-hub" icon={<Zap className="h-5 w-5 text-secondary" />} label="Earn" />
           <NavLink href="/vip" icon={<Crown className="h-5 w-5 text-amber-400" />} label="VIP" />
-          <NavLink href="/rewards" icon={<Gift className="h-5 w-5" />} label="Rewards" />
           <NavLink href="/ledger" icon={<Wallet className="h-5 w-5" />} label="Ledger" />
           {isAdmin && <NavLink href="/admin" icon={<Settings className="h-5 w-5" />} label="Admin" />}
         </div>
@@ -90,10 +89,10 @@ export default function Navbar() {
                     <Link href="/dashboard" className="cursor-pointer">My Dashboard</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/vip" className="cursor-pointer font-bold text-amber-500">VIP Club</Link>
+                    <Link href="/earning-hub" className="cursor-pointer font-bold text-secondary">Earning Hub</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/ledger" className="cursor-pointer">Wallet Ledger</Link>
+                    <Link href="/vip" className="cursor-pointer font-bold text-amber-500">VIP Club</Link>
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem asChild>
