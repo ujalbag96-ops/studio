@@ -71,7 +71,12 @@
       "type": "object",
       "properties": {
         "maintenanceMode": { "type": "boolean" },
-        "cpaLeadUrl": { "type": "string", "description": "The URL for the CPA Lead Offer Wall iframe." }
+        "cpaLeadUrl": { "type": "string" },
+        "cpaLeadApiKey": { "type": "string" },
+        "cpaLeadPostbackUrl": { "type": "string" },
+        "withdrawalGateways": { "type": "array", "items": { "type": "string" } },
+        "videoAdProvider": { "type": "string", "enum": ["unity", "applovin"] },
+        "videoAdPlacementId": { "type": "string" }
       }
     }
   },

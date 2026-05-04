@@ -28,13 +28,16 @@ import {
   MousePointerClick,
   Key,
   Link as LinkIcon,
-  ExternalLink
+  ExternalLink,
+  PlayCircle,
+  Tv
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { AppSettings } from '@/app/lib/types';
@@ -46,7 +49,7 @@ export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'tournaments' | 'payments' | 'withdrawals' | 'settings' | 'cpalead'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'tournaments' | 'payments' | 'withdrawals' | 'settings' | 'cpalead' | 'videowall'>('dashboard');
 
   // Real-time Data Subscriptions
   const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
@@ -57,12 +60,16 @@ export default function AdminDashboard() {
   const { data: matchesData, isLoading: matchesLoading } = useCollection(matchesQuery);
   const { data: settingsData, isLoading: settingsLoading } = useDoc<AppSettings>(settingsRef);
 
-  // CPA Lead Specific States
+  // Global Settings States
   const [cpaUrl, setCpaUrl] = useState('');
   const [cpaApiKey, setCpaApiKey] = useState('');
   const [cpaPostback, setCpaPostback] = useState('');
   const [gateways, setGateways] = useState<string[]>([]);
   const [newGateway, setNewGateway] = useState('');
+  
+  // Video Wall States
+  const [videoProvider, setVideoProvider] = useState<'unity' | 'applovin'>('unity');
+  const [videoPlacementId, setVideoPlacementId] = useState('');
 
   useEffect(() => {
     if (settingsData) {
@@ -70,6 +77,8 @@ export default function AdminDashboard() {
       setCpaApiKey(settingsData.cpaLeadApiKey || '');
       setCpaPostback(settingsData.cpaLeadPostbackUrl || '');
       setGateways(settingsData.withdrawalGateways || []);
+      setVideoProvider(settingsData.videoAdProvider || 'unity');
+      setVideoPlacementId(settingsData.videoAdPlacementId || '');
     }
   }, [settingsData]);
 
@@ -80,7 +89,9 @@ export default function AdminDashboard() {
         cpaLeadUrl: cpaUrl,
         cpaLeadApiKey: cpaApiKey,
         cpaLeadPostbackUrl: cpaPostback,
-        withdrawalGateways: gateways 
+        withdrawalGateways: gateways,
+        videoAdProvider: videoProvider,
+        videoAdPlacementId: videoPlacementId
       }, { merge: true });
       toast({
         title: "Settings Updated",
@@ -131,11 +142,6 @@ export default function AdminDashboard() {
     );
   }
 
-  const totalRevenue = 12450.00; 
-  const activeUsersCount = usersData?.length || 0;
-  const liveMatchesCount = matchesData?.filter(m => m.status === 'live').length || 0;
-  const pendingRequests = 12;
-
   return (
     <div className="flex min-h-screen bg-[#0d0d12] text-foreground">
       {/* Sidebar */}
@@ -152,6 +158,7 @@ export default function AdminDashboard() {
           <SidebarItem active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<UsersIcon />} label="Users" />
           <SidebarItem active={activeTab === 'tournaments'} onClick={() => setActiveTab('tournaments')} icon={<Trophy />} label="Tournaments" />
           <SidebarItem active={activeTab === 'cpalead'} onClick={() => setActiveTab('cpalead')} icon={<MousePointerClick />} label="CPA Lead" />
+          <SidebarItem active={activeTab === 'videowall'} onClick={() => setActiveTab('videowall')} icon={<PlayCircle />} label="Video Wall" />
           <SidebarItem active={activeTab === 'payments'} onClick={() => setActiveTab('payments')} icon={<CreditCard />} label="Payments" />
           <SidebarItem active={activeTab === 'withdrawals'} onClick={() => setActiveTab('withdrawals')} icon={<ArrowUpRight />} label="Withdrawals" />
           <SidebarItem active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings />} label="Settings" />
@@ -170,57 +177,48 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <main className="flex-1 md:ml-64 p-6 md:p-10 space-y-8 pb-24">
-        {/* Analytics Header */}
         {activeTab === 'dashboard' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <AnalyticsCard title="Total Revenue" value={`₹${totalRevenue.toLocaleString()}`} icon={<TrendingUp />} color="primary" trend="+12.5%" />
-            <AnalyticsCard title="Active Users" value={activeUsersCount.toString()} icon={<UsersIcon />} color="secondary" trend="+5" />
-            <AnalyticsCard title="Live Matches" value={liveMatchesCount.toString()} icon={<Activity />} color="destructive" trend="Live Now" />
-            <AnalyticsCard title="Pending Requests" value={pendingRequests.toString()} icon={<Clock />} color="yellow" trend="Needs Review" />
+            <AnalyticsCard title="Total Revenue" value={`₹12,450`} icon={<TrendingUp />} color="primary" trend="+12.5%" />
+            <AnalyticsCard title="Active Users" value={usersData?.length?.toString() || "0"} icon={<UsersIcon />} color="secondary" trend="+5" />
+            <AnalyticsCard title="Live Matches" value={matchesData?.filter(m => m.status === 'live').length?.toString() || "0"} icon={<Activity />} color="destructive" trend="Live Now" />
+            <AnalyticsCard title="Pending Requests" value="12" icon={<Clock />} color="yellow" trend="Needs Review" />
           </div>
         )}
 
-        {/* Dynamic Content */}
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-8">
           {activeTab === 'dashboard' && (
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-              <Card className="xl:col-span-2 bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <div className="space-y-1">
-                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                      <UsersIcon className="h-5 w-5 text-primary" />
-                      User Management
-                    </CardTitle>
-                    <CardDescription>Monitor wallet balances and account statuses.</CardDescription>
-                  </div>
+            <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold flex items-center gap-2">
+                    <UsersIcon className="h-5 w-5 text-primary" />
+                    User Management
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   <Table>
                     <TableHeader className="bg-black/20">
-                      <TableRow className="hover:bg-transparent border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest pl-6">UserID</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest">User Details</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Wallet</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest pr-6 text-right">Action</TableHead>
+                      <TableRow className="border-white/5">
+                        <TableHead className="pl-6">UserID</TableHead>
+                        <TableHead>User Details</TableHead>
+                        <TableHead>Wallet</TableHead>
+                        <TableHead className="text-right pr-6">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {usersData?.slice(0, 5).map((u) => (
-                        <TableRow key={u.id} className="border-white/5 hover:bg-white/5 transition-colors">
-                          <TableCell className="font-mono text-[10px] text-muted-foreground pl-6">#{u.id.slice(-6).toUpperCase()}</TableCell>
+                      {usersData?.slice(0, 10).map((u) => (
+                        <TableRow key={u.id} className="border-white/5">
+                          <TableCell className="font-mono text-[10px] pl-6">#{u.id.slice(-6).toUpperCase()}</TableCell>
                           <TableCell>
-                            <div className="space-y-0.5">
-                              <p className="text-sm font-bold">{u.mobile || u.email || 'Anonymous'}</p>
-                              <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">Device: {u.deviceId?.slice(0, 12) || '---'}</p>
-                            </div>
+                            <p className="text-sm font-bold">{u.mobile || u.email || 'Anonymous'}</p>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary" className="bg-secondary/10 text-secondary border-secondary/20 font-black">
+                            <Badge variant="secondary" className="bg-secondary/10 text-secondary">
                               {u.coins?.toLocaleString() || 0} 🪙
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right pr-6">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10">
+                            <Button variant="ghost" size="icon" className="text-destructive">
                               <Ban className="h-4 w-4" />
                             </Button>
                           </TableCell>
@@ -229,169 +227,107 @@ export default function AdminDashboard() {
                     </TableBody>
                   </Table>
                 </CardContent>
-              </Card>
+            </Card>
+          )}
 
-              <div className="space-y-6">
-                <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-destructive" />
-                  Live Action
-                </h3>
+          {activeTab === 'videowall' && (
+            <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Tv className="h-5 w-5 text-primary" />
+                  Video Wall (Watch & Earn) Settings
+                </CardTitle>
+                <CardDescription>Configure video ad providers for rewarded video content.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  {matchesData?.filter(m => m.status === 'live').slice(0, 3).map((match) => (
-                    <Card key={match.id} className="bg-card/20 backdrop-blur-lg border-white/5">
-                      <CardContent className="p-5 flex items-center justify-between">
-                         <div className="text-center">
-                            <p className="text-xs font-bold">{match.teamA.name}</p>
-                            <p className="text-lg font-black">{match.scoreA}</p>
-                         </div>
-                         <div className="text-[10px] font-black opacity-20">VS</div>
-                         <div className="text-center">
-                            <p className="text-xs font-bold">{match.teamB.name}</p>
-                            <p className="text-lg font-black">{match.scoreB}</p>
-                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Ad Provider</label>
+                    <Select value={videoProvider} onValueChange={(v: any) => setVideoProvider(v)}>
+                      <SelectTrigger className="bg-black/20 border-white/10">
+                        <SelectValue placeholder="Select Provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unity">Unity Ads</SelectItem>
+                        <SelectItem value="applovin">AppLovin Max</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Placement / Unit ID</label>
+                    <Input 
+                      value={videoPlacementId} 
+                      onChange={(e) => setVideoPlacementId(e.target.value)} 
+                      placeholder="e.g. Rewarded_Android" 
+                      className="bg-black/20 border-white/10"
+                    />
+                  </div>
                 </div>
-              </div>
-            </div>
+                <Button onClick={handleUpdateSettings} className="w-full bg-primary font-bold">
+                  <Save className="h-4 w-4 mr-2" /> Save Video Config
+                </Button>
+              </CardContent>
+            </Card>
           )}
 
           {activeTab === 'cpalead' && (
-            <div className="space-y-8">
-              <div className="flex flex-col md:flex-row gap-8">
-                <Card className="flex-1 bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MousePointerClick className="h-5 w-5 text-primary" />
-                      CPA Lead Configuration
-                    </CardTitle>
-                    <CardDescription>Setup your API keys and offer wall integration.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                          <Globe className="h-3 w-3" /> Offer Wall URL
-                        </label>
-                        <Input 
-                          value={cpaUrl} 
-                          onChange={(e) => setCpaUrl(e.target.value)} 
-                          placeholder="https://www.cpalead.com/mobile/offers.php?id=..." 
-                          className="bg-black/20 border-white/10"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                          <Key className="h-3 w-3" /> API Key
-                        </label>
-                        <Input 
-                          type="password"
-                          value={cpaApiKey} 
-                          onChange={(e) => setCpaApiKey(e.target.value)} 
-                          placeholder="Enter your CPALead API Key" 
-                          className="bg-black/20 border-white/10"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                          <LinkIcon className="h-3 w-3" /> Postback URL
-                        </label>
-                        <Input 
-                          value={cpaPostback} 
-                          onChange={(e) => setCpaPostback(e.target.value)} 
-                          placeholder="https://your-app.com/api/postback" 
-                          className="bg-black/20 border-white/10"
-                        />
-                      </div>
-                    </div>
-                    <Button onClick={handleUpdateSettings} className="w-full bg-primary font-bold">
-                      <Save className="h-4 w-4 mr-2" /> Sync CPA Data
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="w-full md:w-96 bg-card/30 backdrop-blur-xl border-white/5">
-                  <CardHeader>
-                    <CardTitle className="text-sm font-bold">Offer Preview</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0 border-t border-white/5 h-[400px] overflow-hidden">
-                    {cpaUrl ? (
-                      <iframe src={cpaUrl} className="w-full h-full opacity-50 grayscale hover:grayscale-0 transition-all pointer-events-none" />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-muted-foreground italic text-xs">Enter URL to preview</div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
-                <CardHeader>
-                  <CardTitle>Recent Offer Activities</CardTitle>
-                  <CardDescription>Track conversions and payouts from your users.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-48 flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-white/5 rounded-2xl bg-black/10">
-                    <TrendingUp className="h-8 w-8 text-muted-foreground opacity-20" />
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">No activities detected in last 24h</p>
+            <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MousePointerClick className="h-5 w-5 text-primary" />
+                  CPA Lead Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                   <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Offer Wall URL</label>
+                    <Input value={cpaUrl} onChange={(e) => setCpaUrl(e.target.value)} className="bg-black/20 border-white/10" />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">API Key</label>
+                    <Input type="password" value={cpaApiKey} onChange={(e) => setCpaApiKey(e.target.value)} className="bg-black/20 border-white/10" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Postback URL</label>
+                    <Input value={cpaPostback} onChange={(e) => setCpaPostback(e.target.value)} className="bg-black/20 border-white/10" />
+                  </div>
+                </div>
+                <Button onClick={handleUpdateSettings} className="w-full bg-primary font-bold">
+                  <Save className="h-4 w-4 mr-2" /> Sync CPA Data
+                </Button>
+              </CardContent>
+            </Card>
           )}
 
           {activeTab === 'settings' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PaymentIcon className="h-5 w-5 text-secondary" />
-                    Withdrawal Gateway Manager
-                  </CardTitle>
-                  <CardDescription>Manage available payout methods for users.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex gap-2">
-                    <Input 
-                      value={newGateway} 
-                      onChange={(e) => setNewGateway(e.target.value)} 
-                      placeholder="Add method (e.g. UPI, Bank)" 
-                      className="bg-black/20 border-white/10"
-                    />
-                    <Button onClick={addGateway} className="bg-secondary text-secondary-foreground font-bold">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Gateways</label>
-                    <div className="flex flex-wrap gap-2">
-                      {gateways.length > 0 ? gateways.map((g, index) => (
-                        <Badge key={index} className="pl-3 pr-1 py-1.5 flex items-center gap-2 bg-white/5 hover:bg-white/10 transition-colors border-white/10 text-xs font-bold">
-                          {g}
-                          <button onClick={() => removeGateway(index)} className="p-0.5 rounded-full hover:bg-destructive/20 text-muted-foreground hover:text-destructive">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      )) : (
-                        <p className="text-xs text-muted-foreground italic">No gateways configured.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <Button onClick={handleUpdateSettings} className="w-full bg-primary font-bold">
-                    <Save className="h-4 w-4 mr-2" /> Sync Gateways
+            <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <PaymentIcon className="h-5 w-5 text-secondary" />
+                  Withdrawal Gateways
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex gap-2">
+                  <Input value={newGateway} onChange={(e) => setNewGateway(e.target.value)} placeholder="Add method (e.g. UPI)" className="bg-black/20 border-white/10" />
+                  <Button onClick={addGateway} className="bg-secondary text-secondary-foreground">
+                    <Plus className="h-4 w-4" />
                   </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {['users', 'tournaments', 'payments', 'withdrawals'].includes(activeTab) && (
-             <div className="h-[50vh] flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-white/5 rounded-3xl bg-card/10">
-              <Activity className="h-12 w-12 text-primary opacity-20 animate-pulse" />
-              <p className="text-muted-foreground font-medium italic">Section "{activeTab.toUpperCase()}" is under construction.</p>
-            </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {gateways.map((g, i) => (
+                    <Badge key={i} className="flex items-center gap-2 bg-white/5 py-1.5">
+                      {g}
+                      <button onClick={() => removeGateway(i)} className="text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  ))}
+                </div>
+                <Button onClick={handleUpdateSettings} className="w-full bg-primary font-bold">
+                  <Save className="h-4 w-4 mr-2" /> Sync Gateways
+                </Button>
+              </CardContent>
+            </Card>
           )}
         </div>
       </main>

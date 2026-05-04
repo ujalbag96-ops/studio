@@ -56,4 +56,6 @@ export interface AppSettings {
   cpaLeadApiKey?: string;
   cpaLeadPostbackUrl?: string;
   withdrawalGateways?: string[];
+  videoAdProvider?: 'unity' | 'applovin';
+  videoAdPlacementId?: string;
 }
