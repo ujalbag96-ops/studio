@@ -1,8 +1,7 @@
-
 'use client';
 
 import Link from 'next/link';
-import { Trophy, Home, Gift, Wallet, Settings, LogIn, User, LogOut, LayoutDashboard, Crown, Zap } from 'lucide-react';
+import { Trophy, Home, Gift, Wallet, Settings, LogIn, User, LogOut, Shield, Crown, Zap } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -54,10 +53,12 @@ export default function Navbar() {
   return (
     <>
       {/* Mobile Top Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-card/80 backdrop-blur-md border-b flex items-center justify-between px-4">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-card/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
-          <Trophy className="h-6 w-6 text-primary" />
-          <span className="text-lg font-black tracking-tighter">B-BATTLES</span>
+          <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
+            <Trophy className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-lg font-black tracking-tighter uppercase">Arena</span>
         </Link>
         <div className="flex items-center gap-2">
           {user ? (
@@ -74,18 +75,18 @@ export default function Navbar() {
       </div>
 
       {/* Main Navigation (Bottom for mobile, Top for desktop) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/80 backdrop-blur-md md:top-0 md:bottom-auto md:border-t-0 md:border-b">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/5 bg-card/80 backdrop-blur-md md:top-0 md:bottom-auto md:border-t-0 md:border-b">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-around px-4 md:justify-between">
           <Link href="/" className="hidden items-center gap-2 md:flex">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
               <Trophy className="h-6 w-6" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-foreground">BRACKET<span className="text-primary">BATTLES</span></span>
+            <span className="text-xl font-bold tracking-tight text-foreground uppercase">Bracket<span className="text-primary">Battles</span></span>
           </Link>
           
           <div className="flex items-center gap-4 md:gap-8 w-full md:w-auto justify-around md:justify-start">
             <NavLink href="/" icon={<Home className="h-5 w-5" />} label="Home" />
-            <NavLink href="/dashboard" icon={<LayoutDashboard className="h-5 w-5" />} label="Dash" />
+            <NavLink href="/dashboard" icon={<Shield className="h-5 w-5 text-primary" />} label="HQ" />
             <NavLink href="/earning-hub" icon={<Zap className="h-5 w-5 text-secondary" />} label="Earn" />
             <NavLink href="/levels" icon={<Crown className="h-5 w-5 text-amber-400" />} label="Levels" />
             <NavLink href="/ledger" icon={<Wallet className="h-5 w-5" />} label="Ledger" />
@@ -122,14 +123,14 @@ function UserMenu({ user, isAdmin, onLogout }: any) {
           </div>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-56 bg-card border-white/10">
         <DropdownMenuLabel>
-          <p className="font-black text-[10px] uppercase tracking-widest text-muted-foreground">Account</p>
+          <p className="font-black text-[10px] uppercase tracking-widest text-muted-foreground">Command Center</p>
           <p className="text-sm truncate font-bold">{user.email || user.phoneNumber}</p>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="bg-white/5" />
         <DropdownMenuItem asChild>
-          <Link href="/dashboard" className="cursor-pointer">My Dashboard</Link>
+          <Link href="/dashboard" className="cursor-pointer font-bold">Arena HQ</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/earning-hub" className="cursor-pointer font-bold text-secondary">Earning Hub</Link>
@@ -142,7 +143,7 @@ function UserMenu({ user, isAdmin, onLogout }: any) {
             <Link href="/admin" className="cursor-pointer text-primary font-bold">Admin Panel</Link>
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="bg-white/5" />
         <DropdownMenuItem onSelect={onLogout} className="text-destructive font-bold cursor-pointer flex items-center gap-2 focus:bg-destructive focus:text-destructive-foreground">
           <LogOut className="h-4 w-4" /> Sign Out
         </DropdownMenuItem>
@@ -155,7 +156,7 @@ function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; l
   return (
     <Link href={href} className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-primary md:flex-row md:gap-2">
       {icon}
-      <span className="text-[10px] font-bold uppercase tracking-tight md:text-xs">{label}</span>
+      <span className="text-[10px] font-black uppercase tracking-tight md:text-xs">{label}</span>
     </Link>
   );
 }
