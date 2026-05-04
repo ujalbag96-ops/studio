@@ -47,6 +47,8 @@ export interface UserProfile {
   referralCode: string;
   referredBy?: string;
   isAdmin?: boolean;
+  upiId?: string;
+  bankName?: string;
 }
 
 export interface AppSettings {

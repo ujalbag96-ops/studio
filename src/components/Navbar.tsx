@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -10,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
 import { UserProfile } from '@/app/lib/types';
+import WalletModal from './WalletModal';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -70,12 +72,7 @@ export default function Navbar() {
         <div className="hidden items-center gap-4 md:flex">
           {user ? (
             <>
-              <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 border border-border/50">
-                <Wallet className="h-4 w-4 text-secondary" />
-                <span className="text-sm font-black text-secondary">
-                  {profile?.coins?.toLocaleString() || 0} 🪙
-                </span>
-              </div>
+              <WalletModal />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-10 w-10 rounded-full p-0 border border-primary/20 bg-primary/10 overflow-hidden">
