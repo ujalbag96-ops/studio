@@ -60,4 +60,8 @@ export interface AppSettings {
   withdrawalGateways?: string[];
   videoAdProvider?: 'unity' | 'applovin';
   videoAdPlacementId?: string;
+  videoWallEnabled?: boolean;
+  offerWallEnabled?: boolean;
+  cpaLeadEnabled?: boolean;
+  telegramUrl?: string;
 }

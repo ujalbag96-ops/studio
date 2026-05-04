@@ -76,7 +76,11 @@
         "cpaLeadPostbackUrl": { "type": "string" },
         "withdrawalGateways": { "type": "array", "items": { "type": "string" } },
         "videoAdProvider": { "type": "string", "enum": ["unity", "applovin"] },
-        "videoAdPlacementId": { "type": "string" }
+        "videoAdPlacementId": { "type": "string" },
+        "videoWallEnabled": { "type": "boolean" },
+        "offerWallEnabled": { "type": "boolean" },
+        "cpaLeadEnabled": { "type": "boolean" },
+        "telegramUrl": { "type": "string" }
       }
     }
   },

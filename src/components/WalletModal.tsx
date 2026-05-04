@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -12,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Wallet, ArrowUpRight, Plus, CreditCard, Info, IndianRupee, Send } from 'lucide-react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { UserProfile } from '@/app/lib/types';
+import { UserProfile, AppSettings } from '@/app/lib/types';
 import Link from 'next/link';
 
 interface WalletModalProps {
@@ -27,13 +28,17 @@ export default function WalletModal({ children }: WalletModalProps) {
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
     [firestore, user]
   );
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  
   const { data: profile } = useDoc<UserProfile>(userProfileRef);
+  const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const balance = profile?.coins || 0;
+  const telegramUrl = settings?.telegramUrl || 'https://t.me/bracketbattles_support';
 
   const handleManualTopup = () => {
     const message = encodeURIComponent('I want to add funds to my wallet');
-    window.open(`https://t.me/your_admin_id?text=${message}`, '_blank');
+    window.open(`${telegramUrl}?text=${message}`, '_blank');
   };
 
   return (
