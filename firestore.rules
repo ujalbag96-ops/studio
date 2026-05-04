@@ -59,6 +59,12 @@ service cloud.firestore {
         allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
         allow delete: if isAdmin();
       }
+
+      match /ledger/{entryId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) || isAdmin();
+        allow update, delete: if isAdmin();
+      }
     }
 
     match /tournaments/{tournamentId} {
