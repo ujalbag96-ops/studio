@@ -36,24 +36,21 @@ export default function LoginPage() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Monitor auth state and redirect accordingly
   useEffect(() => {
     if (user && !isUserLoading) {
       const userEmail = user.email?.toLowerCase();
       if (userEmail === ADMIN_EMAIL.toLowerCase()) {
-        router.replace('/admin');
+        router.push('/admin');
       } else {
-        router.replace('/');
+        router.push('/');
       }
     }
   }, [user, isUserLoading, router]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
     if (!auth) {
-      toast({
-        variant: "destructive",
-        title: "Connection Error",
-        description: "Authentication service is not ready. Please refresh.",
-      });
+      setAuthError("Authentication system is not ready. Please refresh the page.");
       return;
     }
     
@@ -67,11 +64,11 @@ export default function LoginPage() {
         
         toast({
           title: "Sign-in Success",
-          description: "Welcome to Bracket Battles!",
+          description: "Welcome to the Arena!",
         });
 
-        const userEmail = loggedInUser.email?.toLowerCase();
-        if (userEmail === ADMIN_EMAIL.toLowerCase()) {
+        // Forced immediate redirect for admin
+        if (loggedInUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           window.location.href = '/admin';
         } else {
           window.location.href = '/';
@@ -80,21 +77,21 @@ export default function LoginPage() {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
         toast({
           title: "Account Created",
-          description: "You can now sign in with your new account.",
+          description: "Your account is ready. You can now sign in.",
         });
         setIsLoading(false);
       }
     } catch (error: any) {
-      let message = "An unexpected error occurred.";
-      if (error.code === 'auth/user-not-found') message = "No account found with this email. Please sign up first.";
-      if (error.code === 'auth/wrong-password') message = "Incorrect password. Please try again.";
-      if (error.code === 'auth/invalid-email') message = "Please enter a valid email address.";
-      if (error.code === 'auth/email-already-in-use') message = "This email is already registered. Try logging in.";
+      let message = error.message || "An unexpected error occurred.";
+      if (error.code === 'auth/user-not-found') message = "No account found with this email.";
+      if (error.code === 'auth/wrong-password') message = "Incorrect password.";
+      if (error.code === 'auth/invalid-email') message = "Invalid email address format.";
+      if (error.code === 'auth/email-already-in-use') message = "This email is already in use.";
       
       setAuthError(message);
       toast({
         variant: "destructive",
-        title: "Authentication Error",
+        title: "Auth Error",
         description: message,
       });
       setIsLoading(false);
@@ -119,18 +116,9 @@ export default function LoginPage() {
       const verifier = (window as any).recaptchaVerifier;
       const result = await signInWithPhoneNumber(auth, phoneNumber, verifier);
       setConfirmationResult(result);
-      toast({
-        title: "OTP Sent",
-        description: "Please check your phone for the code.",
-      });
+      toast({ title: "OTP Sent", description: "Check your phone messages." });
     } catch (error: any) {
       setAuthError(error.message);
-      toast({
-        variant: "destructive",
-        title: "SMS Error",
-        description: error.message,
-      });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -138,21 +126,11 @@ export default function LoginPage() {
   const handleVerifyOtp = async () => {
     if (!confirmationResult) return;
     setIsLoading(true);
-    setAuthError(null);
     try {
       await confirmationResult.confirm(otp);
-      toast({
-        title: "Verified",
-        description: "Redirecting...",
-      });
       window.location.href = '/';
     } catch (error: any) {
       setAuthError("Invalid OTP code.");
-      toast({
-        variant: "destructive",
-        title: "Invalid Code",
-        description: "The OTP entered is incorrect.",
-      });
       setIsLoading(false);
     }
   };
@@ -161,7 +139,7 @@ export default function LoginPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground font-medium animate-pulse">Initializing Arena Access...</p>
+        <p className="text-muted-foreground font-medium">Preparing Arena Access...</p>
       </div>
     );
   }
@@ -172,14 +150,14 @@ export default function LoginPage() {
         <div className="mx-auto h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-xl mb-4">
           <Trophy className="h-10 w-10 text-primary-foreground" />
         </div>
-        <h1 className="text-3xl font-black uppercase tracking-tighter text-foreground">Arena Access</h1>
-        <p className="text-muted-foreground text-sm font-medium">Log in to manage tournaments and view insights.</p>
+        <h1 className="text-3xl font-black uppercase tracking-tighter">Arena Access</h1>
+        <p className="text-muted-foreground text-sm font-medium">Sign in to manage your profile and tournaments.</p>
       </div>
 
       {authError && (
         <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>Attention</AlertTitle>
           <AlertDescription>{authError}</AlertDescription>
         </Alert>
       )}
@@ -193,20 +171,18 @@ export default function LoginPage() {
         <TabsContent value="email" className="mt-6">
           <Card className="border-border/50 shadow-xl bg-card/50">
             <CardHeader>
-              <CardTitle className="text-xl font-bold">Welcome Back</CardTitle>
-              <CardDescription>Enter your email and password to access the platform.</CardDescription>
+              <CardTitle>Welcome Back</CardTitle>
+              <CardDescription>Enter your credentials to continue.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email Address</Label>
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="name@example.com"
+                  placeholder="ujalbag96@gmail.com"
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)} 
-                  disabled={isLoading}
-                  autoComplete="email"
                 />
               </div>
               <div className="space-y-2">
@@ -216,8 +192,6 @@ export default function LoginPage() {
                   type="password" 
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
-                  disabled={isLoading}
-                  autoComplete="current-password"
                 />
               </div>
             </CardContent>
@@ -227,11 +201,11 @@ export default function LoginPage() {
                 onClick={() => handleEmailAuth('login')} 
                 disabled={isLoading || !email || !password}
               >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Sign In"}
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
               </Button>
               <Button 
                 variant="outline" 
-                className="w-full font-bold h-11 border-primary/20 hover:bg-primary/5" 
+                className="w-full font-bold h-11" 
                 onClick={() => handleEmailAuth('signup')} 
                 disabled={isLoading || !email || !password}
               >
@@ -244,8 +218,8 @@ export default function LoginPage() {
         <TabsContent value="phone" className="mt-6">
           <Card className="border-border/50 shadow-xl bg-card/50">
             <CardHeader>
-              <CardTitle className="text-xl font-bold">Mobile Login</CardTitle>
-              <CardDescription>Verify your identity via SMS.</CardDescription>
+              <CardTitle>Phone OTP</CardTitle>
+              <CardDescription>Secure login via mobile verification.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div id="recaptcha-container"></div>
@@ -255,24 +229,21 @@ export default function LoginPage() {
                   <Input 
                     id="phone" 
                     type="tel" 
-                    placeholder="+91..." 
+                    placeholder="+919876543210" 
                     value={phoneNumber} 
                     onChange={(e) => setPhoneNumber(e.target.value)} 
-                    disabled={isLoading}
                   />
-                  <p className="text-[10px] text-muted-foreground">Example: +919876543210</p>
                 </div>
               ) : (
-                <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                  <Label htmlFor="otp">6-Digit Code</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="otp">6-Digit OTP</Label>
                   <Input 
                     id="otp" 
                     type="text" 
                     maxLength={6} 
                     value={otp} 
                     onChange={(e) => setOtp(e.target.value)} 
-                    className="text-center text-xl font-black tracking-widest"
-                    disabled={isLoading}
+                    className="text-center text-xl font-black"
                   />
                 </div>
               )}
@@ -284,7 +255,7 @@ export default function LoginPage() {
                   onClick={handleSendOtp} 
                   disabled={isLoading || !phoneNumber}
                 >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Send Verification Code"}
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Code"}
                 </Button>
               ) : (
                 <Button 
@@ -292,19 +263,13 @@ export default function LoginPage() {
                   onClick={handleVerifyOtp} 
                   disabled={isLoading || otp.length < 6}
                 >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Verify OTP"}
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify Code"}
                 </Button>
               )}
             </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
-      
-      <div className="text-center">
-        <p className="text-xs text-muted-foreground">
-          By continuing, you agree to our <a href="/terms" className="underline hover:text-primary">Terms</a> and <a href="/privacy" className="underline hover:text-primary">Privacy Policy</a>.
-        </p>
-      </div>
     </div>
   );
 }
