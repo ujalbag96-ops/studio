@@ -12,12 +12,12 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Short-circuit check for the primary admin email to prevent rule execution errors
-      // and broad access for manual oversight.
+      // Robust admin check using lowercase comparison for the primary email
+      // and checking the isAdmin flag in the user's profile document.
       return isSignedIn() && (
-        request.auth.token.email == 'ujalbag96@gmail.com' ||
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'ujalbag96@gmail.com') ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true)
       );
     }
 

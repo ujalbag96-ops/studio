@@ -44,9 +44,10 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'tournaments' | 'matches' | 'support' | 'transactions' | 'settings'>('dashboard');
 
-  const isAdminUser = user?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
+  // Verify Admin status safely
+  const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
-  // Optimized Queries: Only run if admin is verified
+  // Queries only run if Admin is fully authenticated
   const usersQuery = useMemoFirebase(() => 
     (firestore && isAdminUser) ? collection(firestore, 'users') : null, 
     [firestore, isAdminUser]
@@ -72,7 +73,7 @@ export default function AdminDashboard() {
     [firestore, isAdminUser]
   );
 
-  const { data: usersData } = useCollection<UserProfile>(usersQuery);
+  const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: matchesData } = useCollection<Match>(matchesQuery);
   const { data: supportData } = useCollection<SupportMessage>(supportQuery);
@@ -198,9 +199,9 @@ export default function AdminDashboard() {
     }
   };
 
-  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
+  if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen gap-4"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="text-muted-foreground font-medium">Verifying Arena Admin...</p></div>;
 
-  if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1>Access Restricted</h1></div>;
+  if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1>Access Restricted</h1><p className="text-muted-foreground mt-2">Only authorized administrators can access this terminal.</p></div>;
 
   return (
     <div className="flex min-h-screen bg-[#0d0d12] text-foreground">
