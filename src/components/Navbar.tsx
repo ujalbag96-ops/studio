@@ -1,36 +1,46 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Trophy, Home, Gift, Wallet, Settings, LogIn, User, LogOut } from 'lucide-react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { doc } from 'firebase/firestore';
+import { UserProfile } from '@/app/lib/types';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function Navbar() {
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const { auth } = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+
+  // Real-time subscription to the user's profile to get coin balance
+  const userProfileRef = useMemoFirebase(() => 
+    (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
+    [firestore, user]
+  );
+  const { data: profile } = useDoc<UserProfile>(userProfileRef);
 
   const handleLogout = async () => {
     if (auth) {
       try {
         await signOut(auth);
         toast({
-          title: "Logged Out",
-          description: "You have been successfully signed out.",
+          title: "Signed Out",
+          description: "Session cleared successfully.",
         });
-        // Force a hard redirect to login to clear all states
         window.location.href = '/login';
       } catch (error: any) {
         toast({
           variant: "destructive",
-          title: "Logout Failed",
+          title: "Logout Error",
           description: error.message,
         });
       }
@@ -62,7 +72,9 @@ export default function Navbar() {
             <>
               <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 border border-border/50">
                 <Wallet className="h-4 w-4 text-secondary" />
-                <span className="text-sm font-semibold">1,250 🪙</span>
+                <span className="text-sm font-black text-secondary">
+                  {profile?.coins?.toLocaleString() || 0} 🪙
+                </span>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -74,16 +86,16 @@ export default function Navbar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
-                    <p className="font-black text-xs uppercase tracking-widest text-muted-foreground">My Account</p>
-                    <p className="text-sm truncate">{user.email || user.phoneNumber}</p>
+                    <p className="font-black text-[10px] uppercase tracking-widest text-muted-foreground">Current Account</p>
+                    <p className="text-sm truncate font-bold">{user.email || user.phoneNumber}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/ledger" className="cursor-pointer">Wallet & Ledger</Link>
+                    <Link href="/ledger" className="cursor-pointer">Wallet Ledger</Link>
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem asChild>
-                      <Link href="/admin" className="cursor-pointer text-primary font-bold">Admin Console</Link>
+                      <Link href="/admin" className="cursor-pointer text-primary font-bold">Admin Panel</Link>
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
@@ -94,7 +106,7 @@ export default function Navbar() {
               </DropdownMenu>
             </>
           ) : (
-            <Button asChild size="sm" className="font-bold">
+            <Button asChild size="sm" className="font-bold rounded-xl px-6">
               <Link href="/login">
                 <LogIn className="h-4 w-4 mr-2" /> Login
               </Link>
@@ -110,7 +122,7 @@ function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; l
   return (
     <Link href={href} className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-primary md:flex-row md:gap-2">
       {icon}
-      <span className="text-[10px] font-medium md:text-sm">{label}</span>
+      <span className="text-[10px] font-bold uppercase tracking-tight md:text-xs">{label}</span>
     </Link>
   );
 }

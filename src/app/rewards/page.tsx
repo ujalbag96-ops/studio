@@ -2,12 +2,12 @@
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Gift, Share2, Users, Coins, CheckCircle2, LayoutDashboard, Loader2, PlayCircle, Sparkles } from 'lucide-react';
-import { AppSettings } from '@/app/lib/types';
+import { Gift, Users, PlayCircle, Sparkles, Loader2, LayoutDashboard } from 'lucide-react';
+import { AppSettings, UserProfile } from '@/app/lib/types';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -22,47 +22,51 @@ export default function RewardsPage() {
 
   const handleWatchVideo = async () => {
     if (!user || !firestore) {
-      toast({ variant: "destructive", title: "Login Required", description: "Please sign in to earn rewards." });
+      toast({ 
+        variant: "destructive", 
+        title: "Sign-in Required", 
+        description: "You must be logged in to earn and save rewards." 
+      });
       return;
     }
 
     setIsVideoLoading(true);
     
-    // Simulating Video Ad Completion
-    // In a real Unity/AppLovin integration, you would trigger their SDK here
+    // Simulate Video Ad SDK (Unity/AppLovin) Callback
     setTimeout(async () => {
       try {
         const userRef = doc(firestore, 'users', user.uid);
         const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
-        // 1. Update User Coins
+        // 1. Atomic Update: Increment coins directly in the user document
+        // This follows the structure: users/{uid} { coins: number }
         await updateDoc(userRef, {
           coins: increment(5)
         });
 
-        // 2. Add Ledger Entry
+        // 2. Ledger Update: Record the transaction for user history
         await addDoc(ledgerRef, {
           type: 'income',
           amount: 5,
           date: new Date().toISOString().split('T')[0],
           status: 'completed',
-          description: 'Rewarded Video Watch'
+          description: 'Rewarded Video Watch Bonus'
         });
 
         toast({
-          title: "Coins Earned!",
-          description: "You've received 5 🪙 for watching the video.",
+          title: "Reward Claimed!",
+          description: "5 🪙 have been added to your wallet.",
         });
       } catch (error: any) {
         toast({
           variant: "destructive",
-          title: "Reward Failed",
-          description: "Could not sync rewards. Please try again later.",
+          title: "Wallet Sync Failed",
+          description: "Could not update balance. Please check your connection.",
         });
       } finally {
         setIsVideoLoading(false);
       }
-    }, 3000); // Simulated 3 second video
+    }, 3000); // 3-second simulation
   };
 
   return (
@@ -72,7 +76,7 @@ export default function RewardsPage() {
           <Gift className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl font-black tracking-tight uppercase">Earn <span className="text-secondary">Free Coins</span></h1>
-        <p className="text-muted-foreground">Boost your wallet balance by completing simple tasks. Use your coins to enter pro tournaments and win real cash.</p>
+        <p className="text-muted-foreground">Complete simple tasks to fill your wallet. Use your earnings for tournament entries and premium battles.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -86,12 +90,12 @@ export default function RewardsPage() {
               <PlayCircle className="h-6 w-6" />
               Watch & Earn
             </CardTitle>
-            <CardDescription>Watch a short video to earn instant coins.</CardDescription>
+            <CardDescription>Instant rewards for every video watched.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 relative z-10">
             <div className="flex items-center justify-between p-4 rounded-2xl bg-black/40 border border-white/5">
               <div className="space-y-1">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Reward Amount</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Earnings</p>
                 <p className="text-2xl font-black text-secondary">5 🪙</p>
               </div>
               <Sparkles className="h-8 w-8 text-secondary animate-pulse" />
@@ -104,32 +108,36 @@ export default function RewardsPage() {
               {isVideoLoading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Streaming Ad...
+                  Playing Ad...
                 </>
               ) : (
-                <>WATCH VIDEO NOW</>
+                <>CLAIM VIDEO REWARD</>
               )}
             </Button>
           </CardContent>
           <CardFooter>
-            <p className="text-[10px] text-muted-foreground italic">Limit: 50 videos per day.</p>
+            <p className="text-[10px] text-muted-foreground italic">Video rewards are processed automatically upon completion.</p>
           </CardFooter>
         </Card>
 
-        {/* Invite Friends Teaser */}
+        {/* Invite Friends */}
         <Card className="border-2 border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
               <Users className="h-6 w-6" />
-              Refer Your Squad
+              Squad Referral
             </CardTitle>
-            <CardDescription>Get 100 🪙 for every friend you refer.</CardDescription>
+            <CardDescription>Earn 100 🪙 for every successful invite.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
              <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Your Link</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Referral Link</label>
                 <div className="flex gap-2">
-                  <Input value={`https://bracketbattles.in/ref/${user?.uid?.slice(0, 6) || '---'}`} readOnly className="bg-transparent border-white/10 font-mono text-xs" />
+                  <Input 
+                    value={`https://bracketbattles.in/ref/${user?.uid?.slice(0, 6) || '---'}`} 
+                    readOnly 
+                    className="bg-transparent border-white/10 font-mono text-xs" 
+                  />
                   <Button size="sm" className="bg-primary font-bold">COPY</Button>
                 </div>
              </div>
@@ -137,22 +145,22 @@ export default function RewardsPage() {
         </Card>
       </div>
 
-      {/* CPA Lead Offer Wall Section */}
+      {/* Offer Wall */}
       <section className="space-y-6 pt-12">
         <div className="flex items-center gap-2">
           <LayoutDashboard className="h-6 w-6 text-primary" />
-          <h2 className="text-2xl font-black uppercase tracking-tight">Offer Wall</h2>
+          <h2 className="text-2xl font-black uppercase tracking-tight">CPA Lead Offer Wall</h2>
         </div>
         <Card className="border-2 border-primary/10 overflow-hidden bg-card/50 backdrop-blur-xl">
           <CardHeader>
-            <CardTitle>High Value Tasks</CardTitle>
-            <CardDescription>Complete surveys and app installs for major rewards.</CardDescription>
+            <CardTitle>High Value Offers</CardTitle>
+            <CardDescription>Participate in surveys and app trials for massive coin payouts.</CardDescription>
           </CardHeader>
           <CardContent className="p-0 border-t border-white/5 min-h-[500px] flex items-center justify-center">
             {isSettingsLoading ? (
               <div className="flex flex-col items-center gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Loading Offers...</p>
+                <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Syncing Offers...</p>
               </div>
             ) : settings?.cpaLeadUrl ? (
               <iframe 
@@ -163,7 +171,7 @@ export default function RewardsPage() {
             ) : (
               <div className="text-center p-12 space-y-4">
                 <LayoutDashboard className="h-16 w-16 text-muted-foreground/20 mx-auto" />
-                <p className="text-muted-foreground font-medium">Offer wall is temporarily unavailable.</p>
+                <p className="text-muted-foreground font-medium">Offers are currently being updated.</p>
               </div>
             )}
           </CardContent>
