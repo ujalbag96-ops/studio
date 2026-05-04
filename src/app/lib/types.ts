@@ -87,4 +87,6 @@ export interface AppSettings {
   coinValuePerDollar?: number;
   adminProfitPercentage?: number;
   withdrawalGateways?: string[];
+  videoAdProvider?: 'unity' | 'applovin';
+  videoAdPlacementId?: string;
 }
