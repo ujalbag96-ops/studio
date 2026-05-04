@@ -35,14 +35,13 @@ export default function LevelsPage() {
   );
   const { data: profile } = useDoc<UserProfile>(userProfileRef);
 
-  // Default values for progression
   const currentXp = 120;
   const nextLevelXp = 500;
   const progress = (currentXp / nextLevelXp) * 100;
 
   const handleClaimReward = async (rewardId: string, amount: number) => {
     if (!user || !firestore) {
-      toast({ variant: "destructive", title: "Access Denied", description: "Login to claim your level rewards." });
+      toast({ variant: "destructive", title: "Access Denied", description: "Login to claim your rewards." });
       return;
     }
 
@@ -53,8 +52,10 @@ export default function LevelsPage() {
         const userRef = doc(firestore, 'users', user.uid);
         const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
+        // Level rewards add to WITHDRAWABLE winnings
         await updateDoc(userRef, {
-          coins: increment(amount)
+          coins: increment(amount),
+          withdrawableCoins: increment(amount)
         });
 
         await addDoc(ledgerRef, {
@@ -62,12 +63,12 @@ export default function LevelsPage() {
           amount: amount,
           date: new Date().toISOString().split('T')[0],
           status: 'completed',
-          description: `Level ${rewardId} Reward`
+          description: `Level ${rewardId} Winning Reward`
         });
 
         toast({
-          title: "Reward Claimed!",
-          description: `${amount} 🪙 added to your vault.`,
+          title: "Winning Reward Claimed!",
+          description: `${amount} 🪙 added to your winning balance.`,
         });
       } catch (error: any) {
         toast({
@@ -91,7 +92,6 @@ export default function LevelsPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
-      {/* Level Hero Section */}
       <section className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-white/5 shadow-2xl p-8 md:p-16">
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] -mr-48 -mt-48 animate-pulse" />
         
@@ -107,7 +107,7 @@ export default function LevelsPage() {
             </h1>
             
             <p className="text-lg text-muted-foreground font-medium leading-relaxed">
-              Level up by participating in battles and watching videos. Unlock higher daily dividends as you climb the ranks.
+              Level rewards are added directly to your <span className="text-white font-bold">Winning Amount</span> for instant withdrawal.
             </p>
           </div>
 
@@ -125,18 +125,14 @@ export default function LevelsPage() {
                  style={{ width: `${progress}%` }}
                />
             </div>
-            <p className="text-[10px] text-center font-black uppercase tracking-widest text-muted-foreground flex items-center justify-center gap-2">
-              <Zap className="h-3 w-3 text-secondary" /> Next Level: Bronze II <Zap className="h-3 w-3 text-secondary" />
-            </p>
           </div>
         </div>
       </section>
 
-      {/* Rewards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <LevelRewardCard 
-          title="Bronze Daily Payout"
-          description="Claim your daily arena dividend for being a Bronze warrior."
+          title="Daily Winning Payout"
+          description="Claim your daily winning dividend for being active."
           value="10.00"
           icon={<Clock className="h-8 w-8 text-primary" />}
           id="daily"
@@ -145,8 +141,8 @@ export default function LevelsPage() {
           color="primary"
         />
         <LevelRewardCard 
-          title="Welcome Bonus"
-          description="Starter gift for every new arena champion."
+          title="Welcome Winnings"
+          description="Starter gift added to your withdrawable balance."
           value="50.00"
           icon={<Gift className="h-8 w-8 text-secondary" />}
           id="welcome"
@@ -155,8 +151,8 @@ export default function LevelsPage() {
           color="secondary"
         />
         <LevelRewardCard 
-          title="Weekly Drop"
-          description="Exclusive weekly drop for active level-grinders."
+          title="Weekly Winning Drop"
+          description="Exclusive weekly winning drop for grinders."
           value="100.00"
           icon={<Trophy className="h-8 w-8 text-white" />}
           id="weekly"
@@ -165,39 +161,6 @@ export default function LevelsPage() {
           color="white"
         />
       </div>
-
-      {/* Benefits Section */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="bg-[#121212] border-white/5 rounded-[2.5rem] p-8 space-y-8 overflow-hidden relative">
-           <div className="absolute -bottom-10 -right-10 opacity-5 rotate-12">
-              <ShieldCheck className="h-64 w-64 text-primary" />
-           </div>
-           <div className="relative z-10 space-y-6">
-              <h2 className="text-3xl font-black uppercase tracking-tighter italic text-white">Tier Benefits</h2>
-              <div className="grid gap-4">
-                 <BenefitItem icon={<Zap />} text="Standard Withdrawal Processing" />
-                 <BenefitItem icon={<TrendingUp />} text="5% Referral Bonus" />
-                 <BenefitItem icon={<Sparkles />} text="Access to Daily Tournaments" />
-                 <BenefitItem icon={<Crown />} text="AI Support Assistant" />
-              </div>
-           </div>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/20 rounded-[2.5rem] p-8 flex flex-col justify-center items-center text-center space-y-6">
-           <div className="h-20 w-20 rounded-[1.5rem] bg-primary flex items-center justify-center shadow-2xl shadow-primary/20">
-              <TrendingUp className="h-10 w-10 text-white" />
-           </div>
-           <div className="space-y-2">
-              <h3 className="text-2xl font-black uppercase tracking-tight">Rise to Silver</h3>
-              <p className="text-muted-foreground text-sm font-medium leading-relaxed max-w-sm mx-auto">
-                Reach Silver level to unlock 10% referral boosts and priority withdrawal processing.
-              </p>
-           </div>
-           <Button className="bg-primary hover:bg-primary/90 text-white font-black px-12 h-14 rounded-2xl shadow-xl shadow-primary/20">
-              GRIND FOR SILVER
-           </Button>
-        </Card>
-      </section>
     </div>
   );
 }
@@ -242,21 +205,9 @@ function LevelRewardCard({ title, description, value, icon, id, isClaiming, onCl
             color === 'secondary' ? "bg-secondary hover:bg-secondary/90 text-black" : "bg-white text-black hover:bg-white/90"
           )}
         >
-          {isClaiming ? <Loader2 className="h-5 w-5 animate-spin" /> : "CLAIM REWARD"}
+          {isClaiming ? <Loader2 className="h-5 w-5 animate-spin" /> : "CLAIM WINNINGS"}
         </Button>
       </div>
     </Card>
-  );
-}
-
-function BenefitItem({ icon, text }: any) {
-  return (
-    <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 transition-colors hover:bg-white/10 group">
-       <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-          {icon}
-       </div>
-       <span className="text-sm font-bold tracking-tight text-white/90">{text}</span>
-       <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground opacity-20 group-hover:opacity-100 transition-all" />
-    </div>
   );
 }

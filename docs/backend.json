@@ -80,6 +80,7 @@
         "mobile": { "type": "string" },
         "deviceId": { "type": "string" },
         "coins": { "type": "number" },
+        "withdrawableCoins": { "type": "number", "description": "Coins earned from winnings and tasks that can be withdrawn." },
         "referralCode": { "type": "string" },
         "referredBy": { "type": "string" },
         "isAdmin": { "type": "boolean" }
@@ -91,7 +92,7 @@
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "type": { "type": "string", "enum": ["deposit", "withdrawal", "income"] },
+        "type": { "type": "string", "enum": ["deposit", "withdrawal", "income", "entry_fee"] },
         "amount": { "type": "number" },
         "date": { "type": "string", "format": "date" },
         "status": { "type": "string", "enum": ["pending", "completed", "failed"] }

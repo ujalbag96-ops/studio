@@ -12,9 +12,7 @@ import {
   Loader2, 
   Zap, 
   Clock, 
-  ArrowRight,
   MousePointerClick,
-  TrendingUp,
   Ban
 } from 'lucide-react';
 import { AppSettings } from '@/app/lib/types';
@@ -24,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import OfferWall from '@/components/OfferWall';
 
 export default function EarningHub() {
-  const { user } = userUser();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isVideoLoading, setIsVideoLoading] = useState(false);
@@ -77,19 +75,24 @@ export default function EarningHub() {
         const userRef = doc(firestore, 'users', user.uid);
         const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
-        await updateDoc(userRef, { coins: increment(5) });
+        // Video Wall adds to WITHDRAWABLE winning balance
+        await updateDoc(userRef, { 
+          coins: increment(5),
+          withdrawableCoins: increment(5)
+        });
+        
         await addDoc(ledgerRef, {
           type: 'income',
           amount: 5,
           date: new Date().toISOString().split('T')[0],
           status: 'completed',
-          description: 'Video Wall Reward'
+          description: 'Video Wall Winning Reward'
         });
 
         localStorage.setItem('last_video_watch_time', Date.now().toString());
         setCooldownRemaining(300);
 
-        toast({ title: "Earned!", description: "5 🪙 added to your wallet." });
+        toast({ title: "Winning Claimed!", description: "5 🪙 added to your winning balance." });
       } catch (error: any) {
         toast({ variant: "destructive", title: "Error", description: "Failed to sync reward." });
       } finally {
@@ -100,7 +103,6 @@ export default function EarningHub() {
 
   if (settingsLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
-  // Defaults to TRUE if settings document is missing or fields are undefined
   const showVideoWall = settings?.videoWallEnabled ?? true;
   const showOfferWall = settings?.offerWallEnabled ?? true;
   const showCpaLead = settings?.cpaLeadEnabled ?? true;
@@ -116,24 +118,23 @@ export default function EarningHub() {
           Earning <span className="text-primary italic">Hub</span>
         </h1>
         <p className="text-muted-foreground font-medium text-lg max-w-xl">
-          Complete tasks, watch videos, and take surveys to fill your wallet with elite rewards.
+          Complete tasks to fill your <span className="text-white font-bold">Winning Balance</span> for instant withdrawals.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Video Wall */}
         {showVideoWall ? (
           <Card className="bg-[#1a1a1a] border-primary/30 border-2 rounded-[2.5rem] overflow-hidden relative group hover:shadow-[0_0_30px_rgba(168,85,247,0.2)] transition-all">
             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
                <PlayCircle className="h-40 w-40 text-primary" />
             </div>
             <CardHeader className="p-8">
-              <Badge className="bg-primary/20 text-primary border-primary/20 w-fit mb-4 uppercase font-black">VIDEO WALL</Badge>
-              <CardTitle className="text-3xl font-black uppercase tracking-tight">Watch & Earn</CardTitle>
-              <CardDescription className="text-base font-bold text-primary italic">Earn 5 Coins Instantly</CardDescription>
+              <Badge className="bg-primary/20 text-primary border-primary/20 w-fit mb-4 uppercase font-black">WINNING REWARD</Badge>
+              <CardTitle className="text-3xl font-black uppercase tracking-tight">Watch & Win</CardTitle>
+              <CardDescription className="text-base font-bold text-primary italic">Earn 5 Withdrawable Coins</CardDescription>
             </CardHeader>
             <CardContent className="px-8 pb-8 space-y-6">
-              <p className="text-sm text-muted-foreground leading-relaxed">Watch high-definition video ads to unlock quick arena coins. High availability daily.</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Watch ads to add directly to your withdrawal balance. Every coin counts toward your ₹ payout.</p>
               <Button 
                 onClick={handleWatchVideo}
                 disabled={isVideoLoading || cooldownRemaining > 0}
@@ -155,7 +156,6 @@ export default function EarningHub() {
           </Card>
         ) : <ModuleDisabledCard label="Video Wall" />}
 
-        {/* Offer Wall (Dynamic API Integration) */}
         {showOfferWall ? (
           <Card className="lg:col-span-2 bg-[#1a1a1a] border-secondary/30 border-2 rounded-[2.5rem] overflow-hidden relative group hover:shadow-[0_0_30px_rgba(103,232,249,0.2)] transition-all">
              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform pointer-events-none">
@@ -166,9 +166,8 @@ export default function EarningHub() {
                 <div>
                   <Badge className="bg-secondary/20 text-secondary border-secondary/20 w-fit mb-4 uppercase font-black">OFFER WALL</Badge>
                   <CardTitle className="text-3xl font-black uppercase tracking-tight">Arena Missions</CardTitle>
-                  <CardDescription className="text-base font-bold text-secondary italic">Android Exclusive • Instant Payouts</CardDescription>
+                  <CardDescription className="text-base font-bold text-secondary italic">Coins add to Withdrawable Balance</CardDescription>
                 </div>
-                <Badge variant="outline" className="border-secondary/20 text-secondary hidden md:flex">v1.2 LIVE</Badge>
               </div>
             </CardHeader>
             <CardContent className="px-8 pb-8">
@@ -177,7 +176,6 @@ export default function EarningHub() {
           </Card>
         ) : <ModuleDisabledCard label="Offer Wall" />}
 
-        {/* CPA Lead (Placeholder or Survey section) */}
         {showCpaLead ? (
           <Card className="bg-[#1a1a1a] border-white/10 border-2 rounded-[2.5rem] overflow-hidden relative group hover:border-white/30 transition-all">
              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
@@ -186,10 +184,10 @@ export default function EarningHub() {
             <CardHeader className="p-8">
               <Badge className="bg-white/5 text-white border-white/10 w-fit mb-4 uppercase font-black">SURVEYS</Badge>
               <CardTitle className="text-3xl font-black uppercase tracking-tight">CPA Insights</CardTitle>
-              <CardDescription className="text-base font-bold text-muted-foreground italic">Earn 5-50 Coins</CardDescription>
+              <CardDescription className="text-base font-bold text-muted-foreground italic">Earn 5-50 Winning Coins</CardDescription>
             </CardHeader>
             <CardContent className="px-8 pb-8 space-y-6">
-              <p className="text-sm text-muted-foreground leading-relaxed">Share your opinion on major brands and current trends to stack coins effortlessly.</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Share opinions to boost your winning wallet effortlessly.</p>
               <Button variant="secondary" className="w-full h-16 rounded-2xl font-black uppercase tracking-widest text-lg shadow-xl">
                 START SURVEY <Sparkles className="h-5 w-5 ml-2" />
               </Button>
@@ -206,7 +204,6 @@ function ModuleDisabledCard({ label }: { label: string }) {
     <Card className="bg-[#1a1a1a] border-dashed border-white/5 border-2 rounded-[2.5rem] p-12 flex flex-col items-center justify-center text-center opacity-40">
        <Ban className="h-10 w-10 text-muted-foreground mb-4" />
        <p className="text-sm font-black uppercase tracking-widest text-muted-foreground">{label} Maintenance</p>
-       <p className="text-[10px] font-medium text-muted-foreground/60 mt-2">Currently being upgraded by Arena Admins.</p>
     </Card>
   )
 }

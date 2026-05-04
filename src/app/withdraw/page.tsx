@@ -3,12 +3,12 @@
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wallet, ArrowLeft, Loader2, AlertCircle, CheckCircle2, CreditCard, IndianRupee, Percent, Coins } from 'lucide-react';
+import { Wallet, ArrowLeft, Loader2, AlertCircle, CreditCard, IndianRupee, Percent, Coins, Trophy } from 'lucide-react';
 import { AppSettings, UserProfile } from '@/app/lib/types';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -51,8 +51,8 @@ export default function WithdrawPage() {
       return;
     }
 
-    if (coinsRequired > (profile.coins || 0)) {
-      setError(`Insufficient balance. You need ${coinsRequired} coins for ₹${rupeeValue}.`);
+    if (coinsRequired > (profile.withdrawableCoins || 0)) {
+      setError(`Insufficient Winning Balance. You can only withdraw ₹${((profile.withdrawableCoins || 0) / COIN_TO_RUPEE_RATE).toFixed(2)}.`);
       return;
     }
 
@@ -78,16 +78,17 @@ export default function WithdrawPage() {
         amount: rupeeValue,
         date: new Date().toISOString().split('T')[0],
         status: 'pending',
-        description: `Withdrawal via ${method}: ${upiId} (${coinsRequired} coins deducted. ₹${feeAmount.toFixed(2)} Fee. Net Payout: ₹${payoutAmount.toFixed(2)})`
+        description: `Withdrawal via ${method}: ${upiId} (${coinsRequired} coins deducted from winnings. ₹${feeAmount.toFixed(2)} Fee. Net Payout: ₹${payoutAmount.toFixed(2)})`
       });
 
       await updateDoc(userRef as any, {
-        coins: increment(-coinsRequired)
+        coins: increment(-coinsRequired),
+        withdrawableCoins: increment(-coinsRequired)
       });
 
       toast({
         title: "Request Transmitted",
-        description: `₹${rupeeValue} request queued. ${coinsRequired} coins deducted.`,
+        description: `₹${rupeeValue} withdrawal queued from your winning balance.`,
       });
 
       router.push('/ledger');
@@ -108,7 +109,7 @@ export default function WithdrawPage() {
           <h2 className="text-3xl font-black uppercase tracking-tighter">Login Required</h2>
           <p className="text-muted-foreground font-medium">Please sign in to access the withdrawal vault.</p>
         </div>
-        <Button asChild size="lg" className="rounded-2xl font-black px-12">
+        <Button asChild size="lg" className="rounded-2xl font-black px-12 h-14 bg-primary shadow-xl">
           <Link href="/login">GO TO LOGIN</Link>
         </Button>
       </div>
@@ -125,7 +126,7 @@ export default function WithdrawPage() {
         </Button>
         <div className="space-y-1">
           <h1 className="text-4xl font-black uppercase tracking-tighter leading-none">Vault <span className="text-primary italic">Withdrawal</span></h1>
-          <p className="text-muted-foreground text-sm font-medium">Rate: 10 Coins = ₹1</p>
+          <p className="text-muted-foreground text-sm font-medium">Automatic Winning Amount Restriction Active</p>
         </div>
       </div>
 
@@ -134,10 +135,12 @@ export default function WithdrawPage() {
           <Card className="bg-[#1a1a1a] border-white/5 shadow-2xl overflow-hidden rounded-[2.5rem]">
             <div className="bg-gradient-to-r from-primary/10 to-transparent p-10 border-b border-white/5 flex items-center justify-between">
               <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Your Balance</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-2">
+                  <Trophy className="h-3 w-3" /> Winning Balance
+                </p>
                 <h2 className="text-5xl font-black text-white tracking-tighter">
-                  {profile?.coins?.toLocaleString() || 0} <span className="text-2xl align-top">🪙</span>
-                  <span className="text-lg text-muted-foreground ml-4">≈ ₹{(profile?.coins || 0) / 10}</span>
+                  {profile?.withdrawableCoins?.toLocaleString() || 0} <span className="text-2xl align-top">🪙</span>
+                  <span className="text-lg text-muted-foreground ml-4">≈ ₹{((profile?.withdrawableCoins || 0) / 10).toFixed(2)}</span>
                 </h2>
               </div>
               <div className="h-16 w-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
@@ -149,7 +152,7 @@ export default function WithdrawPage() {
               {error && (
                 <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle className="font-black uppercase tracking-widest text-[10px]">Security Alert</AlertTitle>
+                  <AlertTitle className="font-black uppercase tracking-widest text-[10px]">Policy Restriction</AlertTitle>
                   <AlertDescription className="font-bold">{error}</AlertDescription>
                 </Alert>
               )}
@@ -202,7 +205,7 @@ export default function WithdrawPage() {
                   {rupeeValue >= 110 && (
                     <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                       <div className="flex justify-between items-center text-xs">
-                        <span className="text-muted-foreground flex items-center gap-1.5 font-bold uppercase tracking-widest"><Coins className="h-3 w-3" /> Coins Required</span>
+                        <span className="text-muted-foreground flex items-center gap-1.5 font-bold uppercase tracking-widest"><Coins className="h-3 w-3" /> Winning Coins Required</span>
                         <span className="text-white font-black">{coinsRequired} 🪙</span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
@@ -237,11 +240,12 @@ export default function WithdrawPage() {
                 <Percent className="h-8 w-8 text-primary" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-black uppercase italic">Withdrawal Policy</h3>
+                <h3 className="text-lg font-black uppercase italic">Winning Policy</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-                  Rate: 10 Coins = ₹1<br />
+                  Only coins earned from Tournaments and tasks are withdrawable.<br />
+                  <strong>10 Winning Coins = ₹1</strong><br />
                   Min. Withdrawal: ₹110<br />
-                  Processing Fee: 8%
+                  8% Processing Fee applies.
                 </p>
               </div>
            </Card>

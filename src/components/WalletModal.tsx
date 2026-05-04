@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Wallet, ArrowUpRight, Plus, CreditCard, Info, IndianRupee, Send } from 'lucide-react';
+import { Wallet, ArrowUpRight, Plus, CreditCard, Info, IndianRupee, Send, Trophy } from 'lucide-react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { UserProfile, AppSettings } from '@/app/lib/types';
@@ -34,7 +34,8 @@ export default function WalletModal({ children }: WalletModalProps) {
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const balanceCoins = profile?.coins || 0;
-  const rupeeValue = balanceCoins / 10; // 10 coins = ₹1
+  const withdrawableCoins = profile?.withdrawableCoins || 0;
+  const rupeeValue = withdrawableCoins / 10; // 10 winning coins = ₹1
   const telegramUrl = settings?.telegramUrl || 'https://t.me/bracketbattles_support';
 
   const handleManualTopup = () => {
@@ -60,7 +61,7 @@ export default function WalletModal({ children }: WalletModalProps) {
             <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
               <Wallet className="h-5 w-5 text-primary" />
             </div>
-            My Wallet
+            Arena Wallet
           </DialogTitle>
         </DialogHeader>
 
@@ -68,15 +69,18 @@ export default function WalletModal({ children }: WalletModalProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Total Balance</p>
-              <h2 className="text-4xl font-black text-green-500 tracking-tighter">
-                {balanceCoins.toLocaleString()} <span className="text-xl">🪙</span>
+              <h2 className="text-3xl font-black text-white/60 tracking-tighter">
+                {balanceCoins.toLocaleString()} <span className="text-lg">🪙</span>
               </h2>
             </div>
             <div className="space-y-1 text-right">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Est. Value</p>
-              <h2 className="text-2xl font-black text-white/90 tracking-tighter">
-                ₹{rupeeValue.toFixed(2)}
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center justify-end gap-1">
+                <Trophy className="h-2 w-2" /> Winning Balance
+              </p>
+              <h2 className="text-3xl font-black text-green-500 tracking-tighter">
+                {withdrawableCoins.toLocaleString()} <span className="text-lg">🪙</span>
               </h2>
+              <p className="text-[10px] font-bold text-white/40">≈ ₹{rupeeValue.toFixed(2)}</p>
             </div>
           </div>
 
@@ -95,21 +99,21 @@ export default function WalletModal({ children }: WalletModalProps) {
               </Button>
             </div>
             <p className="text-[10px] text-center text-muted-foreground font-medium px-4 leading-relaxed">
-              Rate: 10 Coins = ₹1. All top-ups handled via Telegram.
+              <strong>Important:</strong> Only Winning Balance (Tournament wins & tasks) can be withdrawn to ₹.
             </p>
           </div>
 
           <div className="bg-black/40 border border-white/5 rounded-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <CreditCard className="h-4 w-4" /> Withdrawal Info
+                <CreditCard className="h-4 w-4" /> Withdrawal Policy
               </h3>
             </div>
             
             <div className="flex items-start gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20">
               <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <p className="text-[9px] text-muted-foreground leading-relaxed">
-                Min. Withdrawal: ₹110 (1,100 Coins). Processing: 2-24 hours. 8% gateway fee applies.
+                Min. Withdrawal: ₹110 (1,100 Winning Coins). Processing fee: 8%. Deposits cannot be withdrawn.
               </p>
             </div>
           </div>

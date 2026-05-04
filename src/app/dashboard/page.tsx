@@ -72,10 +72,6 @@ export default function ArenaHQ() {
     );
   }
 
-  // Earnings are stored in coins in the ledger, so we convert to ₹ (10 coins = ₹1)
-  const totalCoinEarnings = recentActivity?.filter(l => l.type === 'income' || l.type === 'deposit').reduce((acc, curr) => acc + curr.amount, 0) || 0;
-  const totalRupeeEarnings = totalCoinEarnings / 10;
-
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-10 pb-32">
       <div className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-card to-background border border-white/5 p-8 md:p-12 shadow-2xl">
@@ -99,7 +95,7 @@ export default function ArenaHQ() {
               Arena <span className="text-primary">HQ</span>
             </h1>
             <p className="text-muted-foreground font-medium text-lg max-w-md">
-              Operational status: Optimal. Welcome back, <span className="text-white font-black">{user.email?.split('@')[0]}</span>.
+              Welcome back, <span className="text-white font-black">{user.email?.split('@')[0]}</span>.
             </p>
           </div>
 
@@ -122,24 +118,24 @@ export default function ArenaHQ() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <HQStatsCard 
-          title="Current Balance" 
+          title="Total Balance" 
           value={isProfileLoading ? "---" : (profile?.coins?.toLocaleString() || 0)} 
           suffix="🪙"
           icon={<Wallet />} 
+          color="white"
+        />
+        <HQStatsCard 
+          title="Winning Amount" 
+          value={isProfileLoading ? "---" : (profile?.withdrawableCoins?.toLocaleString() || 0)} 
+          suffix="🪙"
+          icon={<Trophy />} 
           color="primary"
         />
         <HQStatsCard 
-          title="Battle Earnings" 
-          value={`₹${totalRupeeEarnings.toFixed(2)}`} 
+          title="Available to ₹" 
+          value={`₹${((profile?.withdrawableCoins || 0) / 10).toFixed(2)}`} 
           icon={<TrendingUp />} 
           color="secondary"
-        />
-        <HQStatsCard 
-          title="Rank Score" 
-          value="120" 
-          suffix="XP"
-          icon={<Sword />} 
-          color="white"
         />
       </div>
 
@@ -183,9 +179,9 @@ export default function ArenaHQ() {
                         <div className="text-right space-y-2">
                           <p className={cn(
                             "text-2xl font-black tracking-tighter",
-                            activity.type === 'withdrawal' ? "text-red-400" : "text-green-400"
+                            activity.type === 'withdrawal' || activity.type === 'entry_fee' ? "text-red-400" : "text-green-400"
                           )}>
-                            {activity.type === 'withdrawal' ? '-' : '+'}₹{activity.type === 'withdrawal' ? activity.amount : (activity.amount / 10)}
+                            {activity.type === 'withdrawal' || activity.type === 'entry_fee' ? '-' : '+'}₹{(activity.amount / 10).toFixed(2)}
                           </p>
                           <Badge variant="outline" className={cn(
                              "text-[9px] font-black uppercase px-3 py-0.5 border-2",
@@ -214,33 +210,11 @@ export default function ArenaHQ() {
              </div>
              <div className="space-y-3">
                 <h3 className="text-2xl font-black uppercase tracking-tighter italic">Tactical Boost</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed font-medium">Double your coin generation speed by completing elite daily missions in the Earning Hub.</p>
+                <p className="text-sm text-muted-foreground leading-relaxed font-medium">Earn Winning Amount directly in the hub by completing tasks.</p>
              </div>
              <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 h-16 rounded-2xl font-black uppercase tracking-widest text-base shadow-xl shadow-secondary/10">
                 <Link href="/earning-hub">DEPLOY TO HUB</Link>
              </Button>
-          </Card>
-
-          <Card className="bg-[#0f0f15] border-white/5 rounded-[2.5rem] p-8 space-y-8">
-             <div className="flex items-center gap-4">
-               <div className="h-12 w-12 bg-amber-500/10 rounded-2xl flex items-center justify-center border border-amber-500/20">
-                  <Trophy className="h-6 w-6 text-amber-500" />
-               </div>
-               <div>
-                  <h3 className="text-sm font-black uppercase tracking-widest italic">Hall of Fame</h3>
-                  <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.2em]">Tier Progression</p>
-               </div>
-             </div>
-             
-             <div className="space-y-6">
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
-                   <p className="text-xs font-bold text-muted-foreground uppercase">Next Reward</p>
-                   <p className="text-xl font-black">50 🪙</p>
-                </div>
-                <Button variant="outline" asChild className="w-full border-primary/30 text-primary hover:bg-primary/10 h-14 rounded-2xl font-black uppercase tracking-widest">
-                   <Link href="/levels">CLAIM PROGRESS</Link>
-                </Button>
-             </div>
           </Card>
         </div>
       </div>

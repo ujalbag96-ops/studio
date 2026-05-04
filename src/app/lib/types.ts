@@ -61,6 +61,7 @@ export interface UserLedgerEntry {
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';
+  description?: string;
 }
 
 export interface UserProfile {
@@ -68,6 +69,7 @@ export interface UserProfile {
   mobile: string;
   deviceId: string;
   coins: number;
+  withdrawableCoins: number;
   referralCode: string;
   referredBy?: string;
   isAdmin?: boolean;
@@ -84,4 +86,5 @@ export interface AppSettings {
   telegramUrl?: string;
   coinValuePerDollar?: number;
   adminProfitPercentage?: number;
+  withdrawalGateways?: string[];
 }
