@@ -7,12 +7,16 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isNotBanned() {
+      return !exists(/databases/$(database)/documents/users/$(request.auth.uid)) || 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isBanned', false) == false;
+    }
+
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId && isNotBanned();
     }
 
     function isAdmin() {
-      // Simplified and robust admin check
       return isSignedIn() && (
         (request.auth.token.email != null && request.auth.token.email.lower() == 'ujalbag96@gmail.com') ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
@@ -23,8 +27,8 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if (isOwner(userId) && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false)) || isAdmin();
+      allow create: if isSignedIn();
+      allow update: if (isOwner(userId) && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false) && request.resource.data.get('isBanned', false) == resource.data.get('isBanned', false)) || isAdmin();
       allow delete: if isAdmin();
 
       match /ledger/{entryId} {
@@ -34,32 +38,31 @@ service cloud.firestore {
       }
     }
 
-    // Explicitly allow collectionGroup queries for the ledger for Admin auditing
     match /{path=**}/ledger/{ledgerId} {
       allow list: if isAdmin();
     }
 
     match /tournaments/{tournamentId} {
-      allow get, list: if true;
+      allow get, list: if isNotBanned();
       allow create, update, delete: if isAdmin();
     }
 
     match /registrations/{regId} {
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow list: if isAdmin() || (isSignedIn() && isNotBanned());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isNotBanned();
       allow update, delete: if isAdmin();
     }
 
     match /support/{msgId} {
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow list: if isAdmin();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isNotBanned();
       allow update, delete: if isAdmin();
     }
 
     match /matches/{matchId} {
-      allow get, list: if true;
+      allow get, list: if isNotBanned();
       allow create, update, delete: if isAdmin();
     }
 

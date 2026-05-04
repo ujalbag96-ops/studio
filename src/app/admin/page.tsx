@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, increment } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, increment, getDocs } from 'firebase/firestore';
 import { 
   LayoutDashboard, 
   Users as UsersIcon, 
@@ -25,7 +25,10 @@ import {
   Coins,
   TrendingUp,
   Percent,
-  PlayCircle
+  PlayCircle,
+  Ban,
+  Smartphone,
+  Fingerprint
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,7 +49,7 @@ export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tournaments' | 'matches' | 'support' | 'transactions' | 'settings' | 'revenue'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tournaments' | 'matches' | 'support' | 'transactions' | 'settings' | 'revenue' | 'users'>('dashboard');
 
   const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
@@ -86,7 +89,6 @@ export default function AdminDashboard() {
   const [roomId, setRoomId] = useState('');
   const [roomPass, setRoomPass] = useState('');
   const [telegramInput, setTelegramInput] = useState('');
-  
   const [coinValue, setCoinValue] = useState<string>('100');
   const [profitMargin, setProfitMargin] = useState<string>('50');
   const [adProvider, setAdProvider] = useState<'unity' | 'applovin'>('unity');
@@ -102,89 +104,30 @@ export default function AdminDashboard() {
     }
   }, [settings]);
 
+  const handleBanUser = async (targetUser: UserProfile) => {
+    if (!firestore) return;
+    try {
+      await updateDoc(doc(firestore, 'users', targetUser.id), { isBanned: !targetUser.isBanned });
+      toast({ title: targetUser.isBanned ? "User Unbanned" : "User Banned Successfully" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Action Failed" });
+    }
+  };
+
   const handleUpdateRevenue = async () => {
     if (!firestore || !settingsRef) return;
     try {
-      await setDoc(settingsRef, { 
-        coinValuePerDollar: parseFloat(coinValue),
-        adminProfitPercentage: parseFloat(profitMargin)
-      }, { merge: true });
+      await setDoc(settingsRef, { coinValuePerDollar: parseFloat(coinValue), adminProfitPercentage: parseFloat(profitMargin) }, { merge: true });
       toast({ title: "Revenue Settings Updated" });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Update Failed", description: e.message });
-    }
+    } catch (e: any) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
   const handleUpdateAdSettings = async () => {
     if (!firestore || !settingsRef) return;
     try {
-      await setDoc(settingsRef, { 
-        videoAdProvider: adProvider,
-        videoAdPlacementId: adPlacementId
-      }, { merge: true });
+      await setDoc(settingsRef, { videoAdProvider: adProvider, videoAdPlacementId: adPlacementId }, { merge: true });
       toast({ title: "Ad Settings Updated" });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Update Failed" });
-    }
-  };
-
-  const handleUpdateRoom = async () => {
-    if (!firestore || !selectedTournament) return;
-    try {
-      await updateDoc(doc(firestore, 'tournaments', selectedTournament.id), {
-        roomCredentials: { roomId, roomPassword: roomPass }
-      });
-      toast({ title: "Room Updated" });
-      setSelectedTournament(null);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Update Failed" });
-    }
-  };
-
-  const handleCreateTournament = async (e: any) => {
-    e.preventDefault();
-    if (!firestore) return;
-    const formData = new FormData(e.target);
-    try {
-      await addDoc(collection(firestore, 'tournaments'), {
-        name: formData.get('name'),
-        gameType: formData.get('gameType'),
-        game: formData.get('game'),
-        prizePool: formData.get('prizePool'),
-        entryFee: parseInt(formData.get('entryFee') as string || '0'),
-        startDate: new Date(formData.get('startDate') as string || Date.now()).toISOString(),
-        status: 'upcoming',
-        banner: `https://picsum.photos/seed/${Math.random()}/800/400`
-      });
-      toast({ title: "Tournament Created" });
-      e.target.reset();
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error" });
-    }
-  };
-
-  const handleCreateMatch = async (e: any) => {
-    e.preventDefault();
-    if (!firestore) return;
-    const formData = new FormData(e.target);
-    try {
-      await addDoc(collection(firestore, 'matches'), {
-        tournamentId: formData.get('tournamentId'),
-        teamA: { name: formData.get('teamA'), logo: `https://picsum.photos/seed/a${Math.random()}/100/100` },
-        teamB: { name: formData.get('teamB'), logo: `https://picsum.photos/seed/b${Math.random()}/100/100` },
-        scoreA: 0,
-        scoreB: 0,
-        status: 'scheduled',
-        startTime: new Date(formData.get('startTime') as string || Date.now()).toISOString(),
-        description: formData.get('description') || 'Battle Arena Match',
-        votesA: 0,
-        votesB: 0
-      });
-      toast({ title: "Match Activated" });
-      e.target.reset();
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Failed" });
-    }
+    } catch (e: any) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
   const handleProcessTransaction = async (transaction: UserLedgerEntry & { id: string, userId: string }, status: 'completed' | 'failed') => {
@@ -192,26 +135,28 @@ export default function AdminDashboard() {
     try {
       const transactionRef = doc(firestore, 'users', transaction.userId, 'ledger', transaction.id);
       await updateDoc(transactionRef, { status });
-
       if (transaction.type === 'withdrawal' && status === 'failed') {
-        const userRef = doc(firestore, 'users', transaction.userId);
-        // Refund withdrawal rupees back to coins (10 coins = 1 rupee)
-        await updateDoc(userRef, { 
+        await updateDoc(doc(firestore, 'users', transaction.userId), { 
           coins: increment(transaction.amount * 10),
           withdrawableCoins: increment(transaction.amount * 10)
         });
         toast({ title: "Refunded Successfully" });
-      } else {
-        toast({ title: `Transaction ${status}` });
-      }
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Failed" });
-    }
+      } else { toast({ title: `Transaction ${status}` }); }
+    } catch (error: any) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
   if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen gap-4"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="text-muted-foreground font-medium">Verifying Admin Access...</p></div>;
-
   if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1>Access Restricted</h1></div>;
+
+  // Anti-Cheat Logic: Group users by device ID to find duplicates
+  const deviceMap = new Map();
+  usersData?.forEach(u => {
+    if (u.deviceId) {
+      const list = deviceMap.get(u.deviceId) || [];
+      list.push(u);
+      deviceMap.set(u.deviceId, list);
+    }
+  });
 
   return (
     <div className="flex min-h-screen bg-[#0d0d12] text-foreground">
@@ -222,6 +167,7 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 p-4 space-y-1 mt-4">
           <SidebarItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label="Overview" />
+          <SidebarItem active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<UsersIcon />} label="User Manager" />
           <SidebarItem active={activeTab === 'tournaments'} onClick={() => setActiveTab('tournaments')} icon={<Trophy />} label="Tournaments" />
           <SidebarItem active={activeTab === 'matches'} onClick={() => setActiveTab('matches')} icon={<Activity />} label="Live Matches" />
           <SidebarItem active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} icon={<History />} label="Finances" />
@@ -231,14 +177,52 @@ export default function AdminDashboard() {
         </nav>
       </aside>
 
-      <main className="flex-1 md:ml-64 p-4 md:p-10 space-y-8 pb-32 pt-20 md:pt-10">
+      <main className="flex-1 md:ml-64 p-4 md:p-10 space-y-8 pb-32">
         {activeTab === 'dashboard' && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <StatsCard title="Total Warriors" value={usersData?.length || 0} icon={<UsersIcon />} />
-            <StatsCard title="Active Events" value={tournamentsData?.length || 0} icon={<Trophy />} />
+            <StatsCard title="Suspicious Devices" value={Array.from(deviceMap.values()).filter(l => l.length > 1).length} icon={<Fingerprint className="text-red-500" />} />
+            <StatsCard title="Banned Users" value={usersData?.filter(u => u.isBanned).length || 0} icon={<Ban className="text-red-500" />} />
             <StatsCard title="Payout Requests" value={transactionsData?.filter(t => t.type === 'withdrawal' && t.status === 'pending').length || 0} icon={<History />} />
-            <StatsCard title="Flagged AI" value={supportData?.filter(s => s.isFlagged).length || 0} icon={<AlertTriangle />} />
           </div>
+        )}
+
+        {activeTab === 'users' && (
+          <Card className="bg-card/30 border-white/5 rounded-[2rem] overflow-hidden">
+            <CardHeader><CardTitle className="uppercase font-black text-sm text-primary flex items-center gap-2"><Fingerprint className="h-4 w-4" /> User Management & Anti-Cheat</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader><TableRow><TableHead>User / Email</TableHead><TableHead>Device ID</TableHead><TableHead>Coins</TableHead><TableHead>Status</TableHead><TableHead>Action</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {usersData?.map(u => {
+                    const isFlagged = u.deviceId && deviceMap.get(u.deviceId).length > 1;
+                    return (
+                      <TableRow key={u.id} className={cn(isFlagged && "bg-red-500/5")}>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <p className="font-bold text-xs truncate max-w-[150px]">{u.email || u.mobile || u.id}</p>
+                            {isFlagged && <Badge className="bg-red-500 text-[8px] h-4">DUPLICATE DEVICE</Badge>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-[10px] opacity-50">{u.deviceId || "No ID"}</TableCell>
+                        <TableCell className="font-black">🪙{u.coins}</TableCell>
+                        <TableCell>
+                          <Badge variant={u.isBanned ? "destructive" : "outline"} className="text-[8px] uppercase">
+                            {u.isBanned ? "Banned" : "Active"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" variant={u.isBanned ? "outline" : "destructive"} onClick={() => handleBanUser(u)} className="h-8 font-black uppercase text-[10px]">
+                            {u.isBanned ? "Unban" : "Ban"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         )}
 
         {activeTab === 'revenue' && (
@@ -278,32 +262,6 @@ export default function AdminDashboard() {
                </div>
                <Button onClick={handleUpdateAdSettings} className="w-full h-16 bg-secondary text-black font-black uppercase tracking-widest text-lg rounded-2xl shadow-xl">Update Ad Credentials</Button>
             </Card>
-          </div>
-        )}
-
-        {/* Existing Tournaments, Matches, Transactions, Settings, Support tabs... */}
-        {activeTab === 'tournaments' && (
-          <div className="space-y-8">
-            <Card className="bg-card/30 border-white/5 p-6 rounded-[2rem]">
-              <h2 className="text-xl font-black uppercase mb-6 flex items-center gap-2"><Plus className="text-primary" /> Create Event</h2>
-              <form onSubmit={handleCreateTournament} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input name="name" placeholder="Tournament Name" required className="bg-black/40" />
-                <Select name="gameType" defaultValue="BGMI">
-                  <SelectTrigger className="bg-black/40"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BGMI">BGMI</SelectItem>
-                    <SelectItem value="Free Fire">Free Fire</SelectItem>
-                    <SelectItem value="Ludo King">Ludo King</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input name="game" placeholder="Map/Mode" required className="bg-black/40" />
-                <Input name="prizePool" placeholder="Prize Pool" required className="bg-black/40" />
-                <Input name="entryFee" type="number" placeholder="Entry (Coins)" required className="bg-black/40" />
-                <Input name="startDate" type="datetime-local" required className="bg-black/40" />
-                <Button type="submit" className="md:col-span-3 font-black uppercase bg-primary">Host Battle</Button>
-              </form>
-            </Card>
-            {/* Table for Room Management... */}
           </div>
         )}
 

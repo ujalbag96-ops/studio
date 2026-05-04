@@ -66,13 +66,15 @@ export interface UserLedgerEntry {
 
 export interface UserProfile {
   id: string;
-  mobile: string;
-  deviceId: string;
+  email?: string;
+  mobile?: string;
+  deviceId?: string;
   coins: number;
   withdrawableCoins: number;
   referralCode: string;
   referredBy?: string;
   isAdmin?: boolean;
+  isBanned?: boolean;
   upiId?: string;
 }
 

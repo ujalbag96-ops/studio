@@ -80,10 +80,11 @@
         "mobile": { "type": "string" },
         "deviceId": { "type": "string" },
         "coins": { "type": "number" },
-        "withdrawableCoins": { "type": "number", "description": "Coins earned from winnings and tasks that can be withdrawn." },
+        "withdrawableCoins": { "type": "number" },
         "referralCode": { "type": "string" },
         "referredBy": { "type": "string" },
-        "isAdmin": { "type": "boolean" }
+        "isAdmin": { "type": "boolean" },
+        "isBanned": { "type": "boolean" }
       }
     },
     "LedgerEntry": {
@@ -103,18 +104,11 @@
       "type": "object",
       "properties": {
         "maintenanceMode": { "type": "boolean" },
-        "cpaLeadUrl": { "type": "string" },
-        "cpaLeadApiKey": { "type": "string" },
-        "cpaLeadPostbackUrl": { "type": "string" },
-        "withdrawalGateways": { "type": "array", "items": { "type": "string" } },
-        "videoAdProvider": { "type": "string", "enum": ["unity", "applovin"] },
-        "videoAdPlacementId": { "type": "string" },
+        "coinValuePerDollar": { "type": "number" },
+        "adminProfitPercentage": { "type": "number" },
         "videoWallEnabled": { "type": "boolean" },
         "offerWallEnabled": { "type": "boolean" },
-        "cpaLeadEnabled": { "type": "boolean" },
-        "telegramUrl": { "type": "string" },
-        "coinValuePerDollar": { "type": "number" },
-        "adminProfitPercentage": { "type": "number" }
+        "cpaLeadEnabled": { "type": "boolean" }
       }
     }
   },
