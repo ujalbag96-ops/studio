@@ -86,7 +86,7 @@ export default function EarningHub() {
           amount: 5,
           date: new Date().toISOString().split('T')[0],
           status: 'completed',
-          description: 'Video Wall Winning Reward'
+          description: 'Earned from Video Ad'
         });
 
         localStorage.setItem('last_video_watch_time', Date.now().toString());
