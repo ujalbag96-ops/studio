@@ -8,12 +8,12 @@ service cloud.firestore {
     }
 
     function isNotBanned() {
-      return !exists(/databases/$(database)/documents/users/$(request.auth.uid)) || 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isBanned', false) == false;
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return !isSignedIn() || !userDoc.data.get('isBanned', false);
     }
 
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId && isNotBanned();
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     function isAdmin() {
@@ -43,26 +43,26 @@ service cloud.firestore {
     }
 
     match /tournaments/{tournamentId} {
-      allow get, list: if isNotBanned();
+      allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
     match /registrations/{regId} {
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow list: if isAdmin() || (isSignedIn() && isNotBanned());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isNotBanned();
+      allow list: if isAdmin() || (isSignedIn());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAdmin();
     }
 
     match /support/{msgId} {
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow list: if isAdmin();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isNotBanned();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAdmin();
     }
 
     match /matches/{matchId} {
-      allow get, list: if isNotBanned();
+      allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 

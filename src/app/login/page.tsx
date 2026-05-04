@@ -9,8 +9,7 @@ import {
   createUserWithEmailAndPassword, 
   RecaptchaVerifier, 
   signInWithPhoneNumber,
-  ConfirmationResult,
-  sendPasswordResetEmail
+  ConfirmationResult
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -19,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
-import { Trophy, Loader2, AlertCircle, KeyRound, ShieldAlert } from 'lucide-react';
+import { Trophy, Loader2, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -39,7 +38,6 @@ export default function LoginPage() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Generate or get persistent Device ID
   const getDeviceId = () => {
     let id = localStorage.getItem('arena_device_id');
     if (!id) {
@@ -51,84 +49,55 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && !isUserLoading && firestore) {
-      const checkBan = async () => {
-        const userDoc = await getDoc(doc(firestore, 'users', user.uid));
+      const handleAuthFlow = async () => {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        
         if (userDoc.exists() && userDoc.data().isBanned) {
-          setAuthError("This account has been permanently banned for violating fair play rules.");
+          setAuthError("This device has been permanently excluded from the arena due to fair play violations.");
           return;
         }
 
-        const userEmail = user.email?.toLowerCase().trim();
-        if (userEmail === ADMIN_EMAIL.toLowerCase()) {
-          window.location.href = '/admin';
+        const isAdmin = user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
+        if (isAdmin) {
+          router.push('/admin');
         } else {
-          router.push('/');
+          router.push('/dashboard');
         }
       };
-      checkBan();
+      handleAuthFlow();
     }
   }, [user, isUserLoading, router, firestore]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
-    const trimmedEmail = email.trim();
-    setAuthError(null);
     setIsLoading(true);
-    
+    setAuthError(null);
     try {
-      const authInstance = getAuth();
+      const auth = getAuth();
       const deviceId = getDeviceId();
+      let credential;
 
       if (mode === 'login') {
-        const userCredential = await signInWithEmailAndPassword(authInstance, trimmedEmail, password);
-        const loggedInUser = userCredential.user;
-        
-        // Sync device ID on login
-        if (firestore) {
-          await setDoc(doc(firestore, 'users', loggedInUser.uid), {
-            deviceId,
-            email: trimmedEmail,
-            lastLogin: new Date().toISOString()
-          }, { merge: true });
-        }
-
-        toast({ title: "Sign-in Success", description: "Welcome back!" });
+        credential = await signInWithEmailAndPassword(auth, email.trim(), password);
       } else {
-        const userCredential = await createUserWithEmailAndPassword(authInstance, trimmedEmail, password);
-        const newUser = userCredential.user;
+        credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      }
 
-        // Initialize profile with Anti-Cheat data
-        if (firestore) {
-          await setDoc(doc(firestore, 'users', newUser.uid), {
-            email: trimmedEmail,
-            deviceId,
+      if (firestore) {
+        await setDoc(doc(firestore, 'users', credential.user.uid), {
+          deviceId,
+          lastActive: new Date().toISOString(),
+          ...(mode === 'signup' ? {
             coins: 0,
             withdrawableCoins: 0,
-            referralCode: Math.random().toString(36).substring(7).toUpperCase(),
             isBanned: false,
-            joinedAt: new Date().toISOString()
-          });
-        }
-
-        toast({ title: "Account Created", description: "Identity verified. Welcome to the Arena!" });
+            joinedAt: new Date().toISOString(),
+            referralCode: Math.random().toString(36).substring(7).toUpperCase()
+          } : {})
+        }, { merge: true });
       }
-    } catch (error: any) {
-      let message = error.message;
-      setAuthError(message);
-      setIsLoading(false);
-    }
-  };
 
-  const handleSendOtp = async () => {
-    setIsLoading(true);
-    setAuthError(null);
-    try {
-      const authInstance = getAuth();
-      if (!(window as any).recaptchaVerifier) {
-        (window as any).recaptchaVerifier = new RecaptchaVerifier(authInstance, 'recaptcha-container', { size: 'invisible' });
-      }
-      const result = await signInWithPhoneNumber(authInstance, phoneNumber, (window as any).recaptchaVerifier);
-      setConfirmationResult(result);
-      toast({ title: "OTP Sent" });
+      toast({ title: mode === 'login' ? "Access Granted" : "Identity Registered" });
     } catch (error: any) {
       setAuthError(error.message);
     } finally {
@@ -136,88 +105,95 @@ export default function LoginPage() {
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (!confirmationResult || !firestore) return;
+  const handlePhoneFlow = async () => {
     setIsLoading(true);
     try {
-      const result = await confirmationResult.confirm(otp);
-      const deviceId = getDeviceId();
-      await setDoc(doc(firestore, 'users', result.user.uid), { deviceId }, { merge: true });
-      window.location.href = '/';
-    } catch (error: any) {
-      setAuthError("Invalid OTP.");
+      const auth = getAuth();
+      if (!confirmationResult) {
+        if (!(window as any).recaptchaVerifier) {
+          (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+        }
+        const result = await signInWithPhoneNumber(auth, phoneNumber, (window as any).recaptchaVerifier);
+        setConfirmationResult(result);
+        toast({ title: "OTP Transmitted" });
+      } else {
+        const result = await confirmationResult.confirm(otp);
+        const deviceId = getDeviceId();
+        if (firestore) {
+          await setDoc(doc(firestore, 'users', result.user.uid), { deviceId, lastActive: new Date().toISOString() }, { merge: true });
+        }
+      }
+    } catch (e: any) {
+      setAuthError(e.message);
+    } finally {
       setIsLoading(false);
     }
   };
 
-  if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen gap-4"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
+  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
 
   return (
-    <div className="max-w-md mx-auto p-4 pt-12 space-y-8">
-      <div className="text-center space-y-2">
-        <div className="mx-auto h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-xl">
-          <Trophy className="h-10 w-10 text-primary-foreground" />
+    <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in zoom-in-95 duration-500">
+      <div className="text-center space-y-3">
+        <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center mx-auto shadow-2xl">
+          <Trophy className="h-10 w-10 text-white" />
         </div>
-        <h1 className="text-3xl font-black uppercase">Arena Access</h1>
-        <p className="text-muted-foreground text-sm">Strict "One Device, One Account" policy active.</p>
+        <h1 className="text-3xl font-black uppercase tracking-tighter">Arena Protocol</h1>
+        <p className="text-muted-foreground text-sm font-medium">Identify yourself to enter the battle sector.</p>
       </div>
 
       {authError && (
-        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
+        <Alert variant="destructive" className="rounded-2xl bg-destructive/10 border-destructive/20 text-destructive">
           <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Fair Play Violation</AlertTitle>
-          <AlertDescription>{authError}</AlertDescription>
+          <AlertTitle className="font-black uppercase text-xs">Security Alert</AlertTitle>
+          <AlertDescription className="text-xs font-bold">{authError}</AlertDescription>
         </Alert>
       )}
 
       <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="email">Email</TabsTrigger>
-          <TabsTrigger value="phone">Phone</TabsTrigger>
+        <TabsList className="grid grid-cols-2 w-full h-12 bg-muted/20 p-1">
+          <TabsTrigger value="email" className="font-bold">Email</TabsTrigger>
+          <TabsTrigger value="phone" className="font-bold">Phone</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="email" className="mt-6">
-          <Card className="bg-card/50">
-            <CardHeader>
-              <CardTitle>Login / Signup</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Password</Label>
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-3">
-              <Button className="w-full font-black" onClick={() => handleEmailAuth('login')} disabled={isLoading}>
+        <TabsContent value="email" className="mt-6 space-y-4">
+          <Card className="bg-card/20 border-white/5 rounded-3xl p-6 space-y-4">
+            <div className="space-y-2">
+              <Label>Comm Link (Email)</Label>
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-black/40 border-white/10 rounded-xl" />
+            </div>
+            <div className="space-y-2">
+              <Label>Cipher (Password)</Label>
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-black/40 border-white/10 rounded-xl" />
+            </div>
+            <div className="flex flex-col gap-3 pt-2">
+              <Button onClick={() => handleEmailAuth('login')} disabled={isLoading} className="h-14 font-black rounded-xl">
                 {isLoading ? <Loader2 className="animate-spin" /> : "SIGN IN"}
               </Button>
-              <Button variant="outline" className="w-full font-black" onClick={() => handleEmailAuth('signup')} disabled={isLoading}>
-                CREATE ACCOUNT
+              <Button variant="outline" onClick={() => handleEmailAuth('signup')} disabled={isLoading} className="h-14 font-black rounded-xl border-white/10">
+                CREATE WARRIOR
               </Button>
-            </CardFooter>
+            </div>
           </Card>
         </TabsContent>
 
         <TabsContent value="phone" className="mt-6">
-          <Card className="bg-card/50">
-            <CardHeader><CardTitle>Phone OTP</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div id="recaptcha-container"></div>
-              {!confirmationResult ? (
-                <Input placeholder="+91..." value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
-              ) : (
-                <Input placeholder="OTP" value={otp} onChange={(e) => setOtp(e.target.value)} className="text-center tracking-widest text-xl" />
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full" onClick={!confirmationResult ? handleSendOtp : handleVerifyOtp}>
-                {isLoading ? <Loader2 className="animate-spin" /> : (!confirmationResult ? "SEND OTP" : "VERIFY")}
-              </Button>
-            </CardFooter>
+          <Card className="bg-card/20 border-white/5 rounded-3xl p-6 space-y-4">
+            <div id="recaptcha-container"></div>
+            {!confirmationResult ? (
+              <div className="space-y-2">
+                <Label>Mobile Signature</Label>
+                <Input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="+91..." className="h-12 bg-black/40 border-white/10 rounded-xl" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>OTP Verification</Label>
+                <Input value={otp} onChange={(e) => setOtp(e.target.value)} className="h-14 bg-black/40 border-white/10 rounded-xl text-center text-2xl font-black tracking-widest" />
+              </div>
+            )}
+            <Button onClick={handlePhoneFlow} disabled={isLoading} className="w-full h-14 font-black rounded-xl">
+              {isLoading ? <Loader2 className="animate-spin" /> : (!confirmationResult ? "SEND OTP" : "VERIFY")}
+            </Button>
           </Card>
         </TabsContent>
       </Tabs>
