@@ -39,8 +39,10 @@ export default function LoginPage() {
   // Monitor auth state and redirect accordingly
   useEffect(() => {
     if (user && !isUserLoading) {
-      const userEmail = user.email?.toLowerCase();
+      const userEmail = user.email?.toLowerCase().trim();
+      console.log('Login Page: Current User Detected:', userEmail);
       if (userEmail === ADMIN_EMAIL.toLowerCase()) {
+        console.log('Login Page: Admin detected, redirecting to /admin');
         router.push('/admin');
       } else {
         router.push('/');
@@ -49,8 +51,12 @@ export default function LoginPage() {
   }, [user, isUserLoading, router]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
+    console.log(`Login Page: Initiating ${mode} for email:`, email);
+    
     if (!auth) {
-      setAuthError("Authentication system is not ready. Please refresh the page.");
+      const msg = "Authentication system is not ready. Please refresh the page.";
+      console.error(msg);
+      setAuthError(msg);
       return;
     }
     
@@ -61,20 +67,23 @@ export default function LoginPage() {
       if (mode === 'login') {
         const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
         const loggedInUser = userCredential.user;
+        console.log('Login Page: Sign-in successful:', loggedInUser.email);
         
         toast({
           title: "Sign-in Success",
           description: "Welcome to the Arena!",
         });
 
-        // Forced immediate redirect for admin
-        if (loggedInUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+        // Hard redirect for admin to bypass any potential routing lag
+        if (loggedInUser.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase()) {
+          console.log('Login Page: Admin confirmed, performing hard redirect');
           window.location.href = '/admin';
         } else {
           window.location.href = '/';
         }
       } else {
-        await createUserWithEmailAndPassword(auth, email.trim(), password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        console.log('Login Page: Sign-up successful:', userCredential.user.email);
         toast({
           title: "Account Created",
           description: "Your account is ready. You can now sign in.",
@@ -82,11 +91,13 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     } catch (error: any) {
+      console.error('Login Page: Auth Error:', error);
       let message = error.message || "An unexpected error occurred.";
       if (error.code === 'auth/user-not-found') message = "No account found with this email.";
       if (error.code === 'auth/wrong-password') message = "Incorrect password.";
       if (error.code === 'auth/invalid-email') message = "Invalid email address format.";
       if (error.code === 'auth/email-already-in-use') message = "This email is already in use.";
+      if (error.code === 'auth/invalid-credential') message = "Invalid credentials. Please check your email and password.";
       
       setAuthError(message);
       toast({
@@ -118,6 +129,7 @@ export default function LoginPage() {
       setConfirmationResult(result);
       toast({ title: "OTP Sent", description: "Check your phone messages." });
     } catch (error: any) {
+      console.error('Login Page: Phone Auth Error:', error);
       setAuthError(error.message);
       setIsLoading(false);
     }
@@ -130,6 +142,7 @@ export default function LoginPage() {
       await confirmationResult.confirm(otp);
       window.location.href = '/';
     } catch (error: any) {
+      console.error('Login Page: OTP Verification Error:', error);
       setAuthError("Invalid OTP code.");
       setIsLoading(false);
     }
@@ -180,7 +193,7 @@ export default function LoginPage() {
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="ujalbag96@gmail.com"
+                  placeholder="name@example.com"
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)} 
                 />

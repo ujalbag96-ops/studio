@@ -25,10 +25,14 @@ export default function AdminPage() {
     );
   }
 
-  // Final check for authorization
-  const isAuthorized = user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  // Debugging info
+  const userEmail = user?.email?.toLowerCase().trim();
+  console.log('Admin Page Access Check: Current User Email:', userEmail);
+  
+  const isAuthorized = user && userEmail === ADMIN_EMAIL.toLowerCase();
 
   if (!isAuthorized) {
+    console.warn('Admin Page: Unauthorized access attempt by:', userEmail || 'Anonymous');
     return (
       <div className="max-w-md mx-auto mt-20 p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
         <div className="mx-auto h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
