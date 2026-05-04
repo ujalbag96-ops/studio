@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -74,7 +73,7 @@ export default function WalletModal({ children }: WalletModalProps) {
           {/* Quick Actions */}
           <div className="grid grid-cols-2 gap-4">
             <Button asChild className="bg-green-600 hover:bg-green-700 h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-green-900/20">
-              <Link href="/ledger">
+              <Link href="/deposit">
                 <Plus className="h-5 w-5 mr-2" /> Deposit
               </Link>
             </Button>
