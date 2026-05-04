@@ -30,7 +30,9 @@ import {
   Link as LinkIcon,
   ExternalLink,
   PlayCircle,
-  Tv
+  Tv,
+  Layers,
+  CheckCircle2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -94,8 +96,8 @@ export default function AdminDashboard() {
         videoAdPlacementId: videoPlacementId
       }, { merge: true });
       toast({
-        title: "Settings Updated",
-        description: "Global application configuration saved successfully.",
+        title: "Configuration Saved",
+        description: "Your changes have been synced to the live app.",
       });
     } catch (error: any) {
       toast({
@@ -153,15 +155,15 @@ export default function AdminDashboard() {
           <span className="font-black tracking-tighter text-lg">BATTLE<span className="text-primary">ADMIN</span></span>
         </div>
         
-        <nav className="flex-1 p-4 space-y-2 mt-4">
+        <nav className="flex-1 p-4 space-y-2 mt-4 overflow-y-auto">
           <SidebarItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label="Dashboard" />
           <SidebarItem active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<UsersIcon />} label="Users" />
           <SidebarItem active={activeTab === 'tournaments'} onClick={() => setActiveTab('tournaments')} icon={<Trophy />} label="Tournaments" />
-          <SidebarItem active={activeTab === 'cpalead'} onClick={() => setActiveTab('cpalead')} icon={<MousePointerClick />} label="CPA Lead" />
+          <SidebarItem active={activeTab === 'cpalead'} onClick={() => setActiveTab('cpalead')} icon={<MousePointerClick />} label="CPA Lead Center" />
           <SidebarItem active={activeTab === 'videowall'} onClick={() => setActiveTab('videowall')} icon={<PlayCircle />} label="Video Wall" />
           <SidebarItem active={activeTab === 'payments'} onClick={() => setActiveTab('payments')} icon={<CreditCard />} label="Payments" />
           <SidebarItem active={activeTab === 'withdrawals'} onClick={() => setActiveTab('withdrawals')} icon={<ArrowUpRight />} label="Withdrawals" />
-          <SidebarItem active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings />} label="Settings" />
+          <SidebarItem active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings />} label="Global Settings" />
         </nav>
 
         <div className="p-6 border-t border-white/5 bg-black/20">
@@ -233,71 +235,139 @@ export default function AdminDashboard() {
           {activeTab === 'videowall' && (
             <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Tv className="h-5 w-5 text-primary" />
-                  Video Wall (Watch & Earn) Settings
+                <CardTitle className="flex items-center gap-2 text-2xl font-black uppercase tracking-tighter">
+                  <Tv className="h-6 w-6 text-primary" />
+                  Video Wall Configuration
                 </CardTitle>
-                <CardDescription>Configure video ad providers for rewarded video content.</CardDescription>
+                <CardDescription>Manage your rewarded video ad providers and placement IDs.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Ad Provider</label>
-                    <Select value={videoProvider} onValueChange={(v: any) => setVideoProvider(v)}>
-                      <SelectTrigger className="bg-black/20 border-white/10">
-                        <SelectValue placeholder="Select Provider" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unity">Unity Ads</SelectItem>
-                        <SelectItem value="applovin">AppLovin Max</SelectItem>
-                      </SelectContent>
-                    </Select>
+              <CardContent className="space-y-8">
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div className="space-y-4 p-6 rounded-2xl bg-black/20 border border-white/5">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Select Ad Provider</label>
+                      <Select value={videoProvider} onValueChange={(v: any) => setVideoProvider(v)}>
+                        <SelectTrigger className="bg-black/40 border-white/10 h-12">
+                          <SelectValue placeholder="Select Provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unity">Unity Ads</SelectItem>
+                          <SelectItem value="applovin">AppLovin Max</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Placement / Unit ID</label>
+                      <Input 
+                        value={videoPlacementId} 
+                        onChange={(e) => setVideoPlacementId(e.target.value)} 
+                        placeholder="e.g. Rewarded_Android" 
+                        className="bg-black/40 border-white/10 h-12"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Placement / Unit ID</label>
-                    <Input 
-                      value={videoPlacementId} 
-                      onChange={(e) => setVideoPlacementId(e.target.value)} 
-                      placeholder="e.g. Rewarded_Android" 
-                      className="bg-black/20 border-white/10"
-                    />
+                  
+                  <div className="bg-primary/5 rounded-2xl p-6 border border-primary/10 flex flex-col justify-center">
+                    <div className="flex items-center gap-3 mb-4">
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                      <p className="text-sm font-bold uppercase">Integration Status: <span className="text-primary">Ready</span></p>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Changes saved here are reflected instantly in the User App's Rewards section. Ensure your SDK keys are correctly mapped in your project settings.
+                    </p>
                   </div>
                 </div>
-                <Button onClick={handleUpdateSettings} className="w-full bg-primary font-bold">
-                  <Save className="h-4 w-4 mr-2" /> Save Video Config
+                <Button onClick={handleUpdateSettings} size="lg" className="w-full bg-primary font-black uppercase tracking-widest shadow-xl shadow-primary/20">
+                  <Save className="h-5 w-5 mr-3" /> Update Video Wall Config
                 </Button>
               </CardContent>
             </Card>
           )}
 
           {activeTab === 'cpalead' && (
-            <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MousePointerClick className="h-5 w-5 text-primary" />
-                  CPA Lead Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                   <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Offer Wall URL</label>
-                    <Input value={cpaUrl} onChange={(e) => setCpaUrl(e.target.value)} className="bg-black/20 border-white/10" />
+            <div className="space-y-8">
+              <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-2xl font-black uppercase tracking-tighter">
+                    <MousePointerClick className="h-6 w-6 text-primary" />
+                    CPA Lead Management
+                  </CardTitle>
+                  <CardDescription>Configure your offer wall integration, API credentials, and postback settings.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                  <div className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Offer Wall URL</label>
+                        <Input 
+                          value={cpaUrl} 
+                          onChange={(e) => setCpaUrl(e.target.value)} 
+                          placeholder="https://cpalead.com/dashboard/reports/offerwall_preview..."
+                          className="bg-black/20 border-white/10 h-12" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">API Key</label>
+                        <Input 
+                          type="password" 
+                          value={cpaApiKey} 
+                          onChange={(e) => setCpaApiKey(e.target.value)} 
+                          className="bg-black/20 border-white/10 h-12" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Postback URL</label>
+                        <Input 
+                          value={cpaPostback} 
+                          onChange={(e) => setCpaPostback(e.target.value)} 
+                          placeholder="https://your-app.web.app/api/postback"
+                          className="bg-black/20 border-white/10 h-12 font-mono text-xs" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="p-6 rounded-2xl bg-white/5 border border-white/5 space-y-4">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                          <Layers className="h-4 w-4" /> Integration Guide
+                        </h4>
+                        <ul className="space-y-3">
+                          <li className="text-[11px] text-muted-foreground flex gap-3">
+                            <span className="h-4 w-4 rounded-full bg-primary/20 text-primary flex items-center justify-center font-black shrink-0">1</span>
+                            Paste your CPA Lead Offer Wall URL from your CPALead Dashboard.
+                          </li>
+                          <li className="text-[11px] text-muted-foreground flex gap-3">
+                            <span className="h-4 w-4 rounded-full bg-primary/20 text-primary flex items-center justify-center font-black shrink-0">2</span>
+                            Set the Postback URL in your CPALead dashboard to the URL shown on the left.
+                          </li>
+                          <li className="text-[11px] text-muted-foreground flex gap-3">
+                            <span className="h-4 w-4 rounded-full bg-primary/20 text-primary flex items-center justify-center font-black shrink-0">3</span>
+                            Ensure your API Key is correct to verify legitimate completions.
+                          </li>
+                        </ul>
+                      </div>
+                      <Button onClick={handleUpdateSettings} size="lg" className="w-full bg-primary font-black uppercase tracking-widest h-14">
+                        <Save className="h-5 w-5 mr-3" /> Sync CPA Data
+                      </Button>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">API Key</label>
-                    <Input type="password" value={cpaApiKey} onChange={(e) => setCpaApiKey(e.target.value)} className="bg-black/20 border-white/10" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Postback URL</label>
-                    <Input value={cpaPostback} onChange={(e) => setCpaPostback(e.target.value)} className="bg-black/20 border-white/10" />
-                  </div>
-                </div>
-                <Button onClick={handleUpdateSettings} className="w-full bg-primary font-bold">
-                  <Save className="h-4 w-4 mr-2" /> Sync CPA Data
-                </Button>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Mock Offer View */}
+              <Card className="bg-black/20 border-white/5">
+                <CardHeader>
+                  <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Current Offer Preview (Internal)</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[400px] flex items-center justify-center border-t border-white/5">
+                  {cpaUrl ? (
+                    <iframe src={cpaUrl} className="w-full h-full opacity-50 grayscale pointer-events-none rounded-xl" />
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No URL configured to preview.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {activeTab === 'settings' && (
@@ -340,11 +410,11 @@ function SidebarItem({ active, icon, label, onClick }: { active: boolean, icon: 
     <button 
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
+        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
         active ? "bg-primary text-white shadow-lg shadow-primary/20 font-bold" : "text-muted-foreground hover:bg-white/5 hover:text-white"
       )}
     >
-      <span className={cn("h-5 w-5", active ? "text-white" : "text-muted-foreground")}>{icon}</span>
+      <span className={cn("h-5 w-5 transition-transform group-hover:scale-110", active ? "text-white" : "text-muted-foreground")}>{icon}</span>
       <span className="text-sm tracking-tight">{label}</span>
     </button>
   );
