@@ -9,7 +9,8 @@ import {
   createUserWithEmailAndPassword, 
   RecaptchaVerifier, 
   signInWithPhoneNumber,
-  ConfirmationResult
+  ConfirmationResult,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
-import { Trophy, Loader2, AlertCircle } from 'lucide-react';
+import { Trophy, Loader2, AlertCircle, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -36,13 +37,10 @@ export default function LoginPage() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Monitor auth state and redirect accordingly
   useEffect(() => {
     if (user && !isUserLoading) {
       const userEmail = user.email?.toLowerCase().trim();
-      console.log('Login Page: Auth state changed. Current User:', userEmail);
       if (userEmail === ADMIN_EMAIL.toLowerCase()) {
-        console.log('Login Page: Admin session detected, redirecting to /admin');
         window.location.href = '/admin';
       } else {
         router.push('/');
@@ -52,37 +50,27 @@ export default function LoginPage() {
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
     const trimmedEmail = email.trim();
-    console.log(`Login Page: Attempting ${mode} for: ${trimmedEmail}`);
-    
     setAuthError(null);
     setIsLoading(true);
     
     try {
-      // Get auth instance directly to be absolutely sure it's available
       const authInstance = getAuth();
-      
       if (mode === 'login') {
-        console.log('Login Page: Calling signInWithEmailAndPassword...');
         const userCredential = await signInWithEmailAndPassword(authInstance, trimmedEmail, password);
         const loggedInUser = userCredential.user;
-        console.log('Login Page: Sign-in successful for:', loggedInUser.email);
         
         toast({
           title: "Sign-in Success",
-          description: "Welcome to the Arena!",
+          description: "Welcome back to the Arena!",
         });
 
-        // Forced hard redirect for admin
         if (loggedInUser.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase()) {
-          console.log('Login Page: Admin confirmed. Performing hard redirect to /admin');
           window.location.href = '/admin';
         } else {
           window.location.href = '/';
         }
       } else {
-        console.log('Login Page: Calling createUserWithEmailAndPassword...');
-        const userCredential = await createUserWithEmailAndPassword(authInstance, trimmedEmail, password);
-        console.log('Login Page: Sign-up successful for:', userCredential.user.email);
+        await createUserWithEmailAndPassword(authInstance, trimmedEmail, password);
         toast({
           title: "Account Created",
           description: "Your account is ready. You can now sign in.",
@@ -90,13 +78,11 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     } catch (error: any) {
-      console.error('Login Page: Firebase Auth Error:', error.code, error.message);
       let message = error.message || "An unexpected error occurred.";
-      
-      if (error.code === 'auth/user-not-found') message = "No account found with this email. Please register first.";
-      if (error.code === 'auth/wrong-password') message = "Incorrect password. Please try again.";
-      if (error.code === 'auth/invalid-credential') message = "Invalid email or password. Please check your credentials.";
-      if (error.code === 'auth/email-already-in-use') message = "This email is already registered. Please sign in instead.";
+      if (error.code === 'auth/user-not-found') message = "No account found with this email.";
+      if (error.code === 'auth/wrong-password') message = "Incorrect password.";
+      if (error.code === 'auth/invalid-credential') message = "Invalid credentials.";
+      if (error.code === 'auth/email-already-in-use') message = "Email already registered.";
       
       setAuthError(message);
       toast({
@@ -104,6 +90,33 @@ export default function LoginPage() {
         title: "Authentication Failed",
         description: message,
       });
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setAuthError("Please enter your email address to reset your password.");
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const authInstance = getAuth();
+      await sendPasswordResetEmail(authInstance, email.trim());
+      toast({
+        title: "Reset Email Sent",
+        description: "Please check your inbox for instructions to reset your password.",
+      });
+    } catch (error: any) {
+      const message = error.message || "Could not send reset email.";
+      setAuthError(message);
+      toast({
+        variant: "destructive",
+        title: "Reset Failed",
+        description: message,
+      });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -126,9 +139,8 @@ export default function LoginPage() {
       const verifier = (window as any).recaptchaVerifier;
       const result = await signInWithPhoneNumber(authInstance, phoneNumber, verifier);
       setConfirmationResult(result);
-      toast({ title: "OTP Sent", description: "Check your phone messages." });
+      toast({ title: "OTP Sent", description: "Check your messages." });
     } catch (error: any) {
-      console.error('Login Page: Phone Auth Error:', error);
       setAuthError(error.message);
       setIsLoading(false);
     }
@@ -141,7 +153,6 @@ export default function LoginPage() {
       await confirmationResult.confirm(otp);
       window.location.href = '/';
     } catch (error: any) {
-      console.error('Login Page: OTP Verification Error:', error);
       setAuthError("Invalid OTP code.");
       setIsLoading(false);
     }
@@ -163,7 +174,7 @@ export default function LoginPage() {
           <Trophy className="h-10 w-10 text-primary-foreground" />
         </div>
         <h1 className="text-3xl font-black uppercase tracking-tighter">Arena Access</h1>
-        <p className="text-muted-foreground text-sm font-medium">Sign in to manage your profile and tournaments.</p>
+        <p className="text-muted-foreground text-sm font-medium">Predict. Play. Win rewards.</p>
       </div>
 
       {authError && (
@@ -181,7 +192,7 @@ export default function LoginPage() {
         </TabsList>
 
         <TabsContent value="email" className="mt-6">
-          <Card className="border-border/50 shadow-xl bg-card/50">
+          <Card className="border-border/50 shadow-xl bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle>Welcome Back</CardTitle>
               <CardDescription>Enter your email and password below.</CardDescription>
@@ -192,13 +203,22 @@ export default function LoginPage() {
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="ujalbag96@gmail.com"
+                  placeholder="name@example.com"
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)} 
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <button 
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                  >
+                    <KeyRound className="h-3 w-3" /> Forgot Password?
+                  </button>
+                </div>
                 <Input 
                   id="password" 
                   type="password" 
@@ -217,7 +237,7 @@ export default function LoginPage() {
               </Button>
               <Button 
                 variant="outline" 
-                className="w-full font-bold h-11" 
+                className="w-full font-bold h-11 border-primary/20 hover:bg-primary/5" 
                 onClick={() => handleEmailAuth('signup')} 
                 disabled={isLoading || !email || !password}
               >
@@ -228,10 +248,10 @@ export default function LoginPage() {
         </TabsContent>
 
         <TabsContent value="phone" className="mt-6">
-          <Card className="border-border/50 shadow-xl bg-card/50">
+          <Card className="border-border/50 shadow-xl bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle>Phone Verification</CardTitle>
-              <CardDescription>Enter your mobile number to receive a code.</CardDescription>
+              <CardDescription>Quick and secure login via SMS.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div id="recaptcha-container"></div>
@@ -255,7 +275,7 @@ export default function LoginPage() {
                     maxLength={6} 
                     value={otp} 
                     onChange={(e) => setOtp(e.target.value)} 
-                    className="text-center text-xl font-black"
+                    className="text-center text-xl font-black tracking-[0.5em]"
                   />
                 </div>
               )}
