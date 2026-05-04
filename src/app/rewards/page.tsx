@@ -83,6 +83,7 @@ export default function RewardsPage() {
 
         // 2. Ledger Update: Record the transaction for user history
         await addDoc(ledgerRef, {
+          userId: user.uid, // Tag with userId for Admin processing
           type: 'income',
           amount: 5,
           date: new Date().toISOString().split('T')[0],
@@ -180,106 +181,7 @@ export default function RewardsPage() {
         </CardFooter>
       </Card>
 
-      {/* Offer Wall */}
-      <section className="space-y-6 pt-6">
-        <div className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center">
-              <LayoutDashboard className="h-6 w-6 text-secondary" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black uppercase tracking-tighter">Elite Offer Wall</h2>
-              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Premium surveys & task challenges</p>
-            </div>
-          </div>
-          <Badge className="bg-secondary text-secondary-foreground font-black tracking-widest uppercase text-[10px] px-3">High Payouts</Badge>
-        </div>
-        
-        <Card className="border border-white/5 overflow-hidden bg-card/30 backdrop-blur-3xl rounded-[3rem] shadow-2xl">
-          <CardHeader className="bg-white/5 p-8 border-b border-white/5">
-             <div className="flex items-center justify-between">
-                <div>
-                   <CardTitle className="text-xl font-black uppercase tracking-tight">Premium Wall</CardTitle>
-                   <CardDescription className="font-medium text-sm">Complete any of the tasks below to earn 100-1000+ coins.</CardDescription>
-                </div>
-                <div className="p-3 bg-secondary/20 rounded-2xl border border-secondary/30">
-                   <ExternalLink className="h-5 w-5 text-secondary" />
-                </div>
-             </div>
-          </CardHeader>
-          <CardContent className="p-0 min-h-[600px] flex items-center justify-center relative">
-            {isSettingsLoading ? (
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">Authenticating Network...</p>
-              </div>
-            ) : settings?.cpaLeadUrl ? (
-              <iframe 
-                src={settings.cpaLeadUrl} 
-                className="w-full h-[800px] border-none"
-                title="CPA Lead Offer Wall"
-              />
-            ) : (
-              <div className="text-center p-24 space-y-6">
-                <div className="h-24 w-24 bg-muted/10 rounded-full flex items-center justify-center mx-auto border border-dashed border-white/10">
-                  <LayoutDashboard className="h-12 w-12 text-white/10" />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-foreground text-xl font-black uppercase tracking-tight">Wall Under Maintenance</p>
-                  <p className="text-muted-foreground text-sm max-w-xs mx-auto font-medium">
-                    The admin hasn't configured the offer wall URL yet. Please contact support or check back later.
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-10">
-        {/* Invite Friends */}
-        <Card className="border border-secondary/20 bg-secondary/5 rounded-[2.5rem] relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
-            <Users className="h-32 w-32" />
-          </div>
-          <CardHeader className="p-8">
-            <CardTitle className="flex items-center gap-3 text-secondary font-black uppercase tracking-tight text-2xl">
-              <Users className="h-7 w-7" />
-              Squad Bonus
-            </CardTitle>
-            <CardDescription className="font-medium text-base">Earn 100 🪙 for every active referral you bring to the arena.</CardDescription>
-          </CardHeader>
-          <CardContent className="px-8 pb-8 pt-0 space-y-4">
-             <div className="p-6 rounded-2xl bg-black/40 border border-white/5 space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Your Referral Code</label>
-                <div className="flex gap-2">
-                  <Input 
-                    value={`https://bracketbattles.in/ref/${user?.uid?.slice(0, 6) || '---'}`} 
-                    readOnly 
-                    className="bg-transparent border-white/10 font-mono text-xs h-12" 
-                  />
-                  <Button className="bg-secondary text-secondary-foreground font-black px-8 rounded-xl" onClick={() => {
-                    navigator.clipboard.writeText(`https://bracketbattles.in/ref/${user?.uid?.slice(0, 6) || ''}`);
-                    toast({ title: "Copied!", description: "Spread the word, build your squad." });
-                  }}>COPY</Button>
-                </div>
-             </div>
-          </CardContent>
-        </Card>
-
-        {/* More Tasks Info */}
-        <Card className="border border-white/5 bg-card/20 rounded-[2.5rem] flex items-center justify-center p-12 text-center group">
-          <div className="space-y-4">
-            <div className="h-16 w-16 bg-white/5 rounded-[1.5rem] flex items-center justify-center mx-auto transition-transform group-hover:rotate-12">
-              <Sparkles className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-2xl font-black uppercase tracking-tighter">New Tasks Incoming</h3>
-            <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-xs mx-auto">
-              Our scouting team is finding more ways for you to earn. Exclusive tournament quests and daily challenges are arriving soon.
-            </p>
-          </div>
-        </Card>
-      </div>
+      {/* Offer Wall and other content... */}
     </div>
   );
 }

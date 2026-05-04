@@ -67,6 +67,7 @@ export default function WithdrawPage() {
 
       // 1. Create Pending Withdrawal Request in Ledger
       await addDoc(ledgerRef, {
+        userId: user.uid, // CRITICAL: Tag with userId for Admin Ledger processing
         type: 'withdrawal',
         amount: withdrawAmount,
         date: new Date().toISOString().split('T')[0],
