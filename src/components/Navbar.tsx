@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -35,7 +36,12 @@ export default function Navbar() {
           title: "Signed Out",
           description: "Session cleared successfully.",
         });
-        window.location.href = '/login';
+        // Clear local storage if any specific session data was stored
+        localStorage.removeItem('last_video_watch_time');
+        
+        // Force refresh to clear all provider states
+        router.refresh();
+        router.push('/login');
       } catch (error: any) {
         toast({
           variant: "destructive",
@@ -140,7 +146,7 @@ function UserMenu({ user, isAdmin, onLogout }: any) {
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onLogout} className="text-destructive font-bold cursor-pointer flex items-center gap-2">
+        <DropdownMenuItem onSelect={onLogout} className="text-destructive font-bold cursor-pointer flex items-center gap-2 focus:bg-destructive focus:text-destructive-foreground">
           <LogOut className="h-4 w-4" /> Sign Out
         </DropdownMenuItem>
       </DropdownMenuContent>
