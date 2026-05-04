@@ -34,7 +34,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { AppSettings, Tournament, UserProfile, SupportMessage, UserLedgerEntry } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -62,6 +62,13 @@ export default function AdminDashboard() {
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [roomId, setRoomId] = useState('');
   const [roomPass, setRoomPass] = useState('');
+  const [telegramInput, setTelegramInput] = useState('');
+
+  useEffect(() => {
+    if (settings?.telegramUrl) {
+      setTelegramInput(settings.telegramUrl);
+    }
+  }, [settings]);
 
   const handleUpdateRoom = async () => {
     if (!firestore || !selectedTournament) return;
@@ -86,8 +93,8 @@ export default function AdminDashboard() {
         gameType: formData.get('gameType'),
         game: formData.get('game'),
         prizePool: formData.get('prizePool'),
-        entryFee: parseInt(formData.get('entryFee') as string),
-        startDate: new Date(formData.get('startDate') as string).toISOString(),
+        entryFee: parseInt(formData.get('entryFee') as string || '0'),
+        startDate: new Date(formData.get('startDate') as string || Date.now()).toISOString(),
         status: 'upcoming',
         banner: `https://picsum.photos/seed/${Math.random()}/800/400`
       });
@@ -105,7 +112,6 @@ export default function AdminDashboard() {
       const transactionRef = doc(firestore, 'users', transaction.userId, 'ledger', transaction.id);
       await updateDoc(transactionRef, { status });
 
-      // If it was a withdrawal and we reject it, refund the user
       if (transaction.type === 'withdrawal' && status === 'failed') {
         const userRef = doc(firestore, 'users', transaction.userId);
         await updateDoc(userRef, { coins: increment(transaction.amount) });
@@ -128,10 +134,10 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUpdateTelegram = async (url: string) => {
+  const handleUpdateTelegram = async () => {
     if (!firestore || !settingsRef) return;
     try {
-      await setDoc(settingsRef, { telegramUrl: url }, { merge: true });
+      await setDoc(settingsRef, { telegramUrl: telegramInput }, { merge: true });
       toast({ title: "Telegram URL Updated" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Update Failed" });
@@ -145,7 +151,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#0d0d12] text-foreground">
-      {/* Sidebar - Desktop Only */}
       <aside className="w-64 border-r border-white/5 bg-card/30 backdrop-blur-2xl hidden md:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-6 border-b border-white/5 flex items-center gap-3">
           <ShieldCheck className="h-6 w-6 text-primary" />
@@ -161,7 +166,6 @@ export default function AdminDashboard() {
       </aside>
 
       <main className="flex-1 md:ml-64 p-4 md:p-10 space-y-8 pb-32 pt-20 md:pt-10">
-        {/* Mobile Tab Selector */}
         <div className="md:hidden overflow-x-auto flex gap-2 pb-2 no-scrollbar">
           <Button size="sm" variant={activeTab === 'dashboard' ? 'default' : 'outline'} onClick={() => setActiveTab('dashboard')} className="whitespace-nowrap font-bold">Dashboard</Button>
           <Button size="sm" variant={activeTab === 'tournaments' ? 'default' : 'outline'} onClick={() => setActiveTab('tournaments')} className="whitespace-nowrap font-bold">Tournaments</Button>
@@ -257,8 +261,8 @@ export default function AdminDashboard() {
                 <TableBody>
                   {transactionsData?.map(tx => (
                     <TableRow key={tx.id}>
-                      <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">{tx.date}</TableCell>
-                      <TableCell className="font-mono text-[10px]">{tx.userId?.slice(-6)}</TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">{tx.date || 'N/A'}</TableCell>
+                      <TableCell className="font-mono text-[10px]">{String(tx.userId || '').slice(-6)}</TableCell>
                       <TableCell><Badge variant="outline" className="text-[8px] uppercase">{tx.type}</Badge></TableCell>
                       <TableCell className="font-black text-xs">₹{tx.amount}</TableCell>
                       <TableCell>
@@ -308,8 +312,13 @@ export default function AdminDashboard() {
                <div className="space-y-4">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Telegram Link</Label>
                   <div className="flex gap-2">
-                    <Input placeholder="https://t.me/your_channel" defaultValue={settings?.telegramUrl} className="bg-black/40 border-white/10" id="tg-url" />
-                    <Button onClick={() => handleUpdateTelegram((document.getElementById('tg-url') as HTMLInputElement).value)}>Update</Button>
+                    <Input 
+                      placeholder="https://t.me/your_channel" 
+                      value={telegramInput} 
+                      onChange={(e) => setTelegramInput(e.target.value)}
+                      className="bg-black/40 border-white/10" 
+                    />
+                    <Button onClick={handleUpdateTelegram}>Update</Button>
                   </div>
                </div>
             </Card>
@@ -325,7 +334,7 @@ export default function AdminDashboard() {
                    <TableBody>
                       {supportData?.map(m => (
                         <TableRow key={m.id} className={m.isFlagged ? "bg-destructive/5" : ""}>
-                           <TableCell className="font-mono text-[10px]">{m.userId?.slice(-4)}</TableCell>
+                           <TableCell className="font-mono text-[10px]">{String(m.userId || '').slice(-4)}</TableCell>
                            <TableCell className="text-[10px] italic max-w-[150px] truncate">{m.message}</TableCell>
                            <TableCell>
                               {m.isFlagged ? <Badge variant="destructive" className="text-[8px]">FLAGGED</Badge> : <Badge variant="outline" className="text-[8px]">Auto</Badge>}
