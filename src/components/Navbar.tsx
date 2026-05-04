@@ -36,10 +36,7 @@ export default function Navbar() {
           title: "Signed Out",
           description: "Session cleared successfully.",
         });
-        // Clear local storage if any specific session data was stored
         localStorage.removeItem('last_video_watch_time');
-        
-        // Force refresh to clear all provider states
         router.refresh();
         router.push('/login');
       } catch (error: any) {

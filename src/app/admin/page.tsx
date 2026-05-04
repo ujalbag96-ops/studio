@@ -46,6 +46,7 @@ export default function AdminDashboard() {
 
   const isAdminUser = user?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
+  // Optimized Queries: Only run if admin is verified
   const usersQuery = useMemoFirebase(() => 
     (firestore && isAdminUser) ? collection(firestore, 'users') : null, 
     [firestore, isAdminUser]
@@ -203,6 +204,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#0d0d12] text-foreground">
+      {/* Sidebar for Desktop */}
       <aside className="w-64 border-r border-white/5 bg-card/30 backdrop-blur-2xl hidden md:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-6 border-b border-white/5 flex items-center gap-3">
           <ShieldCheck className="h-6 w-6 text-primary" />
@@ -218,7 +220,9 @@ export default function AdminDashboard() {
         </nav>
       </aside>
 
+      {/* Main Content Area */}
       <main className="flex-1 md:ml-64 p-4 md:p-10 space-y-8 pb-32 pt-20 md:pt-10">
+        {/* Mobile Tab Switcher */}
         <div className="md:hidden overflow-x-auto flex gap-2 pb-2 no-scrollbar fixed top-16 left-0 right-0 z-40 bg-[#0d0d12] p-4 border-b border-white/5">
           <Button size="sm" variant={activeTab === 'dashboard' ? 'default' : 'outline'} onClick={() => setActiveTab('dashboard')} className="whitespace-nowrap">Dash</Button>
           <Button size="sm" variant={activeTab === 'tournaments' ? 'default' : 'outline'} onClick={() => setActiveTab('tournaments')} className="whitespace-nowrap">Event</Button>
@@ -334,8 +338,11 @@ export default function AdminDashboard() {
                              </TableCell>
                              <TableCell>
                                 <Button size="sm" onClick={() => {
-                                   const sA = parseInt((document.getElementById(`sA-${m.id}`) as HTMLInputElement).value);
-                                   const sB = parseInt((document.getElementById(`sB-${m.id}`) as HTMLInputElement).value);
+                                   const sAInput = document.getElementById(`sA-${m.id}`) as HTMLInputElement;
+                                   const sBInput = document.getElementById(`sB-${m.id}`) as HTMLInputElement;
+                                   const statusSelect = document.getElementById(`st-${m.id}`) as any; // Select is custom
+                                   const sA = parseInt(sAInput.value);
+                                   const sB = parseInt(sBInput.value);
                                    handleUpdateScore(m.id, sA, sB, 'live'); 
                                 }}>Update</Button>
                              </TableCell>

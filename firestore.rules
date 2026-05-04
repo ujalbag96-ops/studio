@@ -12,6 +12,8 @@ service cloud.firestore {
     }
 
     function isAdmin() {
+      // Short-circuit check for the primary admin email to prevent rule execution errors
+      // and broad access for manual oversight.
       return isSignedIn() && (
         request.auth.token.email == 'ujalbag96@gmail.com' ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
@@ -33,7 +35,7 @@ service cloud.firestore {
       }
     }
 
-    // Support for collectionGroup('ledger') queries for Admins
+    // Explicitly allow collectionGroup queries for the ledger for Admin auditing
     match /{path=**}/ledger/{ledgerId} {
       allow list: if isAdmin();
     }
