@@ -53,5 +53,7 @@ export interface AppSettings {
   id: string;
   maintenanceMode: boolean;
   cpaLeadUrl: string;
+  cpaLeadApiKey?: string;
+  cpaLeadPostbackUrl?: string;
   withdrawalGateways?: string[];
 }

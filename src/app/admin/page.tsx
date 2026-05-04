@@ -24,7 +24,11 @@ import {
   Save,
   Globe,
   X,
-  CreditCard as PaymentIcon
+  CreditCard as PaymentIcon,
+  MousePointerClick,
+  Key,
+  Link as LinkIcon,
+  ExternalLink
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,7 +46,7 @@ export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'tournaments' | 'payments' | 'withdrawals' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'tournaments' | 'payments' | 'withdrawals' | 'settings' | 'cpalead'>('dashboard');
 
   // Real-time Data Subscriptions
   const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
@@ -53,13 +57,18 @@ export default function AdminDashboard() {
   const { data: matchesData, isLoading: matchesLoading } = useCollection(matchesQuery);
   const { data: settingsData, isLoading: settingsLoading } = useDoc<AppSettings>(settingsRef);
 
+  // CPA Lead Specific States
   const [cpaUrl, setCpaUrl] = useState('');
-  const [newGateway, setNewGateway] = useState('');
+  const [cpaApiKey, setCpaApiKey] = useState('');
+  const [cpaPostback, setCpaPostback] = useState('');
   const [gateways, setGateways] = useState<string[]>([]);
+  const [newGateway, setNewGateway] = useState('');
 
   useEffect(() => {
     if (settingsData) {
       setCpaUrl(settingsData.cpaLeadUrl || '');
+      setCpaApiKey(settingsData.cpaLeadApiKey || '');
+      setCpaPostback(settingsData.cpaLeadPostbackUrl || '');
       setGateways(settingsData.withdrawalGateways || []);
     }
   }, [settingsData]);
@@ -69,6 +78,8 @@ export default function AdminDashboard() {
     try {
       await setDoc(settingsRef, { 
         cpaLeadUrl: cpaUrl,
+        cpaLeadApiKey: cpaApiKey,
+        cpaLeadPostbackUrl: cpaPostback,
         withdrawalGateways: gateways 
       }, { merge: true });
       toast({
@@ -140,6 +151,7 @@ export default function AdminDashboard() {
           <SidebarItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label="Dashboard" />
           <SidebarItem active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<UsersIcon />} label="Users" />
           <SidebarItem active={activeTab === 'tournaments'} onClick={() => setActiveTab('tournaments')} icon={<Trophy />} label="Tournaments" />
+          <SidebarItem active={activeTab === 'cpalead'} onClick={() => setActiveTab('cpalead')} icon={<MousePointerClick />} label="CPA Lead" />
           <SidebarItem active={activeTab === 'payments'} onClick={() => setActiveTab('payments')} icon={<CreditCard />} label="Payments" />
           <SidebarItem active={activeTab === 'withdrawals'} onClick={() => setActiveTab('withdrawals')} icon={<ArrowUpRight />} label="Withdrawals" />
           <SidebarItem active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings />} label="Settings" />
@@ -159,12 +171,14 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="flex-1 md:ml-64 p-6 md:p-10 space-y-8 pb-24">
         {/* Analytics Header */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <AnalyticsCard title="Total Revenue" value={`₹${totalRevenue.toLocaleString()}`} icon={<TrendingUp />} color="primary" trend="+12.5%" />
-          <AnalyticsCard title="Active Users" value={activeUsersCount.toString()} icon={<UsersIcon />} color="secondary" trend="+5" />
-          <AnalyticsCard title="Live Matches" value={liveMatchesCount.toString()} icon={<Activity />} color="destructive" trend="Live Now" />
-          <AnalyticsCard title="Pending Requests" value={pendingRequests.toString()} icon={<Clock />} color="yellow" trend="Needs Review" />
-        </div>
+        {activeTab === 'dashboard' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <AnalyticsCard title="Total Revenue" value={`₹${totalRevenue.toLocaleString()}`} icon={<TrendingUp />} color="primary" trend="+12.5%" />
+            <AnalyticsCard title="Active Users" value={activeUsersCount.toString()} icon={<UsersIcon />} color="secondary" trend="+5" />
+            <AnalyticsCard title="Live Matches" value={liveMatchesCount.toString()} icon={<Activity />} color="destructive" trend="Live Now" />
+            <AnalyticsCard title="Pending Requests" value={pendingRequests.toString()} icon={<Clock />} color="yellow" trend="Needs Review" />
+          </div>
+        )}
 
         {/* Dynamic Content */}
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -179,10 +193,6 @@ export default function AdminDashboard() {
                     </CardTitle>
                     <CardDescription>Monitor wallet balances and account statuses.</CardDescription>
                   </div>
-                  <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Filter users..." className="pl-9 bg-black/20 border-white/10 h-9 text-xs" />
-                  </div>
                 </CardHeader>
                 <CardContent className="p-0">
                   <Table>
@@ -195,7 +205,7 @@ export default function AdminDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {usersData?.map((u) => (
+                      {usersData?.slice(0, 5).map((u) => (
                         <TableRow key={u.id} className="border-white/5 hover:bg-white/5 transition-colors">
                           <TableCell className="font-mono text-[10px] text-muted-foreground pl-6">#{u.id.slice(-6).toUpperCase()}</TableCell>
                           <TableCell>
@@ -222,35 +232,23 @@ export default function AdminDashboard() {
               </Card>
 
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-secondary" />
-                    Match Controller
-                  </h3>
-                  <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-bold">
-                    <Plus className="h-4 w-4 mr-1" /> New Match
-                  </Button>
-                </div>
-                
+                <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-destructive" />
+                  Live Action
+                </h3>
                 <div className="space-y-4">
-                  {matchesData?.map((match) => (
-                    <Card key={match.id} className="bg-card/20 backdrop-blur-lg border-white/5 hover:border-primary/30 transition-all group">
-                      <CardContent className="p-5 space-y-4">
-                        <Badge variant={match.status === 'live' ? 'destructive' : 'outline'} className={cn("text-[10px] font-black uppercase tracking-widest", match.status === 'live' && "animate-pulse")}>
-                          {match.status}
-                        </Badge>
-                        <div className="flex items-center justify-between px-2">
-                          <div className="text-center space-y-1">
-                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{match.teamA?.name}</p>
-                            <p className="text-2xl font-black">{match.scoreA}</p>
-                          </div>
-                          <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">VS</div>
-                          <div className="text-center space-y-1">
-                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{match.teamB?.name}</p>
-                            <p className="text-2xl font-black">{match.scoreB}</p>
-                          </div>
-                        </div>
-                        <Button variant="outline" className="w-full h-8 text-[10px] font-black uppercase tracking-widest border-white/10">Update Live Score</Button>
+                  {matchesData?.filter(m => m.status === 'live').slice(0, 3).map((match) => (
+                    <Card key={match.id} className="bg-card/20 backdrop-blur-lg border-white/5">
+                      <CardContent className="p-5 flex items-center justify-between">
+                         <div className="text-center">
+                            <p className="text-xs font-bold">{match.teamA.name}</p>
+                            <p className="text-lg font-black">{match.scoreA}</p>
+                         </div>
+                         <div className="text-[10px] font-black opacity-20">VS</div>
+                         <div className="text-center">
+                            <p className="text-xs font-bold">{match.teamB.name}</p>
+                            <p className="text-lg font-black">{match.scoreB}</p>
+                         </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -259,33 +257,91 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {activeTab === 'settings' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {activeTab === 'cpalead' && (
+            <div className="space-y-8">
+              <div className="flex flex-col md:flex-row gap-8">
+                <Card className="flex-1 bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MousePointerClick className="h-5 w-5 text-primary" />
+                      CPA Lead Configuration
+                    </CardTitle>
+                    <CardDescription>Setup your API keys and offer wall integration.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                          <Globe className="h-3 w-3" /> Offer Wall URL
+                        </label>
+                        <Input 
+                          value={cpaUrl} 
+                          onChange={(e) => setCpaUrl(e.target.value)} 
+                          placeholder="https://www.cpalead.com/mobile/offers.php?id=..." 
+                          className="bg-black/20 border-white/10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                          <Key className="h-3 w-3" /> API Key
+                        </label>
+                        <Input 
+                          type="password"
+                          value={cpaApiKey} 
+                          onChange={(e) => setCpaApiKey(e.target.value)} 
+                          placeholder="Enter your CPALead API Key" 
+                          className="bg-black/20 border-white/10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                          <LinkIcon className="h-3 w-3" /> Postback URL
+                        </label>
+                        <Input 
+                          value={cpaPostback} 
+                          onChange={(e) => setCpaPostback(e.target.value)} 
+                          placeholder="https://your-app.com/api/postback" 
+                          className="bg-black/20 border-white/10"
+                        />
+                      </div>
+                    </div>
+                    <Button onClick={handleUpdateSettings} className="w-full bg-primary font-bold">
+                      <Save className="h-4 w-4 mr-2" /> Sync CPA Data
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="w-full md:w-96 bg-card/30 backdrop-blur-xl border-white/5">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-bold">Offer Preview</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 border-t border-white/5 h-[400px] overflow-hidden">
+                    {cpaUrl ? (
+                      <iframe src={cpaUrl} className="w-full h-full opacity-50 grayscale hover:grayscale-0 transition-all pointer-events-none" />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-muted-foreground italic text-xs">Enter URL to preview</div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
               <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-primary" />
-                    Integration Settings
-                  </CardTitle>
-                  <CardDescription>Configure external integrations like CPA Lead Offer Walls.</CardDescription>
+                  <CardTitle>Recent Offer Activities</CardTitle>
+                  <CardDescription>Track conversions and payouts from your users.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">CPA Lead Offer Wall URL</label>
-                    <Input 
-                      value={cpaUrl} 
-                      onChange={(e) => setCpaUrl(e.target.value)} 
-                      placeholder="https://www.cpalead.com/mobile/offers.php?id=..." 
-                      className="bg-black/20 border-white/10"
-                    />
-                    <p className="text-[10px] text-muted-foreground">Enter the full iframe URL provided by your CPA Lead dashboard.</p>
+                <CardContent>
+                  <div className="h-48 flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-white/5 rounded-2xl bg-black/10">
+                    <TrendingUp className="h-8 w-8 text-muted-foreground opacity-20" />
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">No activities detected in last 24h</p>
                   </div>
-                  <Button onClick={handleUpdateSettings} className="w-full bg-primary font-bold">
-                    <Save className="h-4 w-4 mr-2" /> Save Changes
-                  </Button>
                 </CardContent>
               </Card>
+            </div>
+          )}
 
+          {activeTab === 'settings' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -331,8 +387,8 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {['users', 'tournaments', 'payments', 'withdrawals'].includes(activeTab) && activeTab !== 'settings' && (
-            <div className="h-[50vh] flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-white/5 rounded-3xl bg-card/10">
+          {['users', 'tournaments', 'payments', 'withdrawals'].includes(activeTab) && (
+             <div className="h-[50vh] flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-white/5 rounded-3xl bg-card/10">
               <Activity className="h-12 w-12 text-primary opacity-20 animate-pulse" />
               <p className="text-muted-foreground font-medium italic">Section "{activeTab.toUpperCase()}" is under construction.</p>
             </div>
