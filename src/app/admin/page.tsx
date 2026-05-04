@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { 
   LayoutDashboard, 
   Users as UsersIcon, 
@@ -20,29 +20,61 @@ import {
   Activity,
   Clock,
   Lock,
-  Loader2
+  Loader2,
+  Save,
+  Globe
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { AppSettings } from '@/app/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'tournaments' | 'payments' | 'withdrawals' | 'settings'>('dashboard');
 
-  // Real-time Data Subscriptions using useMemoFirebase for proper stabilization
+  // Real-time Data Subscriptions
   const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
   const matchesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'matches') : null, [firestore]);
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   
   const { data: usersData, isLoading: usersLoading } = useCollection(usersQuery);
   const { data: matchesData, isLoading: matchesLoading } = useCollection(matchesQuery);
+  const { data: settingsData, isLoading: settingsLoading } = useDoc<AppSettings>(settingsRef);
+
+  const [cpaUrl, setCpaUrl] = useState('');
+
+  useEffect(() => {
+    if (settingsData?.cpaLeadUrl) {
+      setCpaUrl(settingsData.cpaLeadUrl);
+    }
+  }, [settingsData]);
+
+  const handleUpdateSettings = async () => {
+    if (!firestore || !settingsRef) return;
+    try {
+      await setDoc(settingsRef, { cpaLeadUrl: cpaUrl }, { merge: true });
+      toast({
+        title: "Settings Updated",
+        description: "CPA Lead Offer Wall URL has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message,
+      });
+    }
+  };
 
   if (isUserLoading) {
     return (
@@ -62,22 +94,21 @@ export default function AdminDashboard() {
         </div>
         <h1 className="text-3xl font-black uppercase tracking-tighter mb-2">Restricted Area</h1>
         <p className="text-muted-foreground mb-8 max-w-sm">
-          Access is strictly reserved for system administrators. Your credentials do not grant access to this sector.
+          Access is strictly reserved for system administrators.
         </p>
         <Button onClick={() => window.location.href = '/login'} className="font-bold">Return to Login</Button>
       </div>
     );
   }
 
-  // Analytics Calculations
-  const totalRevenue = 12450.00; // Mocked for now
+  const totalRevenue = 12450.00; 
   const activeUsersCount = usersData?.length || 0;
   const liveMatchesCount = matchesData?.filter(m => m.status === 'live').length || 0;
-  const pendingRequests = 12; // Mocked for now
+  const pendingRequests = 12;
 
   return (
     <div className="flex min-h-screen bg-[#0d0d12] text-foreground">
-      {/* Sidebar - Left Navigation */}
+      {/* Sidebar */}
       <aside className="w-64 border-r border-white/5 bg-card/30 backdrop-blur-2xl hidden md:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-6 border-b border-white/5 flex items-center gap-3">
           <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
@@ -116,11 +147,10 @@ export default function AdminDashboard() {
           <AnalyticsCard title="Pending Requests" value={pendingRequests.toString()} icon={<Clock />} color="yellow" trend="Needs Review" />
         </div>
 
-        {/* Dynamic Content Based on Tab */}
+        {/* Dynamic Content */}
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {activeTab === 'dashboard' && (
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-              {/* User Management Table */}
               <Card className="xl:col-span-2 bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <div className="space-y-1">
@@ -167,24 +197,11 @@ export default function AdminDashboard() {
                           </TableCell>
                         </TableRow>
                       ))}
-                      {(usersLoading) && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="h-32 text-center text-muted-foreground italic">
-                            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {(!usersLoading && (!usersData || usersData.length === 0)) && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="h-32 text-center text-muted-foreground italic">No users registered in the system yet.</TableCell>
-                        </TableRow>
-                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
               </Card>
 
-              {/* Tournament/Match Manager Section */}
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
@@ -200,15 +217,9 @@ export default function AdminDashboard() {
                   {matchesData?.map((match) => (
                     <Card key={match.id} className="bg-card/20 backdrop-blur-lg border-white/5 hover:border-primary/30 transition-all group">
                       <CardContent className="p-5 space-y-4">
-                        <div className="flex justify-between items-center">
-                          <Badge variant={match.status === 'live' ? 'destructive' : 'outline'} className={cn("text-[10px] font-black uppercase tracking-widest", match.status === 'live' && "animate-pulse")}>
-                            {match.status}
-                          </Badge>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-7 w-7"><Edit3 className="h-3 w-3" /></Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"><Trash2 className="h-3 w-3" /></Button>
-                          </div>
-                        </div>
+                        <Badge variant={match.status === 'live' ? 'destructive' : 'outline'} className={cn("text-[10px] font-black uppercase tracking-widest", match.status === 'live' && "animate-pulse")}>
+                          {match.status}
+                        </Badge>
                         <div className="flex items-center justify-between px-2">
                           <div className="text-center space-y-1">
                             <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{match.teamA?.name}</p>
@@ -220,29 +231,48 @@ export default function AdminDashboard() {
                             <p className="text-2xl font-black">{match.scoreB}</p>
                           </div>
                         </div>
-                        <Button variant="outline" className="w-full h-8 text-[10px] font-black uppercase tracking-widest border-white/10 hover:bg-primary hover:text-white transition-colors">Update Live Score</Button>
+                        <Button variant="outline" className="w-full h-8 text-[10px] font-black uppercase tracking-widest border-white/10">Update Live Score</Button>
                       </CardContent>
                     </Card>
                   ))}
-                  {matchesLoading && (
-                    <div className="flex justify-center p-8">
-                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  )}
-                  {!matchesLoading && (!matchesData || matchesData.length === 0) && (
-                    <div className="text-center py-10 border-2 border-dashed border-white/5 rounded-2xl text-muted-foreground text-sm italic">
-                      No active matches to display.
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {activeTab !== 'dashboard' && (
+          {activeTab === 'settings' && (
+            <Card className="max-w-2xl bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-primary" />
+                  Global Application Settings
+                </CardTitle>
+                <CardDescription>Configure external integrations like CPA Lead Offer Walls.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">CPA Lead Offer Wall URL</label>
+                  <div className="flex gap-2">
+                    <Input 
+                      value={cpaUrl} 
+                      onChange={(e) => setCpaUrl(e.target.value)} 
+                      placeholder="https://www.cpalead.com/mobile/offers.php?id=..." 
+                      className="bg-black/20 border-white/10"
+                    />
+                    <Button onClick={handleUpdateSettings} className="bg-primary font-bold">
+                      <Save className="h-4 w-4 mr-2" /> Save
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Enter the full iframe URL provided by your CPA Lead dashboard.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {['users', 'tournaments', 'payments', 'withdrawals'].includes(activeTab) && activeTab !== 'settings' && (
             <div className="h-[50vh] flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-white/5 rounded-3xl bg-card/10">
               <Activity className="h-12 w-12 text-primary opacity-20 animate-pulse" />
-              <p className="text-muted-foreground font-medium italic">Section "{activeTab.toUpperCase()}" is currently under maintenance.</p>
+              <p className="text-muted-foreground font-medium italic">Section "{activeTab.toUpperCase()}" is under construction.</p>
             </div>
           )}
         </div>
@@ -256,33 +286,30 @@ function SidebarItem({ active, icon, label, onClick }: { active: boolean, icon: 
     <button 
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300",
-        active 
-          ? "bg-primary text-white shadow-lg shadow-primary/20 font-bold" 
-          : "text-muted-foreground hover:bg-white/5 hover:text-white"
+        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
+        active ? "bg-primary text-white shadow-lg shadow-primary/20 font-bold" : "text-muted-foreground hover:bg-white/5 hover:text-white"
       )}
     >
       <span className={cn("h-5 w-5", active ? "text-white" : "text-muted-foreground")}>{icon}</span>
       <span className="text-sm tracking-tight">{label}</span>
-      {active && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white shadow-sm" />}
     </button>
   );
 }
 
 function AnalyticsCard({ title, value, icon, color, trend }: { title: string, value: string, icon: React.ReactNode, color: string, trend: string }) {
   const colorMap: Record<string, string> = {
-    primary: "text-primary bg-primary/10 shadow-primary/10 border-primary/20",
-    secondary: "text-secondary bg-secondary/10 shadow-secondary/10 border-secondary/20",
-    destructive: "text-destructive bg-destructive/10 shadow-destructive/10 border-destructive/20",
-    yellow: "text-amber-500 bg-amber-500/10 shadow-amber-500/10 border-amber-500/20"
+    primary: "text-primary bg-primary/10 border-primary/20",
+    secondary: "text-secondary bg-secondary/10 border-secondary/20",
+    destructive: "text-destructive bg-destructive/10 border-destructive/20",
+    yellow: "text-amber-500 bg-amber-500/10 border-amber-500/20"
   };
 
   return (
-    <Card className="bg-card/40 backdrop-blur-xl border-white/5 overflow-hidden group hover:border-white/10 transition-all">
+    <Card className="bg-card/40 backdrop-blur-xl border-white/5 overflow-hidden">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-4">
-            <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border shadow-inner", colorMap[color])}>
+            <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border", colorMap[color])}>
               {icon}
             </div>
             <div className="space-y-1">
@@ -290,9 +317,7 @@ function AnalyticsCard({ title, value, icon, color, trend }: { title: string, va
               <h4 className="text-2xl font-black tracking-tighter">{value}</h4>
             </div>
           </div>
-          <Badge variant="outline" className="text-[10px] font-black bg-white/5 border-white/10 text-white opacity-60 group-hover:opacity-100 transition-opacity">
-            {trend}
-          </Badge>
+          <Badge variant="outline" className="text-[10px] font-black opacity-60">{trend}</Badge>
         </div>
       </CardContent>
     </Card>

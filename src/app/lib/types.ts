@@ -1,3 +1,4 @@
+
 export type TournamentStatus = 'active' | 'upcoming' | 'completed';
 
 export interface Team {
@@ -45,4 +46,10 @@ export interface UserProfile {
   coins: number;
   referralCode: string;
   referredBy?: string;
+}
+
+export interface AppSettings {
+  id: string;
+  maintenanceMode: boolean;
+  cpaLeadUrl: string;
 }
