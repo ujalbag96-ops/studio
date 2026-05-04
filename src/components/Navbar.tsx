@@ -87,7 +87,7 @@ export default function Navbar() {
             <NavLink href="/" icon={<Home className="h-5 w-5" />} label="Home" />
             <NavLink href="/dashboard" icon={<LayoutDashboard className="h-5 w-5" />} label="Dash" />
             <NavLink href="/earning-hub" icon={<Zap className="h-5 w-5 text-secondary" />} label="Earn" />
-            <NavLink href="/vip" icon={<Crown className="h-5 w-5 text-amber-400" />} label="VIP" />
+            <NavLink href="/levels" icon={<Crown className="h-5 w-5 text-amber-400" />} label="Levels" />
             <NavLink href="/ledger" icon={<Wallet className="h-5 w-5" />} label="Ledger" />
             {isAdmin && <NavLink href="/admin" icon={<Settings className="h-5 w-5" />} label="Admin" />}
           </div>
@@ -135,7 +135,7 @@ function UserMenu({ user, isAdmin, onLogout }: any) {
           <Link href="/earning-hub" className="cursor-pointer font-bold text-secondary">Earning Hub</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/vip" className="cursor-pointer font-bold text-amber-500">VIP Club</Link>
+          <Link href="/levels" className="cursor-pointer font-bold text-amber-500">Arena Levels</Link>
         </DropdownMenuItem>
         {isAdmin && (
           <DropdownMenuItem asChild>
