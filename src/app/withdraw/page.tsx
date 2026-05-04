@@ -2,7 +2,7 @@
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,8 +41,8 @@ export default function WithdrawPage() {
   const handleWithdraw = async () => {
     if (!user || !firestore || !profile) return;
     
-    if (isNaN(withdrawalAmount) || withdrawalAmount < 50) {
-      setError("Minimum withdrawal amount is ₹50.");
+    if (isNaN(withdrawalAmount) || withdrawalAmount < 110) {
+      setError("Minimum withdrawal amount is ₹110.");
       return;
     }
 
@@ -190,14 +190,14 @@ export default function WithdrawPage() {
                         type="number" 
                         value={amount} 
                         onChange={(e) => setAmount(e.target.value)} 
-                        placeholder="Min. 50" 
+                        placeholder="Min. 110" 
                         className="bg-black/40 border-white/10 h-14 pl-12 rounded-2xl text-2xl font-black text-secondary"
                       />
                       <div className="absolute left-4 top-[14px] font-black text-muted-foreground/40 text-lg italic">₹</div>
                     </div>
                   </div>
 
-                  {withdrawalAmount >= 50 && (
+                  {withdrawalAmount >= 110 && (
                     <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-muted-foreground flex items-center gap-1.5 font-bold uppercase tracking-widest"><Percent className="h-3 w-3" /> Processing Fee (8%)</span>
@@ -226,7 +226,7 @@ export default function WithdrawPage() {
             <CardFooter className="p-10 pt-0">
               <Button 
                 onClick={handleWithdraw} 
-                disabled={isSubmitting || !amount || !upiId || !method || withdrawalAmount < 50} 
+                disabled={isSubmitting || !amount || !upiId || !method || withdrawalAmount < 110} 
                 className="w-full bg-primary hover:bg-primary/90 h-16 rounded-2xl font-black uppercase tracking-[0.3em] shadow-2xl shadow-primary/20 text-lg transition-all hover:scale-[1.01] active:scale-[0.98]"
               >
                 {isSubmitting ? (

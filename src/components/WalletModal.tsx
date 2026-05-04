@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -125,7 +124,7 @@ export default function WalletModal({ children }: WalletModalProps) {
             <div className="flex items-start gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20">
               <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <p className="text-[9px] text-muted-foreground leading-relaxed">
-                Withdrawals are processed within 2-24 hours. Minimum withdrawal amount is ₹50.
+                Withdrawals are processed within 2-24 hours. Minimum withdrawal amount is ₹110.
               </p>
             </div>
           </div>
