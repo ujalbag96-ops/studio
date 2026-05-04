@@ -22,7 +22,9 @@ import {
   Lock,
   Loader2,
   Save,
-  Globe
+  Globe,
+  X,
+  CreditCard as PaymentIcon
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -52,20 +54,26 @@ export default function AdminDashboard() {
   const { data: settingsData, isLoading: settingsLoading } = useDoc<AppSettings>(settingsRef);
 
   const [cpaUrl, setCpaUrl] = useState('');
+  const [newGateway, setNewGateway] = useState('');
+  const [gateways, setGateways] = useState<string[]>([]);
 
   useEffect(() => {
-    if (settingsData?.cpaLeadUrl) {
-      setCpaUrl(settingsData.cpaLeadUrl);
+    if (settingsData) {
+      setCpaUrl(settingsData.cpaLeadUrl || '');
+      setGateways(settingsData.withdrawalGateways || []);
     }
   }, [settingsData]);
 
   const handleUpdateSettings = async () => {
     if (!firestore || !settingsRef) return;
     try {
-      await setDoc(settingsRef, { cpaLeadUrl: cpaUrl }, { merge: true });
+      await setDoc(settingsRef, { 
+        cpaLeadUrl: cpaUrl,
+        withdrawalGateways: gateways 
+      }, { merge: true });
       toast({
         title: "Settings Updated",
-        description: "CPA Lead Offer Wall URL has been updated successfully.",
+        description: "Global application configuration saved successfully.",
       });
     } catch (error: any) {
       toast({
@@ -74,6 +82,17 @@ export default function AdminDashboard() {
         description: error.message,
       });
     }
+  };
+
+  const addGateway = () => {
+    if (newGateway.trim() && !gateways.includes(newGateway.trim())) {
+      setGateways([...gateways, newGateway.trim()]);
+      setNewGateway('');
+    }
+  };
+
+  const removeGateway = (index: number) => {
+    setGateways(gateways.filter((_, i) => i !== index));
   };
 
   if (isUserLoading) {
@@ -241,32 +260,75 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'settings' && (
-            <Card className="max-w-2xl bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-primary" />
-                  Global Application Settings
-                </CardTitle>
-                <CardDescription>Configure external integrations like CPA Lead Offer Walls.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">CPA Lead Offer Wall URL</label>
-                  <div className="flex gap-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5 text-primary" />
+                    Integration Settings
+                  </CardTitle>
+                  <CardDescription>Configure external integrations like CPA Lead Offer Walls.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">CPA Lead Offer Wall URL</label>
                     <Input 
                       value={cpaUrl} 
                       onChange={(e) => setCpaUrl(e.target.value)} 
                       placeholder="https://www.cpalead.com/mobile/offers.php?id=..." 
                       className="bg-black/20 border-white/10"
                     />
-                    <Button onClick={handleUpdateSettings} className="bg-primary font-bold">
-                      <Save className="h-4 w-4 mr-2" /> Save
+                    <p className="text-[10px] text-muted-foreground">Enter the full iframe URL provided by your CPA Lead dashboard.</p>
+                  </div>
+                  <Button onClick={handleUpdateSettings} className="w-full bg-primary font-bold">
+                    <Save className="h-4 w-4 mr-2" /> Save Changes
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <PaymentIcon className="h-5 w-5 text-secondary" />
+                    Withdrawal Gateway Manager
+                  </CardTitle>
+                  <CardDescription>Manage available payout methods for users.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex gap-2">
+                    <Input 
+                      value={newGateway} 
+                      onChange={(e) => setNewGateway(e.target.value)} 
+                      placeholder="Add method (e.g. UPI, Bank)" 
+                      className="bg-black/20 border-white/10"
+                    />
+                    <Button onClick={addGateway} className="bg-secondary text-secondary-foreground font-bold">
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Enter the full iframe URL provided by your CPA Lead dashboard.</p>
-                </div>
-              </CardContent>
-            </Card>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Gateways</label>
+                    <div className="flex flex-wrap gap-2">
+                      {gateways.length > 0 ? gateways.map((g, index) => (
+                        <Badge key={index} className="pl-3 pr-1 py-1.5 flex items-center gap-2 bg-white/5 hover:bg-white/10 transition-colors border-white/10 text-xs font-bold">
+                          {g}
+                          <button onClick={() => removeGateway(index)} className="p-0.5 rounded-full hover:bg-destructive/20 text-muted-foreground hover:text-destructive">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )) : (
+                        <p className="text-xs text-muted-foreground italic">No gateways configured.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button onClick={handleUpdateSettings} className="w-full bg-primary font-bold">
+                    <Save className="h-4 w-4 mr-2" /> Sync Gateways
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {['users', 'tournaments', 'payments', 'withdrawals'].includes(activeTab) && activeTab !== 'settings' && (

@@ -46,10 +46,12 @@ export interface UserProfile {
   coins: number;
   referralCode: string;
   referredBy?: string;
+  isAdmin?: boolean;
 }
 
 export interface AppSettings {
   id: string;
   maintenanceMode: boolean;
   cpaLeadUrl: string;
+  withdrawalGateways?: string[];
 }
