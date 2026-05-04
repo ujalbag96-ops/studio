@@ -33,6 +33,11 @@ service cloud.firestore {
       }
     }
 
+    // Support for collectionGroup('ledger') queries for Admins
+    match /{path=**}/ledger/{ledgerId} {
+      allow list: if isAdmin();
+    }
+
     match /tournaments/{tournamentId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();

@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, where } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, increment } from 'firebase/firestore';
 import { 
   LayoutDashboard, 
   Users as UsersIcon, 
@@ -21,7 +22,9 @@ import {
   Gamepad2,
   Video,
   Globe,
-  Menu
+  Menu,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,10 +34,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { AppSettings, Tournament, Match, UserProfile, SupportMessage, UserLedgerEntry } from '@/app/lib/types';
+import { AppSettings, Tournament, UserProfile, SupportMessage, UserLedgerEntry } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
@@ -96,6 +98,26 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleProcessTransaction = async (transaction: UserLedgerEntry & { id: string, userId: string }, status: 'completed' | 'failed') => {
+    if (!firestore || !transaction.userId) return;
+    
+    try {
+      const transactionRef = doc(firestore, 'users', transaction.userId, 'ledger', transaction.id);
+      await updateDoc(transactionRef, { status });
+
+      // If it was a withdrawal and we reject it, refund the user
+      if (transaction.type === 'withdrawal' && status === 'failed') {
+        const userRef = doc(firestore, 'users', transaction.userId);
+        await updateDoc(userRef, { coins: increment(transaction.amount) });
+        toast({ title: "Transaction Rejected", description: "Funds have been refunded to the user." });
+      } else {
+        toast({ title: `Transaction ${status}`, description: "Status updated successfully." });
+      }
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Failed", description: error.message });
+    }
+  };
+
   const handleToggleModule = async (module: keyof AppSettings, value: boolean) => {
     if (!firestore || !settingsRef) return;
     try {
@@ -153,7 +175,7 @@ export default function AdminDashboard() {
             <StatsCard title="Players" value={usersData?.length || 0} icon={<UsersIcon />} />
             <StatsCard title="Battles" value={tournamentsData?.length || 0} icon={<Trophy />} />
             <StatsCard title="Flagged" value={supportData?.filter(s => s.isFlagged).length || 0} icon={<AlertTriangle />} />
-            <StatsCard title="Earnings" value="3 Active" icon={<Video />} />
+            <StatsCard title="Pending Payouts" value={transactionsData?.filter(t => t.type === 'withdrawal' && t.status === 'pending').length || 0} icon={<History />} />
           </div>
         )}
 
@@ -214,6 +236,62 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {activeTab === 'transactions' && (
+          <Card className="bg-card/30 border-white/5 rounded-[1.5rem] md:rounded-[2rem] overflow-x-auto">
+            <CardHeader>
+              <CardTitle className="uppercase font-black text-sm tracking-widest">Global Transaction Ledger</CardTitle>
+              <CardDescription>Approve or reject withdrawal and earning requests.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>User ID</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactionsData?.map(tx => (
+                    <TableRow key={tx.id}>
+                      <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">{tx.date}</TableCell>
+                      <TableCell className="font-mono text-[10px]">{tx.userId?.slice(-6)}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-[8px] uppercase">{tx.type}</Badge></TableCell>
+                      <TableCell className="font-black text-xs">₹{tx.amount}</TableCell>
+                      <TableCell>
+                        <Badge className={cn(
+                          "text-[8px] uppercase",
+                          tx.status === 'completed' ? "bg-green-500" : tx.status === 'failed' ? "bg-red-500" : "bg-yellow-500"
+                        )}>
+                          {tx.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {tx.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-green-500/20 text-green-500" onClick={() => handleProcessTransaction(tx as any, 'completed')}>
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-red-500/20 text-red-500" onClick={() => handleProcessTransaction(tx as any, 'failed')}>
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {(!transactionsData || transactionsData.length === 0) && (
+                    <TableRow><TableCell colSpan={6} className="text-center py-10 italic text-muted-foreground">No transactions found.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
         {activeTab === 'settings' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <Card className="bg-card/30 border-white/5 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] space-y-8">
@@ -247,7 +325,7 @@ export default function AdminDashboard() {
                    <TableBody>
                       {supportData?.map(m => (
                         <TableRow key={m.id} className={m.isFlagged ? "bg-destructive/5" : ""}>
-                           <TableCell className="font-mono text-[10px]">{m.userId.slice(-4)}</TableCell>
+                           <TableCell className="font-mono text-[10px]">{m.userId?.slice(-4)}</TableCell>
                            <TableCell className="text-[10px] italic max-w-[150px] truncate">{m.message}</TableCell>
                            <TableCell>
                               {m.isFlagged ? <Badge variant="destructive" className="text-[8px]">FLAGGED</Badge> : <Badge variant="outline" className="text-[8px]">Auto</Badge>}
