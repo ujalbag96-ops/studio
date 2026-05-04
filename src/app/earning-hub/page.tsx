@@ -3,7 +3,7 @@
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   PlayCircle, 
@@ -15,15 +15,12 @@ import {
   ArrowRight,
   MousePointerClick,
   TrendingUp,
-  Gift,
   Ban
 } from 'lucide-react';
 import { AppSettings } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
 
 export default function EarningHub() {
   const { user } = useUser();
@@ -35,7 +32,7 @@ export default function EarningHub() {
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: settings, isLoading: settingsLoading } = useDoc<AppSettings>(settingsRef);
 
-  // Cooldown Logic
+  // Cooldown Logic for Video Wall
   useEffect(() => {
     const checkCooldown = () => {
       const lastWatchTime = localStorage.getItem('last_video_watch_time');
@@ -102,13 +99,13 @@ export default function EarningHub() {
 
   if (settingsLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
+  // Defaults to TRUE if settings document is missing or fields are undefined
   const showVideoWall = settings?.videoWallEnabled ?? true;
   const showOfferWall = settings?.offerWallEnabled ?? true;
   const showCpaLead = settings?.cpaLeadEnabled ?? true;
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
-      {/* Header */}
       <div className="space-y-4 pt-8">
         <div className="flex items-center gap-3 text-secondary font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">
           <Zap className="h-4 w-4" />
@@ -130,7 +127,7 @@ export default function EarningHub() {
                <PlayCircle className="h-40 w-40 text-primary" />
             </div>
             <CardHeader className="p-8">
-              <Badge className="bg-primary/20 text-primary border-primary/20 w-fit mb-4">VIDEO WALL</Badge>
+              <Badge className="bg-primary/20 text-primary border-primary/20 w-fit mb-4 uppercase font-black">VIDEO WALL</Badge>
               <CardTitle className="text-3xl font-black uppercase tracking-tight">Watch & Earn</CardTitle>
               <CardDescription className="text-base font-bold text-primary italic">Earn 5 Coins Instantly</CardDescription>
             </CardHeader>
@@ -164,7 +161,7 @@ export default function EarningHub() {
                <ClipboardList className="h-40 w-40 text-secondary" />
             </div>
             <CardHeader className="p-8">
-              <Badge className="bg-secondary/20 text-secondary border-secondary/20 w-fit mb-4">OFFER WALL</Badge>
+              <Badge className="bg-secondary/20 text-secondary border-secondary/20 w-fit mb-4 uppercase font-black">OFFER WALL</Badge>
               <CardTitle className="text-3xl font-black uppercase tracking-tight">Arena Tasks</CardTitle>
               <CardDescription className="text-base font-bold text-secondary italic">Earn 10-100 Coins</CardDescription>
             </CardHeader>
@@ -184,7 +181,7 @@ export default function EarningHub() {
                <MousePointerClick className="h-40 w-40 text-white" />
             </div>
             <CardHeader className="p-8">
-              <Badge className="bg-white/5 text-white border-white/10 w-fit mb-4">SURVEYS</Badge>
+              <Badge className="bg-white/5 text-white border-white/10 w-fit mb-4 uppercase font-black">SURVEYS</Badge>
               <CardTitle className="text-3xl font-black uppercase tracking-tight">CPA Insights</CardTitle>
               <CardDescription className="text-base font-bold text-muted-foreground italic">Earn 5-50 Coins</CardDescription>
             </CardHeader>
@@ -197,38 +194,6 @@ export default function EarningHub() {
           </Card>
         ) : <ModuleDisabledCard label="CPA Lead" />}
       </div>
-
-      {/* Bonus Section */}
-      <section className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-[3rem] p-12 border border-white/5 relative overflow-hidden group">
-         <div className="absolute -bottom-12 -right-12 h-64 w-64 bg-primary/20 blur-[100px] group-hover:bg-primary/30 transition-all" />
-         <div className="relative z-10 grid md:grid-cols-2 items-center gap-12">
-            <div className="space-y-6">
-               <div className="h-16 w-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 shadow-2xl">
-                 <TrendingUp className="h-8 w-8 text-secondary" />
-               </div>
-               <h2 className="text-4xl font-black uppercase tracking-tight leading-none">VIP <br /><span className="text-secondary italic">MULTIPLIER</span></h2>
-               <p className="text-muted-foreground font-medium leading-relaxed">Upgrade to VIP status to unlock up to 2x earnings on all hub activities and faster withdrawal processing.</p>
-               <Button asChild className="bg-white text-black hover:bg-white/90 font-black px-10 h-14 rounded-2xl uppercase tracking-widest shadow-2xl">
-                 <Link href="/vip">UPGRADE NOW</Link>
-               </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-               <StatBox label="Total Distributed" value="1.2M 🪙" />
-               <StatBox label="Active Earners" value="45K+" />
-               <StatBox label="Daily Avg" value="150 🪙" />
-               <StatBox label="Success Rate" value="99.9%" />
-            </div>
-         </div>
-      </section>
-    </div>
-  );
-}
-
-function StatBox({ label, value }: { label: string, value: string }) {
-  return (
-    <div className="p-6 rounded-3xl bg-black/40 border border-white/5 backdrop-blur-md">
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
-      <p className="text-2xl font-black text-white">{value}</p>
     </div>
   );
 }
