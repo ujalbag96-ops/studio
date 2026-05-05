@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, deleteDoc } from 'firebase/firestore';
 import { 
   LayoutDashboard, 
   Users as UsersIcon, 
@@ -11,43 +11,29 @@ import {
   ShieldCheck, 
   Plus,
   History,
-  X,
-  Save,
-  Key,
-  MessageSquare,
-  AlertTriangle,
+  Wrench,
   Loader2,
-  Gamepad2,
-  Globe,
-  CheckCircle2,
-  XCircle,
-  Activity,
-  Coins,
   TrendingUp,
-  Percent,
-  PlayCircle,
-  Ban,
-  Fingerprint,
-  Link as LinkIcon,
+  Zap,
   Sword,
   Edit2,
   Trash2,
-  Wrench,
-  Zap
+  Fingerprint,
+  Ban,
+  AlertTriangle
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { AppSettings, Tournament, UserProfile, SupportMessage, UserLedgerEntry, Match } from '@/app/lib/types';
+import { AppSettings, UserProfile, UserLedgerEntry, Match } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
@@ -56,12 +42,12 @@ export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'revenue' | 'transactions' | 'matches' | 'settings' | 'repair'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'revenue' | 'transactions' | 'matches' | 'repair'>('dashboard');
   const [isRepairing, setIsRepairing] = useState(false);
 
   const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
-  // Queries - Strictly conditional on isAdminUser
+  // Queries - Strictly conditional on isAdminUser check
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
   const transactionsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collectionGroup(firestore, 'ledger'), orderBy('date', 'desc')) : null, [firestore, isAdminUser]);
   const matchesQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'matches') : null, [firestore, isAdminUser]);
@@ -113,19 +99,17 @@ export default function AdminDashboard() {
         withdrawalGateways: ['UPI', 'Paytm', 'Google Pay']
       }, { merge: true });
 
-      // 2. Repair Admin Profile
+      // 2. Repair Admin Profile to force isAdmin flag in Firestore
       const adminRef = doc(firestore, 'users', user.uid);
       await setDoc(adminRef, {
         isAdmin: true,
         email: ADMIN_EMAIL,
-        isBanned: false
+        isBanned: false,
+        lastActive: new Date().toISOString()
       }, { merge: true });
 
-      // 3. Clear any corrupt local states
-      localStorage.removeItem('last_video_watch_time');
-      
-      toast({ title: "System Repaired Successfully", description: "All core configurations have been stabilized." });
-      window.location.reload();
+      toast({ title: "System Repaired Successfully", description: "Admin identity and settings stabilized." });
+      setTimeout(() => window.location.reload(), 1000);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Repair Failed", description: e.message });
     } finally {
@@ -219,7 +203,7 @@ export default function AdminDashboard() {
                   <Wrench className="h-10 w-10 text-amber-500 animate-pulse" />
                 </div>
                 <h2 className="text-3xl font-black uppercase tracking-tighter italic">One-Click System Repair</h2>
-                <p className="text-muted-foreground font-medium">Use this tool if the dashboard is crashing, permissions are missing, or the system feels unstable.</p>
+                <p className="text-muted-foreground font-medium">Click below to fix Firestore permissions, reset admin identity, and stabilize settings.</p>
               </div>
 
               <div className="space-y-4">
@@ -228,9 +212,8 @@ export default function AdminDashboard() {
                   <AlertTitle className="font-black uppercase text-[10px]">What this does:</AlertTitle>
                   <AlertDescription className="text-xs text-muted-foreground space-y-2 mt-2">
                     <p>• Forces Global Settings to reset to safe defaults.</p>
-                    <p>• Ensures your account is registered as Global Administrator.</p>
-                    <p>• Clears potentially corrupt session data.</p>
-                    <p>• Synchronizes Firestore security context.</p>
+                    <p>• Ensures your account is registered as Global Administrator in Firestore.</p>
+                    <p>• Synchronizes security contexts to prevent "Missing Permission" errors.</p>
                   </AlertDescription>
                 </Alert>
 
