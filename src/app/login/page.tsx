@@ -37,8 +37,10 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const getDeviceId = () => {
+    if (typeof window === 'undefined') return 'unknown';
     let id = localStorage.getItem('arena_device_id');
     if (!id) {
       id = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now();
@@ -48,26 +50,33 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
-    if (user && !isUserLoading && firestore) {
+    if (user && !isUserLoading && firestore && !isRedirecting) {
       const handleAuthFlow = async () => {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists() && userDoc.data().isBanned) {
-          setAuthError("This device has been permanently excluded from the arena due to fair play violations.");
-          return;
-        }
+        setIsRedirecting(true);
+        try {
+          const userDocRef = doc(firestore, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists() && userDoc.data().isBanned) {
+            setAuthError("This device has been permanently excluded from the arena due to fair play violations.");
+            setIsRedirecting(false);
+            return;
+          }
 
-        const isAdmin = user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
-        if (isAdmin) {
-          router.push('/admin');
-        } else {
-          router.push('/dashboard');
+          const isAdmin = user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
+          if (isAdmin) {
+            router.push('/admin');
+          } else {
+            router.push('/dashboard');
+          }
+        } catch (err) {
+          console.error("Redirection error", err);
+          setIsRedirecting(false);
         }
       };
       handleAuthFlow();
     }
-  }, [user, isUserLoading, router, firestore]);
+  }, [user, isUserLoading, router, firestore, isRedirecting]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
     setIsLoading(true);
@@ -87,6 +96,7 @@ export default function LoginPage() {
         await setDoc(doc(firestore, 'users', credential.user.uid), {
           deviceId,
           lastActive: new Date().toISOString(),
+          email: credential.user.email,
           ...(mode === 'signup' ? {
             coins: 0,
             withdrawableCoins: 0,
@@ -100,7 +110,6 @@ export default function LoginPage() {
       toast({ title: mode === 'login' ? "Access Granted" : "Identity Registered" });
     } catch (error: any) {
       setAuthError(error.message);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -120,7 +129,11 @@ export default function LoginPage() {
         const result = await confirmationResult.confirm(otp);
         const deviceId = getDeviceId();
         if (firestore) {
-          await setDoc(doc(firestore, 'users', result.user.uid), { deviceId, lastActive: new Date().toISOString() }, { merge: true });
+          await setDoc(doc(firestore, 'users', result.user.uid), { 
+            deviceId, 
+            lastActive: new Date().toISOString(),
+            mobile: result.user.phoneNumber 
+          }, { merge: true });
         }
       }
     } catch (e: any) {
@@ -130,7 +143,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
+  if (isUserLoading || isRedirecting) return <div className="flex flex-col items-center justify-center min-h-screen space-y-4"><Loader2 className="animate-spin h-10 w-10 text-primary" /><p className="text-sm font-black uppercase tracking-widest text-muted-foreground">Synchronizing identity...</p></div>;
 
   return (
     <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in zoom-in-95 duration-500">

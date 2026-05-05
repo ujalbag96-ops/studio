@@ -64,7 +64,7 @@ export default function AdminDashboard() {
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
 
   const { data: usersData } = useCollection<UserProfile>(usersQuery);
-  const { data: transactionsData } = useCollection<UserLedgerEntry & { userId: string }>(transactionsQuery);
+  const { data: transactionsData } = useCollection<UserLedgerEntry & { userId?: string }>(transactionsQuery);
   const { data: matchesData } = useCollection<Match>(matchesQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
@@ -127,7 +127,7 @@ export default function AdminDashboard() {
   };
 
   const handleUpdateTransactionStatus = async (userId: string, entryId: string, newStatus: 'completed' | 'failed') => {
-    if (!firestore) return;
+    if (!firestore || !userId) return;
     try {
       await updateDoc(doc(firestore, 'users', userId, 'ledger', entryId), { status: newStatus });
       toast({ title: `Transaction marked as ${newStatus}` });
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="flex min-h-screen bg-[#0d0d12] text-foreground">
+    <div className="flex min-h-screen bg-[#0d0d12] text-white">
       <aside className="w-64 border-r border-white/5 bg-card/30 backdrop-blur-2xl hidden md:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-6 border-b border-white/5 flex items-center gap-3">
           <ShieldCheck className="h-6 w-6 text-primary" />
@@ -212,7 +212,7 @@ export default function AdminDashboard() {
               <h2 className="text-2xl font-black uppercase tracking-tighter italic">Battle Arena <span className="text-primary">Manager</span></h2>
               <Dialog open={isMatchDialogOpen} onOpenChange={setIsMatchDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setEditingMatch({ teamA: { name: '', logo: '' }, teamB: { name: '', logo: '' }, status: 'scheduled' })} className="rounded-xl font-black">
+                  <Button onClick={() => setEditingMatch({ teamA: { id: 'a', name: '', logo: '' }, teamB: { id: 'b', name: '', logo: '' }, status: 'scheduled' })} className="rounded-xl font-black">
                     <Plus className="h-4 w-4 mr-2" /> NEW MATCH
                   </Button>
                 </DialogTrigger>
@@ -262,7 +262,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-6">
                     <div className="h-12 w-12 bg-white/5 rounded-xl flex items-center justify-center font-black border border-white/10 italic">VS</div>
                     <div>
-                      <h4 className="font-black uppercase text-sm">{m.teamA.name} <span className="text-primary italic">vs</span> {m.teamB.name}</h4>
+                      <h4 className="font-black uppercase text-sm">{m.teamA?.name} <span className="text-primary italic">vs</span> {m.teamB?.name}</h4>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{m.status}</p>
                     </div>
                   </div>
@@ -289,15 +289,15 @@ export default function AdminDashboard() {
                 <TableBody>
                   {transactionsData?.map(t => (
                     <TableRow key={t.id}>
-                      <TableCell className="font-bold text-xs">{t.userId.slice(0, 8)}...</TableCell>
+                      <TableCell className="font-bold text-xs">{(t.userId || 'unknown').slice(0, 8)}...</TableCell>
                       <TableCell><Badge variant="outline">{t.type}</Badge></TableCell>
                       <TableCell className="font-black">₹{t.amount}</TableCell>
                       <TableCell><Badge className={t.status === 'completed' ? 'bg-green-500' : t.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'}>{t.status}</Badge></TableCell>
                       <TableCell>
-                        {t.status === 'pending' && (
+                        {t.status === 'pending' && t.userId && (
                           <div className="flex gap-2">
-                            <Button size="sm" variant="secondary" onClick={() => handleUpdateTransactionStatus(t.userId, t.id, 'completed')}>Approve</Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleUpdateTransactionStatus(t.userId, t.id, 'failed')}>Deny</Button>
+                            <Button size="sm" variant="secondary" onClick={() => handleUpdateTransactionStatus(t.userId!, t.id, 'completed')}>Approve</Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleUpdateTransactionStatus(t.userId!, t.id, 'failed')}>Deny</Button>
                           </div>
                         )}
                       </TableCell>

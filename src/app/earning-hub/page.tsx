@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -70,6 +71,7 @@ export default function EarningHub() {
       });
       
       await addDoc(ledgerRef, {
+        userId: user.uid,
         type: 'income',
         amount: 5,
         date: new Date().toISOString().split('T')[0],

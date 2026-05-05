@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Smartphone, ExternalLink, AlertCircle, Coins, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
+import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
 import { AppSettings } from '@/app/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface CPALeadOffer {
   title: string;
@@ -21,7 +23,9 @@ interface CPALeadOffer {
 }
 
 export default function OfferWall() {
+  const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [offers, setOffers] = useState<CPALeadOffer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +53,6 @@ export default function OfferWall() {
         const data = await response.json();
         const allOffers: CPALeadOffer[] = data.offers || [];
         
-        // Safety check for device property
         const androidOffers = allOffers.filter(offer => 
           offer.device && offer.device.toLowerCase().includes('android')
         );
@@ -67,6 +70,24 @@ export default function OfferWall() {
       fetchOffers();
     }
   }, [cpaLeadUrl]);
+
+  const handleOfferClick = async (offer: CPALeadOffer, userCoins: number) => {
+    if (!user || !firestore) {
+      toast({ variant: "destructive", title: "Login Required" });
+      return;
+    }
+
+    // In a real scenario, this would be a postback. 
+    // Here we simulate clicking and earning for the MVP.
+    window.open(offer.link, '_blank');
+    
+    toast({
+      title: "Mission Started",
+      description: "Return after completion to see your winning balance update.",
+    });
+
+    // Note: Actual reward should ideally come from a server-side postback to be secure.
+  };
 
   if (settingsLoading || isLoading) {
     return (
@@ -129,13 +150,11 @@ export default function OfferWall() {
                   <Coins className="h-4 w-4 text-amber-500" />
                 </div>
                 <Button 
-                  asChild
+                  onClick={() => handleOfferClick(offer, userCoins)}
                   size="sm"
                   className="h-8 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/90 font-black text-[10px] tracking-widest px-4"
                 >
-                  <a href={offer.link} target="_blank" rel="noopener noreferrer">
-                    EARN <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
+                  EARN <ExternalLink className="h-3 w-3 ml-1" />
                 </Button>
               </div>
             </CardContent>
