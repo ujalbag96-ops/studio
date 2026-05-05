@@ -57,17 +57,20 @@ export default function LoginPage() {
           const userDocRef = doc(firestore, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
           
-          if (userDoc.exists() && userDoc.data().isBanned) {
+          if (userDoc.exists() && userDoc.data()?.isBanned) {
             setAuthError("This device has been permanently excluded from the arena due to fair play violations.");
             setIsRedirecting(false);
             return;
           }
 
           const isAdmin = user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
+          
+          // Force update isAdmin flag in DB if it's the specific owner
           if (isAdmin) {
-            router.push('/admin');
+             await setDoc(userDocRef, { isAdmin: true }, { merge: true });
+             router.push('/admin');
           } else {
-            router.push('/dashboard');
+             router.push('/dashboard');
           }
         } catch (err) {
           console.error("Redirection error", err);
@@ -93,10 +96,12 @@ export default function LoginPage() {
       }
 
       if (firestore) {
+        const isUserAdmin = email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
         await setDoc(doc(firestore, 'users', credential.user.uid), {
           deviceId,
           lastActive: new Date().toISOString(),
           email: credential.user.email,
+          isAdmin: isUserAdmin,
           ...(mode === 'signup' ? {
             coins: 0,
             withdrawableCoins: 0,

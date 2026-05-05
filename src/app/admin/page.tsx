@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, deleteDoc, getDoc } from 'firebase/firestore';
 import { 
   LayoutDashboard, 
   Users as UsersIcon, 
@@ -31,9 +31,11 @@ import {
   Link as LinkIcon,
   Sword,
   Edit2,
-  Trash2
+  Trash2,
+  Wrench,
+  Zap
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +44,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { AppSettings, Tournament, UserProfile, SupportMessage, UserLedgerEntry, Match } from '@/app/lib/types';
@@ -53,7 +56,8 @@ export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'revenue' | 'transactions' | 'matches' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'revenue' | 'transactions' | 'matches' | 'settings' | 'repair'>('dashboard');
+  const [isRepairing, setIsRepairing] = useState(false);
 
   const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
@@ -93,6 +97,40 @@ export default function AdminDashboard() {
       }, { merge: true });
       toast({ title: "Revenue Settings Updated" });
     } catch (e: any) { toast({ variant: "destructive", title: "Update Failed" }); }
+  };
+
+  const handleEmergencyRepair = async () => {
+    if (!firestore || !user) return;
+    setIsRepairing(true);
+    try {
+      // 1. Repair Global Settings
+      const globalRef = doc(firestore, 'settings', 'global');
+      await setDoc(globalRef, {
+        maintenanceMode: false,
+        coinValuePerDollar: 100,
+        adminProfitPercentage: 50,
+        cpaLeadUrl: cpaUrl || "",
+        withdrawalGateways: ['UPI', 'Paytm', 'Google Pay']
+      }, { merge: true });
+
+      // 2. Repair Admin Profile
+      const adminRef = doc(firestore, 'users', user.uid);
+      await setDoc(adminRef, {
+        isAdmin: true,
+        email: ADMIN_EMAIL,
+        isBanned: false
+      }, { merge: true });
+
+      // 3. Clear any corrupt local states
+      localStorage.removeItem('last_video_watch_time');
+      
+      toast({ title: "System Repaired Successfully", description: "All core configurations have been stabilized." });
+      window.location.reload();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Repair Failed", description: e.message });
+    } finally {
+      setIsRepairing(false);
+    }
   };
 
   const handleSaveMatch = async (e: React.FormEvent) => {
@@ -159,7 +197,7 @@ export default function AdminDashboard() {
           <SidebarItem active={activeTab === 'matches'} onClick={() => setActiveTab('matches')} icon={<Sword />} label="Match Manager" />
           <SidebarItem active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} icon={<History />} label="Transactions" />
           <SidebarItem active={activeTab === 'revenue'} onClick={() => setActiveTab('revenue')} icon={<TrendingUp />} label="Revenue Control" />
-          <SidebarItem active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings />} label="Global Settings" />
+          <SidebarItem active={activeTab === 'repair'} onClick={() => setActiveTab('repair')} icon={<Wrench className="text-amber-500" />} label="SYSTEM REPAIR" />
         </nav>
       </aside>
 
@@ -170,6 +208,41 @@ export default function AdminDashboard() {
             <StatsCard title="Device Violations" value={Array.from(deviceMap.values()).filter(l => l.length > 1).length} icon={<Fingerprint className="text-red-500" />} />
             <StatsCard title="Banned Users" value={usersData?.filter(u => u.isBanned).length || 0} icon={<Ban className="text-red-500" />} />
             <StatsCard title="Pending Payouts" value={transactionsData?.filter(t => t.type === 'withdrawal' && t.status === 'pending').length || 0} icon={<History />} />
+          </div>
+        )}
+
+        {activeTab === 'repair' && (
+          <div className="max-w-2xl mx-auto space-y-8 animate-in zoom-in-95 duration-500">
+            <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2.5rem] p-10 space-y-8">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="h-20 w-20 rounded-3xl bg-amber-500/10 flex items-center justify-center border border-amber-500/30">
+                  <Wrench className="h-10 w-10 text-amber-500 animate-pulse" />
+                </div>
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic">One-Click System Repair</h2>
+                <p className="text-muted-foreground font-medium">Use this tool if the dashboard is crashing, permissions are missing, or the system feels unstable.</p>
+              </div>
+
+              <div className="space-y-4">
+                <Alert className="bg-black/40 border-white/5 rounded-2xl">
+                  <Zap className="h-4 w-4 text-primary" />
+                  <AlertTitle className="font-black uppercase text-[10px]">What this does:</AlertTitle>
+                  <AlertDescription className="text-xs text-muted-foreground space-y-2 mt-2">
+                    <p>• Forces Global Settings to reset to safe defaults.</p>
+                    <p>• Ensures your account is registered as Global Administrator.</p>
+                    <p>• Clears potentially corrupt session data.</p>
+                    <p>• Synchronizes Firestore security context.</p>
+                  </AlertDescription>
+                </Alert>
+
+                <Button 
+                  onClick={handleEmergencyRepair} 
+                  disabled={isRepairing}
+                  className="w-full h-20 rounded-3xl bg-amber-500 hover:bg-amber-600 text-black font-black text-xl shadow-2xl shadow-amber-500/20"
+                >
+                  {isRepairing ? <Loader2 className="animate-spin h-8 w-8" /> : "EXECUTE ONE-CLICK REPAIR"}
+                </Button>
+              </div>
+            </Card>
           </div>
         )}
 
@@ -291,7 +364,7 @@ export default function AdminDashboard() {
                   {isTransLoading ? <TableRow><TableCell colSpan={5} className="text-center py-10"><Loader2 className="animate-spin h-6 w-6 mx-auto" /></TableCell></TableRow> : 
                   transactionsData?.map(t => (
                     <TableRow key={t.id} className="border-white/5">
-                      <TableCell className="font-bold text-xs">{(t.userId ? String(t.userId).slice(0, 8) : 'unknown')}...</TableCell>
+                      <TableCell className="font-bold text-xs">{t.userId ? String(t.userId).substring(0, 8) : 'unknown'}...</TableCell>
                       <TableCell><Badge variant="outline">{t.type}</Badge></TableCell>
                       <TableCell className="font-black text-secondary">₹{t.amount}</TableCell>
                       <TableCell><Badge className={t.status === 'completed' ? 'bg-green-500' : t.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'}>{t.status}</Badge></TableCell>
