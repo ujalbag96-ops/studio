@@ -57,14 +57,14 @@ export default function AdminDashboard() {
 
   const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
-  // Queries
+  // Queries - Strictly conditional on isAdminUser
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
   const transactionsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collectionGroup(firestore, 'ledger'), orderBy('date', 'desc')) : null, [firestore, isAdminUser]);
   const matchesQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'matches') : null, [firestore, isAdminUser]);
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
 
-  const { data: usersData } = useCollection<UserProfile>(usersQuery);
-  const { data: transactionsData } = useCollection<UserLedgerEntry & { userId?: string }>(transactionsQuery);
+  const { data: usersData, isLoading: isUsersLoading } = useCollection<UserProfile>(usersQuery);
+  const { data: transactionsData, isLoading: isTransLoading } = useCollection<UserLedgerEntry & { userId?: string }>(transactionsQuery);
   const { data: matchesData } = useCollection<Match>(matchesQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
@@ -134,8 +134,8 @@ export default function AdminDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
-  if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen gap-4"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="text-muted-foreground font-medium">Verifying Admin Identity...</p></div>;
-  if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1 className="text-2xl font-black uppercase">Unauthorized Access</h1><p className="text-muted-foreground mt-2">Only authorized administrators can access this sector.</p></div>;
+  if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-white bg-black"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Verifying Administrator Authority...</p></div>;
+  if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center text-white bg-black"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1 className="text-2xl font-black uppercase italic">Unauthorized Sector</h1><p className="text-muted-foreground mt-2 font-medium">This command center is restricted to authorized personnel only.</p></div>;
 
   const deviceMap = new Map();
   usersData?.forEach(u => {
@@ -180,10 +180,11 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Identity</TableHead><TableHead>Device Fingerprint</TableHead><TableHead>Winning Balance</TableHead><TableHead>Status</TableHead><TableHead>Control</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow className="border-white/5 hover:bg-transparent"><TableHead>Identity</TableHead><TableHead>Device Fingerprint</TableHead><TableHead>Winning Balance</TableHead><TableHead>Status</TableHead><TableHead>Control</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {usersData?.map(u => (
-                    <TableRow key={u.id} className={cn(u.deviceId && deviceMap.get(u.deviceId).length > 1 && "bg-red-500/5")}>
+                  {isUsersLoading ? <TableRow><TableCell colSpan={5} className="text-center py-10"><Loader2 className="animate-spin h-6 w-6 mx-auto" /></TableCell></TableRow> : 
+                  usersData?.map(u => (
+                    <TableRow key={u.id} className={cn("border-white/5", u.deviceId && deviceMap.get(u.deviceId).length > 1 && "bg-red-500/5")}>
                       <TableCell>
                         <div className="space-y-0.5">
                           <p className="font-bold text-xs">{u.email || u.mobile || u.id}</p>
@@ -216,29 +217,29 @@ export default function AdminDashboard() {
                     <Plus className="h-4 w-4 mr-2" /> NEW MATCH
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-card border-white/5 rounded-3xl">
+                <DialogContent className="bg-[#1a1a1a] border-white/5 rounded-3xl text-white">
                   <DialogHeader><DialogTitle className="font-black uppercase">Battle Configuration</DialogTitle></DialogHeader>
                   <form onSubmit={handleSaveMatch} className="space-y-4 pt-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Team A Name</Label>
-                        <Input value={editingMatch?.teamA?.name} onChange={(e) => setEditingMatch({...editingMatch!, teamA: {...editingMatch!.teamA!, name: e.target.value}})} />
+                        <Input value={editingMatch?.teamA?.name} onChange={(e) => setEditingMatch({...editingMatch!, teamA: {...editingMatch!.teamA!, name: e.target.value}})} className="bg-black/40 border-white/10" />
                       </div>
                       <div className="space-y-2">
                         <Label>Team B Name</Label>
-                        <Input value={editingMatch?.teamB?.name} onChange={(e) => setEditingMatch({...editingMatch!, teamB: {...editingMatch!.teamB!, name: e.target.value}})} />
+                        <Input value={editingMatch?.teamB?.name} onChange={(e) => setEditingMatch({...editingMatch!, teamB: {...editingMatch!.teamB!, name: e.target.value}})} className="bg-black/40 border-white/10" />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Match Description</Label>
-                      <Input value={editingMatch?.description} onChange={(e) => setEditingMatch({...editingMatch!, description: e.target.value})} />
+                      <Input value={editingMatch?.description} onChange={(e) => setEditingMatch({...editingMatch!, description: e.target.value})} className="bg-black/40 border-white/10" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Status</Label>
                         <Select value={editingMatch?.status} onValueChange={(v: any) => setEditingMatch({...editingMatch!, status: v})}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
+                          <SelectTrigger className="bg-black/40 border-white/10"><SelectValue /></SelectTrigger>
+                          <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
                             <SelectItem value="scheduled">Scheduled</SelectItem>
                             <SelectItem value="live">Live</SelectItem>
                             <SelectItem value="finished">Finished</SelectItem>
@@ -247,7 +248,7 @@ export default function AdminDashboard() {
                       </div>
                       <div className="space-y-2">
                         <Label>Tournament ID</Label>
-                        <Input value={editingMatch?.tournamentId} onChange={(e) => setEditingMatch({...editingMatch!, tournamentId: e.target.value})} />
+                        <Input value={editingMatch?.tournamentId} onChange={(e) => setEditingMatch({...editingMatch!, tournamentId: e.target.value})} className="bg-black/40 border-white/10" />
                       </div>
                     </div>
                     <Button type="submit" className="w-full h-12 rounded-xl font-black">SAVE BATTLE</Button>
@@ -285,13 +286,14 @@ export default function AdminDashboard() {
             <CardHeader><CardTitle className="uppercase font-black text-sm text-secondary">Financial Activity Log</CardTitle></CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Warrior</TableHead><TableHead>Type</TableHead><TableHead>Amount</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow className="border-white/5 hover:bg-transparent"><TableHead>Warrior</TableHead><TableHead>Type</TableHead><TableHead>Amount</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {transactionsData?.map(t => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-bold text-xs">{(t.userId || 'unknown').slice(0, 8)}...</TableCell>
+                  {isTransLoading ? <TableRow><TableCell colSpan={5} className="text-center py-10"><Loader2 className="animate-spin h-6 w-6 mx-auto" /></TableCell></TableRow> : 
+                  transactionsData?.map(t => (
+                    <TableRow key={t.id} className="border-white/5">
+                      <TableCell className="font-bold text-xs">{(t.userId ? String(t.userId).slice(0, 8) : 'unknown')}...</TableCell>
                       <TableCell><Badge variant="outline">{t.type}</Badge></TableCell>
-                      <TableCell className="font-black">₹{t.amount}</TableCell>
+                      <TableCell className="font-black text-secondary">₹{t.amount}</TableCell>
                       <TableCell><Badge className={t.status === 'completed' ? 'bg-green-500' : t.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'}>{t.status}</Badge></TableCell>
                       <TableCell>
                         {t.status === 'pending' && t.userId && (

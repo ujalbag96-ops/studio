@@ -17,13 +17,15 @@ service cloud.firestore {
     }
 
     function isAdmin() {
+      let adminEmail = 'ujalbag96@gmail.com';
       return isSignedIn() && (
-        (request.auth.token.email != null && request.auth.token.email.lower() == 'ujalbag96@gmail.com') ||
+        (request.auth.token.email != null && request.auth.token.email.lower() == adminEmail) ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true)
       );
     }
 
+    // Standard Users Collection
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
@@ -31,6 +33,7 @@ service cloud.firestore {
       allow update: if (isOwner(userId) && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false) && request.resource.data.get('isBanned', false) == resource.data.get('isBanned', false)) || isAdmin();
       allow delete: if isAdmin();
 
+      // Sub-collection ledger
       match /ledger/{entryId} {
         allow get, list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) || isAdmin();
@@ -38,6 +41,7 @@ service cloud.firestore {
       }
     }
 
+    // Collection Group rule for global ledger access (Admin only)
     match /{path=**}/ledger/{ledgerId} {
       allow list: if isAdmin();
     }
