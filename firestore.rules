@@ -20,9 +20,12 @@ service cloud.firestore {
       );
     }
 
-    // Explicitly allow collection group queries for 'ledger' for Admins
+    // CRITICAL: Explicitly allow collection group queries for 'ledger' for Admins
+    // This rule is required for the collectionGroup('ledger') query in Admin Dashboard
     match /{path=**}/ledger/{ledgerId} {
-      allow list, get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list, get: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
 
     // Standard Users Collection
@@ -31,7 +34,7 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create: if isSignedIn();
       allow update: if isAdmin() || (isOwner(userId) && 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mobile', 'deviceId', 'upiId', 'lastActive']));
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mobile', 'deviceId', 'upiId', 'lastActive', 'coins', 'withdrawableCoins']));
       allow delete: if isAdmin();
 
       // Sub-collection ledger (direct path)

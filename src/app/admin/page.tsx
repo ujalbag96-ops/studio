@@ -20,7 +20,9 @@ import {
   Trash2,
   Fingerprint,
   Ban,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw,
+  ShieldAlert
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,6 +37,7 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { AppSettings, UserProfile, UserLedgerEntry, Match } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -42,8 +45,18 @@ export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'revenue' | 'transactions' | 'matches' | 'repair'>('dashboard');
   const [isRepairing, setIsRepairing] = useState(false);
+
+  // Check if we should auto-repair based on URL param
+  useEffect(() => {
+    if (searchParams.get('repair') === 'true') {
+      setActiveTab('repair');
+    }
+  }, [searchParams]);
 
   const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
@@ -53,8 +66,8 @@ export default function AdminDashboard() {
   const matchesQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'matches') : null, [firestore, isAdminUser]);
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
 
-  const { data: usersData, isLoading: isUsersLoading } = useCollection<UserProfile>(usersQuery);
-  const { data: transactionsData, isLoading: isTransLoading } = useCollection<UserLedgerEntry & { userId?: string }>(transactionsQuery);
+  const { data: usersData, isLoading: isUsersLoading, error: usersError } = useCollection<UserProfile>(usersQuery);
+  const { data: transactionsData, isLoading: isTransLoading, error: transError } = useCollection<UserLedgerEntry & { userId?: string }>(transactionsQuery);
   const { data: matchesData } = useCollection<Match>(matchesQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
@@ -109,7 +122,10 @@ export default function AdminDashboard() {
       }, { merge: true });
 
       toast({ title: "System Repaired Successfully", description: "Admin identity and settings stabilized." });
-      setTimeout(() => window.location.reload(), 1000);
+      
+      // Clear URL and refresh
+      router.replace('/admin');
+      setTimeout(() => window.location.reload(), 500);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Repair Failed", description: e.message });
     } finally {
@@ -158,6 +174,23 @@ export default function AdminDashboard() {
 
   if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-white bg-black"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Verifying Administrator Authority...</p></div>;
   if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center text-white bg-black"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1 className="text-2xl font-black uppercase italic">Unauthorized Sector</h1><p className="text-muted-foreground mt-2 font-medium">This command center is restricted to authorized personnel only.</p></div>;
+
+  // If there's a permission error, show a prominent repair link
+  if (usersError || transError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center text-white bg-[#0d0d12]">
+        <ShieldAlert className="h-20 w-20 mb-6 text-destructive animate-pulse" />
+        <h1 className="text-3xl font-black uppercase italic tracking-tighter">Permission Lockdown Detected</h1>
+        <p className="text-muted-foreground mt-4 max-w-md font-medium">Firestore has restricted your administrative access. This usually happens if your identity flag is missing in the database.</p>
+        <div className="mt-10 p-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl space-y-6">
+          <p className="text-sm font-bold text-amber-500">Click below to bypass restrictions and stabilize your authority.</p>
+          <Button onClick={handleEmergencyRepair} disabled={isRepairing} className="bg-amber-500 hover:bg-amber-600 text-black font-black px-10 h-14 rounded-2xl w-full">
+            {isRepairing ? <Loader2 className="animate-spin" /> : "AUTO-FIX & SYNC SYSTEM"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const deviceMap = new Map();
   usersData?.forEach(u => {
