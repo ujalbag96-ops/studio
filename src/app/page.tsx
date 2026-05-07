@@ -10,6 +10,11 @@ import { ArrowRight, Zap, Trophy, TrendingUp, Sparkles, Loader2 } from 'lucide-r
 import Link from 'next/link';
 import { Match, Tournament } from './lib/types';
 
+/**
+ * @fileOverview Home page for Bracket Battles.
+ * Displays public tournaments and matches.
+ */
+
 export default function Home() {
   const firestore = useFirestore();
 
@@ -20,8 +25,7 @@ export default function Home() {
   const { data: matches, isLoading: matchisLoading } = useCollection<Match>(matchesQuery);
 
   const activeTournaments = tournaments?.filter(t => t.status === 'active') || [];
-  const liveMatches = matches?.filter(m => m.status === 'live') || [];
-
+  
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-16">
       {/* Hero Section */}
@@ -86,7 +90,9 @@ export default function Home() {
             {matches?.map(match => (
               <MatchCard key={match.id} match={match} />
             ))}
-            {matches?.length === 0 && <p className="text-muted-foreground italic md:col-span-3 text-center">No matches available in the arena yet.</p>}
+            {(!matches || matches.length === 0) && !matchisLoading && (
+              <p className="text-muted-foreground italic md:col-span-3 text-center py-10">No matches available in the arena yet.</p>
+            )}
           </div>
         )}
       </section>
@@ -109,7 +115,9 @@ export default function Home() {
             {activeTournaments.map(tournament => (
               <TournamentCard key={tournament.id} tournament={tournament} />
             ))}
-            {activeTournaments.length === 0 && <p className="text-muted-foreground italic md:col-span-2 text-center">No active tournaments currently.</p>}
+            {activeTournaments.length === 0 && !tourisLoading && (
+              <p className="text-muted-foreground italic md:col-span-2 text-center py-10">No active tournaments currently.</p>
+            )}
           </div>
         )}
       </section>

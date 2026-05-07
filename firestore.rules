@@ -20,24 +20,21 @@ service cloud.firestore {
       );
     }
 
-    // CRITICAL: Explicitly allow collection group queries for 'ledger' for Admins
-    // This rule is required for the collectionGroup('ledger') query in Admin Dashboard
+    // Global Ledger (Collection Group) - Required for Admin Dashboard
     match /{path=**}/ledger/{ledgerId} {
       allow list, get: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
       allow create: if isSignedIn();
       allow update, delete: if isAdmin();
     }
 
-    // Standard Users Collection
+    // User Profiles and Sub-collections
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isSignedIn();
-      allow update: if isAdmin() || (isOwner(userId) && 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mobile', 'deviceId', 'upiId', 'lastActive', 'coins', 'withdrawableCoins']));
+      allow update: if isAdmin() || isOwner(userId);
       allow delete: if isAdmin();
 
-      // Sub-collection ledger (direct path)
       match /ledger/{entryId} {
         allow get, list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) || isAdmin();
@@ -45,11 +42,23 @@ service cloud.firestore {
       }
     }
 
+    // Publicly Readable Collections (Home Page Access)
     match /tournaments/{tournamentId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
+    match /matches/{matchId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Protected Operational Collections
     match /registrations/{regId} {
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow list: if isAdmin() || isSignedIn();
@@ -62,16 +71,6 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAdmin();
-    }
-
-    match /matches/{matchId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /settings/{settingId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
     }
   }
 }
