@@ -1,8 +1,9 @@
 export const firebaseConfig = {
-  "projectId": "studio-1481658247-8fea7",
-  "appId": "1:517266169602:web:e6769a7e07c1f05aecac1b",
-  "apiKey": "AIzaSyCs3h3Jn1xkCyLDurWp1QFWf21_LkB-PBk",
-  "authDomain": "studio-1481658247-8fea7.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "517266169602"
+  apiKey: "AIzaSyCjW-7dCG7A8-_Z8dQhB4BCUwBq4sLpN2s",
+  authDomain: "bracket-battles-new.firebaseapp.com",
+  projectId: "bracket-battles-new",
+  storageBucket: "bracket-battles-new.firebasestorage.app",
+  messagingSenderId: "116107904210",
+  appId: "1:116107904210:web:72a0e726be35deb526d90b",
+  measurementId: "G-L02KDGFYTP"
 };
