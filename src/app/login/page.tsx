@@ -65,9 +65,14 @@ export default function LoginPage() {
 
           const isAdmin = user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
           
-          // Force update isAdmin flag in DB if it's the specific owner
+          // CRITICAL: Proactively set the isAdmin flag for the owner account
+          // This prevents "Missing Permission" errors on the first admin login
           if (isAdmin) {
-             await setDoc(userDocRef, { isAdmin: true }, { merge: true });
+             await setDoc(userDocRef, { 
+               isAdmin: true,
+               email: ADMIN_EMAIL,
+               lastActive: new Date().toISOString()
+             }, { merge: true });
              router.push('/admin');
           } else {
              router.push('/dashboard');
@@ -137,7 +142,8 @@ export default function LoginPage() {
           await setDoc(doc(firestore, 'users', result.user.uid), { 
             deviceId, 
             lastActive: new Date().toISOString(),
-            mobile: result.user.phoneNumber 
+            mobile: result.user.phoneNumber,
+            isBanned: false
           }, { merge: true });
         }
       }
@@ -148,7 +154,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isUserLoading || isRedirecting) return <div className="flex flex-col items-center justify-center min-h-screen space-y-4"><Loader2 className="animate-spin h-10 w-10 text-primary" /><p className="text-sm font-black uppercase tracking-widest text-muted-foreground">Synchronizing identity...</p></div>;
+  if (isUserLoading || isRedirecting) return <div className="flex flex-col items-center justify-center min-h-screen space-y-4"><Loader2 className="animate-spin h-10 w-10 text-primary" /><p className="text-sm font-black uppercase tracking-widest text-muted-foreground">Synchronizing identity sector...</p></div>;
 
   return (
     <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in zoom-in-95 duration-500">
@@ -156,7 +162,7 @@ export default function LoginPage() {
         <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center mx-auto shadow-2xl">
           <Trophy className="h-10 w-10 text-white" />
         </div>
-        <h1 className="text-3xl font-black uppercase tracking-tighter">Arena Protocol</h1>
+        <h1 className="text-3xl font-black uppercase tracking-tighter">Arena Access</h1>
         <p className="text-muted-foreground text-sm font-medium">Identify yourself to enter the battle sector.</p>
       </div>
 

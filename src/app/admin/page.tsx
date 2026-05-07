@@ -51,7 +51,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'revenue' | 'transactions' | 'matches' | 'repair'>('dashboard');
   const [isRepairing, setIsRepairing] = useState(false);
 
-  // Check if we should auto-repair based on URL param
+  // Auto-switch to repair tab if URL contains ?repair=true
   useEffect(() => {
     if (searchParams.get('repair') === 'true') {
       setActiveTab('repair');
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
 
   const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
-  // Queries - Strictly conditional on isAdminUser check
+  // Queries - Strictly conditional on isAdminUser check to avoid permission errors before identity confirmed
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
   const transactionsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collectionGroup(firestore, 'ledger'), orderBy('date', 'desc')) : null, [firestore, isAdminUser]);
   const matchesQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'matches') : null, [firestore, isAdminUser]);
@@ -92,27 +92,33 @@ export default function AdminDashboard() {
       await setDoc(settingsRef, { 
         coinValuePerDollar: parseFloat(coinValue), 
         adminProfitPercentage: parseFloat(profitMargin),
-        cpaLeadUrl: cpaUrl
+        cpaLeadUrl: cpaUrl,
+        withdrawalGateways: settings?.withdrawalGateways || ['UPI', 'Paytm', 'Google Pay']
       }, { merge: true });
       toast({ title: "Revenue Settings Updated" });
-    } catch (e: any) { toast({ variant: "destructive", title: "Update Failed" }); }
+    } catch (e: any) { 
+      toast({ variant: "destructive", title: "Update Failed", description: e.message }); 
+    }
   };
 
   const handleEmergencyRepair = async () => {
     if (!firestore || !user) return;
     setIsRepairing(true);
     try {
-      // 1. Repair Global Settings
+      // 1. Repair Global Settings to match backend.json
       const globalRef = doc(firestore, 'settings', 'global');
       await setDoc(globalRef, {
         maintenanceMode: false,
         coinValuePerDollar: 100,
         adminProfitPercentage: 50,
         cpaLeadUrl: cpaUrl || "",
-        withdrawalGateways: ['UPI', 'Paytm', 'Google Pay']
+        withdrawalGateways: ['UPI', 'Paytm', 'Google Pay'],
+        videoWallEnabled: true,
+        offerWallEnabled: true,
+        cpaLeadEnabled: true
       }, { merge: true });
 
-      // 2. Repair Admin Profile to force isAdmin flag in Firestore
+      // 2. Repair Admin Profile to ensure identity-based rules pass
       const adminRef = doc(firestore, 'users', user.uid);
       await setDoc(adminRef, {
         isAdmin: true,
@@ -123,9 +129,9 @@ export default function AdminDashboard() {
 
       toast({ title: "System Repaired Successfully", description: "Admin identity and settings stabilized." });
       
-      // Clear URL and refresh
+      // Clear URL and refresh to trigger rules re-evaluation
       router.replace('/admin');
-      setTimeout(() => window.location.reload(), 500);
+      setTimeout(() => window.location.reload(), 1000);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Repair Failed", description: e.message });
     } finally {
@@ -172,20 +178,21 @@ export default function AdminDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
-  if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-white bg-black"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Verifying Administrator Authority...</p></div>;
-  if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center text-white bg-black"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1 className="text-2xl font-black uppercase italic">Unauthorized Sector</h1><p className="text-muted-foreground mt-2 font-medium">This command center is restricted to authorized personnel only.</p></div>;
+  if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-white bg-black"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Synchronizing Sector Access...</p></div>;
+  
+  if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center text-white bg-black"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1 className="text-2xl font-black uppercase italic">Unauthorized Sector</h1><p className="text-muted-foreground mt-2 font-medium">Access to this command center is restricted to {ADMIN_EMAIL} only.</p></div>;
 
-  // If there's a permission error, show a prominent repair link
+  // Global Error Boundary for Permission Issues
   if (usersError || transError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center text-white bg-[#0d0d12]">
         <ShieldAlert className="h-20 w-20 mb-6 text-destructive animate-pulse" />
-        <h1 className="text-3xl font-black uppercase italic tracking-tighter">Permission Lockdown Detected</h1>
-        <p className="text-muted-foreground mt-4 max-w-md font-medium">Firestore has restricted your administrative access. This usually happens if your identity flag is missing in the database.</p>
+        <h1 className="text-3xl font-black uppercase italic tracking-tighter">Permission Lockdown</h1>
+        <p className="text-muted-foreground mt-4 max-w-md font-medium">Firestore has restricted your administrative access. This usually happens if your identity flag is missing or out of sync in the database.</p>
         <div className="mt-10 p-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl space-y-6">
-          <p className="text-sm font-bold text-amber-500">Click below to bypass restrictions and stabilize your authority.</p>
+          <p className="text-sm font-bold text-amber-500">Click below to stabilize your authority and fix database rules.</p>
           <Button onClick={handleEmergencyRepair} disabled={isRepairing} className="bg-amber-500 hover:bg-amber-600 text-black font-black px-10 h-14 rounded-2xl w-full">
-            {isRepairing ? <Loader2 className="animate-spin" /> : "AUTO-FIX & SYNC SYSTEM"}
+            {isRepairing ? <Loader2 className="animate-spin" /> : "EXECUTE ONE-CLICK SYSTEM FIX"}
           </Button>
         </div>
       </div>
@@ -214,7 +221,7 @@ export default function AdminDashboard() {
           <SidebarItem active={activeTab === 'matches'} onClick={() => setActiveTab('matches')} icon={<Sword />} label="Match Manager" />
           <SidebarItem active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} icon={<History />} label="Transactions" />
           <SidebarItem active={activeTab === 'revenue'} onClick={() => setActiveTab('revenue')} icon={<TrendingUp />} label="Revenue Control" />
-          <SidebarItem active={activeTab === 'repair'} onClick={() => setActiveTab('repair')} icon={<Wrench className="text-amber-500" />} label="SYSTEM REPAIR" />
+          <SidebarItem active={activeTab === 'repair'} onClick={() => setActiveTab('repair')} icon={<Wrench className="text-amber-500" />} label="SYSTEM FIX" />
         </nav>
       </aside>
 
@@ -235,18 +242,18 @@ export default function AdminDashboard() {
                 <div className="h-20 w-20 rounded-3xl bg-amber-500/10 flex items-center justify-center border border-amber-500/30">
                   <Wrench className="h-10 w-10 text-amber-500 animate-pulse" />
                 </div>
-                <h2 className="text-3xl font-black uppercase tracking-tighter italic">One-Click System Repair</h2>
-                <p className="text-muted-foreground font-medium">Click below to fix Firestore permissions, reset admin identity, and stabilize settings.</p>
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic">Emergency System Fix</h2>
+                <p className="text-muted-foreground font-medium">Use this if you encounter "Missing Permission" errors or if the dashboard crashes.</p>
               </div>
 
               <div className="space-y-4">
                 <Alert className="bg-black/40 border-white/5 rounded-2xl">
                   <Zap className="h-4 w-4 text-primary" />
-                  <AlertTitle className="font-black uppercase text-[10px]">What this does:</AlertTitle>
+                  <AlertTitle className="font-black uppercase text-[10px]">Fix Operations:</AlertTitle>
                   <AlertDescription className="text-xs text-muted-foreground space-y-2 mt-2">
-                    <p>• Forces Global Settings to reset to safe defaults.</p>
-                    <p>• Ensures your account is registered as Global Administrator in Firestore.</p>
-                    <p>• Synchronizes security contexts to prevent "Missing Permission" errors.</p>
+                    <p>• Forces your account ID to be tagged as `isAdmin` in Firestore.</p>
+                    <p>• Resets Global Settings (CPALead URL, Coin Rates) to default.</p>
+                    <p>• Clears browser cache dependencies for rules.</p>
                   </AlertDescription>
                 </Alert>
 
@@ -255,7 +262,7 @@ export default function AdminDashboard() {
                   disabled={isRepairing}
                   className="w-full h-20 rounded-3xl bg-amber-500 hover:bg-amber-600 text-black font-black text-xl shadow-2xl shadow-amber-500/20"
                 >
-                  {isRepairing ? <Loader2 className="animate-spin h-8 w-8" /> : "EXECUTE ONE-CLICK REPAIR"}
+                  {isRepairing ? <Loader2 className="animate-spin h-8 w-8" /> : "REPAIR SYSTEM STATUS"}
                 </Button>
               </div>
             </Card>
@@ -281,11 +288,11 @@ export default function AdminDashboard() {
                         </div>
                       </TableCell>
                       <TableCell className="font-mono text-[10px] opacity-50">{u.deviceId}</TableCell>
-                      <TableCell className="font-black text-green-500">🪙{u.withdrawableCoins}</TableCell>
+                      <TableCell className="font-black text-green-500">🪙{u.withdrawableCoins || 0}</TableCell>
                       <TableCell><Badge variant={u.isBanned ? "destructive" : "outline"}>{u.isBanned ? "BANNED" : "ACTIVE"}</Badge></TableCell>
                       <TableCell>
                         <Button size="sm" variant={u.isBanned ? "outline" : "destructive"} onClick={() => updateDoc(doc(firestore, 'users', u.id), { isBanned: !u.isBanned })}>
-                          {u.isBanned ? "Pardon" : "Terminate"}
+                          {u.isBanned ? "Pardon" : "Ban"}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -312,21 +319,21 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Team A Name</Label>
-                        <Input value={editingMatch?.teamA?.name} onChange={(e) => setEditingMatch({...editingMatch!, teamA: {...editingMatch!.teamA!, name: e.target.value}})} className="bg-black/40 border-white/10" />
+                        <Input value={editingMatch?.teamA?.name || ''} onChange={(e) => setEditingMatch({...editingMatch!, teamA: {...editingMatch!.teamA!, name: e.target.value}})} className="bg-black/40 border-white/10" />
                       </div>
                       <div className="space-y-2">
                         <Label>Team B Name</Label>
-                        <Input value={editingMatch?.teamB?.name} onChange={(e) => setEditingMatch({...editingMatch!, teamB: {...editingMatch!.teamB!, name: e.target.value}})} className="bg-black/40 border-white/10" />
+                        <Input value={editingMatch?.teamB?.name || ''} onChange={(e) => setEditingMatch({...editingMatch!, teamB: {...editingMatch!.teamB!, name: e.target.value}})} className="bg-black/40 border-white/10" />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Match Description</Label>
-                      <Input value={editingMatch?.description} onChange={(e) => setEditingMatch({...editingMatch!, description: e.target.value})} className="bg-black/40 border-white/10" />
+                      <Input value={editingMatch?.description || ''} onChange={(e) => setEditingMatch({...editingMatch!, description: e.target.value})} className="bg-black/40 border-white/10" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Status</Label>
-                        <Select value={editingMatch?.status} onValueChange={(v: any) => setEditingMatch({...editingMatch!, status: v})}>
+                        <Select value={editingMatch?.status || 'scheduled'} onValueChange={(v: any) => setEditingMatch({...editingMatch!, status: v})}>
                           <SelectTrigger className="bg-black/40 border-white/10"><SelectValue /></SelectTrigger>
                           <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
                             <SelectItem value="scheduled">Scheduled</SelectItem>
@@ -337,7 +344,7 @@ export default function AdminDashboard() {
                       </div>
                       <div className="space-y-2">
                         <Label>Tournament ID</Label>
-                        <Input value={editingMatch?.tournamentId} onChange={(e) => setEditingMatch({...editingMatch!, tournamentId: e.target.value})} className="bg-black/40 border-white/10" />
+                        <Input value={editingMatch?.tournamentId || ''} onChange={(e) => setEditingMatch({...editingMatch!, tournamentId: e.target.value})} className="bg-black/40 border-white/10" />
                       </div>
                     </div>
                     <Button type="submit" className="w-full h-12 rounded-xl font-black">SAVE BATTLE</Button>
@@ -380,9 +387,9 @@ export default function AdminDashboard() {
                   {isTransLoading ? <TableRow><TableCell colSpan={5} className="text-center py-10"><Loader2 className="animate-spin h-6 w-6 mx-auto" /></TableCell></TableRow> : 
                   transactionsData?.map(t => (
                     <TableRow key={t.id} className="border-white/5">
-                      <TableCell className="font-bold text-xs">{t.userId ? String(t.userId).substring(0, 8) : 'unknown'}...</TableCell>
+                      <TableCell className="font-bold text-xs">{t.userId ? String(t.userId).substring(0, 8) : '----'}</TableCell>
                       <TableCell><Badge variant="outline">{t.type}</Badge></TableCell>
-                      <TableCell className="font-black text-secondary">₹{t.amount}</TableCell>
+                      <TableCell className="font-black text-secondary">₹{t.amount || 0}</TableCell>
                       <TableCell><Badge className={t.status === 'completed' ? 'bg-green-500' : t.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'}>{t.status}</Badge></TableCell>
                       <TableCell>
                         {t.status === 'pending' && t.userId && (
