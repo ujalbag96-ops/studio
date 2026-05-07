@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -68,10 +67,13 @@ export default function LoginPage() {
           // FORCE SYNC ADMIN IDENTITY
           if (isAdmin) {
              await setDoc(userDocRef, { 
+               id: user.uid,
                isAdmin: true,
                email: ADMIN_EMAIL,
                lastActive: new Date().toISOString(),
-               deviceId: getDeviceId()
+               deviceId: getDeviceId(),
+               coins: userDoc.exists() ? userDoc.data()?.coins : 0,
+               withdrawableCoins: userDoc.exists() ? userDoc.data()?.withdrawableCoins : 0
              }, { merge: true });
              router.push('/admin');
           } else {
