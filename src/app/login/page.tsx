@@ -58,15 +58,14 @@ export default function LoginPage() {
           const userDoc = await getDoc(userDocRef);
           
           if (userDoc.exists() && userDoc.data()?.isBanned) {
-            setAuthError("This device has been permanently excluded from the arena due to fair play violations.");
+            setAuthError("This device has been permanently excluded from the arena.");
             setIsRedirecting(false);
             return;
           }
 
           const isAdmin = user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
           
-          // CRITICAL: Proactively set the isAdmin flag for the owner account
-          // This prevents "Missing Permission" errors on the first admin login
+          // CRITICAL: Ensure admin flag is set in Firestore for the admin identity
           if (isAdmin) {
              await setDoc(userDocRef, { 
                isAdmin: true,
@@ -78,7 +77,7 @@ export default function LoginPage() {
              router.push('/dashboard');
           }
         } catch (err) {
-          console.error("Redirection error", err);
+          console.error("Auth flow error", err);
           setIsRedirecting(false);
         }
       };

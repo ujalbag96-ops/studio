@@ -7,20 +7,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
+    // Direct check for admin email to bypass complex exist checks if possible
     function isAdmin() {
-      let adminEmail = 'ujalbag96@gmail.com';
       return isSignedIn() && (
-        (request.auth.token.email != null && request.auth.token.email.lower() == adminEmail) ||
+        request.auth.token.email == 'ujalbag96@gmail.com' || 
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true)
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
       );
     }
 
     // Global Ledger (Collection Group) - Required for Admin Dashboard
+    // This match path is specific to collection group queries
     match /{path=**}/ledger/{ledgerId} {
       allow list, get: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
       allow create: if isSignedIn();
@@ -29,15 +26,15 @@ service cloud.firestore {
 
     // User Profiles and Sub-collections
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
       allow create: if isSignedIn();
-      allow update: if isAdmin() || isOwner(userId);
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
       allow delete: if isAdmin();
 
       match /ledger/{entryId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) || isAdmin();
+        allow get, list: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
+        allow create: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
         allow update, delete: if isAdmin();
       }
     }

@@ -51,16 +51,10 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'revenue' | 'transactions' | 'matches' | 'repair'>('dashboard');
   const [isRepairing, setIsRepairing] = useState(false);
 
-  // Auto-switch to repair tab if URL contains ?repair=true
-  useEffect(() => {
-    if (searchParams.get('repair') === 'true') {
-      setActiveTab('repair');
-    }
-  }, [searchParams]);
-
+  // Identity logic - ensured to be lowercase and trimmed
   const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
-  // Queries - Strictly conditional on isAdminUser check to avoid permission errors before identity confirmed
+  // Queries - Strictly conditional on isAdminUser check to avoid permission errors
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
   const transactionsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collectionGroup(firestore, 'ledger'), orderBy('date', 'desc')) : null, [firestore, isAdminUser]);
   const matchesQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'matches') : null, [firestore, isAdminUser]);
@@ -70,6 +64,13 @@ export default function AdminDashboard() {
   const { data: transactionsData, isLoading: isTransLoading, error: transError } = useCollection<UserLedgerEntry & { userId?: string }>(transactionsQuery);
   const { data: matchesData } = useCollection<Match>(matchesQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
+
+  // Auto-switch to repair tab if URL contains ?repair=true
+  useEffect(() => {
+    if (searchParams.get('repair') === 'true') {
+      setActiveTab('repair');
+    }
+  }, [searchParams]);
 
   // Form States
   const [coinValue, setCoinValue] = useState<string>('100');
@@ -127,9 +128,8 @@ export default function AdminDashboard() {
         lastActive: new Date().toISOString()
       }, { merge: true });
 
-      toast({ title: "System Repaired Successfully", description: "Admin identity and settings stabilized." });
+      toast({ title: "System Repaired Successfully", description: "Identity stabilized." });
       
-      // Clear URL and refresh to trigger rules re-evaluation
       router.replace('/admin');
       setTimeout(() => window.location.reload(), 1000);
     } catch (e: any) {
@@ -178,9 +178,9 @@ export default function AdminDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
-  if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-white bg-black"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Synchronizing Sector Access...</p></div>;
+  if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-white bg-black"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Verifying Sector Permissions...</p></div>;
   
-  if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center text-white bg-black"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1 className="text-2xl font-black uppercase italic">Unauthorized Sector</h1><p className="text-muted-foreground mt-2 font-medium">Access to this command center is restricted to {ADMIN_EMAIL} only.</p></div>;
+  if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center text-white bg-black"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1 className="text-2xl font-black uppercase italic">Access Denied</h1><p className="text-muted-foreground mt-2 font-medium">This command center is restricted to {ADMIN_EMAIL}.</p></div>;
 
   // Global Error Boundary for Permission Issues
   if (usersError || transError) {
@@ -188,9 +188,9 @@ export default function AdminDashboard() {
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center text-white bg-[#0d0d12]">
         <ShieldAlert className="h-20 w-20 mb-6 text-destructive animate-pulse" />
         <h1 className="text-3xl font-black uppercase italic tracking-tighter">Permission Lockdown</h1>
-        <p className="text-muted-foreground mt-4 max-w-md font-medium">Firestore has restricted your administrative access. This usually happens if your identity flag is missing or out of sync in the database.</p>
+        <p className="text-muted-foreground mt-4 max-w-md font-medium">Security rules have blocked the dashboard. This happens if your identity flag is out of sync.</p>
         <div className="mt-10 p-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl space-y-6">
-          <p className="text-sm font-bold text-amber-500">Click below to stabilize your authority and fix database rules.</p>
+          <p className="text-sm font-bold text-amber-500">Run the auto-stabilizer to restore your admin status.</p>
           <Button onClick={handleEmergencyRepair} disabled={isRepairing} className="bg-amber-500 hover:bg-amber-600 text-black font-black px-10 h-14 rounded-2xl w-full">
             {isRepairing ? <Loader2 className="animate-spin" /> : "EXECUTE ONE-CLICK SYSTEM FIX"}
           </Button>
@@ -243,7 +243,7 @@ export default function AdminDashboard() {
                   <Wrench className="h-10 w-10 text-amber-500 animate-pulse" />
                 </div>
                 <h2 className="text-3xl font-black uppercase tracking-tighter italic">Emergency System Fix</h2>
-                <p className="text-muted-foreground font-medium">Use this if you encounter "Missing Permission" errors or if the dashboard crashes.</p>
+                <p className="text-muted-foreground font-medium">Use this to reset admin permissions and repair database structure.</p>
               </div>
 
               <div className="space-y-4">
@@ -251,9 +251,9 @@ export default function AdminDashboard() {
                   <Zap className="h-4 w-4 text-primary" />
                   <AlertTitle className="font-black uppercase text-[10px]">Fix Operations:</AlertTitle>
                   <AlertDescription className="text-xs text-muted-foreground space-y-2 mt-2">
-                    <p>• Forces your account ID to be tagged as `isAdmin` in Firestore.</p>
-                    <p>• Resets Global Settings (CPALead URL, Coin Rates) to default.</p>
-                    <p>• Clears browser cache dependencies for rules.</p>
+                    <p>• Re-verifies your account as `isAdmin` in Firestore.</p>
+                    <p>• Stabilizes global settings for the app.</p>
+                    <p>• Clears cache dependencies for rules.</p>
                   </AlertDescription>
                 </Alert>
 
