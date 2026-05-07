@@ -19,7 +19,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- Public Read Collections ---
+    // --- Public Read Collections (Fixes Home Page Permission Error) ---
     match /tournaments/{tournamentId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -50,7 +50,7 @@ service cloud.firestore {
     }
     
     match /{path=**}/ledger/{entryId} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     // --- Registrations ---
