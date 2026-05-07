@@ -51,10 +51,10 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'revenue' | 'transactions' | 'matches' | 'repair'>('dashboard');
   const [isRepairing, setIsRepairing] = useState(false);
 
-  // Identity logic - ensured to be lowercase and trimmed
+  // Identity logic
   const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
 
-  // Queries - Strictly conditional on isAdminUser check to avoid permission errors
+  // Queries
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
   const transactionsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collectionGroup(firestore, 'ledger'), orderBy('date', 'desc')) : null, [firestore, isAdminUser]);
   const matchesQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'matches') : null, [firestore, isAdminUser]);
@@ -72,7 +72,6 @@ export default function AdminDashboard() {
     }
   }, [searchParams]);
 
-  // Form States
   const [coinValue, setCoinValue] = useState<string>('100');
   const [profitMargin, setProfitMargin] = useState<string>('50');
   const [cpaUrl, setCpaUrl] = useState<string>('');
@@ -106,20 +105,19 @@ export default function AdminDashboard() {
     if (!firestore || !user) return;
     setIsRepairing(true);
     try {
-      // 1. Repair Global Settings to match backend.json
+      // 1. Repair Global Settings
       const globalRef = doc(firestore, 'settings', 'global');
       await setDoc(globalRef, {
         maintenanceMode: false,
         coinValuePerDollar: 100,
         adminProfitPercentage: 50,
-        cpaLeadUrl: cpaUrl || "",
         withdrawalGateways: ['UPI', 'Paytm', 'Google Pay'],
         videoWallEnabled: true,
         offerWallEnabled: true,
         cpaLeadEnabled: true
       }, { merge: true });
 
-      // 2. Repair Admin Profile to ensure identity-based rules pass
+      // 2. Repair Admin Profile
       const adminRef = doc(firestore, 'users', user.uid);
       await setDoc(adminRef, {
         isAdmin: true,
@@ -128,8 +126,7 @@ export default function AdminDashboard() {
         lastActive: new Date().toISOString()
       }, { merge: true });
 
-      toast({ title: "System Repaired Successfully", description: "Identity stabilized." });
-      
+      toast({ title: "System Repaired Successfully" });
       router.replace('/admin');
       setTimeout(() => window.location.reload(), 1000);
     } catch (e: any) {
@@ -145,7 +142,6 @@ export default function AdminDashboard() {
     try {
       if (editingMatch.id) {
         await setDoc(doc(firestore, 'matches', editingMatch.id), editingMatch, { merge: true });
-        toast({ title: "Match Updated" });
       } else {
         await addDoc(collection(firestore, 'matches'), {
           ...editingMatch,
@@ -155,19 +151,10 @@ export default function AdminDashboard() {
           scoreB: 0,
           startTime: new Date().toISOString()
         });
-        toast({ title: "Match Created" });
       }
       setIsMatchDialogOpen(false);
-      setEditingMatch(null);
+      toast({ title: "Match Saved" });
     } catch (e) { toast({ variant: "destructive", title: "Action Failed" }); }
-  };
-
-  const handleDeleteMatch = async (id: string) => {
-    if (!firestore) return;
-    try {
-      await deleteDoc(doc(firestore, 'matches', id));
-      toast({ title: "Match Removed" });
-    } catch (e) { toast({ variant: "destructive", title: "Delete Failed" }); }
   };
 
   const handleUpdateTransactionStatus = async (userId: string, entryId: string, newStatus: 'completed' | 'failed') => {
@@ -178,23 +165,18 @@ export default function AdminDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
-  if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-white bg-black"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Verifying Sector Permissions...</p></div>;
-  
+  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center text-white bg-black"><ShieldCheck className="h-16 w-16 mb-4 text-destructive" /><h1 className="text-2xl font-black uppercase italic">Access Denied</h1><p className="text-muted-foreground mt-2 font-medium">This command center is restricted to {ADMIN_EMAIL}.</p></div>;
 
-  // Global Error Boundary for Permission Issues
   if (usersError || transError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center text-white bg-[#0d0d12]">
         <ShieldAlert className="h-20 w-20 mb-6 text-destructive animate-pulse" />
-        <h1 className="text-3xl font-black uppercase italic tracking-tighter">Permission Lockdown</h1>
-        <p className="text-muted-foreground mt-4 max-w-md font-medium">Security rules have blocked the dashboard. This happens if your identity flag is out of sync.</p>
-        <div className="mt-10 p-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl space-y-6">
-          <p className="text-sm font-bold text-amber-500">Run the auto-stabilizer to restore your admin status.</p>
-          <Button onClick={handleEmergencyRepair} disabled={isRepairing} className="bg-amber-500 hover:bg-amber-600 text-black font-black px-10 h-14 rounded-2xl w-full">
-            {isRepairing ? <Loader2 className="animate-spin" /> : "EXECUTE ONE-CLICK SYSTEM FIX"}
-          </Button>
-        </div>
+        <h1 className="text-3xl font-black uppercase italic tracking-tighter">Permission Restricted</h1>
+        <p className="text-muted-foreground mt-4 max-w-md">Your identity status in the database needs to be synchronized.</p>
+        <Button onClick={handleEmergencyRepair} disabled={isRepairing} className="mt-8 bg-amber-500 hover:bg-amber-600 text-black font-black px-10 h-14 rounded-2xl">
+          {isRepairing ? <Loader2 className="animate-spin" /> : "ONE-CLICK SYSTEM FIX"}
+        </Button>
       </div>
     );
   }
@@ -217,10 +199,10 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 p-4 space-y-1 mt-4">
           <SidebarItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label="Overview" />
-          <SidebarItem active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<UsersIcon />} label="User Manager" />
-          <SidebarItem active={activeTab === 'matches'} onClick={() => setActiveTab('matches')} icon={<Sword />} label="Match Manager" />
-          <SidebarItem active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} icon={<History />} label="Transactions" />
-          <SidebarItem active={activeTab === 'revenue'} onClick={() => setActiveTab('revenue')} icon={<TrendingUp />} label="Revenue Control" />
+          <SidebarItem active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<UsersIcon />} label="Warriors" />
+          <SidebarItem active={activeTab === 'matches'} onClick={() => setActiveTab('matches')} icon={<Sword />} label="Battles" />
+          <SidebarItem active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} icon={<History />} label="Ledger" />
+          <SidebarItem active={activeTab === 'revenue'} onClick={() => setActiveTab('revenue')} icon={<TrendingUp />} label="Control" />
           <SidebarItem active={activeTab === 'repair'} onClick={() => setActiveTab('repair')} icon={<Wrench className="text-amber-500" />} label="SYSTEM FIX" />
         </nav>
       </aside>
@@ -228,148 +210,60 @@ export default function AdminDashboard() {
       <main className="flex-1 md:ml-64 p-4 md:p-10 space-y-8 pb-32">
         {activeTab === 'dashboard' && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <StatsCard title="Total Warriors" value={usersData?.length || 0} icon={<UsersIcon />} />
-            <StatsCard title="Device Violations" value={Array.from(deviceMap.values()).filter(l => l.length > 1).length} icon={<Fingerprint className="text-red-500" />} />
-            <StatsCard title="Banned Users" value={usersData?.filter(u => u.isBanned).length || 0} icon={<Ban className="text-red-500" />} />
-            <StatsCard title="Pending Payouts" value={transactionsData?.filter(t => t.type === 'withdrawal' && t.status === 'pending').length || 0} icon={<History />} />
+            <StatsCard title="Warriors" value={usersData?.length || 0} icon={<UsersIcon />} />
+            <StatsCard title="Violations" value={Array.from(deviceMap.values()).filter(l => l.length > 1).length} icon={<Fingerprint className="text-red-500" />} />
+            <StatsCard title="Banned" value={usersData?.filter(u => u.isBanned).length || 0} icon={<Ban className="text-red-500" />} />
+            <StatsCard title="Payouts" value={transactionsData?.filter(t => t.type === 'withdrawal' && t.status === 'pending').length || 0} icon={<History />} />
           </div>
         )}
 
         {activeTab === 'repair' && (
-          <div className="max-w-2xl mx-auto space-y-8 animate-in zoom-in-95 duration-500">
-            <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2.5rem] p-10 space-y-8">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="h-20 w-20 rounded-3xl bg-amber-500/10 flex items-center justify-center border border-amber-500/30">
-                  <Wrench className="h-10 w-10 text-amber-500 animate-pulse" />
-                </div>
-                <h2 className="text-3xl font-black uppercase tracking-tighter italic">Emergency System Fix</h2>
-                <p className="text-muted-foreground font-medium">Use this to reset admin permissions and repair database structure.</p>
-              </div>
-
-              <div className="space-y-4">
-                <Alert className="bg-black/40 border-white/5 rounded-2xl">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <AlertTitle className="font-black uppercase text-[10px]">Fix Operations:</AlertTitle>
-                  <AlertDescription className="text-xs text-muted-foreground space-y-2 mt-2">
-                    <p>• Re-verifies your account as `isAdmin` in Firestore.</p>
-                    <p>• Stabilizes global settings for the app.</p>
-                    <p>• Clears cache dependencies for rules.</p>
-                  </AlertDescription>
-                </Alert>
-
-                <Button 
-                  onClick={handleEmergencyRepair} 
-                  disabled={isRepairing}
-                  className="w-full h-20 rounded-3xl bg-amber-500 hover:bg-amber-600 text-black font-black text-xl shadow-2xl shadow-amber-500/20"
-                >
-                  {isRepairing ? <Loader2 className="animate-spin h-8 w-8" /> : "REPAIR SYSTEM STATUS"}
-                </Button>
-              </div>
-            </Card>
-          </div>
+          <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2.5rem] p-10 space-y-8 max-w-2xl mx-auto">
+            <div className="text-center space-y-4">
+              <Wrench className="h-12 w-12 text-amber-500 mx-auto animate-pulse" />
+              <h2 className="text-3xl font-black uppercase italic">System Repair Protocol</h2>
+              <p className="text-muted-foreground">Force-sync your admin status and reset app configuration.</p>
+            </div>
+            <Button onClick={handleEmergencyRepair} disabled={isRepairing} className="w-full h-16 rounded-2xl bg-amber-500 hover:bg-amber-600 text-black font-black text-xl">
+              {isRepairing ? <Loader2 className="animate-spin" /> : "EXECUTE REPAIR"}
+            </Button>
+          </Card>
         )}
 
         {activeTab === 'users' && (
           <Card className="bg-card/30 border-white/5 rounded-[2rem] overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="uppercase font-black text-sm text-primary">User Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader><TableRow className="border-white/5 hover:bg-transparent"><TableHead>Identity</TableHead><TableHead>Device Fingerprint</TableHead><TableHead>Winning Balance</TableHead><TableHead>Status</TableHead><TableHead>Control</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {isUsersLoading ? <TableRow><TableCell colSpan={5} className="text-center py-10"><Loader2 className="animate-spin h-6 w-6 mx-auto" /></TableCell></TableRow> : 
-                  usersData?.map(u => (
-                    <TableRow key={u.id} className={cn("border-white/5", u.deviceId && deviceMap.get(u.deviceId).length > 1 && "bg-red-500/5")}>
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-xs">{u.email || u.mobile || u.id}</p>
-                          {u.deviceId && deviceMap.get(u.deviceId).length > 1 && <Badge variant="destructive" className="text-[8px] h-4">DUPLICATE DEVICE</Badge>}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-[10px] opacity-50">{u.deviceId}</TableCell>
-                      <TableCell className="font-black text-green-500">🪙{u.withdrawableCoins || 0}</TableCell>
-                      <TableCell><Badge variant={u.isBanned ? "destructive" : "outline"}>{u.isBanned ? "BANNED" : "ACTIVE"}</Badge></TableCell>
-                      <TableCell>
-                        <Button size="sm" variant={u.isBanned ? "outline" : "destructive"} onClick={() => updateDoc(doc(firestore, 'users', u.id), { isBanned: !u.isBanned })}>
-                          {u.isBanned ? "Pardon" : "Ban"}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
+            <Table>
+              <TableHeader><TableRow><TableHead>Identity</TableHead><TableHead>Device</TableHead><TableHead>Balance</TableHead><TableHead>Control</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {usersData?.map(u => (
+                  <TableRow key={u.id} className={cn(u.deviceId && deviceMap.get(u.deviceId).length > 1 && "bg-red-500/5")}>
+                    <TableCell><p className="font-bold text-xs">{u.email || u.id}</p></TableCell>
+                    <TableCell className="font-mono text-[10px] opacity-50">{u.deviceId}</TableCell>
+                    <TableCell className="font-black text-green-500">🪙{u.withdrawableCoins || 0}</TableCell>
+                    <TableCell>
+                      <Button size="sm" variant={u.isBanned ? "outline" : "destructive"} onClick={() => updateDoc(doc(firestore, 'users', u.id), { isBanned: !u.isBanned })}>
+                        {u.isBanned ? "Pardon" : "Ban"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </Card>
         )}
 
         {activeTab === 'matches' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-black uppercase tracking-tighter italic">Battle Arena <span className="text-primary">Manager</span></h2>
-              <Dialog open={isMatchDialogOpen} onOpenChange={setIsMatchDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => setEditingMatch({ teamA: { id: 'a', name: '', logo: '' }, teamB: { id: 'b', name: '', logo: '' }, status: 'scheduled' })} className="rounded-xl font-black">
-                    <Plus className="h-4 w-4 mr-2" /> NEW MATCH
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-[#1a1a1a] border-white/5 rounded-3xl text-white">
-                  <DialogHeader><DialogTitle className="font-black uppercase">Battle Configuration</DialogTitle></DialogHeader>
-                  <form onSubmit={handleSaveMatch} className="space-y-4 pt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Team A Name</Label>
-                        <Input value={editingMatch?.teamA?.name || ''} onChange={(e) => setEditingMatch({...editingMatch!, teamA: {...editingMatch!.teamA!, name: e.target.value}})} className="bg-black/40 border-white/10" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Team B Name</Label>
-                        <Input value={editingMatch?.teamB?.name || ''} onChange={(e) => setEditingMatch({...editingMatch!, teamB: {...editingMatch!.teamB!, name: e.target.value}})} className="bg-black/40 border-white/10" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Match Description</Label>
-                      <Input value={editingMatch?.description || ''} onChange={(e) => setEditingMatch({...editingMatch!, description: e.target.value})} className="bg-black/40 border-white/10" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Status</Label>
-                        <Select value={editingMatch?.status || 'scheduled'} onValueChange={(v: any) => setEditingMatch({...editingMatch!, status: v})}>
-                          <SelectTrigger className="bg-black/40 border-white/10"><SelectValue /></SelectTrigger>
-                          <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
-                            <SelectItem value="scheduled">Scheduled</SelectItem>
-                            <SelectItem value="live">Live</SelectItem>
-                            <SelectItem value="finished">Finished</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Tournament ID</Label>
-                        <Input value={editingMatch?.tournamentId || ''} onChange={(e) => setEditingMatch({...editingMatch!, tournamentId: e.target.value})} className="bg-black/40 border-white/10" />
-                      </div>
-                    </div>
-                    <Button type="submit" className="w-full h-12 rounded-xl font-black">SAVE BATTLE</Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-
+            <Button onClick={() => { setEditingMatch({ teamA: { name: '', logo: '' }, teamB: { name: '', logo: '' }, status: 'scheduled' }); setIsMatchDialogOpen(true); }}>
+              <Plus className="mr-2 h-4 w-4" /> NEW BATTLE
+            </Button>
             <div className="grid gap-4">
               {matchesData?.map(m => (
                 <Card key={m.id} className="bg-card/20 border-white/5 p-6 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-6">
-                    <div className="h-12 w-12 bg-white/5 rounded-xl flex items-center justify-center font-black border border-white/10 italic">VS</div>
-                    <div>
-                      <h4 className="font-black uppercase text-sm">{m.teamA?.name} <span className="text-primary italic">vs</span> {m.teamB?.name}</h4>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{m.status}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Button size="sm" variant="outline" onClick={() => { setEditingMatch(m); setIsMatchDialogOpen(true); }}>
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleDeleteMatch(m.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <h4 className="font-black uppercase text-sm">{m.teamA?.name} VS {m.teamB?.name}</h4>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setEditingMatch(m); setIsMatchDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
+                    <Button size="sm" variant="destructive" onClick={() => deleteDoc(doc(firestore, 'matches', m.id))}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </Card>
               ))}
@@ -379,57 +273,54 @@ export default function AdminDashboard() {
 
         {activeTab === 'transactions' && (
           <Card className="bg-card/30 border-white/5 rounded-[2rem] overflow-hidden">
-            <CardHeader><CardTitle className="uppercase font-black text-sm text-secondary">Financial Activity Log</CardTitle></CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader><TableRow className="border-white/5 hover:bg-transparent"><TableHead>Warrior</TableHead><TableHead>Type</TableHead><TableHead>Amount</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {isTransLoading ? <TableRow><TableCell colSpan={5} className="text-center py-10"><Loader2 className="animate-spin h-6 w-6 mx-auto" /></TableCell></TableRow> : 
-                  transactionsData?.map(t => (
-                    <TableRow key={t.id} className="border-white/5">
-                      <TableCell className="font-bold text-xs">{t.userId ? String(t.userId).substring(0, 8) : '----'}</TableCell>
-                      <TableCell><Badge variant="outline">{t.type}</Badge></TableCell>
-                      <TableCell className="font-black text-secondary">₹{t.amount || 0}</TableCell>
-                      <TableCell><Badge className={t.status === 'completed' ? 'bg-green-500' : t.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'}>{t.status}</Badge></TableCell>
-                      <TableCell>
-                        {t.status === 'pending' && t.userId && (
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="secondary" onClick={() => handleUpdateTransactionStatus(t.userId!, t.id, 'completed')}>Approve</Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleUpdateTransactionStatus(t.userId!, t.id, 'failed')}>Deny</Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
+            <Table>
+              <TableHeader><TableRow><TableHead>Warrior</TableHead><TableHead>Type</TableHead><TableHead>Amount</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {transactionsData?.map(t => (
+                  <TableRow key={t.id}>
+                    <TableCell className="text-xs">{t.userId?.substring(0,8)}</TableCell>
+                    <TableCell><Badge variant="outline">{t.type}</Badge></TableCell>
+                    <TableCell className="font-black text-secondary">₹{t.amount || 0}</TableCell>
+                    <TableCell><Badge>{t.status}</Badge></TableCell>
+                    <TableCell>
+                      {t.status === 'pending' && t.userId && (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="secondary" onClick={() => handleUpdateTransactionStatus(t.userId!, t.id, 'completed')}>Approve</Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleUpdateTransactionStatus(t.userId!, t.id, 'failed')}>Deny</Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </Card>
         )}
 
         {activeTab === 'revenue' && (
-          <Card className="bg-card/30 border-primary/20 p-8 rounded-[2.5rem] max-w-2xl mx-auto space-y-8">
-             <h2 className="text-2xl font-black uppercase tracking-tighter italic flex items-center gap-3"><TrendingUp className="text-primary" /> Revenue Configuration</h2>
-             <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label className="uppercase font-black text-[10px] tracking-widest text-muted-foreground">CPALead Arena API URL</Label>
-                  <Input value={cpaUrl} onChange={(e) => setCpaUrl(e.target.value)} placeholder="https://www.cpalead.com/api/offers?id=..." className="h-14 rounded-2xl bg-black/40" />
-                </div>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="uppercase font-black text-[10px] tracking-widest text-muted-foreground">Coin Value per $</Label>
-                    <Input type="number" value={coinValue} onChange={(e) => setCoinValue(e.target.value)} className="h-14 rounded-2xl bg-black/40" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="uppercase font-black text-[10px] tracking-widest text-muted-foreground">Admin Profit (%)</Label>
-                    <Input type="number" value={profitMargin} onChange={(e) => setProfitMargin(e.target.value)} className="h-14 rounded-2xl bg-black/40" />
-                  </div>
-                </div>
-                <Button onClick={handleUpdateRevenue} className="w-full h-16 rounded-2xl font-black uppercase text-lg shadow-xl shadow-primary/20">SAVE CHANGES</Button>
+          <Card className="bg-card/30 border-primary/20 p-8 rounded-[2.5rem] max-w-2xl mx-auto space-y-6">
+             <h2 className="text-2xl font-black uppercase italic">Control Center</h2>
+             <Input value={cpaUrl} onChange={(e) => setCpaUrl(e.target.value)} placeholder="CPALead API URL" className="bg-black/40 h-14" />
+             <div className="grid grid-cols-2 gap-4">
+               <Input type="number" value={coinValue} onChange={(e) => setCoinValue(e.target.value)} placeholder="Coin Value per $" className="bg-black/40 h-14" />
+               <Input type="number" value={profitMargin} onChange={(e) => setProfitMargin(e.target.value)} placeholder="Admin Profit %" className="bg-black/40 h-14" />
              </div>
+             <Button onClick={handleUpdateRevenue} className="w-full h-14 font-black">SAVE CHANGES</Button>
           </Card>
         )}
       </main>
+
+      <Dialog open={isMatchDialogOpen} onOpenChange={setIsMatchDialogOpen}>
+        <DialogContent className="bg-[#1a1a1a] text-white border-white/10">
+          <DialogHeader><DialogTitle>BATTLE CONFIG</DialogTitle></DialogHeader>
+          <form onSubmit={handleSaveMatch} className="space-y-4">
+            <Input value={editingMatch?.teamA?.name} onChange={e => setEditingMatch({...editingMatch!, teamA: {...editingMatch!.teamA!, name: e.target.value}})} placeholder="Team A Name" className="bg-black/40" />
+            <Input value={editingMatch?.teamB?.name} onChange={e => setEditingMatch({...editingMatch!, teamB: {...editingMatch!.teamB!, name: e.target.value}})} placeholder="Team B Name" className="bg-black/40" />
+            <Input value={editingMatch?.description} onChange={e => setEditingMatch({...editingMatch!, description: e.target.value})} placeholder="Description" className="bg-black/40" />
+            <Button type="submit" className="w-full">SAVE</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

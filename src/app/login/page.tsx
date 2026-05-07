@@ -65,7 +65,7 @@ export default function LoginPage() {
 
           const isAdmin = user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
           
-          // CRITICAL: Ensure admin flag is set in Firestore for the admin identity
+          // CRITICAL: Force-stabilize admin flag in Firestore for ujalbag96@gmail.com
           if (isAdmin) {
              await setDoc(userDocRef, { 
                isAdmin: true,
@@ -74,6 +74,20 @@ export default function LoginPage() {
              }, { merge: true });
              router.push('/admin');
           } else {
+             // For standard users, ensure basic profile exists
+             if (!userDoc.exists()) {
+               await setDoc(userDocRef, {
+                 id: user.uid,
+                 email: user.email || '',
+                 mobile: user.phoneNumber || '',
+                 coins: 0,
+                 withdrawableCoins: 0,
+                 isAdmin: false,
+                 isBanned: false,
+                 deviceId: getDeviceId(),
+                 joinedAt: new Date().toISOString()
+               });
+             }
              router.push('/dashboard');
           }
         } catch (err) {
@@ -90,30 +104,12 @@ export default function LoginPage() {
     setAuthError(null);
     try {
       const auth = getAuth();
-      const deviceId = getDeviceId();
       let credential;
 
       if (mode === 'login') {
         credential = await signInWithEmailAndPassword(auth, email.trim(), password);
       } else {
         credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-      }
-
-      if (firestore) {
-        const isUserAdmin = email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
-        await setDoc(doc(firestore, 'users', credential.user.uid), {
-          deviceId,
-          lastActive: new Date().toISOString(),
-          email: credential.user.email,
-          isAdmin: isUserAdmin,
-          ...(mode === 'signup' ? {
-            coins: 0,
-            withdrawableCoins: 0,
-            isBanned: false,
-            joinedAt: new Date().toISOString(),
-            referralCode: Math.random().toString(36).substring(7).toUpperCase()
-          } : {})
-        }, { merge: true });
       }
 
       toast({ title: mode === 'login' ? "Access Granted" : "Identity Registered" });
@@ -135,16 +131,8 @@ export default function LoginPage() {
         setConfirmationResult(result);
         toast({ title: "OTP Transmitted" });
       } else {
-        const result = await confirmationResult.confirm(otp);
-        const deviceId = getDeviceId();
-        if (firestore) {
-          await setDoc(doc(firestore, 'users', result.user.uid), { 
-            deviceId, 
-            lastActive: new Date().toISOString(),
-            mobile: result.user.phoneNumber,
-            isBanned: false
-          }, { merge: true });
-        }
+        await confirmationResult.confirm(otp);
+        toast({ title: "Phone Verified" });
       }
     } catch (e: any) {
       setAuthError(e.message);
