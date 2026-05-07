@@ -4,15 +4,15 @@
 
 @layer base {
   :root {
-    --background: 264 14% 15%;
+    --background: 264 14% 15%; /* #25202A */
     --foreground: 0 0% 98%;
     --card: 264 14% 18%;
     --card-foreground: 0 0% 98%;
     --popover: 264 14% 15%;
     --popover-foreground: 0 0% 98%;
-    --primary: 265 100% 64%;
+    --primary: 265 100% 64%; /* #9345FF */
     --primary-foreground: 0 0% 100%;
-    --secondary: 205 100% 84%;
+    --secondary: 205 100% 84%; /* #AEDDFF */
     --secondary-foreground: 264 14% 15%;
     --muted: 264 10% 25%;
     --muted-foreground: 264 5% 70%;
@@ -23,7 +23,7 @@
     --border: 264 10% 25%;
     --input: 264 10% 25%;
     --ring: 265 100% 64%;
-    --radius: 0.75rem;
+    --radius: 1rem;
   }
 }
 
@@ -32,6 +32,22 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply bg-background text-foreground font-body antialiased selection:bg-primary selection:text-white;
   }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.glass-morphism {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10;
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/40;
 }
