@@ -1,4 +1,3 @@
-
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -7,25 +6,10 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 
 export function initializeFirebase() {
-  if (!getApps().length) {
-    let firebaseApp;
-    try {
-      // In development, prioritize the config object to ensure direct connection
-      firebaseApp = initializeApp(firebaseConfig);
-    } catch (e) {
-      try {
-        firebaseApp = initializeApp();
-      } catch (innerError) {
-        console.error('Firebase initialization failed completely.', innerError);
-        firebaseApp = initializeApp(firebaseConfig);
-      }
-    }
-    return getSdks(firebaseApp);
-  }
-  return getSdks(getApp());
-}
+  const firebaseApp = getApps().length === 0 
+    ? initializeApp(firebaseConfig) 
+    : getApp();
 
-export function getSdks(firebaseApp: FirebaseApp) {
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),

@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -19,8 +18,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- Public Collections ---
-    // Home page elements must be readable by everyone
+    // --- Public Read Collections ---
     match /tournaments/{tournamentId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -43,7 +41,7 @@ service cloud.firestore {
       allow update: if (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isBanned'])) || isAdmin();
     }
 
-    // --- Ledger / Transactions (Collection Group) ---
+    // --- Ledger (Collection Group Support) ---
     match /users/{userId}/ledger/{entryId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
@@ -54,14 +52,14 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
-    // --- Support Chat ---
-    match /support/{msgId} {
+    // --- Registrations ---
+    match /registrations/{regId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
     }
-    
-    // --- Registrations ---
-    match /registrations/{regId} {
+
+    // --- Support ---
+    match /support/{msgId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
     }
