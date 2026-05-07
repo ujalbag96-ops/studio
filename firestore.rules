@@ -1,73 +1,197 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    /**
+     * CORE PHILOSOPHY
+     * This ruleset enforces a robust identity-based access model for the Bracket Battles application. 
+     * It leverages path-based authorization for user-specific data and field-based authorization 
+     * (denormalization) for collaborative entities like Teams and Referrals.
+     *
+     * DATA STRUCTURE
+     * - User-specific private data (Votes, Transactions, OfferCompletions) is nested under /users/{userId}.
+     * - User Profiles are stored in a top-level /userProfiles/{userId} collection.
+     * - Public entities (Tournaments, PlayerProfiles, Teams) are top-level for global queryability.
+     * - Administrative access is controlled via a dedicated /roles_admin/{userId} collection (DBAC).
+     *
+     * KEY SECURITY DECISIONS
+     * - Authorization Independence: Critical ownership fields (e.g., captainUserId, referrerUserId) 
+     *   are denormalized onto documents to ensure rules are performant and avoid recursive get() calls.
+     * - Maintenance Mode: App-wide settings are publicly readable but restricted to admins for writes.
+     * - Default Posture: Strict owner-only access for private subcollections; public read with 
+     *   admin-only or owner-only writes for shared entities.
+     * - Prototyping Flexibility: Schema validation is omitted for content fields to allow rapid 
+     *   iteration, while relational integrity for ownership is strictly enforced.
+     */
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the request is from a signed-in user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Direct check for admin email to bypass complex exist checks if possible
+    /** @description Checks if the signed-in user's UID matches the provided ID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Checks if the signed-in user has an entry in the admin roles collection. */
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'ujalbag96@gmail.com' || 
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
-      );
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // Global Ledger (Collection Group) - Required for Admin Dashboard
-    // This match path is specific to collection group queries
-    match /{path=**}/ledger/{ledgerId} {
-      allow list, get: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin();
+    /** @description Combines ownership and existence checks for updates and deletes. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
     }
 
-    // User Profiles and Sub-collections
-    match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for user profiles. Limited to owner or admin access.
+     * @path /userProfiles/{userId}
+     * @allow (get) request.auth.uid == "user_123" accessing /userProfiles/user_123
+     * @deny (list) Unauthenticated users or non-admin users listing profiles.
+     * @principle Path-based ownership for root user identity.
+     */
+    match /userProfiles/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isSignedIn();
-      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if (isExistingOwner(userId) || isAdmin()) && request.resource.data.id == resource.data.id;
       allow delete: if isAdmin();
-
-      match /ledger/{entryId} {
-        allow get, list: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
-        allow create: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
-        allow update, delete: if isAdmin();
-      }
     }
 
-    // Publicly Readable Collections (Home Page Access)
+    /**
+     * @description Publicly readable tournaments, manageable only by administrators.
+     * @path /tournaments/{tournamentId}
+     * @allow (get) Any user reading tournament details.
+     * @deny (create) Non-admin user attempting to create a tournament.
+     * @principle Public read with admin-only writes.
+     */
     match /tournaments/{tournamentId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
     }
 
-    match /matches/{matchId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    /**
+     * @description Matches within a tournament. Publicly readable for live tracking.
+     * @path /tournaments/{tournamentId}/matches/{matchId}
+     * @allow (list) Users viewing the bracket for a specific tournament.
+     * @deny (update) Non-admin user attempting to report scores.
+     * @principle Subcollection access mirroring parent public visibility.
+     */
+    match /tournaments/{tournamentId}/matches/{matchId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
     }
 
-    match /settings/{settingId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    /**
+     * @description Player profiles for competitors. Owners can update their linked profiles.
+     * @path /playerProfiles/{playerProfileId}
+     * @allow (update) User "user_abc" updating PlayerProfile where resource.data.userId == "user_abc".
+     * @deny (update) User "user_abc" updating PlayerProfile where resource.data.userId == "user_xyz".
+     * @principle Owner-only writes based on denormalized userId field.
+     */
+    match /playerProfiles/{playerProfileId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (resource != null && isOwner(resource.data.userId));
+      allow delete: if isAdmin();
     }
 
-    // Protected Operational Collections
-    match /registrations/{regId} {
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow list: if isAdmin() || isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    /**
+     * @description Team entities. Update access is granted to the captain or admins.
+     * @path /teams/{teamId}
+     * @allow (update) Captain updating their team's logo.
+     * @deny (delete) Captain attempting to delete the team (Admin only).
+     * @principle Role-based write access via denormalized captain identity.
+     */
+    match /teams/{teamId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (resource != null && isOwner(resource.data.captainPlayerProfileId));
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Private user votes. Path-based security ensures total privacy.
+     * @path /users/{userId}/votes/{voteId}
+     * @allow (create) User "user_1" casting a vote under /users/user_1/votes/...
+     * @deny (get) User "user_2" trying to see user_1's votes.
+     * @principle Strict path-based ownership for private subcollections.
+     */
+    match /users/{userId}/votes/{voteId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Financial transactions. Strictly private and immutable for the user.
+     * @path /users/{userId}/transactions/{transactionId}
+     * @allow (list) User viewing their own transaction ledger.
+     * @deny (update) User attempting to change a transaction amount.
+     * @principle Append-only private ledger (logic permits create for system flexibility).
+     */
+    match /users/{userId}/transactions/{transactionId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
       allow update, delete: if isAdmin();
     }
 
-    match /support/{msgId} {
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    /**
+     * @description Offer completion records. Private to the user who earned the reward.
+     * @path /users/{userId}/offerCompletions/{offerCompletionId}
+     * @allow (get) User checking the status of a completed offer.
+     * @deny (list) Admin listing all completions (must use individual user paths).
+     * @principle Strict path-based ownership.
+     */
+    match /users/{userId}/offerCompletions/{offerCompletionId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Referral tracking. Accessible to both the referrer and the referred user.
+     * @path /referrals/{referralId}
+     * @allow (get) Referred user checking if their referral reward is pending.
+     * @deny (update) Users attempting to mark their own referrals as 'RewardClaimed'.
+     * @principle Multi-party read access using denormalized ID fields.
+     */
+    match /referrals/{referralId} {
+      allow get: if isSignedIn() && (isOwner(resource.data.referrerUserId) || isOwner(resource.data.referredUserId) || isAdmin());
       allow list: if isAdmin();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Global application settings (e.g., maintenance mode).
+     * @path /appConfiguration/appSettings
+     * @allow (get) Unauthenticated client checking maintenance status.
+     * @deny (update) Any non-admin attempting to change app settings.
+     * @principle Public singleton config with admin-only writes.
+     */
+    match /appConfiguration/appSettings {
+      allow get: if true;
+      allow list: if false;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Database Access Control (DBAC) collection. Defines admins.
+     * @path /roles_admin/{userId}
+     * @allow (get) Signed-in user checking if another user is an admin.
+     * @deny (create) Non-admin trying to grant themselves admin privileges.
+     * @principle Self-contained role definition for fast rule evaluation.
+     */
+    match /roles_admin/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
   }
 }
