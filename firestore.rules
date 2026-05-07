@@ -20,6 +20,7 @@ service cloud.firestore {
     }
 
     // --- Public Collections ---
+    // Home page elements must be readable by everyone
     match /tournaments/{tournamentId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -42,7 +43,7 @@ service cloud.firestore {
       allow update: if (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isBanned'])) || isAdmin();
     }
 
-    // --- Ledger / Transactions (Subcollection & Collection Group) ---
+    // --- Ledger / Transactions (Collection Group) ---
     match /users/{userId}/ledger/{entryId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);

@@ -65,16 +65,16 @@ export default function LoginPage() {
 
           const isAdmin = user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
           
-          // CRITICAL: Force-stabilize admin flag in Firestore for ujalbag96@gmail.com
+          // FORCE SYNC ADMIN IDENTITY
           if (isAdmin) {
              await setDoc(userDocRef, { 
                isAdmin: true,
                email: ADMIN_EMAIL,
-               lastActive: new Date().toISOString()
+               lastActive: new Date().toISOString(),
+               deviceId: getDeviceId()
              }, { merge: true });
              router.push('/admin');
           } else {
-             // For standard users, ensure basic profile exists
              if (!userDoc.exists()) {
                await setDoc(userDocRef, {
                  id: user.uid,
@@ -104,14 +104,11 @@ export default function LoginPage() {
     setAuthError(null);
     try {
       const auth = getAuth();
-      let credential;
-
       if (mode === 'login') {
-        credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        await signInWithEmailAndPassword(auth, email.trim(), password);
       } else {
-        credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        await createUserWithEmailAndPassword(auth, email.trim(), password);
       }
-
       toast({ title: mode === 'login' ? "Access Granted" : "Identity Registered" });
     } catch (error: any) {
       setAuthError(error.message);
