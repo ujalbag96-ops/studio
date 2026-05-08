@@ -38,7 +38,8 @@ import {
   FileText,
   Search,
   Eye,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -94,6 +95,9 @@ export default function AdminDashboard() {
   const [ledgerFilter, setLedgerFilter] = useState<string>('all');
   const [selectedTx, setSelectedTx] = useState<UserLedgerEntry | null>(null);
   const [coinAdjustment, setCoinAdjustment] = useState<{ userId: string; bucket: 'deposit' | 'winning' | 'task'; amount: number } | null>(null);
+  
+  // System Config State
+  const [sysConfig, setSysConfig] = useState<Partial<AppSettings>>({});
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
 
@@ -130,6 +134,10 @@ export default function AdminDashboard() {
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
+  useEffect(() => {
+    if (settings) setSysConfig(settings);
+  }, [settings]);
+
   const filteredLedger = useMemo(() => {
     if (!ledgerData) return [];
     if (ledgerFilter === 'all') return ledgerData;
@@ -137,7 +145,6 @@ export default function AdminDashboard() {
     return ledgerData.filter(t => t.type === ledgerFilter);
   }, [ledgerData, ledgerFilter]);
 
-  // Financial Intelligence Engine - Aggregates everything to INR for base overview
   const financialStats = useMemo(() => {
     if (!ledgerData || !usersData) return { totalRevenue: 0, totalProfit: 0, totalUserBalance: 0, chartData: [] };
 
@@ -159,8 +166,6 @@ export default function AdminDashboard() {
     let totalProfit = 0;
     
     filteredForStats.forEach(tx => {
-      // In multi-currency, tx.amount is local. We should ideally normalize to a base currency (e.g. INR or USD)
-      // For this MVP, we assume amount represents the base volume value for overview.
       if (tx.type === 'deposit' || tx.type === 'income') totalRevenue += tx.amount;
       if (tx.type === 'conversion' || tx.type === 'withdrawal') {
         const fee = tx.type === 'conversion' ? (tx.amount / 0.988) * 0.012 : (tx.amount / 0.92) * 0.08;
@@ -195,6 +200,22 @@ export default function AdminDashboard() {
     } catch (e) {
       toast({ variant: "destructive", title: "Update Failed" });
     }
+  };
+
+  const handleSaveConfig = async () => {
+    if (!firestore) return;
+    try {
+      await setDoc(doc(firestore, 'settings', 'global'), sysConfig, { merge: true });
+      toast({ title: "System Config Updated" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Config Save Failed" });
+    }
+  };
+
+  const handleResolveSupport = async (id: string) => {
+    if (!firestore) return;
+    await updateDoc(doc(firestore, 'support', id), { status: 'resolved' });
+    toast({ title: "Ticket Resolved" });
   };
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
@@ -278,7 +299,7 @@ export default function AdminDashboard() {
                       <SelectTrigger className="w-40 bg-black/40 border-white/10 h-11 rounded-xl text-[10px] font-black uppercase">
                         <SelectValue placeholder="Protocol" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#0a0a0f] border-white/10">
+                      <SelectContent className="bg-[#0a0a0f] border-white/10 text-white">
                         <SelectItem value="all">All Protocols</SelectItem>
                         <SelectItem value="withdrawal">Withdrawals</SelectItem>
                         <SelectItem value="deposit">Deposits</SelectItem>
@@ -528,6 +549,203 @@ export default function AdminDashboard() {
                   </TableBody>
                 </Table>
               </Card>
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+            <div className="space-y-8">
+              <Card className="bg-red-500/5 border-red-500/20 rounded-[3rem] p-10 flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                  <ShieldAlert className="h-12 w-12 text-red-500" />
+                  <div>
+                    <h3 className="text-2xl font-black uppercase italic">Threat Intelligence</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Manual review requested for suspicious payouts</p>
+                  </div>
+                </div>
+                <Badge className="bg-red-500 text-white font-black px-6 h-8 text-[10px] uppercase">{flaggedTxs?.length || 0} ALERTS</Badge>
+              </Card>
+
+              <Card className="bg-black/20 border-white/5 rounded-[3rem] overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-white/5">
+                    <TableRow className="border-white/5">
+                      <TableHead className="px-10 font-black uppercase text-[9px] py-6">Identity / Risk</TableHead>
+                      <TableHead className="font-black uppercase text-[9px]">Requested Volume</TableHead>
+                      <TableHead className="font-black uppercase text-[9px]">Security Reason</TableHead>
+                      <TableHead className="px-10 text-right font-black uppercase text-[9px]">Command</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {flaggedTxs?.map(tx => (
+                      <TableRow key={tx.id} className="border-white/5">
+                        <TableCell className="px-10 py-8">
+                          <p className="font-black text-xs uppercase">{tx.userId?.substring(0,15)}</p>
+                          <p className="text-[8px] text-muted-foreground font-bold">{tx.date}</p>
+                        </TableCell>
+                        <TableCell className="text-red-400 font-black text-lg tabular-nums">
+                          {tx.currencySymbol}{tx.amount.toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="bg-red-500/10 text-red-500 text-[8px] font-black uppercase px-3">HIGH TASK VOLUME</Badge>
+                        </TableCell>
+                        <TableCell className="px-10 text-right space-x-2">
+                           <Button onClick={() => handleUpdateStatus(tx, 'completed')} className="h-10 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white border-none font-black text-[9px] uppercase px-6 rounded-xl">RELEASE</Button>
+                           <Button variant="outline" className="h-10 border-white/10 font-black text-[9px] uppercase px-6 rounded-xl">REJECT</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === 'support' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {supportTickets?.map(ticket => (
+                <Card key={ticket.id} className="bg-black/20 border-white/5 rounded-[2.5rem] p-8 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/5">
+                        <UserPlus className="h-5 w-5 opacity-40" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase text-muted-foreground">Warrior ID: {ticket.userId.substring(0,8)}</p>
+                        <p className="text-[8px] font-bold text-muted-foreground uppercase">{ticket.timestamp}</p>
+                      </div>
+                    </div>
+                    {ticket.isFlagged && <Badge className="bg-red-500/20 text-red-500 border-none text-[8px] font-black uppercase">PRIORITY</Badge>}
+                  </div>
+                  
+                  <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
+                    <p className="text-sm font-medium italic">"{ticket.message}"</p>
+                  </div>
+
+                  {ticket.aiResponse && (
+                    <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10">
+                      <p className="text-[8px] font-black uppercase text-primary mb-2">AI Initial Brief:</p>
+                      <p className="text-xs text-muted-foreground font-medium italic">"{ticket.aiResponse}"</p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-4">
+                    <Button onClick={() => handleResolveSupport(ticket.id)} className="flex-1 h-14 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white border-none font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-xl shadow-green-900/10">MARK RESOLVED</Button>
+                    <Button variant="outline" className="h-14 border-white/10 px-8 rounded-2xl">
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'campaigns' && (
+            <div className="space-y-8">
+               <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-black italic uppercase">Campaign Deployment</h3>
+                  <Button className={cn("h-14 px-10 rounded-2xl font-black uppercase tracking-widest shadow-2xl", activeTheme.accent, "text-black")}>
+                    <Plus className="h-5 w-5 mr-2" /> NEW CAMPAIGN
+                  </Button>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {tournamentsData?.map(tour => (
+                    <Card key={tour.id} className="bg-black/20 border-white/5 rounded-[3rem] overflow-hidden group">
+                       <div className="relative h-48">
+                          <img src={tour.banner} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
+                          <Badge className="absolute top-4 left-4 bg-primary font-black uppercase text-[9px]">{tour.gameType}</Badge>
+                       </div>
+                       <CardContent className="p-8 space-y-6">
+                          <div>
+                             <h4 className="text-xl font-black uppercase italic tracking-tighter">{tour.name}</h4>
+                             <p className="text-[10px] font-bold text-muted-foreground uppercase">{tour.startDate}</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                             <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center">
+                                <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Fee</p>
+                                <p className="text-lg font-black">{tour.entryFee} 🪙</p>
+                             </div>
+                             <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center">
+                                <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Pool</p>
+                                <p className="text-lg font-black text-amber-500">{tour.prizePool}</p>
+                             </div>
+                          </div>
+                          <div className="flex gap-3">
+                             <Button variant="outline" className="flex-1 border-white/10 h-12 rounded-xl">
+                                <Edit2 className="h-4 w-4 mr-2" /> EDIT
+                             </Button>
+                             <Button variant="ghost" className="h-12 w-12 rounded-xl text-red-400 hover:bg-red-500/10">
+                                <Trash2 className="h-4 w-4" />
+                             </Button>
+                          </div>
+                       </CardContent>
+                    </Card>
+                  ))}
+               </div>
+            </div>
+          )}
+
+          {activeTab === 'control' && (
+            <div className="max-w-4xl mx-auto space-y-8">
+               <Card className="bg-black/20 border-white/5 rounded-[3rem] p-12 space-y-10 shadow-2xl">
+                  <div className="flex items-center gap-6">
+                    <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 shadow-2xl">
+                      <Settings className="h-8 w-8 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white">System Protocol</h3>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Global App Configuration & Monetization</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-10">
+                     <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                           <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">CPA Lead Network URL</Label>
+                           <Input value={sysConfig.cpaLeadUrl || ''} onChange={e => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})} className="h-14 bg-black/40 border-white/10 rounded-xl font-mono text-xs" />
+                        </div>
+                        <div className="space-y-4">
+                           <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Telegram Support Channel</Label>
+                           <Input value={sysConfig.telegramUrl || ''} onChange={e => setSysConfig({...sysConfig, telegramUrl: e.target.value})} className="h-14 bg-black/40 border-white/10 rounded-xl font-mono text-xs" />
+                        </div>
+                     </div>
+
+                     <div className="grid md:grid-cols-3 gap-8">
+                        <div className="space-y-4">
+                           <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Coins Per Dollar</Label>
+                           <Input type="number" value={sysConfig.coinValuePerDollar || ''} onChange={e => setSysConfig({...sysConfig, coinValuePerDollar: Number(e.target.value)})} className="h-14 bg-black/40 border-white/10 rounded-xl" />
+                        </div>
+                        <div className="space-y-4">
+                           <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Referral Prize (Coins)</Label>
+                           <Input type="number" value={sysConfig.referralRewardCoins || ''} onChange={e => setSysConfig({...sysConfig, referralRewardCoins: Number(e.target.value)})} className="h-14 bg-black/40 border-white/10 rounded-xl" />
+                        </div>
+                        <div className="space-y-4">
+                           <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Admin Profit Margin (%)</Label>
+                           <Input type="number" value={sysConfig.adminProfitPercentage || ''} onChange={e => setSysConfig({...sysConfig, adminProfitPercentage: Number(e.target.value)})} className="h-14 bg-black/40 border-white/10 rounded-xl" />
+                        </div>
+                     </div>
+
+                     <div className="grid md:grid-cols-2 gap-8 p-8 bg-white/5 rounded-[2rem] border border-white/5">
+                        <div className="flex items-center justify-between">
+                           <div className="space-y-1">
+                              <p className="text-sm font-black uppercase italic">Video Ad Sector</p>
+                              <p className="text-[10px] text-muted-foreground font-bold uppercase">Toggle extra income missions</p>
+                           </div>
+                           <Switch checked={sysConfig.videoWallEnabled} onCheckedChange={val => setSysConfig({...sysConfig, videoWallEnabled: val})} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                           <div className="space-y-1">
+                              <p className="text-sm font-black uppercase italic">Maintenance Mode</p>
+                              <p className="text-[10px] text-muted-foreground font-bold uppercase">App-wide lock system</p>
+                           </div>
+                           <Switch checked={sysConfig.maintenanceMode} onCheckedChange={val => setSysConfig({...sysConfig, maintenanceMode: val})} />
+                        </div>
+                     </div>
+                  </div>
+
+                  <Button onClick={handleSaveConfig} className={cn("w-full h-20 rounded-[1.5rem] font-black uppercase tracking-[0.3em] text-lg italic shadow-2xl text-black", activeTheme.accent)}>SAVE CORE CONFIG</Button>
+               </Card>
             </div>
           )}
         </div>
