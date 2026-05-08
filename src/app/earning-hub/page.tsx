@@ -19,6 +19,8 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import OfferWall from '@/components/OfferWall';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function EarningHub() {
   const { user } = useUser();
@@ -32,6 +34,7 @@ export default function EarningHub() {
 
   useEffect(() => {
     const checkCooldown = () => {
+      if (typeof window === 'undefined') return;
       const lastWatchTime = localStorage.getItem('last_video_watch_time');
       if (lastWatchTime) {
         const elapsed = Date.now() - parseInt(lastWatchTime);
@@ -69,18 +72,36 @@ export default function EarningHub() {
       const userRef = doc(firestore, 'users', user.uid);
       const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
-      await updateDoc(userRef, { 
+      const updateData = { 
         coins: increment(5),
         withdrawableCoins: increment(5)
-      });
-      
-      await addDoc(ledgerRef, {
+      };
+
+      const ledgerData = {
         userId: user.uid,
         type: 'income',
         amount: 5,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
         description: 'Earned from Video Ad (Global Network)'
+      };
+
+      // 1. Update Profile (Non-Blocking)
+      updateDoc(userRef, updateData).catch(async (serverError) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        }));
+      });
+      
+      // 2. Add Ledger (Non-Blocking)
+      addDoc(ledgerRef, ledgerData).catch(async (serverError) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: ledgerRef.path,
+          operation: 'create',
+          requestResourceData: ledgerData,
+        }));
       });
 
       localStorage.setItem('last_video_watch_time', Date.now().toString());

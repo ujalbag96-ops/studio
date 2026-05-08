@@ -11,6 +11,8 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function RewardsPage() {
   const { user } = useUser();
@@ -24,6 +26,7 @@ export default function RewardsPage() {
 
   useEffect(() => {
     const checkCooldown = () => {
+      if (typeof window === 'undefined') return;
       const lastWatchTime = localStorage.getItem('last_video_watch_time');
       if (lastWatchTime) {
         const elapsed = Date.now() - parseInt(lastWatchTime);
@@ -56,35 +59,52 @@ export default function RewardsPage() {
 
     setIsVideoLoading(true);
     
-    setTimeout(async () => {
-      try {
-        const userRef = doc(firestore, 'users', user.uid);
-        const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
-        // Rewards add to both total coins and WITHDRAWABLE winning balance
-        await updateDoc(userRef, {
-          coins: increment(5),
-          withdrawableCoins: increment(5)
-        });
+    try {
+      const userRef = doc(firestore, 'users', user.uid);
+      const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
-        await addDoc(ledgerRef, {
-          type: 'income',
-          amount: 5,
-          date: new Date().toISOString().split('T')[0],
-          status: 'completed',
-          description: 'Earned from Video Ad'
-        });
+      const updateData = {
+        coins: increment(5),
+        withdrawableCoins: increment(5)
+      };
 
-        localStorage.setItem('last_video_watch_time', Date.now().toString());
-        setCooldownRemaining(300);
+      const ledgerData = {
+        type: 'income',
+        amount: 5,
+        date: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        description: 'Earned from Video Ad'
+      };
 
-        toast({ title: "Winning Reward Claimed!", description: "5 🪙 added to your winning balance." });
-      } catch (error: any) {
-        toast({ variant: "destructive", title: "Wallet Sync Failed" });
-      } finally {
-        setIsVideoLoading(false);
-      }
-    }, 3000);
+      // Rewards add to both total coins and WITHDRAWABLE winning balance (Non-Blocking)
+      updateDoc(userRef, updateData).catch(async (serverError) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        }));
+      });
+
+      addDoc(ledgerRef, ledgerData).catch(async (serverError) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: ledgerRef.path,
+          operation: 'create',
+          requestResourceData: ledgerData,
+        }));
+      });
+
+      localStorage.setItem('last_video_watch_time', Date.now().toString());
+      setCooldownRemaining(300);
+
+      toast({ title: "Winning Reward Claimed!", description: "5 🪙 added to your winning balance." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Wallet Sync Failed" });
+    } finally {
+      setIsVideoLoading(false);
+    }
   };
 
   return (

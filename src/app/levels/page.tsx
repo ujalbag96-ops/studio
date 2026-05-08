@@ -22,6 +22,8 @@ import { useToast } from '@/hooks/use-toast';
 import { UserProfile } from '@/app/lib/types';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function LevelsPage() {
   const { user, isUserLoading } = useUser();
@@ -39,7 +41,7 @@ export default function LevelsPage() {
   const nextLevelXp = 500;
   const progress = (currentXp / nextLevelXp) * 100;
 
-  const handleClaimReward = async (rewardId: string, amount: number) => {
+  const handleClaimReward = (rewardId: string, amount: number) => {
     if (!user || !firestore) {
       toast({ variant: "destructive", title: "Access Denied", description: "Login to claim your rewards." });
       return;
@@ -47,39 +49,48 @@ export default function LevelsPage() {
 
     setIsClaiming(rewardId);
     
-    setTimeout(async () => {
-      try {
-        const userRef = doc(firestore, 'users', user.uid);
-        const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
+    const userRef = doc(firestore, 'users', user.uid);
+    const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
-        // Level rewards add to WITHDRAWABLE winnings
-        await updateDoc(userRef, {
-          coins: increment(amount),
-          withdrawableCoins: increment(amount)
-        });
+    const updateData = {
+      coins: increment(amount),
+      withdrawableCoins: increment(amount)
+    };
 
-        await addDoc(ledgerRef, {
-          type: 'income',
-          amount: amount,
-          date: new Date().toISOString().split('T')[0],
-          status: 'completed',
-          description: `Level ${rewardId} Winning Reward`
-        });
+    const ledgerData = {
+      type: 'income',
+      amount: amount,
+      date: new Date().toISOString().split('T')[0],
+      status: 'completed',
+      description: `Level ${rewardId} Winning Reward`
+    };
 
-        toast({
-          title: "Winning Reward Claimed!",
-          description: `${amount} 🪙 added to your winning balance.`,
-        });
-      } catch (error: any) {
-        toast({
-          variant: "destructive",
-          title: "Claim Failed",
-          description: "Could not sync with the arena server.",
-        });
-      } finally {
-        setIsClaiming(null);
-      }
-    }, 1500);
+    // 1. Update User Profile (Non-Blocking)
+    updateDoc(userRef, updateData).catch(async (serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: userRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      }));
+    });
+
+    // 2. Add Ledger Entry (Non-Blocking)
+    addDoc(ledgerRef, ledgerData).catch(async (serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: ledgerRef.path,
+        operation: 'create',
+        requestResourceData: ledgerData,
+      }));
+    });
+
+    // Instant Feedback
+    setTimeout(() => {
+      setIsClaiming(null);
+      toast({
+        title: "Winning Reward Claimed!",
+        description: `${amount} 🪙 added to your winning balance.`,
+      });
+    }, 800);
   };
 
   if (isUserLoading) {
