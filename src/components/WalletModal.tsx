@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Wallet, ArrowUpRight, Plus, CreditCard, Info, Trophy, Zap, RefreshCcw, Loader2, Crown, Globe } from 'lucide-react';
+import { Wallet, ArrowUpRight, Plus, CreditCard, Trophy, Zap, RefreshCcw, Loader2, Crown, Globe } from 'lucide-react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment, addDoc, getDoc, collection } from 'firebase/firestore';
 import { UserProfile, AppSettings } from '@/app/lib/types';
@@ -50,7 +50,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   const telegramUrl = settings?.telegramUrl || 'https://t.me/bracketbattles_support';
 
   const handleManualTopup = () => {
-    const message = encodeURIComponent(`I want to add funds to my Arena Wallet. Country: ${profile?.country}`);
+    const message = encodeURIComponent(`Executive Support: Manual Capital Allocation Request. Country: ${profile?.country}`);
     window.open(`${telegramUrl}?text=${message}`, '_blank');
   };
 
@@ -58,11 +58,11 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
     const amount = parseFloat(convertAmount);
     if (!user || !firestore || !userProfileRef || !profile) return;
     if (isNaN(amount) || amount <= 0) {
-      toast({ variant: "destructive", title: "Invalid Volume" });
+      toast({ variant: "destructive", title: "Invalid Analytical Volume" });
       return;
     }
     if (amount > taskBal) {
-      toast({ variant: "destructive", title: "Insufficient Task Funds" });
+      toast({ variant: "destructive", title: "Insufficient Incentive Pool" });
       return;
     }
 
@@ -73,6 +73,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
       const passivePercent = settings?.passiveReferralPercent || 2;
       const passiveBonus = netAmount * (passivePercent / 100);
 
+      // Logical Lock: Using Firestore increments to prevent race conditions
       await updateDoc(userProfileRef, {
         taskBalance: increment(-amount),
         winningBalance: increment(netAmount),
@@ -92,7 +93,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                amount: passiveBonus,
                date: new Date().toISOString().split('T')[0],
                status: 'completed',
-               description: `Passive Commission: Recruit converted tasks.`
+               description: `Affiliate Commission: Recruit incentive synchronization.`
             });
          }
       }
@@ -102,13 +103,13 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
         amount: netAmount,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: `Conversion Protocol: ${(tierFee * 100).toFixed(1)}% Fee Applied`
+        description: `Protocol Conversion: ${(tierFee * 100).toFixed(1)}% Operational Fee`
       });
 
-      toast({ title: "Conversion Successful", description: `${netAmount.toFixed(1)} added to Winnings.` });
+      toast({ title: "Asset Synchronization Complete", description: `${netAmount.toFixed(1)} credits allocated to Withdrawable Assets.` });
       setConvertAmount('');
     } catch (e) {
-      toast({ variant: "destructive", title: "Sync Failure" });
+      toast({ variant: "destructive", title: "Analytical Sync Failure" });
     } finally {
       setIsConverting(false);
     }
@@ -136,15 +137,15 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                  <Wallet className="h-8 w-8 text-white" />
                </div>
                <div>
-                 <h2 className="text-2xl font-black uppercase tracking-tighter italic">Tactical Vault</h2>
+                 <h2 className="text-2xl font-black uppercase tracking-tighter italic">Analytical Vault</h2>
                  <div className="flex items-center gap-2">
                     <Globe className="h-3 w-3 text-green-500" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{profile?.country || 'Global'} Hub Active</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{profile?.country || 'Global'} Sector Active</span>
                  </div>
                </div>
              </div>
              <div className="text-right">
-                <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-1">Rank Status</p>
+                <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-1">Compliance Tier</p>
                 <div className="flex items-center gap-1.5 text-amber-500 font-black text-sm italic">
                    <Crown className="h-3 w-3" /> {profile?.rank || 'Bronze'}
                 </div>
@@ -152,18 +153,18 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-             <BalanceRow label="DEPOSIT" value={depositBal} color="blue" icon={<CreditCard className="h-3 w-3" />} />
-             <BalanceRow label="TASK" value={taskBal} color="amber" icon={<Zap className="h-3 w-3" />} />
-             <BalanceRow label="WINNING" value={winningBal} color="green" icon={<Trophy className="h-3 w-3" />} />
+             <BalanceRow label="PORTFOLIO" value={depositBal} color="blue" icon={<CreditCard className="h-3 w-3" />} />
+             <BalanceRow label="INCENTIVE" value={taskBal} color="amber" icon={<Zap className="h-3 w-3" />} />
+             <BalanceRow label="WITHDRAWABLE" value={winningBal} color="green" icon={<Trophy className="h-3 w-3" />} />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
              <Button onClick={handleManualTopup} className="bg-primary hover:bg-primary/90 h-20 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/20 italic">
-                <Plus className="h-4 w-4 mr-2" /> ADD FUNDS
+                <Plus className="h-4 w-4 mr-2" /> ALLOCATE CAPITAL
              </Button>
              <Button asChild className="bg-[#121216] border border-white/10 hover:bg-white/5 h-20 rounded-2xl font-black uppercase tracking-widest text-xs italic">
                 <Link href="/withdraw" className="flex items-center justify-center">
-                   WITHDRAW <ArrowUpRight className="h-4 w-4 ml-2" />
+                   EXTRACT ASSETS <ArrowUpRight className="h-4 w-4 ml-2" />
                 </Link>
              </Button>
           </div>
@@ -172,9 +173,9 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
              <div className="flex items-center justify-between">
                 <div className="space-y-1">
                    <h4 className="text-xs font-black uppercase tracking-widest italic flex items-center gap-2">
-                      <RefreshCcw className="h-4 w-4 text-amber-500" /> Conversion Protocol
+                      <RefreshCcw className="h-4 w-4 text-amber-500" /> Synchronization Protocol
                    </h4>
-                   <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest italic">Transfer Task Coins to Winnings</p>
+                   <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest italic">Consolidate Incentive Pool to withdrawable assets</p>
                 </div>
                 <Badge className="bg-amber-500 text-black text-[9px] font-black border-none px-3 py-1 uppercase">{(tierFee * 100).toFixed(1)}% FEE</Badge>
              </div>
@@ -195,7 +196,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                   disabled={isConverting || !convertAmount}
                   className="bg-amber-500 hover:bg-amber-600 text-black h-16 px-10 rounded-2xl font-black text-xs uppercase shadow-xl"
                 >
-                  {isConverting ? <Loader2 className="animate-spin h-5 w-5" /> : "EXECUTE"}
+                  {isConverting ? <Loader2 className="animate-spin h-5 w-5" /> : "SYNCHRONIZE"}
                 </Button>
              </div>
           </div>

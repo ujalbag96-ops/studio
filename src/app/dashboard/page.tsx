@@ -13,12 +13,9 @@ import {
   Activity,
   Shield,
   Loader2,
-  Target,
-  Sword,
   TrendingUp,
   ArrowUpRight,
   LogOut,
-  Coins,
   CreditCard,
   Crown,
   Briefcase,
@@ -89,7 +86,6 @@ export default function UserDashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary selection:text-white">
-      {/* Corporate Sidebar (Desktop Only) */}
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-10 border-b border-white/5">
           <Link href="/" className="flex items-center gap-4 group">
@@ -102,11 +98,11 @@ export default function UserDashboard() {
 
         <nav className="flex-1 p-8 space-y-2">
           <div className="pb-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 mb-4 px-4">Account Management</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 mb-4 px-4">Portfolio Management</p>
             <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="DASHBOARD OVERVIEW" onClick={() => setActiveNav('overview')} />
-            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="ACTIVITY HUB" href="/earning-hub" />
+            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="INCENTIVE HUB" href="/earning-hub" />
             <SidebarItem active={activeNav === 'ledger'} icon={<History />} label="FINANCIAL LEDGER" href="/ledger" />
-            <SidebarItem active={activeNav === 'finance'} icon={<Wallet />} label="FINANCE HUB" href="/withdraw" />
+            <SidebarItem active={activeNav === 'finance'} icon={<Wallet />} label="ASSET EXTRACTION" href="/withdraw" />
           </div>
           
           <div className="pt-8 border-t border-white/5">
@@ -122,56 +118,53 @@ export default function UserDashboard() {
         </div>
       </aside>
 
-      {/* Main Operational Sector */}
       <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-12 pb-32">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
                <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Verified Professional</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-black uppercase tracking-widest">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Connection Secure
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Global Secure Protocol
                </div>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Account <span className="text-primary">Overview</span></h1>
-            <p className="text-muted-foreground font-medium text-lg">Logged in as: <span className="text-white font-black">{user.email || user.phoneNumber}</span></p>
+            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Analytical <span className="text-primary">Portfolio</span></h1>
+            <p className="text-muted-foreground font-medium text-lg">System ID: <span className="text-white font-black">{user.email || user.phoneNumber}</span></p>
           </div>
 
           <div className="flex items-center gap-4">
             <WalletModal>
               <Button className="bg-white/5 border border-white/10 hover:bg-white/10 h-16 px-8 rounded-2xl text-lg font-black italic uppercase">
-                CAPITAL MANAGEMENT <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
+                MANAGE ASSETS <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
               </Button>
             </WalletModal>
           </div>
         </header>
 
-        {/* Global Asset Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <WalletCard 
-            label="Investment Assets" 
+            label="Investment Portfolio" 
             value={profile?.depositBalance || 0} 
             icon={<CreditCard />} 
-            description="Allocated funds for participation"
+            description="Allocated capital for participation"
             color="blue"
           />
           <WalletCard 
-            label="Incentive Credits" 
+            label="Incentive Accruals" 
             value={profile?.taskBalance || 0} 
             icon={<Zap />} 
-            description="Accrued from activity tasks"
+            description="Yield from analytical tasks"
             color="amber"
           />
           <WalletCard 
-            label="Net Winnings" 
+            label="Withdrawable Assets" 
             value={profile?.winningBalance || 0} 
             icon={<Trophy />} 
-            description="Withdrawable profit assets"
+            description="Verified profit distributions"
             color="green"
             isWithdrawable
           />
         </div>
 
-        {/* Activity & Financial Log Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           <div className="xl:col-span-2 space-y-8">
             <div className="flex items-center justify-between px-2">
@@ -199,7 +192,7 @@ export default function UserDashboard() {
                              activity.type === 'withdrawal' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
                            )}>
                              {activity.type === 'income' ? <TrendingUp className="h-7 w-7" /> : 
-                              activity.type === 'withdrawal' ? <ArrowUpRight className="h-7 w-7" /> : <FileBarChart className="h-7 w-7" />}
+                              activity.type === 'withdrawal' ? <ArrowUpRight className="h-7 w-7" /> : <ShieldCheck className="h-7 w-7" />}
                            </div>
                            <div className="space-y-1">
                              <p className="text-lg font-black uppercase tracking-tight group-hover:text-primary transition-colors">{activity.description || activity.type}</p>
@@ -227,7 +220,7 @@ export default function UserDashboard() {
                 ) : (
                   <div className="p-32 text-center space-y-6">
                      <History className="h-20 w-20 text-muted-foreground opacity-10 mx-auto" />
-                     <p className="text-sm text-muted-foreground italic font-black uppercase tracking-[0.4em]">No financial records found.</p>
+                     <p className="text-sm text-muted-foreground italic font-black uppercase tracking-[0.4em]">No analytical records found.</p>
                   </div>
                 )}
               </CardContent>
@@ -243,11 +236,11 @@ export default function UserDashboard() {
                   <Zap className="h-12 w-12 text-primary animate-pulse" />
                </div>
                <div className="space-y-4 relative z-10">
-                  <h3 className="text-3xl font-black uppercase tracking-tighter italic">Activity Hub</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed font-medium">Accumulate supplementary credits by fulfilling high-yield professional tasks.</p>
+                  <h3 className="text-3xl font-black uppercase tracking-tighter italic">Incentive Hub</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed font-medium">Accumulate supplemental credits by fulfilling high-yield analytical tasks.</p>
                </div>
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-18 rounded-[1.5rem] font-black uppercase tracking-widest text-lg shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                  <Link href="/earning-hub">ACCESS TASKS</Link>
+                  <Link href="/earning-hub">ACCESS MISSIONS</Link>
                </Button>
             </Card>
 
@@ -257,22 +250,14 @@ export default function UserDashboard() {
                   Compliance Policy
                </h3>
                <div className="space-y-4 text-xs font-medium text-muted-foreground leading-relaxed">
-                  <p>• Only <span className="text-white">Net Winnings</span> are eligible for capital extraction.</p>
-                  <p>• Exchange <span className="text-amber-500 font-bold">Incentive Credits</span> with a 1.2% processing fee.</p>
-                  <p>• Minimum withdrawal threshold: <span className="text-white">₹110</span>.</p>
+                  <p>• Only <span className="text-white">Withdrawable Assets</span> are eligible for extraction.</p>
+                  <p>• Exchange <span className="text-amber-500 font-bold">Incentive Credits</span> with a 1.2% protocol fee.</p>
+                  <p>• Minimum extraction threshold: <span className="text-white">₹110</span>.</p>
                </div>
             </Card>
           </aside>
         </div>
       </main>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] h-24 bg-[#0a0a0f]/90 backdrop-blur-3xl border-t border-white/10 flex items-center justify-around px-4">
-        <MobileNavItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="OVERVIEW" href="/dashboard" />
-        <MobileNavItem active={activeNav === 'activity'} icon={<Zap />} label="ACTIVITY" href="/earning-hub" />
-        <MobileNavItem active={activeNav === 'ledger'} icon={<History />} label="LEDGER" href="/ledger" />
-        <MobileNavItem active={activeNav === 'finance'} icon={<Wallet />} label="FINANCE" href="/withdraw" />
-      </nav>
     </div>
   );
 }
@@ -298,15 +283,6 @@ function SidebarItem({ active, icon, label, onClick, href }: any) {
     <button onClick={onClick} className={cn("w-full flex items-center gap-6 px-8 py-5 rounded-[1.5rem] transition-all duration-300 relative group", active ? "bg-primary text-white shadow-2xl shadow-primary/40" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
       {content}
     </button>
-  );
-}
-
-function MobileNavItem({ active, icon, label, href }: any) {
-  return (
-    <Link href={href} className={cn("flex flex-col items-center gap-1.5 px-6 py-2 rounded-2xl transition-all", active ? "text-primary scale-110" : "text-muted-foreground")}>
-      <span className={cn("h-6 w-6", active && "animate-pulse")}>{icon}</span>
-      <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
-    </Link>
   );
 }
 
@@ -337,7 +313,7 @@ function WalletCard({ label, value, icon, description, color, isWithdrawable }: 
           <p className="text-[9px] font-bold text-muted-foreground mt-4 uppercase tracking-widest italic">{description}</p>
           {isWithdrawable && (
             <div className="mt-4 pt-4 border-t border-white/5">
-              <Badge className="bg-green-500 text-black font-black uppercase text-[8px] px-3">Liquidity Ready</Badge>
+              <Badge className="bg-green-500 text-black font-black uppercase text-[8px] px-3">Liquidity Confirmed</Badge>
             </div>
           )}
         </div>

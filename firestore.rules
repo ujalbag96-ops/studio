@@ -2,30 +2,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Public read for tournaments and matches to fix home page errors
+    // Public read for events and metadata to maintain frontend transparency
     match /{document=**} {
       allow read: if true;
     }
 
-    // Admin email has full power
+    // Executive Administrative Identity
     function isAdmin() {
       return request.auth != null && request.auth.token.email == "ujalbag96@gmail.com";
     }
 
-    // User can manage their own profile and ledger
+    // Strict User Profile Compliance
     match /users/{userId} {
-      allow write: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Compliance Gate: Users cannot increase their own balance fields. 
+      // They can only decrement for participation or be updated by Admin.
+      allow update: if isAdmin() || (
+        request.auth != null && request.auth.uid == userId &&
+        request.resource.data.coins <= resource.data.coins &&
+        request.resource.data.winningBalance <= resource.data.winningBalance &&
+        request.resource.data.depositBalance <= resource.data.depositBalance &&
+        request.resource.data.isAdmin == resource.data.isAdmin
+      );
       
       match /ledger/{entryId} {
         allow write: if isAdmin() || (request.auth != null && request.auth.uid == userId);
       }
     }
 
-    // Global settings and major hubs managed by admin
+    // Global infrastructure settings
     match /settings/{docId} {
       allow write: if isAdmin();
     }
 
+    // Operational Event management
     match /tournaments/{tournamentId} {
       allow write: if isAdmin();
     }
@@ -34,16 +45,22 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Registrations and support are open for users
+    // Registration compliance
     match /registrations/{regId} {
-      allow write: if request.auth != null;
+      allow create: if request.auth != null;
+      allow delete, update: if isAdmin();
     }
 
+    // Communication feed protocols
     match /support/{msgId} {
       allow write: if request.auth != null;
     }
     
-    // Collection group allow for ledger (needed for admin dashboard)
+    match /notifications/{notifId} {
+      allow write: if isAdmin();
+    }
+    
+    // Collection group audit allow for executive review
     match /{path=**}/ledger/{ledgerId} {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == resource.data.userId);
     }
