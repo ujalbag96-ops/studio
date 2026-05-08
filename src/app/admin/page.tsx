@@ -39,7 +39,10 @@ import {
   CheckCircle2,
   PlayCircle,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Smartphone,
+  Cpu,
+  SmartphoneNfc
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -95,20 +98,8 @@ export default function AdminDashboard() {
   useEffect(() => { 
     if (settings) {
       setSysConfig(settings);
-    } else if (firestore && isAdminUser) {
-      setDoc(doc(firestore, 'settings', 'global'), {
-        maintenanceMode: false,
-        cpaLeadUrl: 'https://www.cpalead.com/api/conversions?id=774893&api_key=339981d6420141b986bb5562172675ea',
-        videoWallEnabled: true,
-        offerWallEnabled: true,
-        coinValuePerDollar: 800,
-        adminProfitPercentage: 20,
-        referralRewardCoins: 10,
-        passiveReferralPercent: 2,
-        telegramUrl: 'https://t.me/bracketbattles'
-      }, { merge: true });
     }
-  }, [settings, firestore, isAdminUser]);
+  }, [settings]);
 
   const handleLogout = async () => {
     if (auth) {
@@ -122,7 +113,7 @@ export default function AdminDashboard() {
     setIsSavingSettings(true);
     try {
       await setDoc(settingsRef, updates, { merge: true });
-      toast({ title: "System Matrix Synchronized", description: "Operational parameters updated globally." });
+      toast({ title: "System Matrix Synchronized", description: "Analytical parameters updated globally." });
     } catch (e) {
       toast({ variant: "destructive", title: "Sync Failure" });
     } finally {
@@ -140,61 +131,6 @@ export default function AdminDashboard() {
       toast({ variant: "destructive", title: "Payout Sync Failure" });
     }
   };
-
-  const handleTournamentAction = async (t: Tournament, status: 'completed' | 'cancelled') => {
-    if (!firestore) return;
-    try {
-      const tRef = doc(firestore, 'tournaments', t.id);
-      await updateDoc(tRef, { status });
-      
-      if (status === 'cancelled') {
-        const regQuery = query(collection(firestore, 'registrations'), where('tournamentId', '==', t.id));
-        const regSnap = await getDocs(regQuery);
-        const batch = writeBatch(firestore);
-        
-        regSnap.docs.forEach(d => {
-          const reg = d.data() as Registration;
-          const uRef = doc(firestore, 'users', reg.userId);
-          const lRef = doc(collection(firestore, 'users', reg.userId, 'ledger'));
-          
-          batch.update(uRef, { 
-            depositBalance: increment(t.entryFee),
-            coins: increment(t.entryFee)
-          });
-          batch.set(lRef, {
-            type: 'refund',
-            amount: t.entryFee,
-            date: new Date().toISOString().split('T')[0],
-            status: 'completed',
-            description: `Auto-Refund: Analytical Operation ${t.name} Cancelled`
-          });
-        });
-        await batch.commit();
-        toast({ title: "Operation Terminated", description: "All capital refunded to participants." });
-      } else {
-        toast({ title: "Operation Finalized", description: "Results synchronized with participant portfolios." });
-      }
-    } catch (e) {
-      toast({ variant: "destructive", title: "Event Sync Failure" });
-    }
-  };
-
-  const filteredUsers = useMemo(() => {
-    if (!usersData) return [];
-    const q = searchQuery.toLowerCase().trim();
-    return usersData.filter(u => !q || u.email?.toLowerCase().includes(q) || u.id.toLowerCase().includes(q) || u.mobile?.includes(q) || u.referralCode?.toLowerCase().includes(q));
-  }, [usersData, searchQuery]);
-
-  const clones = useMemo(() => {
-    if (!usersData) return [];
-    const deviceGroups: Record<string, UserProfile[]> = {};
-    usersData.forEach(u => {
-       if (!u.deviceId) return;
-       if (!deviceGroups[u.deviceId]) deviceGroups[u.deviceId] = [];
-       deviceGroups[u.deviceId].push(u);
-    });
-    return Object.entries(deviceGroups).filter(([_, list]) => list.length > 1);
-  }, [usersData]);
 
   const stats = useMemo(() => {
     if (!usersData || !globalWithdrawals) return { totalUsers: 0, assetFlow: 0, liabilities: 0 };
@@ -260,9 +196,6 @@ export default function AdminDashboard() {
             </nav>
             <div className="flex items-center gap-4 border-l border-white/10 pl-8">
                <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black px-3 py-1">ADMIN SECTOR</Badge>
-               <Avatar className="h-9 w-9 border border-primary/40">
-                  <AvatarFallback className="bg-primary text-white text-[10px] font-black">U</AvatarFallback>
-               </Avatar>
             </div>
           </div>
         </header>
@@ -276,310 +209,91 @@ export default function AdminDashboard() {
                 <ExactStatCard label="PLATFORM LIABILITIES" value={`${stats.liabilities.toLocaleString()} 🪙`} sub="HELD IN VAULTS" icon={<Shield className="h-5 w-5 text-orange-500" />} />
                 <ExactStatCard label="OPERATIONAL YIELD" value={`₹${(stats.assetFlow * 0.15).toLocaleString()}`} sub="POST-PROCESSING" icon={<Trophy className="h-5 w-5 text-orange-500" />} />
               </div>
-
-              <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] p-10 h-[400px] flex items-center justify-center border-dashed">
-                 <div className="text-center opacity-20">
-                    <BarChart3 className="h-20 w-20 mx-auto mb-4" />
-                    <p className="font-black uppercase tracking-[0.5em] text-[10px]">Revenue Matrix Pulse Data (Real-time)</p>
-                 </div>
-              </Card>
             </div>
-          )}
-
-          {activeTab === 'users' && (
-             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
-                <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-                   <div>
-                     <h3 className="text-xl font-black uppercase italic">User Directory</h3>
-                     <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Profile Inventory & Compliance Monitoring</p>
-                   </div>
-                </div>
-                <Table>
-                   <TableHeader className="bg-white/[0.03]">
-                      <TableRow className="border-white/5 hover:bg-transparent">
-                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-8">System ID</TableHead>
-                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">User Profile</TableHead>
-                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Portfolio Breakdown</TableHead>
-                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</TableHead>
-                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right px-8">Commands</TableHead>
-                      </TableRow>
-                   </TableHeader>
-                   <TableBody>
-                      {filteredUsers.map(u => (
-                         <TableRow key={u.id} className="border-white/5 hover:bg-white/[0.01]">
-                            <TableCell className="px-8 font-mono text-[10px] text-primary">#{u.id.slice(0,8).toUpperCase()}</TableCell>
-                            <TableCell>
-                               <div className="flex items-center gap-3">
-                                  <Avatar className="h-8 w-8 border border-white/10"><AvatarImage src={`https://picsum.photos/seed/${u.id}/100/100`} /></Avatar>
-                                  <div>
-                                     <p className="text-xs font-black uppercase italic text-white">{u.email?.split('@')[0] || u.mobile || 'Warrior'}</p>
-                                     <p className="text-[9px] text-muted-foreground font-bold">{u.email || u.mobile}</p>
-                                  </div>
-                               </div>
-                            </TableCell>
-                            <TableCell>
-                               <div className="text-[9px] font-black space-y-1">
-                                  <p className="text-blue-400">INVESTMENT: {u.depositBalance?.toFixed(1) || '0.0'} 🪙</p>
-                                  <p className="text-green-400">LIQUIDITY: {u.winningBalance?.toFixed(1) || '0.0'} 🪙</p>
-                                  <p className="text-amber-400">INCENTIVE: {u.taskBalance?.toFixed(1) || '0.0'} 🪙</p>
-                               </div>
-                            </TableCell>
-                            <TableCell>
-                               <Badge className={cn("text-[8px] font-black px-2 py-0.5 border-none", u.isBanned ? "bg-red-500/20 text-red-500" : "bg-green-500/20 text-green-500")}>
-                                  {u.isBanned ? 'SUSPENDED' : 'COMPLIANT'}
-                               </Badge>
-                            </TableCell>
-                            <TableCell className="text-right px-8 space-x-2">
-                               <Button onClick={() => setBalanceAdjustment({ userId: u.id, bucket: 'winning', amount: 0 })} variant="outline" size="sm" className="h-8 rounded-lg text-[9px] font-black uppercase border-white/10">CREDIT / DEBIT</Button>
-                               <Button 
-                                onClick={async () => {
-                                  await updateDoc(doc(firestore!, 'users', u.id), { isBanned: !u.isBanned });
-                                  toast({ title: u.isBanned ? "Account Reinstated" : "Compliance Lockdown Executed" });
-                                }} 
-                                variant={u.isBanned ? "secondary" : "destructive"} 
-                                size="sm" 
-                                className="h-8 rounded-lg text-[9px] font-black uppercase"
-                               >
-                                  {u.isBanned ? 'ACTIVATE' : 'SUSPEND'}
-                               </Button>
-                            </TableCell>
-                         </TableRow>
-                      ))}
-                   </TableBody>
-                </Table>
-             </Card>
-          )}
-
-          {activeTab === 'events' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-bottom-5 duration-500">
-               {tournamentsData?.map(t => (
-                 <Card key={t.id} className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col group hover:border-primary/20 transition-all">
-                    <div className="relative h-40">
-                       <img src={t.banner} className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-700" />
-                       <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent" />
-                       <div className="absolute bottom-6 left-8">
-                          <Badge className="bg-primary/20 text-primary border-none font-black text-[8px] uppercase tracking-widest px-3 mb-2">{t.gameType}</Badge>
-                          <h4 className="text-xl font-black uppercase italic leading-none">{t.name}</h4>
-                       </div>
-                    </div>
-                    <CardContent className="p-8 space-y-6 flex-1">
-                       <div className="grid grid-cols-3 gap-4">
-                          <StatItem label="ENTRY" value={`${t.entryFee} 🪙`} />
-                          <StatItem label="PRIZE" value={t.prizePool} />
-                          <StatItem label="STATUS" value={t.status.toUpperCase()} />
-                       </div>
-                       
-                       {t.status !== 'completed' && t.status !== 'cancelled' && (
-                         <div className="space-y-4 pt-4 border-t border-white/5">
-                            <div className="grid grid-cols-2 gap-4">
-                               <div className="space-y-1">
-                                  <Label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Access ID</Label>
-                                  <Input 
-                                    defaultValue={t.roomCredentials?.roomId} 
-                                    placeholder="Enter Room ID" 
-                                    className="h-10 bg-white/5 border-white/10 rounded-xl text-xs font-black text-white"
-                                    onBlur={async (e) => {
-                                      await updateDoc(doc(firestore!, 'tournaments', t.id), { 'roomCredentials.roomId': e.target.value });
-                                      toast({ title: "Access ID Published" });
-                                    }}
-                                  />
-                               </div>
-                               <div className="space-y-1">
-                                  <Label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Access Pass</Label>
-                                  <Input 
-                                    defaultValue={t.roomCredentials?.roomPassword} 
-                                    placeholder="Enter Password" 
-                                    className="h-10 bg-white/5 border-white/10 rounded-xl text-xs font-black text-white"
-                                    onBlur={async (e) => {
-                                      await updateDoc(doc(firestore!, 'tournaments', t.id), { 'roomCredentials.roomPassword': e.target.value });
-                                      toast({ title: "Access Pass Published" });
-                                    }}
-                                  />
-                               </div>
-                            </div>
-                            <div className="flex gap-2">
-                               <Button onClick={() => handleTournamentAction(t, 'completed')} className="flex-1 h-12 bg-secondary hover:bg-secondary/90 font-black uppercase text-[10px] rounded-xl italic">PUBLISH CREDENTIALS</Button>
-                               <Button onClick={() => handleTournamentAction(t, 'cancelled')} variant="destructive" className="h-12 w-12 rounded-xl flex items-center justify-center p-0"><X className="h-4 w-4" /></Button>
-                            </div>
-                         </div>
-                       )}
-                    </CardContent>
-                 </Card>
-               ))}
-            </div>
-          )}
-
-          {activeTab === 'security' && (
-             <div className="space-y-8 animate-in zoom-in-95 duration-500">
-                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
-                   <div className="p-8 border-b border-white/5 flex items-center gap-4 bg-white/[0.02]">
-                      <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                         <Database className="text-primary h-6 w-6" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-black uppercase italic">Hardware Identity Monitor</h3>
-                        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Multi-Account Detection & Device Blacklisting</p>
-                      </div>
-                   </div>
-                   <Table>
-                      <TableHeader className="bg-white/[0.03]">
-                         <TableRow className="border-white/5">
-                            <TableHead className="text-[10px] font-black uppercase px-8">Hardware Signature</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase">Clones Detected</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase">Risk Level</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase text-right px-8">Operational Action</TableHead>
-                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                         {clones.map(([deviceId, list]) => (
-                            <TableRow key={deviceId} className="border-white/5 hover:bg-white/[0.01]">
-                               <TableCell className="px-8 font-mono text-[9px] text-muted-foreground">{deviceId}</TableCell>
-                               <TableCell>
-                                  <div className="flex -space-x-2">
-                                     {list.map(u => (
-                                        <div key={u.id} className="h-8 w-8 rounded-full border-2 border-[#0a0a0f] bg-primary/20 flex items-center justify-center text-[8px] font-black uppercase">
-                                           {u.email?.[0] || 'U'}
-                                        </div>
-                                     ))}
-                                  </div>
-                               </TableCell>
-                               <TableCell><Badge className="bg-red-500/20 text-red-500 border-none text-[8px] font-black">CRITICAL</Badge></TableCell>
-                               <TableCell className="text-right px-8">
-                                  <Button onClick={() => toast({ title: "Signal Jammed", description: "All associated profiles locked." })} variant="destructive" size="sm" className="h-8 rounded-lg text-[9px] font-black uppercase">LOCK ALL</Button>
-                               </TableCell>
-                            </TableRow>
-                         ))}
-                      </TableBody>
-                   </Table>
-                </Card>
-             </div>
-          )}
-
-          {activeTab === 'payouts' && (
-            <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
-               <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-                  <div>
-                    <h3 className="text-xl font-black uppercase italic">Payment Gateway</h3>
-                    <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Asset Extraction Audit & Processing</p>
-                  </div>
-               </div>
-               <Table>
-                  <TableHeader className="bg-white/[0.03]">
-                     <TableRow className="border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-8">Transaction</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">User Audit</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Volume</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right px-8">Audit Commands</TableHead>
-                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                     {globalWithdrawals?.map(tx => (
-                        <TableRow key={tx.id} className="border-white/5 hover:bg-white/[0.01] transition-all">
-                           <TableCell className="px-8 font-mono text-[9px] text-primary italic">TXN#{tx.id.slice(0,10).toUpperCase()}</TableCell>
-                           <TableCell>
-                              <div className="text-[10px] font-black">
-                                 <p className="text-white uppercase italic">{tx.userId?.slice(0,15)}</p>
-                                 <p className="text-muted-foreground mt-0.5">{tx.description || 'DESTINATION REDACTED'}</p>
-                              </div>
-                           </TableCell>
-                           <TableCell className="text-lg font-black tracking-tighter tabular-nums">
-                              {tx.currencySymbol}{tx.amount.toFixed(2)}
-                           </TableCell>
-                           <TableCell>
-                              <Badge className={cn("text-[8px] font-black border-none", tx.status === 'completed' ? "bg-green-500/20 text-green-500" : tx.status === 'pending' ? "bg-amber-500/20 text-amber-500" : "bg-red-500/20 text-red-500")}>
-                                 {tx.status.toUpperCase()}
-                              </Badge>
-                           </TableCell>
-                           <TableCell className="text-right px-8 space-x-2">
-                              {tx.status === 'pending' && (
-                                <>
-                                  <Button onClick={() => handlePayoutAction(tx, 'completed')} className="h-8 rounded-lg bg-green-600 hover:bg-green-700 text-[9px] font-black uppercase">APPROVE PAYOUT</Button>
-                                  <Button onClick={() => handlePayoutAction(tx, 'failed')} variant="destructive" className="h-8 rounded-lg text-[9px] font-black uppercase">REJECT</Button>
-                                </>
-                              )}
-                              <Button onClick={() => setSelectedTx(tx)} variant="ghost" className="h-8 rounded-lg border border-white/10 text-[9px] font-black uppercase px-4 hover:bg-white/5">RECEIPT</Button>
-                           </TableCell>
-                        </TableRow>
-                     ))}
-                  </TableBody>
-               </Table>
-            </Card>
           )}
 
           {activeTab === 'adhub' && (
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-right-5 duration-500">
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-right-5 duration-500 pb-20">
+                {/* CPA LEAD CONFIG */}
                 <ConfigCard title="CPA Lead Integration" description="Manage tactical analytical missions." icon={<Globe />}>
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
                          <Label className="text-[10px] font-black uppercase">Mission Signal Enabled</Label>
                          <Switch checked={sysConfig.offerWallEnabled} onCheckedChange={(val) => saveSettings({ offerWallEnabled: val })} />
                       </div>
-                      <div className="space-y-2">
-                         <Label className="text-[10px] font-black uppercase text-muted-foreground">API Data Stream</Label>
-                         <Input 
-                            value={sysConfig.cpaLeadUrl} 
-                            onChange={(e) => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})}
-                            className="bg-white/5 border-white/10 font-mono text-[10px] h-12 text-white"
-                         />
-                         <Button onClick={() => saveSettings({ cpaLeadUrl: sysConfig.cpaLeadUrl })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest mt-2">SYNC SYSTEM API</Button>
+                      <div className="space-y-4">
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground">API Data Stream (JSON URL)</Label>
+                            <Input 
+                               value={sysConfig.cpaLeadUrl} 
+                               onChange={(e) => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})}
+                               className="bg-white/5 border-white/10 font-mono text-[10px] h-12 text-white"
+                            />
+                         </div>
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground">CPA API Key (Verification)</Label>
+                            <Input 
+                               value={sysConfig.cpaLeadApiKey} 
+                               onChange={(e) => setSysConfig({...sysConfig, cpaLeadApiKey: e.target.value})}
+                               className="bg-white/5 border-white/10 font-mono text-[10px] h-12 text-white"
+                               placeholder="Enter CPA Key"
+                            />
+                         </div>
+                         <Button onClick={() => saveSettings({ cpaLeadUrl: sysConfig.cpaLeadUrl, cpaLeadApiKey: sysConfig.cpaLeadApiKey })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">SYNC CPA PROTOCOL</Button>
                       </div>
                    </div>
                 </ConfigCard>
 
-                <ConfigCard title="Corporate Video Ads" description="Configure reward parameters." icon={<PlayCircle />}>
+                {/* ADMOB CONFIG */}
+                <ConfigCard title="Google AdMob Hub" description="Industrial advertisement signals." icon={<Smartphone />}>
+                   <div className="space-y-6 pt-4">
+                      <div className="flex items-center justify-between">
+                         <Label className="text-[10px] font-black uppercase">AdMob Global Switch</Label>
+                         <Switch checked={sysConfig.adMobEnabled} onCheckedChange={(val) => saveSettings({ adMobEnabled: val })} />
+                      </div>
+                      <div className="grid grid-cols-1 gap-4">
+                         <ConfigInput label="AdMob App ID" value={sysConfig.adMobAppId} onChange={(v) => setSysConfig({...sysConfig, adMobAppId: v})} />
+                         <div className="grid grid-cols-2 gap-4">
+                            <ConfigInput label="Rewarded ID" value={sysConfig.adMobRewardedId} onChange={(v) => setSysConfig({...sysConfig, adMobRewardedId: v})} />
+                            <ConfigInput label="Interstitial ID" value={sysConfig.adMobInterstitialId} onChange={(v) => setSysConfig({...sysConfig, adMobInterstitialId: v})} />
+                         </div>
+                      </div>
+                      <Button onClick={() => saveSettings({ adMobAppId: sysConfig.adMobAppId, adMobRewardedId: sysConfig.adMobRewardedId, adMobInterstitialId: sysConfig.adMobInterstitialId })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">UPDATE AD SIGNALS</Button>
+                   </div>
+                </ConfigCard>
+
+                {/* VIDEO WALL CONFIG */}
+                <ConfigCard title="Video Revenue Wall" description="Third-party video ad providers." icon={<PlayCircle />}>
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
                          <Label className="text-[10px] font-black uppercase">Video Ad Protocol</Label>
                          <Switch checked={sysConfig.videoWallEnabled} onCheckedChange={(val) => saveSettings({ videoWallEnabled: val })} />
                       </div>
+                      <ConfigInput label="Video Provider Endpoint" value={sysConfig.videoWallUrl} onChange={(v) => setSysConfig({...sysConfig, videoWallUrl: v})} />
                       <div className="grid grid-cols-2 gap-4">
-                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase opacity-40">Value per dollaR</Label>
-                            <Input 
-                              type="number" 
-                              value={sysConfig.coinValuePerDollar} 
-                              onChange={(e) => setSysConfig({...sysConfig, coinValuePerDollar: Number(e.target.value)})}
-                              className="bg-white/5 border-white/10 h-12 font-black text-white"
-                            />
-                         </div>
-                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase opacity-40">Platform Profit %</Label>
-                            <Input 
-                              type="number" 
-                              value={sysConfig.adminProfitPercentage} 
-                              onChange={(e) => setSysConfig({...sysConfig, adminProfitPercentage: Number(e.target.value)})}
-                              className="bg-white/5 border-white/10 h-12 font-black text-white"
-                            />
-                         </div>
+                         <ConfigInput label="Value per dollar" type="number" value={sysConfig.coinValuePerDollar} onChange={(v) => setSysConfig({...sysConfig, coinValuePerDollar: Number(v)})} />
+                         <ConfigInput label="Platform Profit %" type="number" value={sysConfig.adminProfitPercentage} onChange={(v) => setSysConfig({...sysConfig, adminProfitPercentage: Number(v)})} />
                       </div>
-                      <Button onClick={() => saveSettings({ coinValuePerDollar: sysConfig.coinValuePerDollar, adminProfitPercentage: sysConfig.adminProfitPercentage })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">UPDATE VALUES</Button>
+                      <Button onClick={() => saveSettings({ videoWallUrl: sysConfig.videoWallUrl, coinValuePerDollar: sysConfig.coinValuePerDollar, adminProfitPercentage: sysConfig.adminProfitPercentage })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">COMMIT REVENUE PARAMS</Button>
                    </div>
                 </ConfigCard>
-             </div>
-          )}
 
-          {activeTab === 'referral' && (
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-left-5 duration-500">
-                <ConfigCard title="Recruitment Protocol" description="Incentives for enlisting new users." icon={<UsersIcon />}>
+                {/* SYSTEM ECONOMICS */}
+                <ConfigCard title="System Economics" description="Global financial constants." icon={<Coins />}>
                    <div className="space-y-6 pt-4">
-                      <div className="space-y-2">
-                         <Label className="text-[10px] font-black uppercase text-muted-foreground">Direct Reward</Label>
-                         <Input 
-                            type="number" 
-                            value={sysConfig.referralRewardCoins} 
-                            onChange={(e) => setSysConfig({...sysConfig, referralRewardCoins: Number(e.target.value)})}
-                            className="bg-white/5 border-white/10 h-12 font-black text-white"
-                         />
+                      <div className="grid grid-cols-2 gap-4">
+                         <ConfigInput label="Conversion Fee %" type="number" value={sysConfig.conversionFeePercent} onChange={(v) => setSysConfig({...sysConfig, conversionFeePercent: Number(v)})} />
+                         <ConfigInput label="Withdrawal Fee %" type="number" value={sysConfig.withdrawalFeePercent} onChange={(v) => setSysConfig({...sysConfig, withdrawalFeePercent: Number(v)})} />
                       </div>
-                      <Button onClick={() => saveSettings({ referralRewardCoins: sysConfig.referralRewardCoins })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">SAVE REWARD</Button>
+                      <ConfigInput label="Auto-Withdraw Threshold (₹)" type="number" value={sysConfig.autoWithdrawalThreshold} onChange={(v) => setSysConfig({...sysConfig, autoWithdrawalThreshold: Number(v)})} />
+                      <Button onClick={() => saveSettings({ conversionFeePercent: sysConfig.conversionFeePercent, withdrawalFeePercent: sysConfig.withdrawalFeePercent, autoWithdrawalThreshold: sysConfig.autoWithdrawalThreshold })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">SAVE ECONOMIC MATRIX</Button>
                    </div>
                 </ConfigCard>
              </div>
           )}
 
           {activeTab === 'system' && (
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-500">
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in zoom-in-95 duration-500">
                 <ConfigCard title="Operational Status" description="Global platform kill-switches." icon={<Settings />}>
                    <div className="space-y-6 pt-4">
                       <div className="p-6 rounded-2xl bg-destructive/5 border border-destructive/20 space-y-4">
@@ -593,56 +307,37 @@ export default function AdminDashboard() {
                       </div>
                    </div>
                 </ConfigCard>
+
+                <ConfigCard title="Payment Gateway API" description="Secure asset injection keys." icon={<ShieldCheck />}>
+                   <div className="space-y-6 pt-4">
+                      <div className="flex items-center justify-between">
+                         <Label className="text-[10px] font-black uppercase">Deposit Gateway Enabled</Label>
+                         <Switch checked={sysConfig.paymentGatewayEnabled} onCheckedChange={(val) => saveSettings({ paymentGatewayEnabled: val })} />
+                      </div>
+                      <ConfigInput label="Razorpay / Gateway Key ID" value={sysConfig.paymentGatewayKey} onChange={(v) => setSysConfig({...sysConfig, paymentGatewayKey: v})} />
+                      <ConfigInput label="Gateway Secret Key" type="password" value={sysConfig.paymentGatewaySecret} onChange={(v) => setSysConfig({...sysConfig, paymentGatewaySecret: v})} />
+                      <Button onClick={() => saveSettings({ paymentGatewayKey: sysConfig.paymentGatewayKey, paymentGatewaySecret: sysConfig.paymentGatewaySecret })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">SYNC GATEWAY KEYS</Button>
+                   </div>
+                </ConfigCard>
              </div>
           )}
         </div>
       </main>
+    </div>
+  );
+}
 
-      {balanceAdjustment && (
-        <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
-          <DialogContent className="bg-[#0a0a0f] border-white/10 rounded-[2rem] p-8 max-w-md text-white">
-            <DialogHeader><DialogTitle className="text-xl font-black uppercase italic text-center">Capital Allocation</DialogTitle></DialogHeader>
-            <div className="space-y-6 pt-6">
-              <div className="space-y-2">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center block">Target Portfolio Sector</Label>
-                 <Select value={balanceAdjustment.bucket} onValueChange={(val: any) => setBalanceAdjustment({...balanceAdjustment, bucket: val})}>
-                    <SelectTrigger className="h-12 bg-white/5 border-white/10 rounded-xl font-black uppercase text-[10px]">
-                       <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#121216] border-white/10 text-white">
-                        <SelectItem value="deposit" className="text-xs font-bold">INVESTMENT PORTFOLIO</SelectItem>
-                        <SelectItem value="winning" className="text-xs font-bold">WITHDRAWABLE ASSETS</SelectItem>
-                        <SelectItem value="task" className="text-xs font-bold">INCENTIVE ACCRUALS</SelectItem>
-                    </SelectContent>
-                 </Select>
-              </div>
-              <div className="space-y-2">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center block">Volume Adjustment (Credits)</Label>
-                 <Input type="number" value={balanceAdjustment.amount} onChange={e => setBalanceAdjustment({...balanceAdjustment, amount: Number(e.target.value)})} className="h-16 bg-white/5 border-white/10 rounded-xl text-3xl font-black text-center tabular-nums text-white" />
-              </div>
-              <Button onClick={async () => {
-                 const { userId, bucket, amount } = balanceAdjustment;
-                 const payload: any = { coins: increment(amount) };
-                 if (bucket === 'deposit') payload.depositBalance = increment(amount);
-                 if (bucket === 'winning') payload.winningBalance = increment(amount);
-                 if (bucket === 'task') payload.taskBalance = increment(amount);
-                 await updateDoc(doc(firestore!, 'users', userId), payload);
-                 
-                 await addDoc(collection(firestore!, 'users', userId, 'ledger'), {
-                    type: 'income',
-                    amount: Math.abs(amount),
-                    date: new Date().toISOString().split('T')[0],
-                    status: 'completed',
-                    description: `Executive Adjustment: Manual Capital ${amount >= 0 ? 'Credit' : 'Debit'}`
-                 });
-
-                 setBalanceAdjustment(null);
-                 toast({ title: "Ledger Matrix Updated" });
-              }} className="w-full h-14 bg-primary hover:bg-primary/90 rounded-xl font-black uppercase text-xs italic shadow-lg shadow-primary/20">EXECUTE CREDIT / DEBIT</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+function ConfigInput({ label, value, onChange, type = "text", placeholder = "" }: any) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">{label}</Label>
+      <Input 
+        type={type}
+        value={value || ''} 
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="bg-white/5 border-white/10 font-mono text-[10px] h-12 text-white"
+      />
     </div>
   );
 }
@@ -685,18 +380,9 @@ function ExactStatCard({ label, value, sub, icon }: any) {
   );
 }
 
-function StatItem({ label, value }: any) {
-   return (
-      <div className="text-center p-3 rounded-2xl bg-white/5 border border-white/5">
-         <p className="text-[7px] font-black text-muted-foreground uppercase mb-1">{label}</p>
-         <p className="text-xs font-black truncate">{value}</p>
-      </div>
-   );
-}
-
 function ConfigCard({ title, description, icon, children }: any) {
    return (
-      <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
+      <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 shadow-2xl space-y-6 h-fit">
          <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary">{icon}</div>
             <div>

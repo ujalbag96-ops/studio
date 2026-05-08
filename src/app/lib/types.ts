@@ -111,19 +111,29 @@ export interface UserProfile {
 export interface AppSettings {
   id: string;
   maintenanceMode: boolean;
+  // CPA & Offers
   cpaLeadUrl: string;
-  videoWallEnabled?: boolean;
+  cpaLeadApiKey?: string;
   offerWallEnabled?: boolean;
-  cpaLeadEnabled?: boolean;
-  telegramUrl?: string;
+  videoWallEnabled?: boolean;
+  videoWallUrl?: string;
+  // AdMob Infrastructure
+  adMobAppId?: string;
+  adMobBannerId?: string;
+  adMobInterstitialId?: string;
+  adMobRewardedId?: string;
+  adMobEnabled?: boolean;
+  // Payment Gateway (Razorpay/UPI/etc)
+  paymentGatewayKey?: string;
+  paymentGatewaySecret?: string;
+  paymentGatewayEnabled?: boolean;
+  autoWithdrawalThreshold?: number;
+  // Global Economics
   coinValuePerDollar?: number;
   adminProfitPercentage?: number;
   referralRewardCoins?: number;
   passiveReferralPercent?: number;
   conversionFeePercent?: number;
   withdrawalFeePercent?: number;
-  welcomeAlertEnabled?: boolean;
-  winningAlertEnabled?: boolean;
-  lowBalanceAlertEnabled?: boolean;
-  inactivityNudgeEnabled?: boolean;
+  telegramUrl?: string;
 }
