@@ -251,7 +251,7 @@ export default function UserDashboard() {
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-18 rounded-[1.5rem] font-black uppercase tracking-widest text-lg shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
                   <Link href="/earning-hub">DEPLOY TO HUB</Link>
                </Button>
-            </aside>
+            </Card>
 
             <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-8 shadow-2xl border-l-4 border-l-secondary">
                <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-3">
@@ -264,7 +264,7 @@ export default function UserDashboard() {
                   <p>• Tactical processing fee of <span className="text-white">8%</span> applies to all vault transfers.</p>
                </div>
             </Card>
-          </div>
+          </aside>
         </div>
       </main>
 
