@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, limit, deleteDoc, increment, where } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, limit, deleteDoc, increment, where, getDocs } from 'firebase/firestore';
 import { 
   LayoutDashboard, 
   Users as UsersIcon, 
@@ -29,7 +29,13 @@ import {
   BarChart3,
   MessageSquare,
   AlertTriangle,
-  CheckCircle2
+  CheckCircle2,
+  PieChart,
+  Calendar,
+  Activity,
+  Palette,
+  CreditCard,
+  Target
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -40,20 +46,46 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { AppSettings, UserProfile, UserLedgerEntry, Tournament, GameType, SupportMessage } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area,
+  BarChart,
+  Bar
+} from 'recharts';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
+
+type AdminTheme = 'midnight' | 'ocean' | 'blood' | 'gold' | 'neon' | 'royal';
+
+const THEMES: Record<AdminTheme, { bg: string, primary: string, accent: string, text: string }> = {
+  midnight: { bg: 'bg-[#050508]', primary: 'text-[#FF7B00]', accent: 'bg-[#FF7B00]', text: 'text-white' },
+  ocean: { bg: 'bg-[#000d1a]', primary: 'text-[#00d4ff]', accent: 'bg-[#00d4ff]', text: 'text-white' },
+  blood: { bg: 'bg-[#0a0000]', primary: 'text-[#ff1a1a]', accent: 'bg-[#ff1a1a]', text: 'text-white' },
+  gold: { bg: 'bg-[#0f0a00]', primary: 'text-[#ffcc00]', accent: 'bg-[#ffcc00]', text: 'text-white' },
+  neon: { bg: 'bg-[#000000]', primary: 'text-[#39ff14]', accent: 'bg-[#39ff14]', text: 'text-white' },
+  royal: { bg: 'bg-[#0a001a]', primary: 'text-[#9345FF]', accent: 'bg-[#9345FF]', text: 'text-white' }
+};
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'overview' | 'warriors' | 'security' | 'support' | 'campaigns' | 'control'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'warriors' | 'security' | 'support' | 'campaigns' | 'finance' | 'control'>('overview');
+  const [theme, setTheme] = useState<AdminTheme>('midnight');
   const [countryFilter, setCountryFilter] = useState<string>('All');
+  const [financeTimeFilter, setFinanceTimeFilter] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('month');
   const [coinAdjustment, setCoinAdjustment] = useState<{ userId: string; bucket: 'deposit' | 'winning' | 'task'; amount: number } | null>(null);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
@@ -64,6 +96,11 @@ export default function AdminDashboard() {
     if (countryFilter === 'All') return collection(firestore, 'users');
     return query(collection(firestore, 'users'), where('country', '==', countryFilter));
   }, [firestore, isAdminUser, countryFilter]);
+
+  const allLedgerQuery = useMemoFirebase(() => 
+    (firestore && isAdminUser) ? collectionGroup(firestore, 'ledger') : null, 
+    [firestore, isAdminUser]
+  );
 
   const flaggedTxsQuery = useMemoFirebase(() => 
     (firestore && isAdminUser) ? query(collectionGroup(firestore, 'ledger'), where('status', '==', 'review_required'), orderBy('date', 'desc')) : null, 
@@ -79,23 +116,71 @@ export default function AdminDashboard() {
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
 
   const { data: usersData } = useCollection<UserProfile>(usersQuery);
+  const { data: ledgerData } = useCollection<UserLedgerEntry>(allLedgerQuery);
   const { data: flaggedTxs } = useCollection<UserLedgerEntry>(flaggedTxsQuery);
   const { data: supportTickets } = useCollection<SupportMessage>(supportQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const [config, setConfig] = useState<Partial<AppSettings>>({});
-  const [isTournamentDialogOpen, setIsTournamentDialogOpen] = useState(false);
-  const [editingTournament, setEditingTournament] = useState<Partial<Tournament> | null>(null);
 
   useEffect(() => {
     if (settings) setConfig(settings);
   }, [settings]);
 
+  // Financial Intelligence Engine
+  const financialStats = useMemo(() => {
+    if (!ledgerData || !usersData) return { totalRevenue: 0, totalProfit: 0, totalUserBalance: 0, chartData: [] };
+
+    const now = new Date();
+    const filteredLedger = ledgerData.filter(tx => {
+      if (financeTimeFilter === 'all') return true;
+      const txDate = new Date(tx.date);
+      const diffTime = Math.abs(now.getTime() - txDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (financeTimeFilter === 'day') return diffDays <= 1;
+      if (financeTimeFilter === 'week') return diffDays <= 7;
+      if (financeTimeFilter === 'month') return diffDays <= 30;
+      if (financeTimeFilter === 'year') return diffDays <= 365;
+      return true;
+    });
+
+    let totalRevenue = 0;
+    let totalProfit = 0;
+    
+    filteredLedger.forEach(tx => {
+      if (tx.type === 'deposit' || tx.type === 'income') totalRevenue += tx.amount;
+      if (tx.type === 'conversion' || tx.type === 'withdrawal') {
+        // Estimate profit from fees (this logic mirrors the 1.2% and 8% logic)
+        const fee = tx.type === 'conversion' ? (tx.amount / 0.988) * 0.012 : (tx.amount / 0.92) * 0.08;
+        totalProfit += fee;
+      }
+    });
+
+    const totalUserBalance = usersData.reduce((acc, u) => acc + (u.coins || 0), 0) / 10;
+
+    // Generate chart data based on days
+    const dailyData: Record<string, { date: string, revenue: number, profit: number }> = {};
+    filteredLedger.forEach(tx => {
+      const d = tx.date;
+      if (!dailyData[d]) dailyData[d] = { date: d, revenue: 0, profit: 0 };
+      if (tx.type === 'deposit' || tx.type === 'income') dailyData[d].revenue += tx.amount / 10;
+      if (tx.type === 'conversion' || tx.type === 'withdrawal') {
+         const fee = tx.type === 'conversion' ? (tx.amount / 0.988) * 0.012 : (tx.amount / 0.92) * 0.08;
+         dailyData[d].profit += fee / 10;
+      }
+    });
+
+    const chartData = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date));
+
+    return { totalRevenue, totalProfit, totalUserBalance, chartData };
+  }, [ledgerData, usersData, financeTimeFilter]);
+
   const handleUpdateSettings = async (updates: Partial<AppSettings>) => {
     if (!firestore || !settingsRef) return;
     await setDoc(settingsRef, updates, { merge: true });
-    toast({ title: "Configuration Synced" });
+    toast({ title: "Intelligence Synced" });
   };
 
   const handleAdjustBalance = async () => {
@@ -115,175 +200,285 @@ export default function AdminDashboard() {
         amount: amount,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: `Admin correction: ${bucket}`
+        description: `Command Override: ${bucket} manual adjustment`
       });
-      toast({ title: "Transfer Successful" });
+      toast({ title: "Transfer Executed" });
       setCoinAdjustment(null);
     } catch (e) {
-      toast({ variant: "destructive", title: "Error" });
+      toast({ variant: "destructive", title: "Sync Protocol Interrupted" });
     }
   };
 
   const resolveTicket = async (ticketId: string) => {
     if (!firestore) return;
     await updateDoc(doc(firestore, 'support', ticketId), { status: 'resolved' });
-    toast({ title: "Ticket Archived" });
+    toast({ title: "Comms Log Resolved" });
   };
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
-  if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black">ACCESS DENIED</div>;
+  if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black">UNAUTHORIZED ACCESS DETECTED</div>;
+
+  const activeTheme = THEMES[theme];
 
   return (
-    <div className="flex min-h-screen bg-[#050508] text-white">
-      {/* Eagle Eye Sidebar */}
-      <aside className="w-64 bg-[#0a0a0f] border-r border-white/5 hidden lg:flex flex-col fixed inset-y-0 z-50">
+    <div className={cn("flex min-h-screen transition-colors duration-500", activeTheme.bg, activeTheme.text)}>
+      {/* Dynamic Tactical Sidebar */}
+      <aside className="w-64 bg-black/40 border-r border-white/5 hidden lg:flex flex-col fixed inset-y-0 z-50 backdrop-blur-xl">
         <div className="p-8 border-b border-white/5 flex items-center gap-3">
-          <ShieldCheck className="h-6 w-6 text-primary" />
-          <span className="font-black uppercase tracking-tighter text-lg italic">EAGLE<span className="text-primary">EYE</span></span>
+          <ShieldCheck className={cn("h-6 w-6", activeTheme.primary)} />
+          <span className="font-black uppercase tracking-tighter text-lg italic">EAGLE<span className={activeTheme.primary.replace('text-', 'text-')}>EYE</span></span>
         </div>
         
         <nav className="flex-1 p-4 space-y-1">
-          <NavItem active={activeTab === 'overview'} icon={<LayoutDashboard />} label="COMMAND" onClick={() => setActiveTab('overview')} />
-          <NavItem active={activeTab === 'warriors'} icon={<UsersIcon />} label="WARRIORS" onClick={() => setActiveTab('warriors')} />
-          <NavItem active={activeTab === 'security'} icon={<ShieldAlert />} label="SECURITY" onClick={() => setActiveTab('security')} count={flaggedTxs?.length} />
-          <NavItem active={activeTab === 'support'} icon={<MessageSquare />} label="SUPPORT" onClick={() => setActiveTab('support')} count={supportTickets?.length} />
-          <NavItem active={activeTab === 'campaigns'} icon={<Trophy />} label="CAMPAIGNS" onClick={() => setActiveTab('campaigns')} />
-          <NavItem active={activeTab === 'control'} icon={<Settings />} label="ECONOMIC" onClick={() => setActiveTab('control')} />
+          <NavItem active={activeTab === 'overview'} icon={<LayoutDashboard />} label="CONTROL" onClick={() => setActiveTab('overview')} theme={activeTheme} />
+          <NavItem active={activeTab === 'warriors'} icon={<UsersIcon />} label="WARRIORS" onClick={() => setActiveTab('warriors')} theme={activeTheme} />
+          <NavItem active={activeTab === 'finance'} icon={<TrendingUp />} label="FINANCE" onClick={() => setActiveTab('finance')} theme={activeTheme} />
+          <NavItem active={activeTab === 'security'} icon={<ShieldAlert />} label="SECURITY" onClick={() => setActiveTab('security')} count={flaggedTxs?.length} theme={activeTheme} />
+          <NavItem active={activeTab === 'support'} icon={<MessageSquare />} label="SUPPORT" onClick={() => setActiveTab('support')} count={supportTickets?.length} theme={activeTheme} />
+          <NavItem active={activeTab === 'campaigns'} icon={<Trophy />} label="ARENA" onClick={() => setActiveTab('campaigns')} theme={activeTheme} />
+          <NavItem active={activeTab === 'control'} icon={<Settings />} label="SYSTEM" onClick={() => setActiveTab('control')} theme={activeTheme} />
         </nav>
+
+        <div className="p-4 border-t border-white/5 space-y-4">
+           <div className="flex items-center gap-2 px-4 mb-2">
+              <Palette className="h-4 w-4 opacity-40" />
+              <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Admin Theme</span>
+           </div>
+           <div className="grid grid-cols-3 gap-2">
+              {(Object.keys(THEMES) as AdminTheme[]).map(t => (
+                <button 
+                  key={t}
+                  onClick={() => setTheme(t)}
+                  className={cn(
+                    "h-6 w-full rounded-full border border-white/10 transition-all",
+                    theme === t ? "ring-2 ring-white ring-offset-2 ring-offset-black scale-110" : "opacity-40 hover:opacity-100",
+                    THEMES[t].bg.replace('bg-', 'bg-')
+                  )}
+                />
+              ))}
+           </div>
+        </div>
       </aside>
 
       <main className="flex-1 lg:ml-64 pb-20">
-        <header className="h-16 bg-[#0a0a0f]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-40 px-8 flex items-center justify-between">
-          <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{activeTab} Sector</h2>
-          <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] font-black uppercase">ADMIN TERMINAL ACTIVE</Badge>
+        <header className="h-16 bg-black/20 backdrop-blur-md border-b border-white/5 sticky top-0 z-40 px-8 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+             <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">{activeTab} Sector</h2>
+          </div>
+          <div className="flex items-center gap-4">
+             <Badge className={cn("border-none text-[9px] font-black uppercase px-4 py-1", activeTheme.accent, "text-black")}>ADMIN TERMINAL ACTIVE</Badge>
+          </div>
         </header>
 
         <div className="p-8 space-y-8">
           {activeTab === 'overview' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard title="Total Recruits" value={usersData?.length || 0} icon={<UsersIcon />} color="blue" />
-              <StatCard title="Flagged Events" value={flaggedTxs?.length || 0} icon={<AlertTriangle />} color="red" />
-              <StatCard title="Active Campaigns" value={tournamentsData?.length || 0} icon={<Trophy />} color="orange" />
-              <StatCard title="Open Tickets" value={supportTickets?.length || 0} icon={<MessageSquare />} color="amber" />
-            </div>
-          )}
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title="Total Warriors" value={usersData?.length || 0} icon={<UsersIcon />} color="blue" />
+                <StatCard title="Security Flags" value={flaggedTxs?.length || 0} icon={<AlertTriangle />} color="red" />
+                <StatCard title="Active Campaigns" value={tournamentsData?.length || 0} icon={<Trophy />} color="orange" />
+                <StatCard title="Daily Revenue" value={`₹${financialStats.totalRevenue.toFixed(0)}`} icon={<TrendingUp />} color="green" />
+              </div>
 
-          {activeTab === 'security' && (
-            <div className="space-y-6">
-               <Card className="bg-[#0a0a0f] border-red-500/20 rounded-3xl overflow-hidden shadow-2xl">
-                  <Table>
-                    <TableHeader className="bg-red-500/5">
-                      <TableRow className="border-white/5">
-                        <TableHead className="px-8 font-black uppercase text-[9px] tracking-widest text-red-500">Suspicious Event</TableHead>
-                        <TableHead className="font-black uppercase text-[9px] tracking-widest">Volume</TableHead>
-                        <TableHead className="font-black uppercase text-[9px] tracking-widest">Protocol</TableHead>
-                        <TableHead className="text-right px-8 font-black uppercase text-[9px] tracking-widest">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {flaggedTxs?.map(tx => (
-                        <TableRow key={tx.id} className="border-white/5 hover:bg-white/5 transition-all">
-                          <TableCell className="px-8 py-6">
-                            <p className="font-black text-xs uppercase italic">{tx.description}</p>
-                            <p className="text-[8px] text-muted-foreground font-bold">{tx.date}</p>
-                          </TableCell>
-                          <TableCell className="font-black text-white">₹{tx.amount}</TableCell>
-                          <TableCell><Badge variant="outline" className="text-[9px] border-red-500/20 text-red-500">FLAGGED</Badge></TableCell>
-                          <TableCell className="text-right px-8 space-x-2">
-                             <Button size="sm" onClick={() => updateDoc(doc(firestore!, 'ledger', tx.id), { status: 'completed' })} className="h-8 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white border-none text-[8px] font-black">RELEASE</Button>
-                             <Button size="sm" variant="destructive" onClick={() => deleteDoc(doc(firestore!, 'ledger', tx.id))} className="h-8 text-[8px] font-black">VOID</Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-               </Card>
-            </div>
-          )}
-
-          {activeTab === 'support' && (
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {supportTickets?.map(ticket => (
-                   <Card key={ticket.id} className="bg-[#121216] border-white/5 rounded-3xl p-6 space-y-4">
-                      <div className="flex justify-between items-start">
-                         <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><UserPlus className="h-5 w-5" /></div>
-                            <div>
-                               <p className="text-[10px] font-black text-muted-foreground uppercase">{ticket.userId.substring(0,10)}</p>
-                               <p className="text-xs font-bold">{new Date(ticket.timestamp).toLocaleString()}</p>
-                            </div>
-                         </div>
-                         <Badge className="bg-amber-500/10 text-amber-500 text-[8px] uppercase">OPEN TICKET</Badge>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Card className="bg-black/20 border-white/5 rounded-[2.5rem] p-8 space-y-6 overflow-hidden relative">
+                   <div className="flex justify-between items-center relative z-10">
+                      <div>
+                        <h3 className="text-xl font-black italic uppercase">Revenue Matrix</h3>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Global Payout Analysis</p>
                       </div>
-                      <p className="text-sm font-medium leading-relaxed bg-black/40 p-4 rounded-2xl italic border border-white/5">"{ticket.message}"</p>
-                      <Button onClick={() => resolveTicket(ticket.id)} className="w-full h-11 bg-green-500 text-white font-black text-[10px] uppercase tracking-widest rounded-xl">MARK AS RESOLVED</Button>
+                      <Activity className="h-6 w-6 opacity-20" />
+                   </div>
+                   <div className="h-[250px] w-full pt-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                         <AreaChart data={financialStats.chartData}>
+                            <defs>
+                               <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor={activeTheme.primary.replace('text-', '#')} stopOpacity={0.3}/>
+                                  <stop offset="95%" stopColor={activeTheme.primary.replace('text-', '#')} stopOpacity={0}/>
+                               </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" />
+                            <XAxis dataKey="date" stroke="#ffffff20" fontSize={8} />
+                            <YAxis stroke="#ffffff20" fontSize={8} />
+                            <Tooltip 
+                               contentStyle={{ background: '#0a0a0f', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                               itemStyle={{ fontSize: '10px', fontWeight: '900' }}
+                            />
+                            <Area type="monotone" dataKey="revenue" stroke={activeTheme.primary.replace('text-', '#')} fillOpacity={1} fill="url(#colorRev)" />
+                         </AreaChart>
+                      </ResponsiveContainer>
+                   </div>
+                </Card>
+
+                <div className="grid gap-6">
+                   <Card className="bg-black/20 border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-between overflow-hidden relative group">
+                      <div className="absolute -top-10 -right-10 opacity-5 rotate-12 transition-transform group-hover:scale-125 duration-1000">
+                         <Target className="h-40 w-40" />
+                      </div>
+                      <div className="space-y-1 relative z-10">
+                         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Platform Profit</p>
+                         <h4 className="text-5xl font-black italic tracking-tighter text-green-500">₹{financialStats.totalProfit.toFixed(2)}</h4>
+                      </div>
+                      <div className="flex items-center gap-2 pt-4 relative z-10">
+                         <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] uppercase">+12.5% from last epoch</Badge>
+                      </div>
                    </Card>
-                ))}
+
+                   <Card className="bg-black/20 border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-between">
+                      <div className="space-y-1">
+                         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Total User Liability</p>
+                         <h4 className="text-4xl font-black italic tracking-tighter">₹{financialStats.totalUserBalance.toFixed(2)}</h4>
+                         <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest">Total value locked in warrior wallets</p>
+                      </div>
+                   </Card>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'finance' && (
+             <div className="space-y-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                   <div>
+                      <h1 className="text-4xl font-black italic uppercase tracking-tighter">Financial <span className={activeTheme.primary}>Intelligence</span></h1>
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Platform Revenue & Profit Ledger</p>
+                   </div>
+                   <div className="flex items-center gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5">
+                      {(['day', 'week', 'month', 'year', 'all'] as const).map(f => (
+                         <Button 
+                           key={f}
+                           onClick={() => setFinanceTimeFilter(f)}
+                           variant={financeTimeFilter === f ? 'secondary' : 'ghost'}
+                           className={cn("h-10 rounded-xl text-[9px] font-black uppercase px-6", financeTimeFilter === f && activeTheme.accent + " text-black")}
+                         >
+                           {f}
+                         </Button>
+                      ))}
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                   <Card className="bg-black/40 border-white/5 rounded-[2.5rem] p-8 space-y-8 col-span-2">
+                      <div className="flex justify-between items-center">
+                         <h3 className="text-lg font-black uppercase italic flex items-center gap-3">
+                           <BarChart3 className={activeTheme.primary} />
+                           Earnings Trajectory
+                         </h3>
+                      </div>
+                      <div className="h-[350px]">
+                         <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={financialStats.chartData}>
+                               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" />
+                               <XAxis dataKey="date" stroke="#ffffff20" fontSize={8} />
+                               <YAxis stroke="#ffffff20" fontSize={8} />
+                               <Tooltip 
+                                  contentStyle={{ background: '#0a0a0f', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                                  cursor={{ fill: '#ffffff05' }}
+                               />
+                               <Bar dataKey="revenue" fill={activeTheme.primary.replace('text-', '#')} radius={[10, 10, 0, 0]} />
+                               <Bar dataKey="profit" fill="#22c55e" radius={[10, 10, 0, 0]} />
+                            </BarChart>
+                         </ResponsiveContainer>
+                      </div>
+                   </Card>
+
+                   <div className="space-y-6">
+                      <FinanceMetricCard title="Gross Volume" value={`₹${financialStats.totalRevenue.toLocaleString()}`} description="All deposits & CPA income" icon={<CreditCard />} theme={activeTheme} />
+                      <FinanceMetricCard title="Operational Profit" value={`₹${financialStats.totalProfit.toLocaleString()}`} description="Fees & Ad margins" icon={<Zap />} theme={activeTheme} color="text-green-500" />
+                      <FinanceMetricCard title="Active Liability" value={`₹${financialStats.totalUserBalance.toLocaleString()}`} description="Current wallet balances" icon={<ShieldCheck />} theme={activeTheme} color="text-blue-500" />
+                   </div>
+                </div>
              </div>
           )}
 
           {activeTab === 'warriors' && (
             <div className="space-y-6">
-              <Card className="bg-white/5 border-white/5 p-4 rounded-2xl flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Filter className="h-4 w-4 text-primary" />
+              <Card className="bg-white/5 border-white/5 p-6 rounded-[2rem] flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-3">
+                    <Filter className={cn("h-4 w-4", activeTheme.primary)} />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Region Filter:</span>
+                  </div>
                   <Select value={countryFilter} onValueChange={setCountryFilter}>
-                    <SelectTrigger className="w-48 bg-black/40 border-white/10 h-10 rounded-xl">
-                      <SelectValue placeholder="Region" />
+                    <SelectTrigger className="w-64 bg-black/40 border-white/10 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                      <SelectValue placeholder="All Sectors" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#121216] border-white/10 text-white">
-                      <SelectItem value="All">Global Sector</SelectItem>
-                      <SelectItem value="India">India Sector</SelectItem>
-                      <SelectItem value="USA">USA Sector</SelectItem>
+                    <SelectContent className="bg-[#0a0a0f] border-white/10 text-white">
+                      <SelectItem value="All">Global Command</SelectItem>
+                      <SelectItem value="India">India Hub</SelectItem>
+                      <SelectItem value="USA">USA Hub</SelectItem>
+                      <SelectItem value="UK">UK Hub</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="flex items-center gap-2">
+                   <Badge variant="outline" className="border-white/10 opacity-60 text-[8px] font-black uppercase px-4">{usersData?.length} Warriors Enlisted</Badge>
+                </div>
               </Card>
 
-              <Card className="bg-[#0a0a0f] border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+              <Card className="bg-black/20 border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
                 <Table>
                   <TableHeader className="bg-white/5">
                     <TableRow className="border-white/5">
-                      <TableHead className="px-8 font-black uppercase text-[9px] tracking-widest text-muted-foreground">Identity</TableHead>
-                      <TableHead className="font-black uppercase text-[9px] tracking-widest text-muted-foreground">Balances (D/W/T)</TableHead>
-                      <TableHead className="font-black uppercase text-[9px] tracking-widest text-muted-foreground">Rank/Status</TableHead>
-                      <TableHead className="font-black uppercase text-[9px] tracking-widest text-muted-foreground text-right px-8">Access</TableHead>
+                      <TableHead className="px-8 font-black uppercase text-[9px] tracking-widest text-muted-foreground py-6">Warrior Identity</TableHead>
+                      <TableHead className="font-black uppercase text-[9px] tracking-widest text-muted-foreground">Asset Portfolio (D/W/T)</TableHead>
+                      <TableHead className="font-black uppercase text-[9px] tracking-widest text-muted-foreground">Tactical Status</TableHead>
+                      <TableHead className="font-black uppercase text-[9px] tracking-widest text-muted-foreground text-right px-8">Operational Control</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {usersData?.map(u => (
                       <TableRow key={u.id} className="border-white/5 hover:bg-white/5 transition-all">
-                        <TableCell className="px-8 py-6">
-                          <p className="font-black text-xs uppercase italic">{u.email || u.id.substring(0,10)}</p>
-                          {u.isVpnActive && <Badge className="bg-red-500/10 text-red-500 text-[7px] border-none">VPN DETECTED</Badge>}
+                        <TableCell className="px-8 py-8">
+                          <div className="space-y-1">
+                             <p className="font-black text-sm uppercase italic tracking-tight">{u.email || u.id.substring(0,10)}</p>
+                             <div className="flex items-center gap-2">
+                                <Badge className="bg-white/5 text-[7px] font-black border-none px-2 text-muted-foreground">{u.deviceId?.substring(0,12)}</Badge>
+                                {u.isVpnActive && <Badge className="bg-red-500/20 text-red-500 text-[7px] border-none font-black uppercase">VPN ALERT</Badge>}
+                             </div>
+                          </div>
                         </TableCell>
                         <TableCell>
                            <div className="flex gap-2">
-                              <Badge className="bg-white/5 text-white border-none text-[8px]">{u.depositBalance || 0}</Badge>
-                              <Badge className="bg-green-500/10 text-green-500 border-none text-[8px]">{u.winningBalance || 0}</Badge>
-                              <Badge className="bg-amber-500/10 text-amber-500 border-none text-[8px]">{u.taskBalance || 0}</Badge>
+                              <div className="bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 text-center">
+                                 <p className="text-[7px] font-black text-muted-foreground uppercase mb-0.5">DEP</p>
+                                 <p className="text-xs font-black">{u.depositBalance || 0}</p>
+                              </div>
+                              <div className="bg-green-500/5 px-3 py-1.5 rounded-lg border border-green-500/10 text-center">
+                                 <p className="text-[7px] font-black text-green-500/60 uppercase mb-0.5">WIN</p>
+                                 <p className="text-xs font-black text-green-500">{u.winningBalance?.toFixed(0) || 0}</p>
+                              </div>
+                              <div className="bg-amber-500/5 px-3 py-1.5 rounded-lg border border-amber-500/10 text-center">
+                                 <p className="text-[7px] font-black text-amber-500/60 uppercase mb-0.5">TASK</p>
+                                 <p className="text-xs font-black text-amber-500">{u.taskBalance || 0}</p>
+                              </div>
                            </div>
                         </TableCell>
                         <TableCell>
-                           <div className="space-y-1">
-                              <Badge variant="outline" className="text-[9px] border-primary/20 text-primary">{u.rank || 'Bronze'}</Badge>
-                              <p className="text-[7px] font-black text-muted-foreground uppercase">{u.country || 'Global'}</p>
+                           <div className="space-y-2">
+                              <Badge variant="outline" className={cn("text-[9px] border-white/10 font-black uppercase px-4", u.rank === 'Gold' ? 'text-amber-500 border-amber-500/20' : 'text-primary')}>
+                                 {u.rank || 'Bronze'}
+                              </Badge>
+                              <div className="flex items-center gap-2 text-[8px] font-black uppercase text-muted-foreground italic">
+                                 <Globe className="h-2.5 w-2.5" /> {u.country || 'Global'}
+                              </div>
                            </div>
                         </TableCell>
                         <TableCell className="text-right px-8 space-x-2">
                            <Button 
                              onClick={() => setCoinAdjustment({ userId: u.id, bucket: 'winning', amount: 100 })}
-                             className="h-8 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white border-none text-[8px] font-black uppercase"
+                             className="h-10 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white border-none text-[9px] font-black uppercase px-6 rounded-xl"
                            >
-                             +100 WIN
+                             ADD +100
                            </Button>
                            <Button 
                              variant={u.isBanned ? "outline" : "destructive"} 
                              size="sm" 
-                             className="h-8 px-4 font-black text-[9px] uppercase"
+                             className="h-10 px-6 font-black text-[9px] uppercase rounded-xl"
                              onClick={() => updateDoc(doc(firestore!, 'users', u.id), { isBanned: !u.isBanned })}
                            >
-                             {u.isBanned ? "UNBAN" : "BAN"}
+                             {u.isBanned ? "RELEASE" : "BAN"}
                            </Button>
                         </TableCell>
                       </TableRow>
@@ -296,38 +491,86 @@ export default function AdminDashboard() {
 
           {activeTab === 'control' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               <Card className="bg-[#1a1a1a] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
-                  <h3 className="text-lg font-black italic flex items-center gap-3"><DollarSign className="text-primary" /> Economy</h3>
-                  <div className="space-y-4">
-                     <div>
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">Referral Bounty (Coins)</Label>
-                        <Input type="number" value={config.referralRewardCoins} onChange={e => setConfig({...config, referralRewardCoins: Number(e.target.value)})} className="bg-black/40 border-white/10 h-12 rounded-xl mt-1" />
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-8 shadow-2xl">
+                  <div className="flex items-center gap-4">
+                     <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center shadow-xl", activeTheme.accent, "text-black")}>
+                        <DollarSign className="h-6 w-6" />
                      </div>
                      <div>
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">Passive Referral % (Task Comm.)</Label>
-                        <Input type="number" value={config.passiveReferralPercent} onChange={e => setConfig({...config, passiveReferralPercent: Number(e.target.value)})} className="bg-black/40 border-white/10 h-12 rounded-xl mt-1" />
+                        <h3 className="text-xl font-black italic uppercase">System Economy</h3>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Global Incentive Protocol</p>
                      </div>
-                     <Button onClick={() => handleUpdateSettings({ referralRewardCoins: config.referralRewardCoins, passiveReferralPercent: config.passiveReferralPercent })} className="w-full h-14 bg-primary font-black uppercase italic shadow-xl">SYNC GLOBAL ECONOMY</Button>
+                  </div>
+
+                  <div className="space-y-6 pt-4">
+                     <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Referral Reward (Coins)</Label>
+                        <Input type="number" value={config.referralRewardCoins} onChange={e => setConfig({...config, referralRewardCoins: Number(e.target.value)})} className="bg-black/40 border-white/10 h-14 rounded-2xl font-black text-lg focus:ring-primary" />
+                     </div>
+                     <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Passive Referral Chain %</Label>
+                        <Input type="number" value={config.passiveReferralPercent} onChange={e => setConfig({...config, passiveReferralPercent: Number(e.target.value)})} className="bg-black/40 border-white/10 h-14 rounded-2xl font-black text-lg focus:ring-primary" />
+                     </div>
+                     <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">CPA Lead URL (JSON API)</Label>
+                        <Input value={config.cpaLeadUrl} onChange={e => setConfig({...config, cpaLeadUrl: e.target.value})} className="bg-black/40 border-white/10 h-14 rounded-2xl text-[10px] font-bold" />
+                     </div>
+                     <Button onClick={() => handleUpdateSettings(config)} className={cn("w-full h-16 font-black uppercase italic rounded-2xl text-lg shadow-2xl text-black", activeTheme.accent)}>SYNCHRONIZE GLOBAL ECONOMY</Button>
                   </div>
                </Card>
 
-               <Card className="bg-[#1a1a1a] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
-                  <h3 className="text-lg font-black italic flex items-center gap-3"><ShieldCheck className="text-amber-500" /> API / Toggles</h3>
-                  <div className="space-y-4">
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-black/20 rounded-xl border border-white/5 flex items-center justify-between">
-                           <span className="text-[9px] font-black">Offer Wall</span>
-                           <Switch checked={config.offerWallEnabled} onCheckedChange={val => handleUpdateSettings({ offerWallEnabled: val })} />
-                        </div>
-                        <div className="p-4 bg-black/20 rounded-xl border border-white/5 flex items-center justify-between">
-                           <span className="text-[9px] font-black">Video Ads</span>
-                           <Switch checked={config.videoWallEnabled} onCheckedChange={val => handleUpdateSettings({ videoWallEnabled: val })} />
-                        </div>
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-8 shadow-2xl">
+                  <div className="flex items-center gap-4">
+                     <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-xl">
+                        <Power className="h-6 w-6 text-red-500" />
                      </div>
-                     <Button variant="outline" className="w-full h-14 border-white/10 text-[10px] font-black uppercase tracking-widest">RESET ALL CONNECTIONS</Button>
+                     <div>
+                        <h3 className="text-xl font-black italic uppercase">System Toggles</h3>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Global Switchboard</p>
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6 pt-4">
+                     <ToggleRow label="Offer Wall Protocol" checked={config.offerWallEnabled} onChange={val => handleUpdateSettings({ offerWallEnabled: val })} />
+                     <ToggleRow label="Video Ads Protocol" checked={config.videoWallEnabled} onChange={val => handleUpdateSettings({ videoWallEnabled: val })} />
+                     <ToggleRow label="Global Maintenance Mode" checked={config.maintenanceMode} onChange={val => handleUpdateSettings({ maintenanceMode: val })} />
+                     
+                     <div className="p-8 bg-red-500/5 rounded-[2rem] border border-red-500/10 space-y-4">
+                        <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">Danger Zone</p>
+                        <Button variant="outline" className="w-full h-14 border-red-500/20 text-red-500 font-black uppercase tracking-widest hover:bg-red-500 hover:text-white rounded-xl">WIPE ALL SESSION DATA</Button>
+                     </div>
                   </div>
                </Card>
             </div>
+          )}
+          
+          {/* Support Sector */}
+          {activeTab === 'support' && (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {supportTickets?.map(ticket => (
+                   <Card key={ticket.id} className="bg-black/20 border-white/5 rounded-[2.5rem] p-8 space-y-6 relative overflow-hidden group">
+                      <div className="flex justify-between items-start">
+                         <div className="flex items-center gap-4">
+                            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center shadow-xl", activeTheme.accent, "text-black")}>
+                               <UserPlus className="h-6 w-6" />
+                            </div>
+                            <div>
+                               <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{ticket.userId.substring(0,12)}</p>
+                               <p className="text-[10px] font-bold">{new Date(ticket.timestamp).toLocaleString()}</p>
+                            </div>
+                         </div>
+                         <Badge className="bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase px-3 py-1">OPEN TICKET</Badge>
+                      </div>
+                      <div className="bg-black/40 p-6 rounded-[1.5rem] border border-white/5 relative">
+                         <p className="text-xs font-medium leading-relaxed italic">"{ticket.message}"</p>
+                         <div className="absolute -top-3 -left-3 h-8 w-8 bg-white/5 rounded-full flex items-center justify-center">
+                            <MessageSquare className="h-4 w-4 opacity-20" />
+                         </div>
+                      </div>
+                      <Button onClick={() => resolveTicket(ticket.id)} className={cn("w-full h-14 font-black uppercase text-[10px] tracking-widest rounded-xl text-black", activeTheme.accent)}>ARCHIVE PROTOCOL</Button>
+                   </Card>
+                ))}
+             </div>
           )}
         </div>
       </main>
@@ -335,14 +578,23 @@ export default function AdminDashboard() {
       {/* Manual Adjustment Dialog */}
       {coinAdjustment && (
         <Dialog open={!!coinAdjustment} onOpenChange={() => setCoinAdjustment(null)}>
-          <DialogContent className="bg-[#121216] border-white/10 text-white rounded-[2rem]">
-            <DialogHeader><DialogTitle className="font-black italic uppercase">Adjust: {coinAdjustment.bucket}</DialogTitle></DialogHeader>
-            <div className="space-y-6 pt-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground">Coins to Credit (Use negative for debit)</Label>
-                <Input type="number" value={coinAdjustment.amount} onChange={e => setCoinAdjustment({...coinAdjustment, amount: Number(e.target.value)})} className="bg-black/40 h-14 rounded-xl text-xl font-black text-primary" />
+          <DialogContent className="bg-[#0a0a0f] border-white/10 text-white rounded-[3rem] p-10 max-w-md">
+            <DialogHeader>
+               <DialogTitle className="text-2xl font-black italic uppercase flex items-center gap-4">
+                  <Wrench className={activeTheme.primary} />
+                  Adjust Balance
+               </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-8 pt-8">
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Amount (Coins)</Label>
+                <p className="text-[8px] text-muted-foreground uppercase italic font-bold">Use negative values for debiting (-100)</p>
+                <Input type="number" value={coinAdjustment.amount} onChange={e => setCoinAdjustment({...coinAdjustment, amount: Number(e.target.value)})} className="bg-black/40 border-white/10 h-16 rounded-2xl text-3xl font-black text-primary tabular-nums" />
               </div>
-              <Button onClick={handleAdjustBalance} className="w-full h-14 bg-primary font-black uppercase italic rounded-xl">EXECUTE TRANSFER</Button>
+              <div className="grid grid-cols-2 gap-4">
+                 <Button onClick={() => setCoinAdjustment(null)} variant="outline" className="h-16 rounded-2xl font-black uppercase tracking-widest border-white/5">CANCEL</Button>
+                 <Button onClick={handleAdjustBalance} className={cn("h-16 rounded-2xl font-black uppercase tracking-widest shadow-2xl text-black", activeTheme.accent)}>EXECUTE</Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -351,30 +603,68 @@ export default function AdminDashboard() {
   );
 }
 
-function NavItem({ active, icon, label, onClick, count }: any) {
+function NavItem({ active, icon, label, onClick, count, theme }: any) {
   return (
-    <button onClick={onClick} className={cn("w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300 group relative", active ? "bg-primary text-white shadow-xl shadow-primary/20" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
-      <div className="flex items-center gap-4">
-        <span className={cn("h-5 w-5", active ? "scale-110" : "group-hover:scale-110")}>{icon}</span>
+    <button 
+      onClick={onClick} 
+      className={cn(
+        "w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300 group relative overflow-hidden", 
+        active ? theme.accent + " text-black shadow-2xl" : "text-muted-foreground hover:bg-white/5 hover:text-white"
+      )}
+    >
+      <div className="flex items-center gap-4 relative z-10">
+        <span className={cn("h-5 w-5 transition-transform", active ? "scale-110" : "group-hover:scale-110 opacity-60")}>{icon}</span>
         <span className="text-[10px] font-black uppercase tracking-[0.2em] italic">{label}</span>
       </div>
-      {count > 0 && <Badge className="bg-red-500 text-white border-none text-[8px] h-4 min-w-4 flex items-center justify-center p-0">{count}</Badge>}
-      {active && <div className="absolute left-2 h-6 w-1 bg-white rounded-full opacity-60" />}
+      {count > 0 && <Badge className="bg-red-500 text-white border-none text-[8px] h-4 min-w-4 flex items-center justify-center p-0 rounded-full font-black relative z-10">{count}</Badge>}
+      {active && <div className="absolute left-0 top-0 h-full w-1.5 bg-white/20" />}
     </button>
   );
 }
 
 function StatCard({ title, value, icon, color }: any) {
-  const colorMap = { blue: "bg-blue-600", orange: "bg-primary", red: "bg-destructive", amber: "bg-amber-500 text-black" };
+  const colorMap = { 
+    blue: "bg-blue-600/10 text-blue-500 border-blue-500/20", 
+    orange: "bg-primary/10 text-primary border-primary/20", 
+    red: "bg-red-600/10 text-red-500 border-red-500/20", 
+    green: "bg-green-600/10 text-green-500 border-green-500/20" 
+  };
   return (
-    <Card className="bg-[#1a1a1a] border-white/5 p-8 rounded-[2rem] flex items-center justify-between group hover:scale-[1.02] transition-all">
-       <div className="space-y-1">
+    <Card className="bg-black/20 border-white/5 p-8 rounded-[2.5rem] flex items-center justify-between group hover:scale-[1.02] transition-all relative overflow-hidden">
+       <div className="space-y-1 relative z-10">
           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">{title}</p>
-          <h4 className="text-3xl font-black italic tracking-tighter">{value.toLocaleString()}</h4>
+          <h4 className="text-3xl font-black italic tracking-tighter">{value}</h4>
        </div>
-       <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:rotate-12", colorMap[color as keyof typeof colorMap])}>
+       <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center border shadow-xl transition-transform group-hover:rotate-12 relative z-10", colorMap[color as keyof typeof colorMap])}>
+          {icon}
+       </div>
+       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-150 transition-transform duration-1000">
           {icon}
        </div>
     </Card>
+  );
+}
+
+function FinanceMetricCard({ title, value, description, icon, theme, color }: any) {
+  return (
+    <Card className="bg-black/20 border-white/5 p-6 rounded-[2rem] flex items-center gap-6 group hover:border-white/10 transition-all">
+       <div className={cn("h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 shadow-xl transition-transform group-hover:scale-110", theme.primary)}>
+          {icon}
+       </div>
+       <div>
+          <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-0.5">{title}</p>
+          <h4 className={cn("text-2xl font-black italic tracking-tighter", color || "text-white")}>{value}</h4>
+          <p className="text-[8px] font-bold text-muted-foreground uppercase opacity-40">{description}</p>
+       </div>
+    </Card>
+  );
+}
+
+function ToggleRow({ label, checked, onChange }: { label: string, checked?: boolean, onChange: (val: boolean) => void }) {
+  return (
+    <div className="p-6 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/10 transition-all">
+       <span className="text-[10px] font-black uppercase tracking-widest opacity-80 italic">{label}</span>
+       <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-primary" />
+    </div>
   );
 }
