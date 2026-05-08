@@ -37,9 +37,13 @@ import {
   Clock,
   ExternalLink,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  Send,
+  Bell,
+  BarChart3,
+  Image as ImageIcon
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +53,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -88,6 +94,7 @@ export default function AdminDashboard() {
   const [isCreatingTournament, setIsCreatingTournament] = useState(false);
   const [sysConfig, setSysConfig] = useState<Partial<AppSettings>>({});
   const [isProcessingMatch, setIsProcessingMatch] = useState<string | null>(null);
+  const [broadcast, setBroadcast] = useState({ title: 'New Tournament Live!', body: '', imageUrl: '', audience: 'all' });
 
   const [newTour, setNewTour] = useState({
     name: '',
@@ -96,7 +103,8 @@ export default function AdminDashboard() {
     prizePool: '₹500',
     entryFee: 10,
     startDate: '',
-    banner: 'https://picsum.photos/seed/tournament/800/400'
+    banner: 'https://picsum.photos/seed/tournament/800/400',
+    maxParticipants: 100
   });
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
@@ -153,6 +161,11 @@ export default function AdminDashboard() {
     toast({ title: "RESOLVE ISSUE", description: "Support ticket closed." });
   };
 
+  const handleBroadcast = () => {
+    toast({ title: "SEND ANNOUNCEMENT", description: `Broadcasting to ${broadcast.audience} warriors.` });
+    setBroadcast({ title: 'New Tournament Live!', body: '', imageUrl: '', audience: 'all' });
+  };
+
   const filteredUsers = useMemo(() => {
     if (!usersData) return [];
     const q = searchQuery.toLowerCase().trim();
@@ -183,7 +196,6 @@ export default function AdminDashboard() {
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary selection:text-white">
       <TransactionReceipt transaction={selectedTx} onClose={() => setSelectedTx(null)} />
       
-      {/* PROFESSIONAL SIDEBAR LAYOUT */}
       <aside className="w-[280px] flex flex-col fixed inset-y-0 z-50 bg-[#0a0a0f] border-r border-white/5 shadow-2xl">
         <div className="p-8 border-b border-white/5 flex items-center gap-4">
           <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(255,123,0,0.3)] rotate-3">
@@ -348,7 +360,7 @@ export default function AdminDashboard() {
                            <TableCell className="text-right px-8 space-x-2">
                               <Button onClick={() => setCoinAdjustment({ userId: u.id, bucket: 'winning', amount: 0 })} variant="outline" className="h-9 border-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-white/5 px-4">CREDIT / DEBIT</Button>
                               <Button onClick={() => handleRestrictAccess(u)} variant={u.isBanned ? "outline" : "destructive"} className="h-9 rounded-lg text-[9px] font-black uppercase tracking-widest px-4">
-                                 {u.isBanned ? 'PARDON' : 'SUSPEND'}
+                                 SUSPEND ACCOUNT
                               </Button>
                            </TableCell>
                         </TableRow>
@@ -356,6 +368,203 @@ export default function AdminDashboard() {
                   </TableBody>
                </Table>
             </Card>
+          )}
+
+          {activeTab === 'arena' && (
+            <div className="space-y-10">
+               <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-3xl font-black uppercase tracking-tighter italic">Arena Management</h3>
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">Live Combat Deployment</p>
+                  </div>
+                  <Button onClick={() => setIsCreatingTournament(true)} className="bg-primary hover:bg-primary/90 h-14 rounded-xl px-10 font-black uppercase tracking-widest italic text-xs shadow-2xl shadow-primary/20">
+                    <Plus className="h-5 w-5 mr-3" /> DEPLOY NEW ARENA
+                  </Button>
+               </div>
+               
+               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {tournamentsData?.map(tour => (
+                    <Card key={tour.id} className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden group hover:border-primary/40 transition-all shadow-2xl flex flex-col">
+                       <div className="h-44 relative">
+                          <img src={tour.banner} className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-1000" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent" />
+                          <div className="absolute top-4 left-4 flex gap-2">
+                             <Badge className={cn(
+                                "uppercase font-black text-[9px] italic border-none px-3 py-1",
+                                tour.status === 'active' ? "bg-red-500 text-white" : tour.status === 'upcoming' ? "bg-blue-500 text-white" : "bg-muted text-muted-foreground"
+                             )}>
+                                {tour.status === 'active' ? 'LIVE' : tour.status.toUpperCase()}
+                             </Badge>
+                             <Badge className="bg-primary/20 text-primary border-primary/20 uppercase font-black text-[9px] italic">{tour.gameType}</Badge>
+                          </div>
+                          <div className="absolute bottom-4 left-6 right-6 flex justify-between items-end">
+                             <h4 className="text-xl font-black uppercase italic tracking-tighter text-white">{tour.name}</h4>
+                             <div className="text-right">
+                                <p className="text-[7px] font-black uppercase text-muted-foreground">Prize Pool</p>
+                                <p className="text-lg font-black text-amber-500 leading-none">{tour.prizePool}</p>
+                             </div>
+                          </div>
+                       </div>
+                       
+                       <CardContent className="p-8 space-y-8 flex-1">
+                          <div className="grid grid-cols-2 gap-4">
+                             <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-2">
+                                <Label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                                   <Key className="h-3 w-3 text-primary" /> ROOM ID
+                                </Label>
+                                <Input 
+                                  value={tour.roomCredentials?.roomId || ''} 
+                                  onChange={e => {
+                                     const tourRef = doc(firestore!, 'tournaments', tour.id);
+                                     updateDoc(tourRef, { 'roomCredentials.roomId': e.target.value });
+                                  }}
+                                  placeholder="Enter ID"
+                                  className="h-10 bg-black/40 border-none text-[11px] font-black tracking-widest uppercase focus:ring-primary"
+                                />
+                             </div>
+                             <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-2">
+                                <Label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                                   <Lock className="h-3 w-3 text-primary" /> PASSWORD
+                                </Label>
+                                <Input 
+                                  value={tour.roomCredentials?.roomPassword || ''} 
+                                  onChange={e => {
+                                     const tourRef = doc(firestore!, 'tournaments', tour.id);
+                                     updateDoc(tourRef, { 'roomCredentials.roomPassword': e.target.value });
+                                  }}
+                                  placeholder="Enter Pass"
+                                  className="h-10 bg-black/40 border-none text-[11px] font-black tracking-widest uppercase focus:ring-primary"
+                                />
+                             </div>
+                          </div>
+
+                          <div className="space-y-3">
+                             <div className="flex justify-between items-end">
+                                <p className="text-[8px] font-black uppercase text-muted-foreground">Participants (Enlisted)</p>
+                                <p className="text-xs font-black text-white italic">{tour.participantsCount || 0} / {tour.maxParticipants || 100}</p>
+                             </div>
+                             <Progress value={((tour.participantsCount || 0) / (tour.maxParticipants || 100)) * 100} className="h-1.5 bg-white/5" />
+                          </div>
+
+                          <Button 
+                             onClick={() => {
+                                setIsProcessingMatch(tour.id);
+                                toast({ title: "PUBLISH CREDENTIALS", description: "Warriors notified of deployment." });
+                                setTimeout(() => setIsProcessingMatch(null), 1000);
+                             }}
+                             disabled={isProcessingMatch === tour.id}
+                             className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest italic rounded-2xl shadow-xl shadow-primary/20 text-xs"
+                          >
+                             {isProcessingMatch === tour.id ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <Send className="h-5 w-5 mr-3" />}
+                             PUBLISH CREDENTIALS
+                          </Button>
+                       </CardContent>
+
+                       <CardFooter className="p-6 bg-white/[0.02] border-t border-white/5 grid grid-cols-2 gap-3">
+                          <Button variant="outline" className="h-10 border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/5">
+                             SET RESULT
+                          </Button>
+                          <Button variant="ghost" onClick={() => deleteDoc(doc(firestore!, 'tournaments', tour.id))} className="h-10 text-red-500 hover:bg-red-500/10 hover:text-red-400 rounded-xl text-[9px] font-black uppercase tracking-widest">
+                             CANCEL ARENA
+                          </Button>
+                       </CardFooter>
+                    </Card>
+                  ))}
+               </div>
+            </div>
+          )}
+
+          {activeTab === 'growth' && (
+            <div className="grid lg:grid-cols-3 gap-10">
+               <div className="lg:col-span-2 space-y-10">
+                  <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 shadow-2xl space-y-8">
+                     <div className="flex items-center gap-4 text-primary">
+                        <MessageSquare className="h-6 w-6" />
+                        <h3 className="text-2xl font-black uppercase italic tracking-tighter">Quick Broadcast</h3>
+                     </div>
+                     <div className="space-y-6">
+                        <div className="space-y-3">
+                           <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Notification Title</Label>
+                           <Input 
+                            value={broadcast.title} 
+                            onChange={e => setBroadcast({...broadcast, title: e.target.value})}
+                            className="h-14 bg-white/5 border-white/5 rounded-xl font-black text-xs" 
+                           />
+                        </div>
+                        <div className="space-y-3">
+                           <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Message Body</Label>
+                           <Textarea 
+                            value={broadcast.body}
+                            onChange={e => setBroadcast({...broadcast, body: e.target.value})}
+                            placeholder="Example: Aaj ka Grand League match ₹5000 prize pool ke saath shuru hone wala hai. Jaldi join karein!"
+                            className="bg-white/5 border-white/5 rounded-xl font-medium text-xs min-h-[120px]" 
+                           />
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-6">
+                           <div className="space-y-3">
+                              <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Image URL (Optional)</Label>
+                              <div className="relative">
+                                 <Input 
+                                  value={broadcast.imageUrl}
+                                  onChange={e => setBroadcast({...broadcast, imageUrl: e.target.value})}
+                                  placeholder="https://..."
+                                  className="h-14 bg-white/5 border-white/5 rounded-xl pl-12 font-black text-xs" 
+                                 />
+                                 <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                              </div>
+                           </div>
+                           <div className="space-y-3">
+                              <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Target Audience</Label>
+                              <Select value={broadcast.audience} onValueChange={v => setBroadcast({...broadcast, audience: v})}>
+                                 <SelectTrigger className="h-14 bg-white/5 border-white/5 rounded-xl font-black text-[10px] uppercase">
+                                    <SelectValue />
+                                 </SelectTrigger>
+                                 <SelectContent className="bg-[#121216] border-white/10 text-white">
+                                    <SelectItem value="all">ALL WARRIORS</SelectItem>
+                                    <SelectItem value="paid">PAID USERS</SelectItem>
+                                    <SelectItem value="inactive">INACTIVE USERS</SelectItem>
+                                 </SelectContent>
+                              </Select>
+                           </div>
+                        </div>
+                        <Button onClick={handleBroadcast} className="w-full h-18 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black text-lg tracking-[0.2em] uppercase italic shadow-2xl shadow-primary/20">
+                           SEND ANNOUNCEMENT
+                        </Button>
+                     </div>
+                  </Card>
+
+                  <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 shadow-2xl space-y-8">
+                     <div className="flex items-center gap-4 text-primary">
+                        <Zap className="h-6 w-6" />
+                        <h3 className="text-2xl font-black uppercase italic tracking-tighter">Automated Triggers</h3>
+                     </div>
+                     <div className="grid md:grid-cols-2 gap-6">
+                        <ProtocolItem label="Welcome Alert" desc="Triggered on new warrior registration" checked={sysConfig.welcomeAlertEnabled} onChange={c => setSysConfig({...sysConfig, welcomeAlertEnabled: c})} />
+                        <ProtocolItem label="Winning Alert" desc="Triggered on tournament victory" checked={sysConfig.winningAlertEnabled} onChange={c => setSysConfig({...sysConfig, winningAlertEnabled: c})} />
+                        <ProtocolItem label="Low Balance Alert" desc="Triggered when entry fee exceeds balance" checked={sysConfig.lowBalanceAlertEnabled} onChange={c => setSysConfig({...sysConfig, lowBalanceAlertEnabled: c})} />
+                        <ProtocolItem label="Inactivity Nudge" desc="Triggered after 2 days of silence" checked={sysConfig.inactivityNudgeEnabled} onChange={c => setSysConfig({...sysConfig, inactivityNudgeEnabled: c})} />
+                     </div>
+                  </Card>
+               </div>
+
+               <div className="space-y-10">
+                  <div className="grid grid-cols-1 gap-6">
+                     <StatsCard title="Total Sent" value="15,400" icon={<Send />} />
+                     <StatsCard title="Open Rate" value="45%" icon={<Bell />} />
+                     <StatsCard title="Conversion" value="₹1,200" icon={<TrendingUp />} />
+                  </div>
+
+                  <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/20 border-2 rounded-[2.5rem] p-8 text-center space-y-6">
+                     <div className="h-16 w-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
+                        <BarChart3 className="h-8 w-8 text-primary" />
+                     </div>
+                     <div className="space-y-2">
+                        <h4 className="text-lg font-black uppercase italic">Engagement Index</h4>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase leading-relaxed">Notifications increase match participation by 80% when using images.</p>
+                     </div>
+                  </Card>
+               </div>
+            </div>
           )}
 
           {activeTab === 'finance' && (
@@ -413,12 +622,12 @@ export default function AdminDashboard() {
                            <TableCell className="text-right px-8">
                               {l.type === 'withdrawal' && l.status === 'pending' ? (
                                 <div className="flex justify-end gap-2">
-                                   <Button className="h-9 bg-green-500/20 hover:bg-green-500 text-green-500 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest px-4">APPROVE</Button>
+                                   <Button className="h-9 bg-green-500/20 hover:bg-green-500 text-green-500 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest px-4">APPROVE PAYOUT</Button>
                                    <Button variant="ghost" className="h-9 hover:bg-red-500/10 text-red-500 rounded-lg text-[9px] font-black uppercase tracking-widest px-4">REJECT</Button>
                                 </div>
                               ) : (
                                 <Button onClick={() => setSelectedTx(l)} variant="ghost" className="h-9 hover:bg-white/10 text-primary rounded-lg text-[9px] font-black uppercase tracking-widest px-4 gap-2">
-                                   <Eye className="h-3.5 w-3.5" /> RECEIPT
+                                   <Eye className="h-3.5 w-3.5" /> View Receipt
                                 </Button>
                               )}
                            </TableCell>
@@ -427,74 +636,6 @@ export default function AdminDashboard() {
                   </TableBody>
                </Table>
             </Card>
-          )}
-
-          {activeTab === 'arena' && (
-            <div className="space-y-10">
-               <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-3xl font-black uppercase tracking-tighter italic">Arena Management</h3>
-                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">Live Combat Deployment</p>
-                  </div>
-                  <Button onClick={() => setIsCreatingTournament(true)} className="bg-primary hover:bg-primary/90 h-14 rounded-xl px-10 font-black uppercase tracking-widest italic text-xs shadow-2xl shadow-primary/20">
-                    <Plus className="h-5 w-5 mr-3" /> DEPLOY NEW ARENA
-                  </Button>
-               </div>
-               
-               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {tournamentsData?.map(tour => (
-                    <Card key={tour.id} className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden group hover:border-primary/40 transition-all shadow-2xl">
-                       <div className="h-40 relative">
-                          <img src={tour.banner} className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-1000" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent" />
-                          <Badge className="absolute top-4 right-4 bg-primary/20 text-primary border-primary/20 uppercase font-black text-[9px] italic">{tour.gameType}</Badge>
-                       </div>
-                       <CardContent className="p-6 space-y-6">
-                          <h4 className="text-lg font-black uppercase italic tracking-tighter text-white">{tour.name}</h4>
-                          <div className="grid grid-cols-2 gap-3">
-                             <div className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-1">
-                                <Label className="text-[7px] font-black uppercase text-muted-foreground tracking-widest">Signal ID</Label>
-                                <Input 
-                                  value={tour.roomCredentials?.roomId || ''} 
-                                  onChange={e => {
-                                     const tourRef = doc(firestore!, 'tournaments', tour.id);
-                                     updateDoc(tourRef, { 'roomCredentials.roomId': e.target.value });
-                                  }}
-                                  placeholder="PENDING"
-                                  className="h-9 bg-black/40 border-none text-[10px] font-black tracking-widest uppercase focus:ring-primary"
-                                />
-                             </div>
-                             <div className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-1">
-                                <Label className="text-[7px] font-black uppercase text-muted-foreground tracking-widest">Access Key</Label>
-                                <Input 
-                                  value={tour.roomCredentials?.roomPassword || ''} 
-                                  onChange={e => {
-                                     const tourRef = doc(firestore!, 'tournaments', tour.id);
-                                     updateDoc(tourRef, { 'roomCredentials.roomPassword': e.target.value });
-                                  }}
-                                  placeholder="PENDING"
-                                  className="h-9 bg-black/40 border-none text-[10px] font-black tracking-widest uppercase focus:ring-primary"
-                                />
-                             </div>
-                          </div>
-                          
-                          <Button 
-                             onClick={() => {
-                                setIsProcessingMatch(tour.id);
-                                toast({ title: "SET RESULT", description: "Rewards distributed to winners." });
-                                setTimeout(() => setIsProcessingMatch(null), 1000);
-                             }}
-                             disabled={isProcessingMatch === tour.id}
-                             className="w-full h-12 bg-white/5 hover:bg-primary/20 text-white font-black uppercase tracking-widest italic rounded-xl border border-white/5 text-[10px]"
-                          >
-                             {isProcessingMatch === tour.id ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
-                             SET RESULT
-                          </Button>
-                       </CardContent>
-                    </Card>
-                  ))}
-               </div>
-            </div>
           )}
 
           {activeTab === 'support' && (
@@ -562,7 +703,7 @@ export default function AdminDashboard() {
             </div>
           )}
           
-          {(activeTab === 'security' || activeTab === 'ads' || activeTab === 'growth') && (
+          {(activeTab === 'security' || activeTab === 'ads') && (
             <div className="p-32 text-center border-2 border-dashed border-white/5 rounded-[3rem] bg-white/[0.01]">
                <Activity className="h-16 w-16 text-muted-foreground opacity-10 mx-auto mb-6" />
                <p className="text-sm font-black uppercase text-muted-foreground tracking-[0.3em] italic">{activeTab.toUpperCase()} CENTER ACTIVE SCANNING...</p>
@@ -637,7 +778,7 @@ export default function AdminDashboard() {
                <Button onClick={async () => {
                   if (!firestore) return;
                   const id = 'tour_' + Date.now();
-                  await setDoc(doc(firestore, 'tournaments', id), { ...newTour, id, status: 'active', prizePool: newTour.prizePool || '₹500' });
+                  await setDoc(doc(firestore, 'tournaments', id), { ...newTour, id, status: 'active', prizePool: newTour.prizePool || '₹500', participantsCount: 0 });
                   toast({ title: "Arena Deployed" });
                   setIsCreatingTournament(false);
                }} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase tracking-widest rounded-xl shadow-2xl text-sm italic">Initiate Deployment</Button>
@@ -694,4 +835,18 @@ function ProtocolItem({ label, desc, checked, onChange }: any) {
          <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-primary" />
       </div>
    );
+}
+
+function StatsCard({ title, value, icon }: any) {
+  return (
+    <Card className="bg-[#0a0a0f] border-white/5 rounded-2xl p-6 flex items-center justify-between group hover:border-primary/40 transition-all shadow-xl">
+       <div className="space-y-1">
+          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{title}</p>
+          <h4 className="text-2xl font-black text-white italic">{value}</h4>
+       </div>
+       <div className="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors border border-white/5">
+          {icon}
+       </div>
+    </Card>
+  );
 }

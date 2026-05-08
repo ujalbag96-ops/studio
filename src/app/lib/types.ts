@@ -33,6 +33,8 @@ export interface Tournament {
   entryFee: number;
   startDate: string;
   banner: string;
+  participantsCount?: number;
+  maxParticipants?: number;
   roomCredentials?: {
     roomId?: string;
     roomPassword?: string;
@@ -111,4 +113,8 @@ export interface AppSettings {
   passiveReferralPercent?: number;
   conversionFeePercent?: number;
   withdrawalFeePercent?: number;
+  welcomeAlertEnabled?: boolean;
+  winningAlertEnabled?: boolean;
+  lowBalanceAlertEnabled?: boolean;
+  inactivityNudgeEnabled?: boolean;
 }
