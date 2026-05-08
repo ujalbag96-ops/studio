@@ -25,9 +25,10 @@ import { Badge } from '@/components/ui/badge';
 import OfferWall from '@/components/OfferWall';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Link from 'next/link';
 
 export default function EarningHub() {
-  const { user } = userUser();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isVideoLoading, setIsVideoLoading] = useState(false);
@@ -235,9 +236,4 @@ export default function EarningHub() {
       </section>
     </div>
   );
-}
-
-function useUser() {
-  const { user, isUserLoading } = useUserHook();
-  return { user, isUserLoading };
 }
