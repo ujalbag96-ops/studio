@@ -78,7 +78,7 @@ import TransactionReceipt from '@/components/TransactionReceipt';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-type AdminTab = 'overview' | 'users' | 'events' | 'payouts' | 'compliance' | 'monetization' | 'marketing' | 'system' | 'support';
+type AdminTab = 'overview' | 'users' | 'events' | 'payouts' | 'compliance' | 'system' | 'marketing' | 'support';
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
@@ -94,7 +94,7 @@ export default function AdminDashboard() {
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [sysConfig, setSysConfig] = useState<Partial<AppSettings>>({});
   const [isProcessingEvent, setIsProcessingEvent] = useState<string | null>(null);
-  const [broadcast, setBroadcast] = useState({ title: 'System Update', body: '', imageUrl: '', audience: 'all' });
+  const [broadcast, setBroadcast] = useState({ title: 'Analytical Update', body: '', imageUrl: '', audience: 'all' });
 
   const [newEvent, setNewEvent] = useState({
     name: '',
@@ -177,7 +177,6 @@ export default function AdminDashboard() {
           description: `Automatic Refund: ${tournament.name} Event Cancellation`
         });
 
-        // Remove registration
         const specificRegQuery = query(collection(firestore, 'registrations'), where('userId', '==', reg.userId), where('tournamentId', '==', tournament.id));
         const specificRegSnap = await getDocs(specificRegQuery);
         specificRegSnap.docs.forEach(d => batch.delete(d.ref));
@@ -203,7 +202,7 @@ export default function AdminDashboard() {
       timestamp: new Date().toISOString()
     });
     toast({ title: "Strategic Alert Transmitted", description: `Broadcast deployed to ${broadcast.audience} segment.` });
-    setBroadcast({ title: 'System Update', body: '', imageUrl: '', audience: 'all' });
+    setBroadcast({ title: 'Analytical Update', body: '', imageUrl: '', audience: 'all' });
   };
 
   const filteredUsers = useMemo(() => {
@@ -217,7 +216,7 @@ export default function AdminDashboard() {
     );
   }, [usersData, searchQuery]);
 
-  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Analyzing System Matrix...</p></div>;
   if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black uppercase tracking-[0.5em] italic">Access Denied: Executive Credentials Required</div>;
 
   return (
@@ -230,8 +229,8 @@ export default function AdminDashboard() {
              <ShieldCheck className="h-5 w-5 text-white" />
           </div>
           <div>
-            <span className="font-black text-lg italic tracking-tighter block uppercase">EXECUTIVE<span className="text-primary">CORE</span></span>
-            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Management Console</span>
+            <span className="font-black text-lg italic tracking-tighter block uppercase">EXECUTIVE<span className="text-primary">HUB</span></span>
+            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Operational Console</span>
           </div>
         </div>
         
@@ -240,7 +239,7 @@ export default function AdminDashboard() {
           <SideLink active={activeTab === 'users'} icon={<UsersIcon />} label="USER DIRECTORY" onClick={() => setActiveTab('users')} />
           <SideLink active={activeTab === 'events'} icon={<Trophy />} label="ARENA MANAGEMENT" onClick={() => setActiveTab('events')} />
           <SideLink active={activeTab === 'payouts'} icon={<TrendingUp />} label="PAYMENT GATEWAY" onClick={() => setActiveTab('payouts')} />
-          <SideLink active={activeTab === 'marketing'} icon={<Bell />} label="MARKETING HUB" onClick={() => setActiveTab('marketing')} />
+          <SideLink active={activeTab === 'marketing'} icon={<Bell />} label="BROADCAST CENTER" onClick={() => setActiveTab('marketing')} />
           <SideLink active={activeTab === 'support'} icon={<MessageSquare />} label="HELP DESK" onClick={() => setActiveTab('support')} />
           <SideLink active={activeTab === 'system'} icon={<Settings />} label="APPLICATION SETTINGS" onClick={() => setActiveTab('system')} />
           
@@ -269,10 +268,10 @@ export default function AdminDashboard() {
           {activeTab === 'overview' && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <AnalyticCard label="Global User Segments" value={usersData?.length || '0'} sub="+14 Registration Momentum" icon={<UsersIcon />} color="blue" />
-                <AnalyticCard label="Platform Yield" value="₹84,210" sub="Analytical Growth Stable" icon={<TrendingUp />} color="orange" />
-                <AnalyticCard label="Aggregate Liabilities" value="₹1,24,000" sub="Total Wallet Obligations" icon={<Shield />} color="green" />
-                <AnalyticCard label="Net Operational Surplus" value="₹24,500" sub="Post-Disbursement Analytics" icon={<Trophy />} color="red" />
+                <AnalyticCard label="Global User Segments" value={usersData?.length || '0'} sub="+14 Momentum" icon={<UsersIcon />} color="blue" />
+                <AnalyticCard label="Platform Yield" value="₹84,210" sub="Analytical Growth" icon={<TrendingUp />} color="orange" />
+                <AnalyticCard label="Aggregate Liabilities" value="₹1,24,000" sub="Obligations" icon={<Shield />} color="green" />
+                <AnalyticCard label="Operational Surplus" value="₹24,500" sub="Post-Disbursement" icon={<Trophy />} color="red" />
               </div>
             </>
           )}
@@ -367,9 +366,11 @@ export default function AdminDashboard() {
                                 <Input value={tour.roomCredentials?.roomPassword || ''} placeholder="Enter Key" className="h-10 bg-black/40 border-none text-[11px]" readOnly />
                              </div>
                           </div>
-                          <Button onClick={() => handleCancelEvent(tour)} disabled={tour.status === 'cancelled' || isProcessingEvent === tour.id} variant="destructive" className="w-full h-12 rounded-xl text-[10px] font-black uppercase">
-                            {isProcessingEvent === tour.id ? <Loader2 className="animate-spin h-4 w-4" /> : 'CANCEL & REFUND'}
-                          </Button>
+                          <div className="flex gap-2">
+                             <Button onClick={() => handleCancelEvent(tour)} disabled={tour.status === 'cancelled' || isProcessingEvent === tour.id} variant="destructive" className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase">
+                               {isProcessingEvent === tour.id ? <Loader2 className="animate-spin h-4 w-4" /> : 'CANCEL & REFUND'}
+                             </Button>
+                          </div>
                        </CardContent>
                     </Card>
                   ))}
@@ -404,6 +405,20 @@ export default function AdminDashboard() {
                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] p-8 space-y-8">
                   <h4 className="text-lg font-black uppercase italic flex items-center gap-3"><Settings className="text-primary" /> System Core Configuration</h4>
                   <ProtocolItem label="Activate Maintenance Protocol" desc="Global service interruption for infrastructure updates" checked={sysConfig.maintenanceMode} onChange={c => setSysConfig({...sysConfig, maintenanceMode: c})} />
+                  <ProtocolItem label="Enable Video Incentives" desc="Allow users to accumulate coins via media interaction" checked={sysConfig.videoWallEnabled} onChange={c => setSysConfig({...sysConfig, videoWallEnabled: c})} />
+                  <ProtocolItem label="Enable Analytical Missions" desc="Allow users to access CPA Lead Offer Walls" checked={sysConfig.offerWallEnabled} onChange={c => setSysConfig({...sysConfig, offerWallEnabled: c})} />
+                  
+                  <div className="pt-4 border-t border-white/5 space-y-4">
+                    <div className="space-y-2">
+                       <Label className="text-[10px] font-black uppercase text-muted-foreground">CPA Lead Analytical URL</Label>
+                       <Input value={sysConfig.cpaLeadUrl || ''} onChange={e => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})} className="h-12 bg-white/5 font-mono text-[10px]" />
+                    </div>
+                    <div className="space-y-2">
+                       <Label className="text-[10px] font-black uppercase text-muted-foreground">Incentive Ratio (Coins per $1)</Label>
+                       <Input type="number" value={sysConfig.coinValuePerDollar || 800} onChange={e => setSysConfig({...sysConfig, coinValuePerDollar: Number(e.target.value)})} className="h-12 bg-white/5" />
+                    </div>
+                  </div>
+
                   <Button onClick={async () => {
                      await setDoc(doc(firestore!, 'settings', 'global'), sysConfig, { merge: true });
                      toast({ title: "Core Configuration Synchronized" });
@@ -414,7 +429,7 @@ export default function AdminDashboard() {
         </div>
       </main>
 
-      {/* Credit/Debit Dialog */}
+      {/* Manual Wealth Adjustment Dialog */}
       {balanceAdjustment && (
         <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
           <DialogContent className="bg-[#0a0a0f] border-white/10 rounded-[2rem] p-10 max-w-sm text-white">
@@ -422,7 +437,7 @@ export default function AdminDashboard() {
             <div className="space-y-6 pt-6">
               <Select value={balanceAdjustment.bucket} onValueChange={(val: any) => setBalanceAdjustment({...balanceAdjustment, bucket: val})}>
                 <SelectTrigger className="h-14 bg-white/5 font-black uppercase text-[10px]"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-black text-white"><SelectItem value="deposit">DEPOSIT ASSETS</SelectItem><SelectItem value="winning">WINNING DISBURSEMENT</SelectItem></SelectContent>
+                <SelectContent className="bg-black text-white"><SelectItem value="deposit">DEPOSIT ASSETS</SelectItem><SelectItem value="winning">WINNING DISBURSEMENT</SelectItem><SelectItem value="task">INCENTIVE CREDITS</SelectItem></SelectContent>
               </Select>
               <Input type="number" value={balanceAdjustment.amount} onChange={e => setBalanceAdjustment({...balanceAdjustment, amount: Number(e.target.value)})} className="h-16 bg-white/5 text-3xl font-black text-center" />
               <Button onClick={async () => {
@@ -430,8 +445,16 @@ export default function AdminDashboard() {
                  const payload: any = { coins: increment(amount) };
                  if (bucket === 'deposit') payload.depositBalance = increment(amount);
                  if (bucket === 'winning') payload.winningBalance = increment(amount);
+                 if (bucket === 'task') payload.taskBalance = increment(amount);
+                 
                  await updateDoc(doc(firestore!, 'users', userId), payload);
-                 await addDoc(collection(firestore!, 'users', userId, 'ledger'), { type: 'income', amount, date: new Date().toISOString().split('T')[0], status: 'completed', description: `Analytical Capital Allocation: ${bucket}` });
+                 await addDoc(collection(firestore!, 'users', userId, 'ledger'), { 
+                    type: 'income', 
+                    amount, 
+                    date: new Date().toISOString().split('T')[0], 
+                    status: 'completed', 
+                    description: `Manual Capital Allocation: ${bucket}` 
+                 });
                  setBalanceAdjustment(null);
                  toast({ title: "Asset Synchronization Complete" });
               }} className="w-full h-14 bg-primary font-black uppercase italic">EXECUTE ADJUSTMENT</Button>
