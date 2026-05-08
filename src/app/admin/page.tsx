@@ -56,7 +56,10 @@ import {
   Gift,
   Zap,
   Sword,
-  Shield
+  Shield,
+  Smartphone,
+  MousePointer2,
+  Timer
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -93,7 +96,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-type AdminTab = 'overview' | 'warriors' | 'finance' | 'arena' | 'support' | 'security' | 'system';
+type AdminTab = 'overview' | 'warriors' | 'arena' | 'finance' | 'security' | 'ads' | 'growth' | 'system';
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
@@ -133,17 +136,11 @@ export default function AdminDashboard() {
     return query(collectionGroup(firestore, 'ledger'), orderBy('date', 'desc'), limit(200));
   }, [firestore, isAdminUser]);
 
-  const supportQuery = useMemoFirebase(() => 
-    (firestore && isAdminUser) ? query(collection(firestore, 'support'), where('status', '==', 'open'), orderBy('timestamp', 'desc'), limit(50)) : null, 
-    [firestore, isAdminUser]
-  );
-
   const tournamentsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'tournaments') : null, [firestore, isAdminUser]);
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
 
   const { data: usersData, isLoading: isUsersLoading } = useCollection<UserProfile>(usersQuery);
   const { data: ledgerData, isLoading: isLedgerLoading } = useCollection<UserLedgerEntry>(allLedgerQuery);
-  const { data: supportTickets, isLoading: isSupportLoading } = useCollection<SupportMessage>(supportQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
@@ -163,6 +160,7 @@ export default function AdminDashboard() {
     const confirmMsg = u.isBanned ? "Lift Hard-Device Ban?" : "Execute Hard-Device Ban? (User will be blacklisted by signature)";
     if (confirm(confirmMsg)) {
       updateDoc(doc(firestore, 'users', u.id), { isBanned: !u.isBanned });
+      toast({ title: u.isBanned ? "Warrior Pardoned" : "Warrior Blacklisted", description: "Device signature update synchronized." });
     }
   };
 
@@ -170,7 +168,6 @@ export default function AdminDashboard() {
     if (!firestore) return;
     setIsProcessingMatch(tournamentId);
     try {
-       // Logic: Find all registrations for this tournament and distribute rewards (Demo distribution)
        const regsQuery = query(collection(firestore, 'registrations'), where('tournamentId', '==', tournamentId));
        const regsSnap = await getDocs(regsQuery);
        
@@ -180,10 +177,10 @@ export default function AdminDashboard() {
        }
 
        toast({ title: "Auto-Distribution Initiated", description: `Processing rewards for ${regsSnap.size} warriors.` });
-       // Simulation of complex auto-distribute logic
+       // Simulation of smart reward distribution protocol
        await new Promise(r => setTimeout(r, 2000));
        
-       toast({ title: "Match Finalized", description: "Winnings have been synchronized to top tier warriors." });
+       toast({ title: "Match Finalized", description: "Winnings synchronized to top tier warriors." });
     } catch (e) {
        toast({ variant: "destructive", title: "Distribution Failed" });
     } finally {
@@ -198,7 +195,8 @@ export default function AdminDashboard() {
       !q || 
       u.email?.toLowerCase().includes(q) || 
       u.id.toLowerCase().includes(q) || 
-      u.mobile?.includes(q)
+      u.mobile?.includes(q) ||
+      u.referralCode?.toLowerCase().includes(q)
     );
   }, [usersData, searchQuery]);
 
@@ -215,52 +213,57 @@ export default function AdminDashboard() {
   }, [usersData]);
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
-  if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black tracking-[0.5em] italic">ACCESS DENIED: EAGLE EYE ONLY</div>;
+  if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black tracking-[0.5em] italic uppercase">Access Denied: Eagle Eye Only</div>;
 
   return (
-    <div className="flex min-h-screen bg-[#050508] text-white">
+    <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary selection:text-white">
       <TransactionReceipt transaction={selectedTx} onClose={() => setSelectedTx(null)} />
       
-      {/* Sidebar - Midnight Stealth UI */}
+      {/* PROFESSIONAL SIDEBAR LAYOUT */}
       <aside className="w-[300px] flex flex-col fixed inset-y-0 z-50 bg-[#0a0a0f] border-r border-white/5 shadow-2xl">
         <div className="p-8 border-b border-white/5 flex items-center gap-4">
           <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(255,123,0,0.3)] rotate-3">
              <Shield className="h-6 w-6 text-white" />
           </div>
           <div>
-            <span className="font-black text-xl italic tracking-tighter block leading-none">WAR<span className="text-primary">ROOM</span></span>
-            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.3em]">Command Center</span>
+            <span className="font-black text-xl italic tracking-tighter block leading-none uppercase">WAR<span className="text-primary">ROOM</span></span>
+            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.3em]">v4.0 Elite Command</span>
           </div>
         </div>
         
-        <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
-          <SidebarSection label="Operational View" />
-          <SideLink active={activeTab === 'overview'} icon={<LayoutDashboard />} label="War Room Hub" onClick={() => setActiveTab('overview')} />
+        <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
+          <SidebarSection label="Dashboards" />
+          <SideLink active={activeTab === 'overview'} icon={<LayoutDashboard />} label="OVERVIEW" onClick={() => setActiveTab('overview')} />
           
-          <SidebarSection label="Warrior Intelligence" />
-          <SideLink active={activeTab === 'warriors'} icon={<UsersIcon />} label="Warrior Roster" onClick={() => setActiveTab('warriors')} />
-          <SideLink active={activeTab === 'security'} icon={<ShieldAlert />} label="Security Intel" onClick={() => setActiveTab('security')} badge={multiAccountCount > 0 ? "CLONES" : undefined} />
+          <SidebarSection label="User Management" />
+          <SideLink active={activeTab === 'warriors'} icon={<UsersIcon />} label="WARRIOR ROSTER" onClick={() => setActiveTab('warriors')} />
           
-          <SidebarSection label="Money Commands" />
-          <SideLink active={activeTab === 'finance'} icon={<TrendingUp />} label="Finance Matrix" onClick={() => setActiveTab('finance')} />
+          <SidebarSection label="Game Control" />
+          <SideLink active={activeTab === 'arena'} icon={<Trophy />} label="ARENA MASTER" onClick={() => setActiveTab('arena')} />
           
-          <SidebarSection label="Arena Deployment" />
-          <SideLink active={activeTab === 'arena'} icon={<Trophy />} label="Arena Master" onClick={() => setActiveTab('arena')} />
+          <SidebarSection label="Money Matters" />
+          <SideLink active={activeTab === 'finance'} icon={<TrendingUp />} label="FINANCIAL LEDGER" onClick={() => setActiveTab('finance')} />
           
-          <SidebarSection label="Tactical Support" />
-          <SideLink active={activeTab === 'support'} icon={<MessageSquare />} label="Support Desk" onClick={() => setActiveTab('support')} count={supportTickets?.length} />
+          <SidebarSection label="Security & Risk" />
+          <SideLink active={activeTab === 'security'} icon={<ShieldAlert />} label="SECURITY INTEL" onClick={() => setActiveTab('security')} badge={multiAccountCount > 0 ? "CLONES" : undefined} />
           
-          <SidebarSection label="Core Protocols" />
-          <SideLink active={activeTab === 'system'} icon={<Settings />} label="System Core" onClick={() => setActiveTab('system')} />
+          <SidebarSection label="Offer Hub" />
+          <SideLink active={activeTab === 'ads'} icon={<Zap />} label="AD & OFFER CONFIG" onClick={() => setActiveTab('ads')} />
+          
+          <SidebarSection label="Growth Engine" />
+          <SideLink active={activeTab === 'growth'} icon={<Gift />} label="MARKETING HUB" onClick={() => setActiveTab('growth')} />
+          
+          <SidebarSection label="App Core" />
+          <SideLink active={activeTab === 'system'} icon={<Settings />} label="SYSTEM SETTINGS" onClick={() => setActiveTab('system')} />
           
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-5 rounded-2xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all text-xs font-black uppercase tracking-widest mt-10">
-             <LogOut className="h-5 w-5" /> Terminate Session
+             <LogOut className="h-5 w-5" /> TERMINATE SESSION
           </button>
         </nav>
       </aside>
 
       <main className="flex-1 ml-[300px]">
-        {/* Top Navbar */}
+        {/* Top Operational Header */}
         <header className="h-20 bg-[#0a0a0f]/80 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-10 sticky top-0 z-40">
           <div className="flex items-center gap-6">
              <div className="relative w-96">
@@ -283,46 +286,43 @@ export default function AdminDashboard() {
              <div className="flex items-center gap-4 pl-4 border-l border-white/5">
                 <div className="text-right hidden md:block">
                    <p className="text-[10px] font-black text-white leading-none uppercase italic">Commander Ujal</p>
-                   <p className="text-[8px] text-primary font-black uppercase tracking-widest mt-1">Superuser</p>
+                   <p className="text-[8px] text-primary font-black uppercase tracking-widest mt-1">Superuser Access</p>
                 </div>
                 <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-2xl">
                    <AvatarImage src="https://picsum.photos/seed/admin/100/100" />
-                   <AvatarFallback>AC</AvatarFallback>
+                   <AvatarFallback>UA</AvatarFallback>
                 </Avatar>
              </div>
           </div>
         </header>
 
-        {/* Content Sector */}
+        {/* Dynamic Contextual Sector */}
         <div className="p-10 space-y-12">
           {activeTab === 'overview' && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <WarStatCard label="Platform Warriors" value={usersData?.length || '0'} sub="+12 New Today" icon={<UsersIcon />} color="blue" />
+                <WarStatCard label="Total Warriors" value={usersData?.length || '0'} sub="+12 New Today" icon={<UsersIcon />} color="blue" />
                 <WarStatCard label="Arena Revenue" value="₹41,410" sub="Growth Mode" icon={<Trophy />} color="orange" />
-                <WarStatCard label="Unresolved Tickets" value={supportTickets?.length || '0'} sub="Urgent Signals" icon={<MessageSquare />} color="red" />
-                <WarStatCard label="Liability Vault" value="₹89,200" sub="Total User Balance" icon={<Shield />} color="green" />
+                <WarStatCard label="Liability Vault" value="₹89,200" sub="User Wallet Total" icon={<Shield />} color="green" />
+                <WarStatCard label="Estimated Profit" value="₹12,210" sub="Net Extraction" icon={<TrendingUp />} color="red" />
               </div>
 
               <div className="grid lg:grid-cols-3 gap-8">
                 <Card className="lg:col-span-2 bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
                    <div className="flex justify-between items-center mb-12">
                       <div className="space-y-1">
-                        <h3 className="text-2xl font-black uppercase tracking-tighter italic">Revenue Pulse</h3>
+                        <h3 className="text-2xl font-black uppercase tracking-tighter italic">Operational Pulse</h3>
                         <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em]">Real-time Financial Telemetry</p>
                       </div>
-                      <Select defaultValue="lifetime">
-                         <SelectTrigger className="w-44 h-12 bg-white/5 border-white/5 text-[10px] font-black uppercase rounded-xl"><SelectValue /></SelectTrigger>
-                         <SelectContent className="bg-[#121216] border-white/10">
-                            <SelectItem value="lifetime">LIFETIME INTEL</SelectItem>
-                            <SelectItem value="year">ANNUAL SIGNAL</SelectItem>
-                            <SelectItem value="month">MONTHLY PULSE</SelectItem>
-                         </SelectContent>
-                      </Select>
+                      <div className="flex gap-2">
+                         <Button variant="ghost" className="h-10 text-[9px] font-black uppercase bg-white/5">Day</Button>
+                         <Button variant="ghost" className="h-10 text-[9px] font-black uppercase">Week</Button>
+                         <Button variant="ghost" className="h-10 text-[9px] font-black uppercase">Month</Button>
+                      </div>
                    </div>
                    <div className="h-[400px]">
                       <ResponsiveContainer width="100%" height="100%">
-                         <AreaChart data={ledgerData?.slice(0,10).reverse().map(l => ({ date: l.date, value: l.amount }))}>
+                         <AreaChart data={ledgerData?.slice(0,12).reverse().map(l => ({ date: l.date, value: l.amount }))}>
                             <defs>
                               <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#FF7B00" stopOpacity={0.3}/>
@@ -424,62 +424,6 @@ export default function AdminDashboard() {
             </Card>
           )}
 
-          {activeTab === 'finance' && (
-            <div className="space-y-12">
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <WarStatCard label="Total Revenue" value="₹41,410" color="blue" icon={<TrendingUp />} />
-                  <WarStatCard label="Net Profit" value="₹12,450" color="orange" icon={<DollarSign />} />
-                  <WarStatCard label="Processing Payouts" value={ledgerData?.filter(l => l.status === 'pending').length || '0'} color="red" icon={<CreditCard />} />
-               </div>
-
-               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
-                  <div className="p-10 border-b border-white/5 flex justify-between items-center">
-                     <div>
-                       <h3 className="text-2xl font-black uppercase tracking-tighter italic">Financial Signal Feed</h3>
-                       <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1">Encrypted real-time ledger stream</p>
-                     </div>
-                  </div>
-                  <Table>
-                     <TableHeader className="bg-white/5">
-                        <TableRow className="border-white/5 hover:bg-transparent">
-                           <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground py-8 px-10">Operation Signal</TableHead>
-                           <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Protocol</TableHead>
-                           <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Volume</TableHead>
-                           <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right px-10">Audit</TableHead>
-                        </TableRow>
-                     </TableHeader>
-                     <TableBody>
-                        {ledgerData?.map(l => (
-                           <TableRow key={l.id} className="border-white/5 hover:bg-white/5 transition-all">
-                              <TableCell className="py-8 px-10">
-                                 <div className="space-y-1">
-                                    <p className="text-sm font-black text-white uppercase italic">{l.description || l.type}</p>
-                                    <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-2"><Calendar className="h-2 w-2" /> {l.date}</p>
-                                 </div>
-                              </TableCell>
-                              <TableCell>
-                                 <Badge variant="outline" className={cn("text-[8px] font-black uppercase px-3 py-1 border-white/10 bg-white/5 italic", l.status === 'completed' ? "text-green-400" : "text-amber-400")}>
-                                    {l.status}
-                                 </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                 <span className={cn("text-lg font-black italic", l.type === 'withdrawal' ? 'text-red-400' : 'text-green-400')}>
-                                    {l.type === 'withdrawal' ? '-' : '+'}{l.type === 'withdrawal' ? `₹${l.amount}` : `${l.amount} 🪙`}
-                                 </span>
-                              </TableCell>
-                              <TableCell className="text-right px-10">
-                                 <Button onClick={() => setSelectedTx(l)} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/10 text-primary">
-                                    <Eye className="h-5 w-5" />
-                                 </Button>
-                              </TableCell>
-                           </TableRow>
-                        ))}
-                     </TableBody>
-                  </Table>
-               </Card>
-            </div>
-          )}
-
           {activeTab === 'arena' && (
             <div className="space-y-12">
                <div className="flex justify-between items-center">
@@ -554,65 +498,68 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {activeTab === 'system' && (
-            <div className="max-w-5xl mx-auto space-y-12">
-               <div className="flex items-center gap-6 mb-12">
-                 <div className="h-20 w-20 bg-primary/10 border border-primary/20 rounded-3xl flex items-center justify-center text-primary shadow-2xl rotate-3">
-                    <Settings className="h-10 w-10" />
-                 </div>
-                 <div>
-                    <h3 className="text-4xl font-black uppercase tracking-tighter italic">System Core</h3>
-                    <p className="text-xs text-muted-foreground font-black uppercase tracking-[0.3em] mt-2">Global infrastructure & economic parameters</p>
-                 </div>
+          {activeTab === 'finance' && (
+            <div className="space-y-12">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <WarStatCard label="Gross Volume" value="₹41,410" color="blue" icon={<TrendingUp />} />
+                  <WarStatCard label="Net Commission" value="₹4,450" color="orange" icon={<DollarSign />} />
+                  <WarStatCard label="High-Risk Payouts" value={ledgerData?.filter(l => l.amount > 200 && l.status === 'pending').length || '0'} color="red" icon={<CreditCard />} />
                </div>
 
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                  <ProtocolSection title="Operational Protocols" icon={<Activity />}>
-                     <ProtocolItem label="Maintenance Protocol" desc="Lock platform for updates" checked={sysConfig.maintenanceMode} onChange={c => setSysConfig({...sysConfig, maintenanceMode: c})} />
-                     <ProtocolItem label="Video Ad Hub" desc="Toggle video mission availability" checked={sysConfig.videoWallEnabled} onChange={c => setSysConfig({...sysConfig, videoWallEnabled: c})} />
-                     <ProtocolItem label="CPA Offer Wall" desc="Toggle CPA Lead Mission wall" checked={sysConfig.offerWallEnabled} onChange={c => setSysConfig({...sysConfig, offerWallEnabled: c})} />
-                  </ProtocolSection>
-
-                  <ProtocolSection title="Economic Parameters" icon={<TrendingUp />}>
-                     <ProtocolInput label="CPA Signal URL" value={sysConfig.cpaLeadUrl || ''} onChange={v => setSysConfig({...sysConfig, cpaLeadUrl: v})} />
-                     <div className="grid grid-cols-2 gap-6">
-                        <ProtocolInput label="Conv. Fee %" type="number" value={sysConfig.conversionFeePercent || ''} onChange={v => setSysConfig({...sysConfig, conversionFeePercent: Number(v)})} />
-                        <ProtocolInput label="Withdraw Fee %" type="number" value={sysConfig.withdrawalFeePercent || ''} onChange={v => setSysConfig({...sysConfig, withdrawalFeePercent: Number(v)})} />
-                        <ProtocolInput label="Passive Comm %" type="number" value={sysConfig.passiveReferralPercent || ''} onChange={v => setSysConfig({...sysConfig, passiveReferralPercent: Number(v)})} />
-                        <ProtocolInput label="Referral Bounty" type="number" value={sysConfig.referralRewardCoins || ''} onChange={v => setSysConfig({...sysConfig, referralRewardCoins: Number(v)})} />
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                  <div className="p-10 border-b border-white/5 flex justify-between items-center">
+                     <h3 className="text-2xl font-black uppercase tracking-tighter italic">Financial Ledger</h3>
+                     <div className="flex gap-4">
+                        <Button variant="outline" className="h-10 text-[9px] font-black border-white/10 rounded-xl">Smart Processor: ON</Button>
                      </div>
-                  </ProtocolSection>
-               </div>
-
-               <Button 
-                onClick={async () => {
-                  if (!firestore) return;
-                  await setDoc(doc(firestore, 'settings', 'global'), sysConfig, { merge: true });
-                  toast({ title: "Protocols Updated", description: "Global system parameters synchronized." });
-                }} 
-                className="w-full h-20 bg-primary hover:bg-primary/90 font-black uppercase tracking-[0.3em] rounded-[1.5rem] shadow-2xl shadow-primary/20 text-xl italic"
-               >
-                 Execute Protocol Commit
-               </Button>
+                  </div>
+                  <Table>
+                     <TableHeader className="bg-white/5">
+                        <TableRow className="border-white/5 hover:bg-transparent">
+                           <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground py-8 px-10">Operation Signal</TableHead>
+                           <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Protocol</TableHead>
+                           <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Volume</TableHead>
+                           <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right px-10">Audit</TableHead>
+                        </TableRow>
+                     </TableHeader>
+                     <TableBody>
+                        {ledgerData?.map(l => (
+                           <TableRow key={l.id} className="border-white/5 hover:bg-white/5 transition-all">
+                              <TableCell className="py-8 px-10">
+                                 <div className="space-y-1">
+                                    <p className="text-sm font-black text-white uppercase italic">{l.description || l.type}</p>
+                                    <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-2"><Calendar className="h-2 w-2" /> {l.date}</p>
+                                 </div>
+                              </TableCell>
+                              <TableCell>
+                                 <Badge variant="outline" className={cn("text-[8px] font-black uppercase px-3 py-1 border-white/10 bg-white/5 italic", l.status === 'completed' ? "text-green-400" : "text-amber-400")}>
+                                    {l.status}
+                                 </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                 <span className={cn("text-lg font-black italic", l.type === 'withdrawal' ? 'text-red-400' : 'text-green-400')}>
+                                    {l.type === 'withdrawal' ? '-' : '+'}{l.type === 'withdrawal' ? `₹${l.amount}` : `${l.amount} 🪙`}
+                                 </span>
+                              </TableCell>
+                              <TableCell className="text-right px-10">
+                                 <Button onClick={() => setSelectedTx(l)} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/10 text-primary">
+                                    <Eye className="h-5 w-5" />
+                                 </Button>
+                              </TableCell>
+                           </TableRow>
+                        ))}
+                     </TableBody>
+                  </Table>
+               </Card>
             </div>
           )}
 
           {activeTab === 'security' && (
             <div className="space-y-12">
-               <div className="flex items-center gap-6">
-                 <div className="h-20 w-20 bg-destructive/10 border border-destructive/20 rounded-3xl flex items-center justify-center text-destructive shadow-2xl">
-                    <ShieldAlert className="h-10 w-10" />
-                 </div>
-                 <div>
-                    <h3 className="text-4xl font-black uppercase tracking-tighter italic">Security Intel</h3>
-                    <p className="text-xs text-muted-foreground font-black uppercase tracking-[0.3em] mt-2">Fraud detection & Anti-Cheat command</p>
-                 </div>
-               </div>
-
                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 space-y-8">
                      <h4 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary"><Fingerprint className="h-6 w-6" /> Multi-Account Alerts</h4>
-                     <p className="text-xs text-muted-foreground leading-relaxed font-bold uppercase tracking-widest">The following Warriors are sharing the same device signature. Possible account clones detected.</p>
+                     <p className="text-xs text-muted-foreground leading-relaxed font-bold uppercase tracking-widest">Duplicate device signatures detected. Possible account clones.</p>
                      <div className="divide-y divide-white/5">
                         {multiAccountCount > 0 ? (
                           usersData?.filter(u => {
@@ -633,23 +580,87 @@ export default function AdminDashboard() {
                             </div>
                           ))
                         ) : (
-                          <div className="py-20 text-center space-y-4">
-                             <CheckCircle2 className="h-12 w-12 text-green-500/20 mx-auto" />
-                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">No duplicate signatures detected.</p>
+                          <div className="py-20 text-center">
+                             <CheckCircle2 className="h-12 w-12 text-green-500/20 mx-auto mb-4" />
+                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">No duplicate signatures.</p>
                           </div>
                         )}
                      </div>
                   </Card>
 
                   <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 space-y-8">
-                     <h4 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary"><Zap className="h-6 w-6" /> Ghost Monitoring (Fast Tasks)</h4>
-                     <p className="text-xs text-muted-foreground leading-relaxed font-bold uppercase tracking-widest">Warriors completing tasks faster than humanly possible (potential signal manipulation).</p>
+                     <h4 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary"><Zap className="h-6 w-6" /> Ghost Monitoring</h4>
+                     <p className="text-xs text-muted-foreground leading-relaxed font-bold uppercase tracking-widest">Warriors completing tasks faster than 1 minute (Possible signal jam).</p>
                      <div className="py-24 text-center">
                         <Loader2 className="h-12 w-12 text-primary/10 animate-spin mx-auto mb-4" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Ghost scans in progress...</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Ghost scans active...</p>
                      </div>
                   </Card>
                </div>
+            </div>
+          )}
+
+          {activeTab === 'ads' && (
+            <div className="max-w-4xl space-y-12">
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 space-y-10">
+                  <h4 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary"><Smartphone className="h-6 w-6" /> Offer Wall Configuration</h4>
+                  <div className="space-y-8">
+                     <ProtocolItem label="Video Tactical Briefs" desc="Toggle video mission availability" checked={sysConfig.videoWallEnabled} onChange={c => setSysConfig({...sysConfig, videoWallEnabled: c})} />
+                     <ProtocolItem label="CPA Intelligence Wall" desc="Toggle CPA Lead Mission wall" checked={sysConfig.offerWallEnabled} onChange={c => setSysConfig({...sysConfig, offerWallEnabled: c})} />
+                     <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">CPA Lead Signal URL</Label>
+                        <Input value={sysConfig.cpaLeadUrl || ''} onChange={e => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})} className="h-16 bg-white/5 border-white/5 rounded-2xl font-black italic" />
+                     </div>
+                  </div>
+                  <Button 
+                    onClick={async () => {
+                       await setDoc(doc(firestore!, 'settings', 'global'), sysConfig, { merge: true });
+                       toast({ title: "Signal Configured", description: "Offer wall parameters synchronized." });
+                    }}
+                    className="w-full h-18 bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase tracking-widest italic"
+                  >Commit Config</Button>
+               </Card>
+            </div>
+          )}
+
+          {activeTab === 'growth' && (
+            <div className="max-w-4xl space-y-12">
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 space-y-10">
+                  <h4 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary"><MousePointer2 className="h-6 w-6" /> Growth Parameters</h4>
+                  <div className="grid md:grid-cols-2 gap-10">
+                     <ProtocolInput label="Referral Bounty (Coins)" type="number" value={sysConfig.referralRewardCoins || ''} onChange={v => setSysConfig({...sysConfig, referralRewardCoins: Number(v)})} />
+                     <ProtocolInput label="Passive Commission %" type="number" value={sysConfig.passiveReferralPercent || ''} onChange={v => setSysConfig({...sysConfig, passiveReferralPercent: Number(v)})} />
+                  </div>
+                  <Button 
+                    onClick={async () => {
+                       await setDoc(doc(firestore!, 'settings', 'global'), sysConfig, { merge: true });
+                       toast({ title: "Growth Synchronized" });
+                    }}
+                    className="w-full h-18 bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase tracking-widest italic"
+                  >Commit Growth Protocol</Button>
+               </Card>
+            </div>
+          )}
+
+          {activeTab === 'system' && (
+            <div className="max-w-4xl space-y-12">
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 space-y-10">
+                  <h4 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary"><Wrench className="h-6 w-6" /> System Core Protocols</h4>
+                  <div className="space-y-8">
+                     <ProtocolItem label="Maintenance Protocol" desc="Lock platform for updates" checked={sysConfig.maintenanceMode} onChange={c => setSysConfig({...sysConfig, maintenanceMode: c})} />
+                     <div className="grid md:grid-cols-2 gap-8">
+                        <ProtocolInput label="Withdraw Fee %" type="number" value={sysConfig.withdrawalFeePercent || ''} onChange={v => setSysConfig({...sysConfig, withdrawalFeePercent: Number(v)})} />
+                        <ProtocolInput label="Conversion Fee %" type="number" value={sysConfig.conversionFeePercent || ''} onChange={v => setSysConfig({...sysConfig, conversionFeePercent: Number(v)})} />
+                     </div>
+                  </div>
+                  <Button 
+                    onClick={async () => {
+                       await setDoc(doc(firestore!, 'settings', 'global'), sysConfig, { merge: true });
+                       toast({ title: "Core Synchronized" });
+                    }}
+                    className="w-full h-18 bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase tracking-widest italic"
+                  >Execute Core Commit</Button>
+               </Card>
             </div>
           )}
         </div>
@@ -657,21 +668,21 @@ export default function AdminDashboard() {
 
       {/* Deploy Arena Dialog */}
       <Dialog open={isCreatingTournament} onOpenChange={setIsCreatingTournament}>
-         <DialogContent className="bg-[#0a0a0f] border-white/10 rounded-[3rem] p-12 max-w-2xl shadow-[0_0_100px_rgba(255,123,0,0.1)] text-white">
+         <DialogContent className="bg-[#0a0a0f] border-white/10 rounded-[3rem] p-12 max-w-2xl text-white">
             <DialogHeader>
-               <DialogTitle className="text-4xl font-black tracking-tighter uppercase italic leading-none">Deploy Combat Arena</DialogTitle>
-               <DialogDescription className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.4em] mt-4">Initialize global tournament sector for warriors</DialogDescription>
+               <DialogTitle className="text-4xl font-black tracking-tighter uppercase italic">Deploy Arena</DialogTitle>
+               <DialogDescription className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.4em] mt-4">Initialize global tournament sector</DialogDescription>
             </DialogHeader>
             <div className="grid md:grid-cols-2 gap-10 pt-10">
                <div className="space-y-8">
                   <div className="space-y-3">
-                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Arena Identifier</Label>
-                     <Input value={newTour.name} onChange={e => setNewTour({...newTour, name: e.target.value})} className="h-16 bg-white/5 border-white/5 rounded-2xl font-black uppercase italic text-xl focus:ring-primary" placeholder="E.G. BGMI ELITE" />
+                     <Label className="text-[10px] font-black uppercase text-muted-foreground">Arena Identifier</Label>
+                     <Input value={newTour.name} onChange={e => setNewTour({...newTour, name: e.target.value})} className="h-16 bg-white/5 border-white/5 rounded-2xl font-black uppercase italic" placeholder="E.G. BGMI ELITE" />
                   </div>
                   <div className="space-y-3">
-                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Combat Protocol</Label>
+                     <Label className="text-[10px] font-black uppercase text-muted-foreground">Combat Protocol</Label>
                      <Select value={newTour.gameType} onValueChange={(val: any) => setNewTour({...newTour, gameType: val})}>
-                        <SelectTrigger className="h-16 bg-white/5 border-white/5 rounded-2xl font-black text-xs uppercase tracking-widest"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="h-16 bg-white/5 border-white/5 rounded-2xl font-black text-xs uppercase"><SelectValue /></SelectTrigger>
                         <SelectContent className="bg-[#121216] border-white/10 text-white">
                            <SelectItem value="BGMI">BGMI SQUAD</SelectItem>
                            <SelectItem value="Free Fire">FREE FIRE</SelectItem>
@@ -683,11 +694,11 @@ export default function AdminDashboard() {
                </div>
                <div className="space-y-8">
                   <div className="space-y-3">
-                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Entry Bounty (Coins)</Label>
+                     <Label className="text-[10px] font-black uppercase text-muted-foreground">Entry Bounty (Coins)</Label>
                      <Input type="number" value={newTour.entryFee} onChange={e => setNewTour({...newTour, entryFee: Number(e.target.value)})} className="h-16 bg-white/5 border-white/5 rounded-2xl font-black text-xl italic" />
                   </div>
                   <div className="space-y-3">
-                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Deployment Schedule</Label>
+                     <Label className="text-[10px] font-black uppercase text-muted-foreground">Deployment Schedule</Label>
                      <Input type="datetime-local" value={newTour.startDate} onChange={e => setNewTour({...newTour, startDate: e.target.value})} className="h-16 bg-white/5 border-white/5 rounded-2xl font-black text-xs uppercase" />
                   </div>
                </div>
@@ -697,9 +708,9 @@ export default function AdminDashboard() {
                   if (!firestore) return;
                   const id = 'tour_' + Date.now();
                   await setDoc(doc(firestore, 'tournaments', id), { ...newTour, id, status: 'active', prizePool: newTour.prizePool || '₹500' });
-                  toast({ title: "Arena Deployed", description: "Signal is now live for all warriors." });
+                  toast({ title: "Arena Deployed" });
                   setIsCreatingTournament(false);
-               }} className="w-full h-20 bg-primary hover:bg-primary/90 font-black uppercase tracking-[0.3em] rounded-[1.5rem] shadow-2xl shadow-primary/20 text-xl italic transition-all hover:scale-[1.02]">Initiate Deployment</Button>
+               }} className="w-full h-20 bg-primary hover:bg-primary/90 font-black uppercase tracking-[0.3em] rounded-[1.5rem] shadow-2xl text-xl italic">Initiate Deployment</Button>
             </DialogFooter>
          </DialogContent>
       </Dialog>
@@ -725,7 +736,7 @@ export default function AdminDashboard() {
                  if (bucket === 'winning') payload.winningBalance = increment(amount);
                  if (bucket === 'task') payload.taskBalance = increment(amount);
                  await updateDoc(doc(firestore!, 'users', userId), payload);
-                 await addDoc(collection(firestore!, 'users', userId, 'ledger'), { type: 'income', amount, date: new Date().toISOString().split('T')[0], status: 'completed', description: `Admin Protocol: ${bucket} adjustment` });
+                 await addDoc(collection(firestore!, 'users', userId, 'ledger'), { type: 'income', amount, date: new Date().toISOString().split('T')[0], status: 'completed', description: `Admin Override: ${bucket} adjustment` });
                  setCoinAdjustment(null);
                  toast({ title: "Wealth Synchronized" });
               }} className="w-full h-18 bg-primary hover:bg-primary/90 font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl italic">Apply Wealth Override</Button>
@@ -790,17 +801,6 @@ function LegendItem({ color, label, value }: any) {
          </div>
          <span className="text-[10px] font-black text-white italic">{value}</span>
       </div>
-   );
-}
-
-function ProtocolSection({ title, icon, children }: any) {
-   return (
-      <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 space-y-8 shadow-2xl">
-         <h4 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary">{icon} {title}</h4>
-         <div className="space-y-6">
-            {children}
-         </div>
-      </Card>
    );
 }
 
