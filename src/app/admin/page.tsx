@@ -48,7 +48,8 @@ import {
   UserX,
   RefreshCcw,
   Ban,
-  Target
+  Target,
+  Terminal
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -90,6 +91,11 @@ export default function AdminDashboard() {
   const [statusMsg, setStatusMsg] = useState<{ section: string; msg: string; type: 'success' | 'error' } | null>(null);
   const [roomDeployment, setRoomDeployment] = useState<{ id: string; roomId: string; roomPass: string } | null>(null);
 
+  // Quick UID Injection State
+  const [quickUid, setQuickUid] = useState('');
+  const [quickAmount, setQuickAmount] = useState('500');
+  const [isInjecting, setIsInjecting] = useState(false);
+
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
 
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
@@ -118,6 +124,56 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleQuickInjection = async () => {
+    if (!firestore || !quickUid || !quickAmount) {
+      toast({ variant: "destructive", title: "Input Required", description: "Paste UID and enter volume." });
+      return;
+    }
+
+    setIsInjecting(true);
+    const amount = parseFloat(quickAmount);
+    const userRef = doc(firestore, 'users', quickUid.trim());
+
+    try {
+      const userSnap = await getDocs(query(collection(firestore, 'users'), where('id', '==', quickUid.trim())));
+      if (userSnap.empty) {
+        toast({ variant: "destructive", title: "Target Not Found", description: "UID does not exist in the matrix." });
+        setIsInjecting(false);
+        return;
+      }
+
+      const updates = {
+        winningBalance: increment(amount),
+        coins: increment(amount)
+      };
+
+      updateDoc(userRef, updates).catch(async (err) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'update',
+          requestResourceData: updates
+        }));
+      });
+
+      const ledgerData = {
+        type: 'income',
+        amount: amount,
+        date: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        description: `Tactical Capital Injection (Admin: ${user?.email})`
+      };
+
+      addDoc(collection(firestore, 'users', quickUid.trim(), 'ledger'), ledgerData);
+
+      toast({ title: "INJECTION SUCCESSFUL", description: `${amount} coins allocated to UID ${quickUid.substring(0, 8)}...` });
+      setQuickUid('');
+    } catch (e) {
+      toast({ variant: "destructive", title: "Protocol Error" });
+    } finally {
+      setIsInjecting(false);
+    }
+  };
+
   const saveSettings = (section: string, updates: Partial<AppSettings>) => {
     if (!settingsRef) {
       toast({ variant: "destructive", title: "Sync Failure", description: "Reference signal lost." });
@@ -133,12 +189,10 @@ export default function AdminDashboard() {
       updatedBy: user?.email
     };
 
-    // Safety timeout to prevent UI hang
     const timeout = setTimeout(() => {
       setSavingSection(null);
     }, 5000);
 
-    // Master Synchronization Protocol (Non-Blocking)
     setDoc(settingsRef, updatesWithMeta, { merge: true })
       .then(() => {
         clearTimeout(timeout);
@@ -344,6 +398,47 @@ export default function AdminDashboard() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 {/* QUICK UID INJECTION TOOL */}
+                 <Card className="bg-[#0a0a0f] border-primary/20 p-8 rounded-[2rem] space-y-6 shadow-2xl shadow-primary/5">
+                    <h3 className="text-sm font-black uppercase tracking-widest italic flex items-center gap-2 text-primary">
+                       <Terminal className="h-4 w-4" /> Tactical Capital Injection
+                    </h3>
+                    <div className="space-y-4 pt-2">
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Target Warrior UID</Label>
+                          <Input 
+                            value={quickUid}
+                            onChange={e => setQuickUid(e.target.value)}
+                            placeholder="Paste UID (e.g. yJDxFrYjpmPvPYdYDIbqOeb7AyC2)"
+                            className="bg-white/5 border-white/10 h-12 text-xs font-mono"
+                          />
+                       </div>
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                             <Label className="text-[10px] font-black uppercase text-muted-foreground">Volume (Credits)</Label>
+                             <Input 
+                               type="number"
+                               value={quickAmount}
+                               onChange={e => setQuickAmount(e.target.value)}
+                               className="bg-white/5 border-white/10 h-12 text-xl font-black"
+                             />
+                          </div>
+                          <div className="flex items-end">
+                             <Button 
+                               onClick={handleQuickInjection} 
+                               disabled={isInjecting || !quickUid}
+                               className="w-full bg-primary h-12 font-black uppercase text-[10px] tracking-widest italic shadow-xl shadow-primary/20"
+                             >
+                                {isInjecting ? <Loader2 className="animate-spin h-4 w-4" /> : "RUN INJECTION PROTOCOL"}
+                             </Button>
+                          </div>
+                       </div>
+                       <p className="text-[8px] font-bold text-muted-foreground uppercase opacity-50 italic">
+                          This protocol bypasses user interactions and adds credits directly to Withdrawable Assets.
+                       </p>
+                    </div>
+                 </Card>
+
                  <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] space-y-6">
                     <h3 className="text-sm font-black uppercase tracking-widest italic flex items-center gap-2">
                        <Zap className="h-4 w-4 text-primary" /> Active Analytical Signals
@@ -358,20 +453,6 @@ export default function AdminDashboard() {
                             <Badge className="bg-green-500/10 text-green-500 text-[8px] px-2">ONLINE</Badge>
                          </div>
                        ))}
-                    </div>
-                 </Card>
-                 <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] space-y-6">
-                    <h3 className="text-sm font-black uppercase tracking-widest italic flex items-center gap-2">
-                       <ShieldAlert className="h-4 w-4 text-primary" /> Compliance Alerts
-                    </h3>
-                    <div className="space-y-4">
-                       <div className="p-4 bg-destructive/10 rounded-xl flex items-center justify-between border border-destructive/20">
-                          <div className="flex items-center gap-3">
-                             <ShieldAlert className="h-4 w-4 text-destructive" />
-                             <span className="text-[10px] font-black uppercase">Multiple Identity Clones Detected</span>
-                          </div>
-                          <Badge variant="destructive" className="text-[8px] px-2">URGENT</Badge>
-                       </div>
                     </div>
                  </Card>
               </div>

@@ -50,12 +50,20 @@ export default function OfferWall() {
         
         const data = await response.json();
         
-        // Handle CPA Lead JSON structure
-        const offerList = data.offers || [];
-        if (Array.isArray(offerList)) {
+        // Handle CPA Lead JSON structure (iterating through 'offers' array)
+        let offerList: any[] = [];
+        if (data.offers && Array.isArray(data.offers)) {
+           offerList = data.offers;
+        } else if (Array.isArray(data)) {
+           offerList = data;
+        }
+
+        if (offerList.length > 0) {
            setOffers(offerList.slice(0, 20));
         } else {
-           throw new Error('UNRECOGNIZED API FORMAT');
+           // If it's a success response but no offers, could be a regional issue or empty feed
+           console.warn('API returned success but no offers found.');
+           setOffers([]);
         }
       } catch (err: any) {
         setError(err.message || 'Analytical Mission Synchronizer Down');
@@ -90,6 +98,7 @@ export default function OfferWall() {
     <div className="py-24 text-center space-y-4">
        <ShieldAlert className="h-20 w-20 text-muted-foreground opacity-10 mx-auto" />
        <p className="text-muted-foreground italic font-black uppercase tracking-[0.4em]">No Missions Available in this Sector</p>
+       <p className="text-[8px] text-muted-foreground uppercase font-bold">API Sync Active but no offers returned for your region.</p>
     </div>
   );
 
@@ -98,7 +107,8 @@ export default function OfferWall() {
       {offers.map((offer, index) => {
         const coinVal = settings?.coinValuePerDollar || 100;
         const adminCut = (settings?.adminProfitPercentage || 50) / 100;
-        const reward = Math.round((parseFloat(offer.payout) || 0.5) * coinVal * (1 - adminCut));
+        const rawPayout = parseFloat(offer.payout) || 0.1;
+        const reward = Math.round(rawPayout * coinVal * (1 - adminCut));
         
         return (
           <Card key={index} className="bg-black/60 border-white/5 hover:border-primary/20 transition-all rounded-[2rem] shadow-xl overflow-hidden group">
@@ -111,7 +121,7 @@ export default function OfferWall() {
                   <h4 className="text-xl font-black uppercase italic truncate text-white">{offer.title}</h4>
                   <div className="flex items-center gap-3 mt-1">
                     <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] font-black px-3">VERIFIED MISSION</Badge>
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase">{offer.device} Hub</span>
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase">{offer.device || 'Mobile'} Hub</span>
                   </div>
                 </div>
               </div>
