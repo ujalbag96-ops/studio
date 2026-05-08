@@ -20,7 +20,9 @@ import {
   LogOut,
   Coins,
   CreditCard,
-  Crown
+  Crown,
+  Briefcase,
+  ShieldCheck
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +41,7 @@ export default function UserDashboard() {
   const { auth } = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
-  const [activeNav, setActiveNav] = useState('hq');
+  const [activeNav, setActiveNav] = useState('overview');
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
@@ -77,9 +79,9 @@ export default function UserDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center gap-6 bg-[#050508]">
         <Shield className="h-20 w-20 text-muted-foreground opacity-20" />
-        <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Identity Required</h2>
+        <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Identity Verification Required</h2>
         <Button asChild size="lg" className="rounded-2xl font-black px-12 h-14 bg-primary shadow-xl">
-          <Link href="/login">IDENTIFY MYSELF</Link>
+          <Link href="/login">AUTHENTICATE IDENTITY</Link>
         </Button>
       </div>
     );
@@ -87,29 +89,29 @@ export default function UserDashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary selection:text-white">
-      {/* Tactical Sidebar (Desktop Only) */}
+      {/* Corporate Sidebar (Desktop Only) */}
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-10 border-b border-white/5">
           <Link href="/" className="flex items-center gap-4 group">
             <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/40 rotate-3 transition-transform group-hover:rotate-0">
-              <Shield className="h-6 w-6 text-white" />
+              <Briefcase className="h-6 w-6 text-white" />
             </div>
-            <span className="font-black uppercase tracking-tighter text-2xl italic">ARENA<span className="text-primary">HQ</span></span>
+            <span className="font-black uppercase tracking-tighter text-2xl italic">SYSTEM<span className="text-primary">OVERVIEW</span></span>
           </Link>
         </div>
 
         <nav className="flex-1 p-8 space-y-2">
           <div className="pb-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 mb-4 px-4">Warrior HQ</p>
-            <SidebarItem active={activeNav === 'hq'} icon={<LayoutDashboard />} label="COMMAND HQ" onClick={() => setActiveNav('hq')} />
-            <SidebarItem active={activeNav === 'earning'} icon={<Zap />} label="MISSION HUB" href="/earning-hub" />
-            <SidebarItem active={activeNav === 'ledger'} icon={<History />} label="FINANCIAL LOG" href="/ledger" />
-            <SidebarItem active={activeNav === 'vault'} icon={<Wallet />} label="TACTICAL VAULT" href="/withdraw" />
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 mb-4 px-4">Account Management</p>
+            <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="DASHBOARD OVERVIEW" onClick={() => setActiveNav('overview')} />
+            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="ACTIVITY HUB" href="/earning-hub" />
+            <SidebarItem active={activeNav === 'ledger'} icon={<History />} label="FINANCIAL LEDGER" href="/ledger" />
+            <SidebarItem active={activeNav === 'finance'} icon={<Wallet />} label="FINANCE HUB" href="/withdraw" />
           </div>
           
           <div className="pt-8 border-t border-white/5">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 mb-4 px-4">Warrior Rank</p>
-            <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'BRONZE'} TIER`} href="/levels" />
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 mb-4 px-4">Account Status</p>
+            <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'STANDARD'} STATUS`} href="/levels" />
           </div>
         </nav>
 
@@ -125,51 +127,51 @@ export default function UserDashboard() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-               <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Elite Warrior</Badge>
+               <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Verified Professional</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-black uppercase tracking-widest">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Platform Stabilized
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Connection Secure
                </div>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Warrior <span className="text-primary">Dashboard</span></h1>
-            <p className="text-muted-foreground font-medium text-lg">System access granted: <span className="text-white font-black">{user.email || user.phoneNumber}</span></p>
+            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Account <span className="text-primary">Overview</span></h1>
+            <p className="text-muted-foreground font-medium text-lg">Logged in as: <span className="text-white font-black">{user.email || user.phoneNumber}</span></p>
           </div>
 
           <div className="flex items-center gap-4">
             <WalletModal>
               <Button className="bg-white/5 border border-white/10 hover:bg-white/10 h-16 px-8 rounded-2xl text-lg font-black italic uppercase">
-                VAULT COMMAND <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
+                CAPITAL MANAGEMENT <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
               </Button>
             </WalletModal>
           </div>
         </header>
 
-        {/* Triple Wallet Intelligence Sector */}
+        {/* Global Asset Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <WalletCard 
-            label="Deposit Balance" 
+            label="Investment Assets" 
             value={profile?.depositBalance || 0} 
             icon={<CreditCard />} 
-            description="Funds added for battles"
+            description="Allocated funds for participation"
             color="blue"
           />
           <WalletCard 
-            label="Task Balance" 
+            label="Incentive Credits" 
             value={profile?.taskBalance || 0} 
             icon={<Zap />} 
-            description="Earned from missions"
+            description="Accrued from activity tasks"
             color="amber"
           />
           <WalletCard 
-            label="Winning Balance" 
+            label="Net Winnings" 
             value={profile?.winningBalance || 0} 
             icon={<Trophy />} 
-            description="Withdrawable winnings"
+            description="Withdrawable profit assets"
             color="green"
             isWithdrawable
           />
         </div>
 
-        {/* Mission & Battle Log Grid */}
+        {/* Activity & Financial Log Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           <div className="xl:col-span-2 space-y-8">
             <div className="flex items-center justify-between px-2">
@@ -178,7 +180,7 @@ export default function UserDashboard() {
                  Operational History
                </h3>
                <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary font-black uppercase text-[10px] tracking-widest h-10 px-6 rounded-xl border border-white/5">
-                  <Link href="/ledger">Full Intel <ChevronRight className="h-4 w-4 ml-2" /></Link>
+                  <Link href="/ledger">FULL AUDIT <ChevronRight className="h-4 w-4 ml-2" /></Link>
                </Button>
             </div>
             
@@ -192,12 +194,12 @@ export default function UserDashboard() {
                       <div key={activity.id} className="p-10 flex items-center justify-between hover:bg-white/5 transition-all group">
                         <div className="flex items-center gap-6">
                            <div className={cn(
-                             "h-16 w-16 rounded-2xl flex items-center justify-center border transition-all group-hover:scale-110 group-hover:rotate-12 shadow-2xl",
+                             "h-16 w-16 rounded-2xl flex items-center justify-center border transition-all group-hover:scale-110 shadow-2xl",
                              activity.type === 'income' ? "bg-green-500/10 text-green-500 border-green-500/20" : 
                              activity.type === 'withdrawal' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
                            )}>
                              {activity.type === 'income' ? <TrendingUp className="h-7 w-7" /> : 
-                              activity.type === 'withdrawal' ? <ArrowUpRight className="h-7 w-7" /> : <Sword className="h-7 w-7" />}
+                              activity.type === 'withdrawal' ? <ArrowUpRight className="h-7 w-7" /> : <FileBarChart className="h-7 w-7" />}
                            </div>
                            <div className="space-y-1">
                              <p className="text-lg font-black uppercase tracking-tight group-hover:text-primary transition-colors">{activity.description || activity.type}</p>
@@ -216,7 +218,7 @@ export default function UserDashboard() {
                              "text-[9px] font-black uppercase px-4 py-1 border-2",
                              activity.status === 'completed' ? "border-green-500/40 text-green-500" : "border-yellow-500/40 text-yellow-500"
                           )}>
-                            {activity.status}
+                            {activity.status.toUpperCase()}
                           </Badge>
                         </div>
                       </div>
@@ -225,7 +227,7 @@ export default function UserDashboard() {
                 ) : (
                   <div className="p-32 text-center space-y-6">
                      <History className="h-20 w-20 text-muted-foreground opacity-10 mx-auto" />
-                     <p className="text-sm text-muted-foreground italic font-black uppercase tracking-[0.4em]">No operational data logged.</p>
+                     <p className="text-sm text-muted-foreground italic font-black uppercase tracking-[0.4em]">No financial records found.</p>
                   </div>
                 )}
               </CardContent>
@@ -241,23 +243,23 @@ export default function UserDashboard() {
                   <Zap className="h-12 w-12 text-primary animate-pulse" />
                </div>
                <div className="space-y-4 relative z-10">
-                  <h3 className="text-3xl font-black uppercase tracking-tighter italic">Mission Hub</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed font-medium">Earn extra credits by completing high-yield global missions in the hub.</p>
+                  <h3 className="text-3xl font-black uppercase tracking-tighter italic">Activity Hub</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed font-medium">Accumulate supplementary credits by fulfilling high-yield professional tasks.</p>
                </div>
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-18 rounded-[1.5rem] font-black uppercase tracking-widest text-lg shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                  <Link href="/earning-hub">DEPLOY MISSIONS</Link>
+                  <Link href="/earning-hub">ACCESS TASKS</Link>
                </Button>
             </Card>
 
             <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-8 shadow-2xl border-l-4 border-l-secondary">
                <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-                  <Shield className="h-5 w-5 text-secondary" />
-                  HQ Policy
+                  <ShieldCheck className="h-5 w-5 text-secondary" />
+                  Compliance Policy
                </h3>
                <div className="space-y-4 text-xs font-medium text-muted-foreground leading-relaxed">
-                  <p>• Only <span className="text-white">Winning Balance</span> is eligible for payout.</p>
-                  <p>• Convert <span className="text-amber-500 font-bold">Task Income</span> in the vault with a 1.2% protocol fee.</p>
-                  <p>• Minimum withdrawal: <span className="text-white">₹110</span>.</p>
+                  <p>• Only <span className="text-white">Net Winnings</span> are eligible for capital extraction.</p>
+                  <p>• Exchange <span className="text-amber-500 font-bold">Incentive Credits</span> with a 1.2% processing fee.</p>
+                  <p>• Minimum withdrawal threshold: <span className="text-white">₹110</span>.</p>
                </div>
             </Card>
           </aside>
@@ -266,10 +268,10 @@ export default function UserDashboard() {
 
       {/* Mobile Bottom Navigation */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] h-24 bg-[#0a0a0f]/90 backdrop-blur-3xl border-t border-white/10 flex items-center justify-around px-4">
-        <MobileNavItem active={activeNav === 'hq'} icon={<LayoutDashboard />} label="HQ" href="/dashboard" />
-        <MobileNavItem active={activeNav === 'earning'} icon={<Zap />} label="EARN" href="/earning-hub" />
-        <MobileNavItem active={activeNav === 'ledger'} icon={<History />} label="LOG" href="/ledger" />
-        <MobileNavItem active={activeNav === 'vault'} icon={<Wallet />} label="VAULT" href="/withdraw" />
+        <MobileNavItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="OVERVIEW" href="/dashboard" />
+        <MobileNavItem active={activeNav === 'activity'} icon={<Zap />} label="ACTIVITY" href="/earning-hub" />
+        <MobileNavItem active={activeNav === 'ledger'} icon={<History />} label="LEDGER" href="/ledger" />
+        <MobileNavItem active={activeNav === 'finance'} icon={<Wallet />} label="FINANCE" href="/withdraw" />
       </nav>
     </div>
   );
@@ -278,7 +280,7 @@ export default function UserDashboard() {
 function SidebarItem({ active, icon, label, onClick, href }: any) {
   const content = (
     <>
-      <span className={cn("h-6 w-6 transition-all", active ? "scale-125 rotate-6 text-white" : "text-muted-foreground")}>{icon}</span>
+      <span className={cn("h-6 w-6 transition-all", active ? "scale-125 text-white" : "text-muted-foreground")}>{icon}</span>
       <span className="text-[11px] font-black uppercase tracking-[0.3em] italic">{label}</span>
       {active && <div className="absolute left-3 h-6 w-1 bg-primary rounded-full shadow-[0_0_15px_#FF7B00]" />}
     </>
@@ -335,7 +337,7 @@ function WalletCard({ label, value, icon, description, color, isWithdrawable }: 
           <p className="text-[9px] font-bold text-muted-foreground mt-4 uppercase tracking-widest italic">{description}</p>
           {isWithdrawable && (
             <div className="mt-4 pt-4 border-t border-white/5">
-              <Badge className="bg-green-500 text-black font-black uppercase text-[8px] px-3">Withdrawable</Badge>
+              <Badge className="bg-green-500 text-black font-black uppercase text-[8px] px-3">Liquidity Ready</Badge>
             </div>
           )}
         </div>
