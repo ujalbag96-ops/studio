@@ -2,29 +2,39 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Sabhi users ke liye read access allow (Home page ke liye)
+    // Public read for tournaments and matches to fix home page errors
     match /{document=**} {
       allow read: if true;
     }
 
-    // Admin (ujalbag96@gmail.com) ke liye full write access
-    // Aur normal users ke liye unka apna data create/update allow
+    // Admin email has full power
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == "ujalbag96@gmail.com";
+    }
+
+    // User can manage their own profile and ledger
     match /users/{userId} {
-      allow write: if request.auth != null && (request.auth.token.email == "ujalbag96@gmail.com" || request.auth.uid == userId);
+      allow write: if isAdmin() || (request.auth != null && request.auth.uid == userId);
       
       match /ledger/{entryId} {
-        allow write: if request.auth != null && (request.auth.token.email == "ujalbag96@gmail.com" || request.auth.uid == userId);
+        allow write: if isAdmin() || (request.auth != null && request.auth.uid == userId);
       }
     }
 
+    // Global settings and major hubs managed by admin
+    match /settings/{docId} {
+      allow write: if isAdmin();
+    }
+
     match /tournaments/{tournamentId} {
-      allow write: if request.auth != null && request.auth.token.email == "ujalbag96@gmail.com";
+      allow write: if isAdmin();
     }
 
     match /matches/{matchId} {
-      allow write: if request.auth != null && request.auth.token.email == "ujalbag96@gmail.com";
+      allow write: if isAdmin();
     }
 
+    // Registrations and support are open for users
     match /registrations/{regId} {
       allow write: if request.auth != null;
     }
@@ -32,9 +42,10 @@ service cloud.firestore {
     match /support/{msgId} {
       allow write: if request.auth != null;
     }
-
-    match /settings/{docId} {
-      allow write: if request.auth != null && request.auth.token.email == "ujalbag96@gmail.com";
+    
+    // Collection group allow for ledger (needed for admin dashboard)
+    match /{path=**}/ledger/{ledgerId} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == resource.data.userId);
     }
   }
 }

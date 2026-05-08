@@ -1,5 +1,5 @@
 export const firebaseConfig = {
-  apiKey: "AIzaSyCjW-7dCG7A8-_Z8dQhB4BCUwBq4sLpN2s",
+  apiKey: "AIzaSyDkjlS8jfSap92lwXbylyYlt5fKoKZVx1E",
   authDomain: "bracket-battles-new.firebaseapp.com",
   projectId: "bracket-battles-new",
   storageBucket: "bracket-battles-new.firebasestorage.app",
