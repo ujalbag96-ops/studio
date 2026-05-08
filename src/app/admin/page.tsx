@@ -42,7 +42,8 @@ import {
   X,
   Key,
   Award,
-  SearchX
+  SearchX,
+  Gamepad2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -52,7 +53,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { AppSettings, UserProfile, UserLedgerEntry, Tournament, GameType, SupportMessage } from '@/app/lib/types';
@@ -98,8 +99,20 @@ export default function AdminDashboard() {
   const [selectedTx, setSelectedTx] = useState<UserLedgerEntry | null>(null);
   const [coinAdjustment, setCoinAdjustment] = useState<{ userId: string; bucket: 'deposit' | 'winning' | 'task'; amount: number } | null>(null);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [isCreatingTournament, setIsCreatingTournament] = useState(false);
   const [winnerUid, setWinnerId] = useState('');
   const [sysConfig, setSysConfig] = useState<Partial<AppSettings>>({});
+
+  // New Tournament Form State
+  const [newTour, setNewTour] = useState({
+    name: '',
+    game: '',
+    gameType: 'BGMI' as GameType,
+    prizePool: '₹500',
+    entryFee: 10,
+    startDate: '',
+    banner: 'https://picsum.photos/seed/tournament/800/400'
+  });
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
 
@@ -258,6 +271,36 @@ export default function AdminDashboard() {
     if (!firestore) return;
     await updateDoc(doc(firestore, 'support', id), { status: 'resolved' });
     toast({ title: "Ticket Resolved" });
+  };
+
+  const handleCreateTournament = async () => {
+    if (!firestore) return;
+    if (!newTour.name || !newTour.startDate) {
+      toast({ variant: "destructive", title: "Incomplete Intel", description: "Name and Date required." });
+      return;
+    }
+    try {
+      const id = 'tour_' + Date.now();
+      await setDoc(doc(firestore, 'tournaments', id), {
+        ...newTour,
+        id,
+        status: 'active',
+        winnerId: ''
+      });
+      toast({ title: "Campaign Deployed to Arena" });
+      setIsCreatingTournament(false);
+      setNewTour({
+        name: '',
+        game: '',
+        gameType: 'BGMI',
+        prizePool: '₹500',
+        entryFee: 10,
+        startDate: '',
+        banner: 'https://picsum.photos/seed/tournament/800/400'
+      });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Deployment Error" });
+    }
   };
 
   const handleDeployRoom = async (tour: Tournament) => {
@@ -563,9 +606,11 @@ export default function AdminDashboard() {
 
           {activeTab === 'campaigns' && (
             <div className="space-y-8">
-               <div className="flex justify-between">
+               <div className="flex justify-between items-center">
                   <h3 className="text-2xl font-black italic uppercase">Campaign Deployment</h3>
-                  <Button className={cn("h-14 px-10 rounded-2xl font-black uppercase text-black", activeTheme.accent)}>NEW CAMPAIGN</Button>
+                  <Button onClick={() => setIsCreatingTournament(true)} className={cn("h-14 px-10 rounded-2xl font-black uppercase text-black", activeTheme.accent)}>
+                    <Plus className="h-5 w-5 mr-2" /> NEW CAMPAIGN
+                  </Button>
                </div>
                <div className="grid md:grid-cols-2 gap-8">
                   {tournamentsData?.map(tour => (
@@ -575,9 +620,17 @@ export default function AdminDashboard() {
                           <Badge className="absolute top-4 left-4 bg-primary text-black font-black uppercase text-[9px]">{tour.status}</Badge>
                        </div>
                        <CardContent className="p-8 space-y-6">
-                          <div>
-                             <h4 className="text-xl font-black uppercase italic">{tour.name}</h4>
-                             <p className="text-[10px] font-bold text-muted-foreground uppercase">{tour.startDate}</p>
+                          <div className="flex justify-between items-start">
+                             <div>
+                                <h4 className="text-xl font-black uppercase italic">{tour.name}</h4>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase">{tour.startDate}</p>
+                             </div>
+                             <Button onClick={async () => {
+                                if(confirm("Terminate this campaign?")) {
+                                   await deleteDoc(doc(firestore!, 'tournaments', tour.id));
+                                   toast({ title: "Campaign Terminated" });
+                                }
+                             }} variant="ghost" size="icon" className="text-red-500"><Trash2 className="h-4 w-4" /></Button>
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center">
@@ -654,6 +707,59 @@ export default function AdminDashboard() {
           )}
         </div>
       </main>
+
+      {/* NEW TOURNAMENT DIALOG */}
+      <Dialog open={isCreatingTournament} onOpenChange={setIsCreatingTournament}>
+         <DialogContent className="bg-[#0a0a0f] border-white/10 text-white rounded-[3rem] p-10 max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
+            <DialogHeader>
+               <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Deploy New Campaign</DialogTitle>
+               <DialogDescription className="text-muted-foreground font-bold uppercase text-[9px] tracking-widest">Enlist a new high-stakes battle into the arena</DialogDescription>
+            </DialogHeader>
+            <div className="grid md:grid-cols-2 gap-8 pt-8">
+               <div className="space-y-6">
+                  <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Campaign Name</Label>
+                     <Input value={newTour.name} onChange={e => setNewTour({...newTour, name: e.target.value})} placeholder="Elite Masters Cup" className="h-14 bg-black/40 border-white/10 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Arena Type</Label>
+                     <Select value={newTour.gameType} onValueChange={(val: any) => setNewTour({...newTour, gameType: val})}>
+                        <SelectTrigger className="h-14 bg-black/40 rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-black text-white">
+                           <SelectItem value="BGMI">BGMI Hub</SelectItem>
+                           <SelectItem value="Free Fire">Free Fire Hub</SelectItem>
+                           <SelectItem value="Ludo King">Ludo King Hub</SelectItem>
+                           <SelectItem value="Other">Custom Arena</SelectItem>
+                        </SelectContent>
+                     </Select>
+                  </div>
+                  <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Prize Pool (Label)</Label>
+                     <Input value={newTour.prizePool} onChange={e => setNewTour({...newTour, prizePool: e.target.value})} placeholder="₹10,000" className="h-14 bg-black/40 border-white/10 rounded-xl" />
+                  </div>
+               </div>
+               <div className="space-y-6">
+                  <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Entry Fee (Coins)</Label>
+                     <Input type="number" value={newTour.entryFee} onChange={e => setNewTour({...newTour, entryFee: Number(e.target.value)})} className="h-14 bg-black/40 border-white/10 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Engagement Start (ISO)</Label>
+                     <Input type="datetime-local" value={newTour.startDate} onChange={e => setNewTour({...newTour, startDate: e.target.value})} className="h-14 bg-black/40 border-white/10 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Banner Asset URL</Label>
+                     <Input value={newTour.banner} onChange={e => setNewTour({...newTour, banner: e.target.value})} placeholder="https://..." className="h-14 bg-black/40 border-white/10 rounded-xl" />
+                  </div>
+               </div>
+            </div>
+            <DialogFooter className="pt-10">
+               <Button onClick={handleCreateTournament} className={cn("w-full h-20 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-lg shadow-2xl text-black", activeTheme.accent)}>
+                  LAUNCH TO ARENA <ArrowRight className="ml-2 h-5 w-5" />
+               </Button>
+            </DialogFooter>
+         </DialogContent>
+      </Dialog>
 
       {/* Adjustment Dialogs */}
       {coinAdjustment && (
