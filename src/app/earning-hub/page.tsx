@@ -78,9 +78,10 @@ export default function EarningHub() {
 
       const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
+      // Rewards now go to taskBalance per new multi-wallet strategy
       const updateData = { 
-        coins: increment(5),
-        withdrawableCoins: increment(5)
+        taskBalance: increment(5),
+        coins: increment(5) // Total coins for display
       };
 
       const ledgerData = {
@@ -89,10 +90,9 @@ export default function EarningHub() {
         amount: 5,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: 'Verified Video Reward (Global Network)'
+        description: 'Verified Video Reward (Added to Task Balance)'
       };
 
-      // Atomic Update logic to prevent double-claiming
       updateDoc(userRef, updateData).catch(async (serverError) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
           path: userRef.path,
@@ -114,10 +114,9 @@ export default function EarningHub() {
       
       toast({ 
         title: "Reward Verified!", 
-        description: "5 Coins synchronized with your Winning Balance." 
+        description: "5 Coins added to your Task Balance. Convert to winnings in your wallet." 
       });
       
-      // Play reward sound
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
       audio.play().catch(() => {});
 
@@ -139,30 +138,30 @@ export default function EarningHub() {
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
       <div className="space-y-4 pt-12 text-center md:text-left">
-        <div className="flex items-center justify-center md:justify-start gap-3 text-secondary font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">
+        <div className="flex items-center justify-center md:justify-start gap-3 text-amber-500 font-black uppercase tracking-[0.3em] text-[10px]">
           <ShieldCheck className="h-4 w-4" />
-          Anti-Scam Protocol: Active
+          Multi-Wallet Security: Active
         </div>
         <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-none italic">
           Tactical <span className="text-primary">Earning</span> Hub
         </h1>
-        <p className="text-muted-foreground font-medium text-lg max-w-2xl mx-auto md:mx-0">
-          Complete verified missions to fill your <span className="text-white font-bold">Winning Vault</span>. Real-time balance synchronization active.
+        <p className="text-muted-foreground font-medium text-lg max-w-2xl mx-auto md:mx-0 leading-relaxed">
+          Complete missions to earn <span className="text-amber-500 font-bold">Task Income</span>. Convert your earnings into withdrawable <span className="text-green-500 font-bold">Winning Balance</span> anytime.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
         {/* Video Ad Section */}
-        <Card className="bg-[#1a1a1a] border-primary/40 border-2 rounded-[3rem] overflow-hidden relative group hover:shadow-[0_0_50px_rgba(147,69,255,0.2)] transition-all">
+        <Card className="bg-[#1a1a1a] border-primary/40 border-2 rounded-[3rem] overflow-hidden relative group">
           <CardHeader className="p-10">
-            <Badge className="bg-primary/20 text-primary border-primary/20 w-fit mb-4 uppercase font-black px-4">VERIFIED AD</Badge>
-            <CardTitle className="text-4xl font-black uppercase tracking-tight">Watch & Sync</CardTitle>
-            <CardDescription className="text-base font-bold text-primary italic">+5 Winning Coins</CardDescription>
+            <Badge className="bg-primary/20 text-primary border-primary/20 w-fit mb-4 uppercase font-black px-4">TASK INCOME</Badge>
+            <CardTitle className="text-4xl font-black uppercase tracking-tight">Watch Video</CardTitle>
+            <CardDescription className="text-base font-bold text-primary italic">+5 Task Coins</CardDescription>
           </CardHeader>
           <CardContent className="px-10 pb-10 space-y-8">
             <div className="flex items-center gap-4 p-5 bg-black/40 rounded-[1.5rem] border border-white/5">
                <PlayCircle className="h-10 w-10 text-primary" />
-               <p className="text-xs text-muted-foreground font-medium leading-relaxed">Watch a tactical brief to trigger a verified credit to your vault.</p>
+               <p className="text-xs text-muted-foreground font-medium leading-relaxed">Rewards added to Task Balance. Must convert for withdrawal.</p>
             </div>
             <Button 
               onClick={handleWatchVideo}
@@ -170,35 +169,27 @@ export default function EarningHub() {
               className="w-full h-20 bg-primary hover:bg-primary/90 rounded-[1.5rem] font-black uppercase tracking-widest text-xl shadow-2xl shadow-primary/20"
             >
               {isVideoLoading ? <Loader2 className="animate-spin h-7 w-7" /> : 
-               !settings?.videoWallEnabled ? "DISABLED" :
-               cooldownRemaining > 0 ? `WAIT ${formatCooldown(cooldownRemaining)}` : "EXECUTE MISSION"}
+               !settings?.videoWallEnabled ? "OFFLINE" :
+               cooldownRemaining > 0 ? `LOCKED ${formatCooldown(cooldownRemaining)}` : "EXECUTE MISSION"}
             </Button>
           </CardContent>
-          {cooldownRemaining > 0 && (
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-[4px] flex items-center justify-center p-8 text-center">
-              <div className="space-y-3">
-                <Clock className="h-14 w-14 text-primary mx-auto" />
-                <p className="font-black text-2xl uppercase italic tracking-tighter">Ready in {formatCooldown(cooldownRemaining)}</p>
-              </div>
-            </div>
-          )}
         </Card>
 
         {/* CPA Offer Section */}
-        <Card className="lg:col-span-2 bg-[#1a1a1a] border-secondary/40 border-2 rounded-[3rem] overflow-hidden relative group">
+        <Card className="lg:col-span-2 bg-[#1a1a1a] border-amber-500/40 border-2 rounded-[3rem] overflow-hidden relative group">
           <CardHeader className="p-10">
             <div className="flex items-center justify-between">
-              <Badge className="bg-secondary/20 text-secondary border-secondary/20 w-fit mb-4 uppercase font-black px-4">EXTERNAL INTEL</Badge>
-              <span className="text-[10px] font-black uppercase tracking-widest opacity-40">CPA LEAD NETWORK</span>
+              <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/20 w-fit mb-4 uppercase font-black px-4">EXTRA INCOME</Badge>
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-40 italic">CPA Lead API</span>
             </div>
-            <CardTitle className="text-4xl font-black uppercase tracking-tight">CPA High-Yield</CardTitle>
-            <CardDescription className="text-base font-bold text-secondary italic">Secure Multi-Region Offer Wall</CardDescription>
+            <CardTitle className="text-4xl font-black uppercase tracking-tight">CPA Missions</CardTitle>
+            <CardDescription className="text-base font-bold text-amber-500 italic">High-Yield Global Offer Wall</CardDescription>
           </CardHeader>
           <CardContent className="px-10 pb-10 space-y-6">
-             <div className="flex items-center gap-3 p-4 rounded-2xl bg-secondary/5 border border-secondary/10">
-                <AlertCircle className="h-5 w-5 text-secondary shrink-0" />
+             <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10">
+                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
                 <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
-                  Notice: CPA rewards are only synchronized after successful verification from the network. Fake completions are automatically detected and banned.
+                  Notice: All CPA earnings are credited to your **Task Wallet**. You can convert them to real Winning Balance with a small 1.2% processing fee.
                 </p>
              </div>
              {!settings?.offerWallEnabled ? (

@@ -57,7 +57,7 @@ export interface SupportMessage {
 
 export interface UserLedgerEntry {
   id: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';
@@ -71,8 +71,11 @@ export interface UserProfile {
   deviceId?: string;
   country?: string;
   countryCode?: string;
-  coins: number;
-  withdrawableCoins: number;
+  depositBalance: number;    // Money added by user
+  winningBalance: number;    // tournament wins + converted tasks (Withdrawable)
+  taskBalance: number;       // CPA Lead + Ads earnings
+  coins: number;             // Legacy compatibility/Total
+  withdrawableCoins: number; // Legacy compatibility/Winnings
   referralCode: string;
   referredBy?: string;
   isAdmin?: boolean;
