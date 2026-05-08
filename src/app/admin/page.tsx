@@ -86,7 +86,8 @@ export default function AdminDashboard() {
   const [balanceAdjustment, setBalanceAdjustment] = useState<{ user: UserProfile; bucket: 'depositBalance' | 'winningBalance' | 'taskBalance' } | null>(null);
   const [adjAmount, setAdjAmount] = useState('');
   const [sysConfig, setSysConfig] = useState<Partial<AppSettings>>({});
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [savingSection, setSavingSection] = useState<string | null>(null);
+  const [statusMsg, setStatusMsg] = useState<{ section: string; msg: string; type: 'success' | 'error' } | null>(null);
   const [roomDeployment, setRoomDeployment] = useState<{ id: string; roomId: string; roomPass: string } | null>(null);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
@@ -117,36 +118,40 @@ export default function AdminDashboard() {
     }
   };
 
-  const saveSettings = (updates: Partial<AppSettings>) => {
+  const saveSettings = (section: string, updates: Partial<AppSettings>) => {
     if (!settingsRef) {
       toast({ variant: "destructive", title: "Sync Failure", description: "Reference signal lost." });
       return;
     }
     
-    setIsSavingSettings(true);
+    setSavingSection(section);
+    setStatusMsg(null);
 
-    // Safety timeout to ensure loader stops even if promise hangs
+    // Safety timeout to prevent UI hang
     const timeout = setTimeout(() => {
-      setIsSavingSettings(false);
+      setSavingSection(null);
     }, 5000);
 
     // NON-BLOCKING Write Protocol
     setDoc(settingsRef, updates, { merge: true })
       .then(() => {
         clearTimeout(timeout);
-        setIsSavingSettings(false);
-        toast({ title: "System Matrix Synchronized", description: "Analytical parameters updated globally." });
+        setSavingSection(null);
+        setStatusMsg({ section, msg: "PROTOCOL UPDATED SUCCESSFULLY", type: 'success' });
+        toast({ title: "UPDATE SUCCESSFUL", description: `${section.toUpperCase()} parameters synchronized globally.` });
+        setTimeout(() => setStatusMsg(null), 3000);
       })
       .catch(async (serverError) => {
         clearTimeout(timeout);
-        setIsSavingSettings(false);
+        setSavingSection(null);
+        setStatusMsg({ section, msg: "SYNC ERROR", type: 'error' });
         const permissionError = new FirestorePermissionError({
           path: settingsRef.path,
           operation: 'update',
           requestResourceData: updates,
         });
         errorEmitter.emit('permission-error', permissionError);
-        toast({ variant: "destructive", title: "Sync Failure", description: "Access denied or network timeout." });
+        toast({ variant: "destructive", title: "SYNC ERROR", description: "Access denied or network timeout." });
       });
   };
 
@@ -526,7 +531,7 @@ export default function AdminDashboard() {
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
                          <Label className="text-[10px] font-black uppercase">Mission Signal Enabled</Label>
-                         <Switch checked={sysConfig.offerWallEnabled} onCheckedChange={(val) => saveSettings({ offerWallEnabled: val })} />
+                         <Switch checked={sysConfig.offerWallEnabled} onCheckedChange={(val) => saveSettings('cpa_toggle', { offerWallEnabled: val })} />
                       </div>
                       <div className="space-y-4">
                          <div className="space-y-2">
@@ -547,9 +552,16 @@ export default function AdminDashboard() {
                                placeholder="Enter CPA Key"
                             />
                          </div>
-                         <Button onClick={() => saveSettings({ cpaLeadUrl: sysConfig.cpaLeadUrl, cpaLeadApiKey: sysConfig.cpaLeadApiKey })} disabled={isSavingSettings} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
-                            {isSavingSettings ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC CPA PROTOCOL"}
-                         </Button>
+                         <div className="flex flex-col gap-2">
+                           <Button onClick={() => saveSettings('cpa_sync', { cpaLeadUrl: sysConfig.cpaLeadUrl, cpaLeadApiKey: sysConfig.cpaLeadApiKey })} disabled={savingSection === 'cpa_sync'} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                              {savingSection === 'cpa_sync' ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC CPA PROTOCOL"}
+                           </Button>
+                           {statusMsg?.section === 'cpa_sync' && (
+                             <p className={cn("text-[8px] font-black text-center uppercase tracking-widest animate-pulse", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
+                               {statusMsg.msg}
+                             </p>
+                           )}
+                         </div>
                       </div>
                    </div>
                 </ConfigCard>
@@ -558,7 +570,7 @@ export default function AdminDashboard() {
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
                          <Label className="text-[10px] font-black uppercase">AdMob Global Switch</Label>
-                         <Switch checked={sysConfig.adMobEnabled} onCheckedChange={(val) => saveSettings({ adMobEnabled: val })} />
+                         <Switch checked={sysConfig.adMobEnabled} onCheckedChange={(val) => saveSettings('admob_toggle', { adMobEnabled: val })} />
                       </div>
                       <div className="grid grid-cols-1 gap-4">
                          <ConfigInput label="AdMob App ID" value={sysConfig.adMobAppId} onChange={(v: string) => setSysConfig({...sysConfig, adMobAppId: v})} />
@@ -567,9 +579,16 @@ export default function AdminDashboard() {
                             <ConfigInput label="Interstitial ID" value={sysConfig.adMobInterstitialId} onChange={(v: string) => setSysConfig({...sysConfig, adMobInterstitialId: v})} />
                          </div>
                       </div>
-                      <Button onClick={() => saveSettings({ adMobAppId: sysConfig.adMobAppId, adMobRewardedId: sysConfig.adMobRewardedId, adMobInterstitialId: sysConfig.adMobInterstitialId })} disabled={isSavingSettings} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
-                         {isSavingSettings ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC API"}
-                      </Button>
+                      <div className="flex flex-col gap-2">
+                        <Button onClick={() => saveSettings('admob_sync', { adMobAppId: sysConfig.adMobAppId, adMobRewardedId: sysConfig.adMobRewardedId, adMobInterstitialId: sysConfig.adMobInterstitialId })} disabled={savingSection === 'admob_sync'} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                           {savingSection === 'admob_sync' ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC ADMOB API"}
+                        </Button>
+                        {statusMsg?.section === 'admob_sync' && (
+                           <p className={cn("text-[8px] font-black text-center uppercase tracking-widest animate-pulse", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
+                              {statusMsg.msg}
+                           </p>
+                        )}
+                      </div>
                    </div>
                 </ConfigCard>
 
@@ -580,9 +599,16 @@ export default function AdminDashboard() {
                          <ConfigInput label="Withdrawal Fee %" type="number" value={sysConfig.withdrawalFeePercent} onChange={(v: string) => setSysConfig({...sysConfig, withdrawalFeePercent: Number(v)})} />
                       </div>
                       <ConfigInput label="Auto-Withdraw Threshold (₹)" type="number" value={sysConfig.autoWithdrawalThreshold} onChange={(v: string) => setSysConfig({...sysConfig, autoWithdrawalThreshold: Number(v)})} />
-                      <Button onClick={() => saveSettings({ conversionFeePercent: sysConfig.conversionFeePercent, withdrawalFeePercent: sysConfig.withdrawalFeePercent, autoWithdrawalThreshold: sysConfig.autoWithdrawalThreshold })} disabled={isSavingSettings} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
-                        {isSavingSettings ? <Loader2 className="animate-spin h-4 w-4" /> : "SAVE ECONOMIC MATRIX"}
-                      </Button>
+                      <div className="flex flex-col gap-2">
+                        <Button onClick={() => saveSettings('econ_sync', { conversionFeePercent: sysConfig.conversionFeePercent, withdrawalFeePercent: sysConfig.withdrawalFeePercent, autoWithdrawalThreshold: sysConfig.autoWithdrawalThreshold })} disabled={savingSection === 'econ_sync'} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                          {savingSection === 'econ_sync' ? <Loader2 className="animate-spin h-4 w-4" /> : "SAVE ECONOMIC MATRIX"}
+                        </Button>
+                        {statusMsg?.section === 'econ_sync' && (
+                           <p className={cn("text-[8px] font-black text-center uppercase tracking-widest animate-pulse", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
+                              {statusMsg.msg}
+                           </p>
+                        )}
+                      </div>
                    </div>
                 </ConfigCard>
              </div>
@@ -599,7 +625,7 @@ export default function AdminDashboard() {
                                <p className="text-xs font-black uppercase italic text-destructive">Maintenance Protocol</p>
                                <p className="text-[8px] text-muted-foreground font-bold uppercase">Suspends all analytical sessions.</p>
                             </div>
-                            <Switch checked={sysConfig.maintenanceMode} onCheckedChange={(val) => saveSettings({ maintenanceMode: val })} />
+                            <Switch checked={sysConfig.maintenanceMode} onCheckedChange={(val) => saveSettings('maintenance_toggle', { maintenanceMode: val })} />
                          </div>
                       </div>
                    </div>
@@ -609,13 +635,20 @@ export default function AdminDashboard() {
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
                          <Label className="text-[10px] font-black uppercase">Deposit Gateway Enabled</Label>
-                         <Switch checked={sysConfig.paymentGatewayEnabled} onCheckedChange={(val) => saveSettings({ paymentGatewayEnabled: val })} />
+                         <Switch checked={sysConfig.paymentGatewayEnabled} onCheckedChange={(val) => saveSettings('gateway_toggle', { paymentGatewayEnabled: val })} />
                       </div>
                       <ConfigInput label="Razorpay / Gateway Key ID" value={sysConfig.paymentGatewayKey} onChange={(v: string) => setSysConfig({...sysConfig, paymentGatewayKey: v})} />
                       <ConfigInput label="Gateway Secret Key" type="password" value={sysConfig.paymentGatewaySecret} onChange={(v: string) => setSysConfig({...sysConfig, paymentGatewaySecret: v})} />
-                      <Button onClick={() => saveSettings({ paymentGatewayKey: sysConfig.paymentGatewayKey, paymentGatewaySecret: sysConfig.paymentGatewaySecret })} disabled={isSavingSettings} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
-                        {isSavingSettings ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC GATEWAY KEYS"}
-                      </Button>
+                      <div className="flex flex-col gap-2">
+                        <Button onClick={() => saveSettings('gateway_sync', { paymentGatewayKey: sysConfig.paymentGatewayKey, paymentGatewaySecret: sysConfig.paymentGatewaySecret })} disabled={savingSection === 'gateway_sync'} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                          {savingSection === 'gateway_sync' ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC GATEWAY KEYS"}
+                        </Button>
+                        {statusMsg?.section === 'gateway_sync' && (
+                           <p className={cn("text-[8px] font-black text-center uppercase tracking-widest animate-pulse", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
+                              {statusMsg.msg}
+                           </p>
+                        )}
+                      </div>
                    </div>
                 </ConfigCard>
              </div>
