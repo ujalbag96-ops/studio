@@ -1,7 +1,8 @@
+
 'use client';
 
 import Link from 'next/link';
-import { Trophy, Home, Zap, Wallet, Settings, LogIn, User, LogOut, Shield, Crown, Activity, IndianRupee } from 'lucide-react';
+import { Trophy, Home, Zap, Wallet, Settings, LogIn, User, LogOut, Shield, Crown, Activity, IndianRupee, UserPlus } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -59,6 +60,7 @@ export default function Navbar() {
             <Link href="/" className={cn("text-xs font-black uppercase tracking-widest transition-colors", pathname === '/' ? "text-primary" : "text-white/60 hover:text-white")}>The Arena</Link>
             <Link href="/dashboard" className={cn("text-xs font-black uppercase tracking-widest transition-colors", pathname === '/dashboard' ? "text-primary" : "text-white/60 hover:text-white")}>My Missions</Link>
             <Link href="/earning-hub" className={cn("text-xs font-black uppercase tracking-widest transition-colors", pathname === '/earning-hub' ? "text-primary" : "text-white/60 hover:text-white")}>Earn Hub</Link>
+            <Link href="/refer" className={cn("text-xs font-black uppercase tracking-widest transition-colors", pathname === '/refer' ? "text-primary" : "text-white/60 hover:text-white")}>Refer Squad</Link>
             {isAdmin && <Link href="/admin" className="text-xs font-black uppercase tracking-widest text-accent italic">Eagle Eye</Link>}
           </div>
 
@@ -95,8 +97,8 @@ export default function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#0a0a0f] border-t border-white/5 flex items-center justify-around px-2">
         <MobileNavItem active={pathname === '/'} icon={<Home />} label="ARENA" href="/" />
         <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="HQ" href="/dashboard" />
+        <MobileNavItem active={pathname === '/refer'} icon={<UserPlus />} label="REFER" href="/refer" />
         <MobileNavItem active={pathname === '/earning-hub'} icon={<Zap />} label="EARN" href="/earning-hub" />
-        <MobileNavItem active={pathname === '/levels'} icon={<Crown />} label="RANK" href="/levels" />
         <MobileNavItem active={pathname === '/ledger'} icon={<Wallet />} label="VAULT" href="/ledger" />
       </nav>
     </>
@@ -122,6 +124,9 @@ function UserMenu({ user, isAdmin, onLogout }: any) {
         <DropdownMenuSeparator className="bg-white/5" />
         <DropdownMenuItem asChild className="rounded-xl h-11 focus:bg-white/5 cursor-pointer">
           <Link href="/dashboard" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] tracking-widest"><User className="h-4 w-4" /> Personal HQ</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="rounded-xl h-11 focus:bg-white/5 cursor-pointer">
+          <Link href="/refer" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] tracking-widest"><UserPlus className="h-4 w-4" /> Refer Squad</Link>
         </DropdownMenuItem>
         {isAdmin && (
           <DropdownMenuItem asChild className="rounded-xl h-11 focus:bg-primary/20 cursor-pointer">

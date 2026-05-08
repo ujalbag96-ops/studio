@@ -57,7 +57,7 @@ export interface SupportMessage {
 
 export interface UserLedgerEntry {
   id: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';
@@ -79,6 +79,7 @@ export interface UserProfile {
   isBanned?: boolean;
   upiId?: string;
   lastActive?: string;
+  joinedAt?: string;
 }
 
 export interface AppSettings {
@@ -91,6 +92,7 @@ export interface AppSettings {
   telegramUrl?: string;
   coinValuePerDollar?: number;
   adminProfitPercentage?: number;
+  referralRewardCoins?: number;
   withdrawalGateways?: string[];
   videoAdProvider?: 'unity' | 'applovin';
   videoAdPlacementId?: string;

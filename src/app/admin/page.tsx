@@ -24,7 +24,8 @@ import {
   Filter,
   Coins,
   ShieldAlert,
-  ArrowRight
+  ArrowRight,
+  UserPlus
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -150,8 +151,8 @@ export default function AdminDashboard() {
   const countries = ['All', ...Object.keys(countryStats || {})];
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc] dark:bg-[#050508] text-foreground">
-      {/* Professional Sidebar */}
+    <div className="flex min-h-screen bg-[#f8fafc] dark:bg-[#050508] text-white">
+      {/* Sidebar */}
       <aside className="w-64 bg-white dark:bg-[#0a0a0f] border-r border-border/50 hidden lg:flex flex-col fixed inset-y-0 z-50">
         <div className="p-8 border-b border-border/50 flex items-center gap-3">
           <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center shadow-lg">
@@ -294,10 +295,10 @@ export default function AdminDashboard() {
                     <Input type="number" value={config.coinValuePerDollar} onChange={e => setConfig({ ...config, coinValuePerDollar: Number(e.target.value) })} className="mt-1 bg-black/40 border-white/10 h-12 rounded-xl" />
                   </div>
                   <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">CPA Lead API URL</Label>
-                    <Input value={config.cpaLeadUrl} onChange={e => setConfig({ ...config, cpaLeadUrl: e.target.value })} className="mt-1 bg-black/40 border-white/10 h-12 rounded-xl" />
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Referral Reward (Coins)</Label>
+                    <Input type="number" value={config.referralRewardCoins} onChange={e => setConfig({ ...config, referralRewardCoins: Number(e.target.value) })} className="mt-1 bg-black/40 border-white/10 h-12 rounded-xl" />
                   </div>
-                  <Button onClick={() => handleUpdateSettings({ coinValuePerDollar: config.coinValuePerDollar, cpaLeadUrl: config.cpaLeadUrl })} className="w-full h-12 font-black uppercase tracking-widest bg-primary shadow-xl shadow-primary/20">SYNC GLOBAL ECONOMY</Button>
+                  <Button onClick={() => handleUpdateSettings({ coinValuePerDollar: config.coinValuePerDollar, referralRewardCoins: config.referralRewardCoins })} className="w-full h-12 font-black uppercase tracking-widest bg-primary shadow-xl shadow-primary/20">SYNC GLOBAL ECONOMY</Button>
                 </div>
               </Card>
 
