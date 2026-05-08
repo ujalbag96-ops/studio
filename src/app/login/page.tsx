@@ -55,12 +55,10 @@ export default function LoginPage() {
   const [isVpn, setIsVpn] = useState(false);
 
   useEffect(() => {
-    // SECURITY: Detect VPN/Proxy & Country
     fetch('https://ipapi.co/json/')
       .then(res => res.json())
       .then(data => {
         if (data.country_name) setDetectedCountry(data.country_name);
-        // Simplified VPN detection (most providers flag high-risk IPs)
         if (data.security && (data.security.proxy || data.security.vpn)) {
            setIsVpn(true);
         }
@@ -79,7 +77,9 @@ export default function LoginPage() {
   };
 
   const generateReferralCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+    // START FROM 74426 as requested
+    const suffix = Math.floor(1000 + Math.random() * 9000);
+    return `74426${suffix}`;
   };
 
   useEffect(() => {
@@ -112,9 +112,8 @@ export default function LoginPage() {
           } else {
              if (!userDoc.exists()) {
                let referredById = '';
-               // Validate Referral
                if (referralCode.trim()) {
-                 const refQuery = query(collection(firestore, 'users'), where('referralCode', '==', referralCode.trim().toUpperCase()));
+                 const refQuery = query(collection(firestore, 'users'), where('referralCode', '==', referralCode.trim()));
                  const refSnap = await getDocs(refQuery);
                  if (!refSnap.empty) {
                    const referrerDoc = refSnap.docs[0];
@@ -279,7 +278,7 @@ export default function LoginPage() {
                 </div>
                 <div className="space-y-2">
                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Recruiter Code (Optional)</Label>
-                   <Input value={referralCode} onChange={(e) => setReferralCode(e.target.value)} placeholder="EX: ARX742" className="h-14 bg-black/40 border-white/10 rounded-xl uppercase font-black" />
+                   <Input value={referralCode} onChange={(e) => setReferralCode(e.target.value)} placeholder="EX: 74426xxxx" className="h-14 bg-black/40 border-white/10 rounded-xl uppercase font-black" />
                 </div>
               </>
             )}

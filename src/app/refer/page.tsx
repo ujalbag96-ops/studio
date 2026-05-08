@@ -36,19 +36,25 @@ export default function ReferPage() {
 
   const copyToClipboard = () => {
     if (!profile?.referralCode) return;
-    navigator.clipboard.writeText(profile.referralCode);
-    toast({ title: "Code Copied", description: "Share it with your tactical squad." });
+    const shareUrl = `${window.location.origin}/login?ref=${profile.referralCode}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      toast({ title: "Link Copied!", description: "Share it with your squad to earn rewards." });
+    }).catch(() => {
+      toast({ variant: "destructive", title: "Copy Failed" });
+    });
   };
 
   const handleShare = () => {
     if (!profile?.referralCode) return;
-    const shareText = `Join me in the Arena! Use my referral code ${profile.referralCode} to enlist in Bracket Battles and start winning rewards. Download now!`;
+    const shareUrl = `${window.location.origin}/login?ref=${profile.referralCode}`;
+    const shareText = `Join me in the Arena! Use my link to enlist in Bracket Battles and start winning rewards: ${shareUrl}`;
+    
     if (navigator.share) {
       navigator.share({
         title: 'Bracket Battles Enlistment',
         text: shareText,
-        url: window.location.origin,
-      });
+        url: shareUrl,
+      }).catch(() => {});
     } else {
       copyToClipboard();
     }
@@ -60,7 +66,6 @@ export default function ReferPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
-      {/* Referral Hero */}
       <section className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-[#1a1a1a] to-[#050508] border border-white/5 shadow-2xl p-8 md:p-16">
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[120px] -mr-48 -mt-48 animate-pulse" />
         
@@ -94,14 +99,13 @@ export default function ReferPage() {
           </div>
 
           <div className="hidden lg:flex flex-col gap-6">
-             <ReferenceStep icon={<Zap />} label="01" title="Share Link" description="Send your referral code to your friends and team members." />
+             <ReferenceStep icon={<Zap />} label="01" title="Share Link" description="Send your referral link to your friends and team members." />
              <ReferenceStep icon={<Users />} label="02" title="They Enlist" description="They register with your code and verify their tactical ID." />
              <ReferenceStep icon={<Gift />} label="03" title="Get Credit" description={`Instantly receive ${reward} coins in your Winning Balance.`} />
           </div>
         </div>
       </section>
 
-      {/* Rewards Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
          <StatsCard title="Total Recruits" value="0" icon={<Users />} />
          <StatsCard title="Reward Earnings" value="0 🪙" icon={<Trophy />} />
