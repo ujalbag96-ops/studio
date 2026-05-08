@@ -6,14 +6,16 @@ import { doc, updateDoc, increment, collection, addDoc, query, where } from 'fir
 import { notFound, useParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trophy, Calendar, Users, ShieldAlert, Key, Gamepad2, Coins, Loader2, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Trophy, Calendar, Users, ShieldAlert, Key, Gamepad2, Coins, Loader2, ArrowLeft, ShieldCheck, Copy, CheckCircle2, PlayCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Tournament, Registration, UserProfile } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import CountdownTimer from '@/components/CountdownTimer';
 import Link from 'next/link';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function TournamentDetails() {
   const params = useParams();
@@ -24,6 +26,7 @@ export default function TournamentDetails() {
   
   const [gameIdInput, setGameIdInput] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const tournamentRef = useMemoFirebase(() => (firestore && params.id) ? doc(firestore, 'tournaments', params.id as string) : null, [firestore, params.id]);
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
@@ -38,10 +41,18 @@ export default function TournamentDetails() {
   const { data: profile } = useDoc<UserProfile>(userRef);
 
   const isJoined = registrations && registrations.length > 0;
-  const playableBalance = (profile?.depositBalance || 0) + (profile?.winningBalance || profile?.withdrawableCoins || 0);
+  const playableBalance = (profile?.depositBalance || 0) + (profile?.winningBalance || 0);
 
-  const handleJoin = async () => {
-    if (!user || !firestore || !tournament || !userRef) {
+  const copyToClipboard = (text: string, field: string) => {
+    if (!text || text === "SECURED") return;
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast({ title: "Intelligence Copied", description: `${field} ready for deployment.` });
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleJoin = () => {
+    if (!user || !firestore || !tournament || !userRef || !tournamentRef) {
       router.push('/login');
       return;
     }
@@ -57,44 +68,61 @@ export default function TournamentDetails() {
     }
 
     setIsJoining(true);
-    try {
-      // 1. Pay entry fee logic (Deduct from deposits first, then winnings)
-      let depositDeduction = Math.min(profile?.depositBalance || 0, tournament.entryFee);
-      let remainingFee = tournament.entryFee - depositDeduction;
-      
-      await updateDoc(userRef, { 
-        depositBalance: increment(-depositDeduction),
-        winningBalance: increment(-remainingFee),
-        withdrawableCoins: increment(-remainingFee), // Legacy sync
-        coins: increment(-tournament.entryFee) // Total sync
-      });
-      
-      // 2. Register
-      await addDoc(collection(firestore, 'registrations'), {
-        userId: user.uid,
-        tournamentId: tournament.id,
-        gameId: gameIdInput,
-        joinedAt: new Date().toISOString()
-      });
 
-      // 3. Ledger
-      await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
-        type: 'entry_fee',
-        amount: tournament.entryFee,
-        date: new Date().toISOString().split('T')[0],
-        status: 'completed',
-        description: `Entry fee for ${tournament.name}`
-      });
+    const depositDeduction = Math.min(profile?.depositBalance || 0, tournament.entryFee);
+    const remainingFee = tournament.entryFee - depositDeduction;
+    
+    const userUpdate = { 
+      depositBalance: increment(-depositDeduction),
+      winningBalance: increment(-remainingFee),
+      withdrawableCoins: increment(-remainingFee),
+      coins: increment(-tournament.entryFee)
+    };
 
-      toast({ title: "Battle Enlisted!", description: "Check room credentials before start." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Deployment Failed", description: e.message });
-    } finally {
-      setIsJoining(false);
-    }
+    updateDoc(userRef, userUpdate).catch(async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: userRef.path,
+        operation: 'update',
+        requestResourceData: userUpdate,
+      }));
+    });
+
+    const regData = {
+      userId: user.uid,
+      tournamentId: tournament.id,
+      gameId: gameIdInput,
+      joinedAt: new Date().toISOString()
+    };
+
+    addDoc(collection(firestore, 'registrations'), regData).catch(async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'registrations',
+        operation: 'create',
+        requestResourceData: regData,
+      }));
+    });
+
+    const ledgerData = {
+      type: 'entry_fee',
+      amount: tournament.entryFee,
+      date: new Date().toISOString().split('T')[0],
+      status: 'completed',
+      description: `Entry fee for ${tournament.name}`
+    };
+
+    addDoc(collection(firestore, 'users', user.uid, 'ledger'), ledgerData).catch(async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: `users/${user.uid}/ledger`,
+        operation: 'create',
+        requestResourceData: ledgerData,
+      }));
+    });
+
+    toast({ title: "Battle Enlisted!", description: "Check room credentials before start." });
+    setIsJoining(false);
   };
 
-  if (isTourLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
+  if (isTourLoading) return <div className="flex items-center justify-center min-h-screen bg-background"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   if (!tournament) notFound();
 
   return (
@@ -109,14 +137,17 @@ export default function TournamentDetails() {
         <div className="absolute bottom-0 left-0 p-8 md:p-12 space-y-4">
            <Badge className="bg-primary/20 text-primary border-primary/20 uppercase tracking-widest font-black px-4">{tournament.gameType}</Badge>
            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none italic">{tournament.name}</h1>
-           <CountdownTimer targetDate={tournament.startDate} />
+           <div className="flex items-center gap-4">
+             <CountdownTimer targetDate={tournament.startDate} />
+             {isJoined && <Badge className="bg-green-500 text-black font-black uppercase tracking-widest px-3">ENLISTED</Badge>}
+           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-8">
-          <Card className="bg-white/5 border-white/5 rounded-[2rem] backdrop-blur-xl">
-            <CardHeader>
+          <Card className="bg-white/5 border-white/5 rounded-[2rem] backdrop-blur-xl overflow-hidden">
+            <CardHeader className="bg-white/5 p-8 border-b border-white/5">
               <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight italic">
                 <ShieldCheck className="h-5 w-5 text-primary" />
                 Intelligence Brief
@@ -126,57 +157,87 @@ export default function TournamentDetails() {
                <StatItem icon={<Trophy className="text-amber-400" />} label="Prize Pool" value={tournament.prizePool} />
                <StatItem icon={<Coins className="text-primary" />} label="Entry Fee" value={`${tournament.entryFee} 🪙`} />
                <StatItem icon={<Calendar className="text-secondary" />} label="Engagement" value={new Date(tournament.startDate).toLocaleString()} />
-               <StatItem icon={<Gamepad2 className="text-white" />} label="Protocol" value="Squad Ranked" />
+               <StatItem icon={<Gamepad2 className="text-white" />} label="Protocol" value={`${tournament.gameType} Squad`} />
             </CardContent>
           </Card>
 
           {isJoined ? (
-            <Card className="bg-green-500/5 border-green-500/20 rounded-[2rem] p-8 border-2 shadow-2xl shadow-green-900/10">
+            <Card className="bg-gradient-to-br from-green-500/10 to-transparent border-green-500/20 rounded-[2rem] p-8 border-2 shadow-2xl relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-8 opacity-5 rotate-12">
+                  <PlayCircle className="h-40 w-40 text-green-500" />
+               </div>
                <CardHeader className="px-0">
                  <CardTitle className="text-2xl font-black text-green-500 uppercase flex items-center gap-3 italic">
                    <Key className="h-6 w-6" /> Secured Credentials
                  </CardTitle>
-                 <CardDescription className="font-bold text-xs uppercase tracking-widest">Available 15 minutes before mission start.</CardDescription>
+                 <CardDescription className="font-bold text-xs uppercase tracking-widest text-muted-foreground/80">Available 15 minutes before mission start. Copy to join game.</CardDescription>
                </CardHeader>
-               <CardContent className="px-0 space-y-4 pt-4">
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="p-6 bg-black/40 rounded-2xl border border-white/5">
-                       <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1">Room Digital Signature</p>
-                       <p className="text-2xl font-black">{tournament.roomCredentials?.roomId || "SECURED"}</p>
+               <CardContent className="px-0 space-y-6 pt-4 relative z-10">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-6 bg-black/60 rounded-2xl border border-white/5 flex flex-col justify-between group transition-all hover:border-green-500/40">
+                       <div>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-2">Room ID / Signature</p>
+                          <p className="text-2xl font-black tracking-widest">{tournament.roomCredentials?.roomId || "SECURED"}</p>
+                       </div>
+                       <Button 
+                        onClick={() => copyToClipboard(tournament.roomCredentials?.roomId || '', 'Room ID')}
+                        variant="ghost" 
+                        className="mt-4 w-full justify-between font-black uppercase text-[10px] tracking-widest hover:bg-green-500/20 hover:text-green-500"
+                       >
+                          {copiedField === 'Room ID' ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          {copiedField === 'Room ID' ? 'COPIED' : 'COPY ID'}
+                       </Button>
                     </div>
-                    <div className="p-6 bg-black/40 rounded-2xl border border-white/5">
-                       <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1">Access Key</p>
-                       <p className="text-2xl font-black">{tournament.roomCredentials?.roomPassword || "SECURED"}</p>
+                    <div className="p-6 bg-black/60 rounded-2xl border border-white/5 flex flex-col justify-between group transition-all hover:border-green-500/40">
+                       <div>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-2">Access Key / Pass</p>
+                          <p className="text-2xl font-black tracking-widest">{tournament.roomCredentials?.roomPassword || "SECURED"}</p>
+                       </div>
+                       <Button 
+                        onClick={() => copyToClipboard(tournament.roomCredentials?.roomPassword || '', 'Password')}
+                        variant="ghost" 
+                        className="mt-4 w-full justify-between font-black uppercase text-[10px] tracking-widest hover:bg-green-500/20 hover:text-green-500"
+                       >
+                          {copiedField === 'Password' ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          {copiedField === 'Password' ? 'COPIED' : 'COPY PASS'}
+                       </Button>
                     </div>
+                 </div>
+                 
+                 <div className="pt-4 border-t border-white/10">
+                    <p className="text-[10px] font-bold text-muted-foreground italic">Mission Instructions: Copy the Room ID and Password, open {tournament.gameType}, go to Custom Room, search for the ID, and enter the password to join your squad.</p>
                  </div>
                </CardContent>
             </Card>
           ) : (
-            <Card className="bg-primary/5 border-primary/20 rounded-[2rem] p-8 shadow-2xl">
+            <Card className="bg-primary/5 border-primary/20 rounded-[2rem] p-8 shadow-2xl relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-8 opacity-5">
+                  <Users className="h-40 w-40 text-primary" />
+               </div>
               <CardHeader className="px-0">
-                <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">Join Mission</CardTitle>
-                <CardDescription className="font-medium italic text-xs">Verify your {tournament.gameType} ID to authorize deployment.</CardDescription>
+                <CardTitle className="text-3xl font-black uppercase tracking-tighter italic">Join Mission</CardTitle>
+                <CardDescription className="font-bold uppercase text-[10px] tracking-widest text-primary/80">Confirm deployment to the arena sector.</CardDescription>
               </CardHeader>
-              <CardContent className="px-0 pt-6 space-y-6">
+              <CardContent className="px-0 pt-6 space-y-6 relative z-10">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Warrior Game ID</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Warrior Game ID (For Verification)</label>
                   <Input 
                     value={gameIdInput}
                     onChange={(e) => setGameIdInput(e.target.value)}
                     placeholder="e.g. 514209931" 
-                    className="bg-black/40 border-white/10 h-14 rounded-2xl font-black text-lg focus:ring-primary"
+                    className="bg-black/40 border-white/10 h-16 rounded-2xl font-black text-xl tracking-widest focus:ring-primary focus:border-primary/40"
                   />
                 </div>
-                <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
-                   <span className="text-[10px] font-black uppercase text-muted-foreground">Available Credit:</span>
-                   <span className="text-sm font-black text-secondary">{playableBalance} 🪙</span>
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between shadow-inner">
+                   <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Available Combat Credit:</span>
+                   <span className="text-xl font-black text-secondary tabular-nums">{playableBalance.toFixed(1)} 🪙</span>
                 </div>
                 <Button 
                   onClick={handleJoin}
                   disabled={isJoining}
-                  className="w-full h-18 bg-primary hover:bg-primary/90 rounded-2xl font-black text-xl tracking-[0.1em] uppercase italic shadow-2xl shadow-primary/30"
+                  className="w-full h-20 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black text-xl tracking-[0.2em] uppercase italic shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95"
                 >
-                  {isJoining ? <Loader2 className="animate-spin" /> : `DEPLOY ${tournament.entryFee} 🪙`}
+                  {isJoining ? <Loader2 className="animate-spin h-8 w-8" /> : `DEPLOY ${tournament.entryFee} COINS`}
                 </Button>
               </CardContent>
             </Card>
@@ -184,11 +245,27 @@ export default function TournamentDetails() {
         </div>
 
         <div className="space-y-8">
-          <Card className="bg-white/5 border-white/5 rounded-[2rem] p-8 text-center space-y-4 shadow-xl">
-             <Users className="h-10 w-10 text-primary mx-auto" />
-             <h3 className="text-lg font-black uppercase italic">Squad Comms</h3>
-             <p className="text-xs text-muted-foreground leading-relaxed font-medium">Discuss tactics and match rules with fellow arena warriors.</p>
-             <Button variant="outline" className="w-full border-white/10 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/5">Enter Lounge</Button>
+          <Card className="bg-white/5 border-white/5 rounded-[2rem] p-8 text-center space-y-6 shadow-xl relative overflow-hidden group">
+             <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+             <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto border border-primary/20 shadow-xl group-hover:rotate-6 transition-transform">
+                <Users className="h-8 w-8 text-primary" />
+             </div>
+             <div className="space-y-2">
+               <h3 className="text-xl font-black uppercase italic tracking-tight">Squad Comms</h3>
+               <p className="text-xs text-muted-foreground leading-relaxed font-medium">Discuss tactics and match rules with fellow arena warriors in the lounge.</p>
+             </div>
+             <Button variant="outline" className="w-full border-white/10 h-14 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors">ENTER COMMAND LOUNGE</Button>
+          </Card>
+          
+          <Card className="bg-black/40 border-white/5 rounded-[2rem] p-8 space-y-4 shadow-xl">
+             <div className="flex items-center gap-3 text-[10px] font-black uppercase text-amber-500 tracking-[0.2em]">
+                <ShieldAlert className="h-4 w-4" /> Integrity Protocol
+             </div>
+             <ul className="space-y-3 text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
+                <li className="flex gap-3"><span className="text-amber-500">•</span> Teaming is strictly prohibited and results in a permanent ban.</li>
+                <li className="flex gap-3"><span className="text-amber-500">•</span> Only mobile devices are allowed. Emulators will be disqualified.</li>
+                <li className="flex gap-3"><span className="text-amber-500">•</span> Prizes are distributed within 2 hours of match completion.</li>
+             </ul>
           </Card>
         </div>
       </div>
@@ -199,10 +276,10 @@ export default function TournamentDetails() {
 function StatItem({ icon, label, value }: any) {
   return (
     <div className="flex items-center gap-4">
-       <div className="h-12 w-12 bg-black/40 rounded-2xl flex items-center justify-center border border-white/5 shadow-lg">{icon}</div>
-       <div>
-          <p className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em]">{label}</p>
-          <p className="text-sm font-black italic">{value}</p>
+       <div className="h-12 w-12 bg-black/60 rounded-2xl flex items-center justify-center border border-white/5 shadow-lg shrink-0">{icon}</div>
+       <div className="min-w-0">
+          <p className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em] truncate">{label}</p>
+          <p className="text-sm font-black italic truncate">{value}</p>
        </div>
     </div>
   );
