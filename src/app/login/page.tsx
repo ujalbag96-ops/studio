@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,17 +20,17 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
-import { Trophy, Loader2, ShieldAlert, Mail, Phone, Lock } from 'lucide-react';
+import { Trophy, Loader2, ShieldAlert, Mail, Phone, Lock, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 const COUNTRY_CODES = [
-  { label: "India (+91)", value: "+91" },
-  { label: "USA (+1)", value: "+1" },
-  { label: "UK (+44)", value: "+44" },
-  { label: "Dubai (+971)", value: "+971" }
+  { label: "India (+91)", value: "+91", country: "India" },
+  { label: "USA (+1)", value: "+1", country: "USA" },
+  { label: "UK (+44)", value: "+44", country: "UK" },
+  { label: "Dubai (+971)", value: "+971", country: "UAE" }
 ];
 
 export default function LoginPage() {
@@ -48,6 +49,17 @@ export default function LoginPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showReset, setShowReset] = useState(false);
+  const [detectedCountry, setDetectedCountry] = useState<string>('India');
+
+  useEffect(() => {
+    // Detect Country via IP (Simple version)
+    fetch('https://ipapi.co/json/')
+      .then(res => res.json())
+      .then(data => {
+        if (data.country_name) setDetectedCountry(data.country_name);
+      })
+      .catch(() => console.log('Country detection failed, defaulting.'));
+  }, []);
 
   const getDeviceId = () => {
     if (typeof window === 'undefined') return 'unknown';
@@ -82,7 +94,8 @@ export default function LoginPage() {
                isAdmin: true,
                email: ADMIN_EMAIL,
                lastActive: new Date().toISOString(),
-               deviceId: getDeviceId()
+               deviceId: getDeviceId(),
+               country: detectedCountry
              }, { merge: true });
              
              toast({ title: "Admin Access", description: "Identity verified. Entering Command Sector." });
@@ -98,8 +111,11 @@ export default function LoginPage() {
                  isAdmin: false,
                  isBanned: false,
                  deviceId: getDeviceId(),
+                 country: detectedCountry,
                  joinedAt: new Date().toISOString()
                });
+             } else {
+               await setDoc(userDocRef, { lastActive: new Date().toISOString() }, { merge: true });
              }
              router.push('/dashboard');
           }
@@ -109,7 +125,7 @@ export default function LoginPage() {
       };
       handleAuthFlow();
     }
-  }, [user, isUserLoading, router, firestore, isRedirecting]);
+  }, [user, isUserLoading, router, firestore, isRedirecting, detectedCountry]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
     setIsLoading(true);
@@ -179,6 +195,9 @@ export default function LoginPage() {
         </div>
         <h1 className="text-3xl font-black uppercase tracking-tighter">Arena Access</h1>
         <p className="text-muted-foreground text-sm font-medium">Verify your identity to enter the battle sector.</p>
+        <Badge variant="outline" className="mt-2 flex items-center gap-2 border-white/10 px-4 py-1.5 opacity-60">
+          <Globe className="h-3 w-3" /> Region: {detectedCountry}
+        </Badge>
       </div>
 
       {authError && (

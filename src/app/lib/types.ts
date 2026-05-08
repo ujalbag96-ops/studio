@@ -69,6 +69,8 @@ export interface UserProfile {
   email?: string;
   mobile?: string;
   deviceId?: string;
+  country?: string;
+  countryCode?: string;
   coins: number;
   withdrawableCoins: number;
   referralCode: string;
@@ -76,6 +78,7 @@ export interface UserProfile {
   isAdmin?: boolean;
   isBanned?: boolean;
   upiId?: string;
+  lastActive?: string;
 }
 
 export interface AppSettings {

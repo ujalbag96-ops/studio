@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
@@ -7,11 +8,13 @@ import MatchCard from '@/components/MatchCard';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Zap, Trophy, TrendingUp, Sparkles, Loader2, Globe, Gamepad2, Gift, Crown } from 'lucide-react';
 import Link from 'next/link';
-import { Match, Tournament } from './lib/types';
-import Image from 'next/image';
+import { Match, Tournament, GameType } from './lib/types';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const firestore = useFirestore();
+  const [selectedGame, setSelectedGame] = useState<GameType | 'All'>('All');
 
   const tournamentsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'tournaments') : null, [firestore]);
   const matchesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'matches') : null, [firestore]);
@@ -19,7 +22,10 @@ export default function Home() {
   const { data: tournaments, isLoading: tourisLoading } = useCollection<Tournament>(tournamentsQuery);
   const { data: matches, isLoading: matchisLoading } = useCollection<Match>(matchesQuery);
 
-  const activeTournaments = tournaments?.filter(t => t.status === 'active') || [];
+  const filteredTournaments = tournaments?.filter(t => {
+    if (selectedGame === 'All') return t.status === 'active';
+    return t.status === 'active' && t.gameType === selectedGame;
+  }) || [];
   
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-12 pb-24 md:pb-12 bg-background">
@@ -64,10 +70,34 @@ export default function Home() {
 
       {/* Game Sectors Selector */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-6">
-         <CategoryCard icon={<Gamepad2 />} label="BGMI" color="from-[#FF7B00]/20 to-transparent border-[#FF7B00]/30" />
-         <CategoryCard icon={<Zap />} label="FREE FIRE" color="from-blue-500/20 to-transparent border-blue-500/30" />
-         <CategoryCard icon={<Trophy />} label="LUDO KING" color="from-green-500/20 to-transparent border-green-500/30" />
-         <CategoryCard icon={<Gift />} label="BONUS" color="from-purple-500/20 to-transparent border-purple-500/30" />
+         <CategoryCard 
+          icon={<Gamepad2 />} 
+          label="BGMI" 
+          color="from-orange-500/20 to-transparent border-orange-500/30" 
+          active={selectedGame === 'BGMI'}
+          onClick={() => setSelectedGame(selectedGame === 'BGMI' ? 'All' : 'BGMI')}
+         />
+         <CategoryCard 
+          icon={<Zap />} 
+          label="FREE FIRE" 
+          color="from-blue-500/20 to-transparent border-blue-500/30" 
+          active={selectedGame === 'Free Fire'}
+          onClick={() => setSelectedGame(selectedGame === 'Free Fire' ? 'All' : 'Free Fire')}
+         />
+         <CategoryCard 
+          icon={<Trophy />} 
+          label="LUDO KING" 
+          color="from-green-500/20 to-transparent border-green-500/30" 
+          active={selectedGame === 'Ludo King'}
+          onClick={() => setSelectedGame(selectedGame === 'Ludo King' ? 'All' : 'Ludo King')}
+         />
+         <CategoryCard 
+          icon={<Gift />} 
+          label="ALL MISSIONS" 
+          color="from-purple-500/20 to-transparent border-purple-500/30" 
+          active={selectedGame === 'All'}
+          onClick={() => setSelectedGame('All')}
+         />
       </section>
 
       {/* Live Battles - Tactical View */}
@@ -97,18 +127,30 @@ export default function Home() {
 
       {/* High-Stakes Campaigns */}
       <section className="space-y-10">
-        <div className="flex items-center gap-6 px-2">
-          <Crown className="h-10 w-10 text-primary drop-shadow-[0_0_15px_rgba(255,123,0,0.5)]" />
-          <h2 className="text-4xl font-black uppercase italic tracking-tighter">Elite Campaigns</h2>
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-6">
+            <Crown className="h-10 w-10 text-primary drop-shadow-[0_0_15px_rgba(255,123,0,0.5)]" />
+            <h2 className="text-4xl font-black uppercase italic tracking-tighter">
+              {selectedGame === 'All' ? 'Elite Campaigns' : `${selectedGame} Sector`}
+            </h2>
+          </div>
+          {selectedGame !== 'All' && (
+            <Button variant="ghost" onClick={() => setSelectedGame('All')} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Clear Filter</Button>
+          )}
         </div>
         
         {tourisLoading ? (
           <div className="flex justify-center py-24"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
-        ) : (
+        ) : filteredTournaments.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {activeTournaments.map(tournament => (
+            {filteredTournaments.map(tournament => (
               <TournamentCard key={tournament.id} tournament={tournament} />
             ))}
+          </div>
+        ) : (
+          <div className="py-24 text-center border-2 border-dashed border-white/5 rounded-[3rem]">
+            <Gamepad2 className="h-12 w-12 text-muted-foreground opacity-10 mx-auto mb-4" />
+            <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">No active campaigns in this sector</p>
           </div>
         )}
       </section>
@@ -128,13 +170,26 @@ export default function Home() {
   );
 }
 
-function CategoryCard({ icon, label, color }: { icon: any, label: string, color: string }) {
+function CategoryCard({ icon, label, color, active, onClick }: { icon: any, label: string, color: string, active: boolean, onClick: () => void }) {
   return (
-    <div className={`p-8 rounded-[2.5rem] bg-gradient-to-br ${color} flex flex-col items-center justify-center gap-4 cursor-pointer transition-all hover:scale-105 hover:shadow-2xl border backdrop-blur-3xl group`}>
-       <div className="h-14 w-14 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 shadow-xl transition-transform group-hover:rotate-6">
+    <div 
+      onClick={onClick}
+      className={cn(
+        "p-8 rounded-[2.5rem] bg-gradient-to-br flex flex-col items-center justify-center gap-4 cursor-pointer transition-all hover:scale-105 hover:shadow-2xl border backdrop-blur-3xl group",
+        color,
+        active ? "ring-4 ring-primary border-primary ring-offset-4 ring-offset-background scale-105" : "opacity-80 grayscale-[50%] hover:grayscale-0"
+      )}
+    >
+       <div className={cn(
+         "h-14 w-14 rounded-2xl flex items-center justify-center border border-white/10 shadow-xl transition-transform group-hover:rotate-6",
+         active ? "bg-primary text-white" : "bg-white/5 text-white/60"
+       )}>
           {icon}
        </div>
-       <span className="font-black text-white uppercase text-[10px] tracking-[0.3em] italic">{label}</span>
+       <span className={cn(
+         "font-black uppercase text-[10px] tracking-[0.3em] italic transition-colors",
+         active ? "text-primary" : "text-white/60"
+       )}>{label}</span>
     </div>
   );
 }

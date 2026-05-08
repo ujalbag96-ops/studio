@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, limit, deleteDoc, increment } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, limit, deleteDoc, increment, where } from 'firebase/firestore';
 import { 
   LayoutDashboard, 
   Users as UsersIcon, 
@@ -28,7 +29,9 @@ import {
   Search,
   Bell,
   Coins,
-  ShieldAlert
+  ShieldAlert,
+  Globe,
+  Filter
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,9 +44,9 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { AppSettings, UserProfile, UserLedgerEntry, Tournament, SupportMessage } from '@/app/lib/types';
+import { AppSettings, UserProfile, UserLedgerEntry, Tournament, SupportMessage, GameType } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -53,22 +56,25 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState<'overview' | 'warriors' | 'campaigns' | 'ledger' | 'control'>('overview');
-  const [isRepairing, setIsRepairing] = useState(false);
+  const [countryFilter, setCountryFilter] = useState<string>('All');
   const [coinAdjustment, setCoinAdjustment] = useState<{ userId: string; amount: number } | null>(null);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
 
   // Queries
-  const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore || !isAdminUser) return null;
+    if (countryFilter === 'All') return collection(firestore, 'users');
+    return query(collection(firestore, 'users'), where('country', '==', countryFilter));
+  }, [firestore, isAdminUser, countryFilter]);
+
   const transactionsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collectionGroup(firestore, 'ledger'), orderBy('date', 'desc'), limit(50)) : null, [firestore, isAdminUser]);
   const tournamentsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'tournaments') : null, [firestore, isAdminUser]);
-  const supportQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'support'), orderBy('timestamp', 'desc'), limit(10)) : null, [firestore, isAdminUser]);
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
 
   const { data: usersData } = useCollection<UserProfile>(usersQuery);
   const { data: transactionsData } = useCollection<UserLedgerEntry & { userId?: string }>(transactionsQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
-  const { data: supportData } = useCollection<SupportMessage>(supportQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const [config, setConfig] = useState<Partial<AppSettings>>({});
@@ -115,6 +121,7 @@ export default function AdminDashboard() {
       ...editingTournament,
       entryFee: Number(editingTournament.entryFee || 0),
       status: editingTournament.status || 'active',
+      gameType: editingTournament.gameType || 'Other',
       startDate: editingTournament.startDate || new Date().toISOString(),
       banner: editingTournament.banner || `https://picsum.photos/seed/${Math.random()}/800/400`
     };
@@ -144,6 +151,14 @@ export default function AdminDashboard() {
   const deviceMap = new Map();
   usersData?.forEach(u => { if (u.deviceId) { const list = deviceMap.get(u.deviceId) || []; list.push(u); deviceMap.set(u.deviceId, list); } });
   const violationsCount = Array.from(deviceMap.values()).filter(l => l.length > 1).length;
+
+  const countryStats = usersData?.reduce((acc: any, u) => {
+    const country = u.country || 'Unknown';
+    acc[country] = (acc[country] || 0) + 1;
+    return acc;
+  }, {});
+
+  const countries = ['All', ...Object.keys(countryStats || {})];
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc] dark:bg-[#050508] text-foreground">
@@ -182,46 +197,106 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'warriors' && (
-            <Card className="border-border/50 shadow-sm rounded-3xl overflow-hidden">
-              <Table>
-                <TableHeader className="bg-muted/50">
-                  <TableRow>
-                    <TableHead className="px-8 font-black uppercase text-[10px]">Warrior Sig</TableHead>
-                    <TableHead className="font-black uppercase text-[10px]">Assets</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] text-right px-8">Operational Control</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {usersData?.map(u => (
-                    <TableRow key={u.id} className="border-border/50">
-                      <TableCell className="px-8 py-4">
-                        <p className="font-black text-xs uppercase">{u.email || u.id.substring(0,12)}</p>
-                        <p className="text-[9px] text-muted-foreground">{u.deviceId || 'No Signature'}</p>
-                      </TableCell>
-                      <TableCell className="font-black text-sm text-secondary">{u.coins || 0} 🪙</TableCell>
-                      <TableCell className="text-right px-8 space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 px-3 text-[9px] font-black uppercase"
-                          onClick={() => setCoinAdjustment({ userId: u.id, amount: 100 })}
-                        >
-                          <Plus className="h-3 w-3 mr-1" /> Add 100
-                        </Button>
-                        <Button 
-                          variant={u.isBanned ? "outline" : "destructive"} 
-                          size="sm" 
-                          className="h-8 px-4 font-black text-[9px] uppercase"
-                          onClick={() => updateDoc(doc(firestore, 'users', u.id), { isBanned: !u.isBanned })}
-                        >
-                          {u.isBanned ? "Restore" : "Ban"}
-                        </Button>
-                      </TableCell>
+            <div className="space-y-6">
+              <Card className="p-4 border-border/50 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs font-black uppercase">Country Hub:</span>
+                  <Select value={countryFilter} onValueChange={setCountryFilter}>
+                    <SelectTrigger className="w-48 h-9 rounded-xl">
+                      <SelectValue placeholder="Select Country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">Showing {usersData?.length || 0} warriors from {countryFilter}</p>
+              </Card>
+
+              <Card className="border-border/50 shadow-sm rounded-3xl overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow>
+                      <TableHead className="px-8 font-black uppercase text-[10px]">Warrior Sig</TableHead>
+                      <TableHead className="font-black uppercase text-[10px]">Region</TableHead>
+                      <TableHead className="font-black uppercase text-[10px]">Assets</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] text-right px-8">Operational Control</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {usersData?.map(u => (
+                      <TableRow key={u.id} className="border-border/50">
+                        <TableCell className="px-8 py-4">
+                          <p className="font-black text-xs uppercase">{u.email || u.id.substring(0,12)}</p>
+                          <p className="text-[9px] text-muted-foreground">{u.deviceId || 'No Signature'}</p>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[9px] font-black uppercase flex items-center gap-1 w-fit">
+                            <Globe className="h-2 w-2" /> {u.country || 'Unknown'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-black text-sm text-secondary">{u.coins || 0} 🪙</TableCell>
+                        <TableCell className="text-right px-8 space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 px-3 text-[9px] font-black uppercase"
+                            onClick={() => setCoinAdjustment({ userId: u.id, amount: 100 })}
+                          >
+                            <Plus className="h-3 w-3 mr-1" /> Add 100
+                          </Button>
+                          <Button 
+                            variant={u.isBanned ? "outline" : "destructive"} 
+                            size="sm" 
+                            className="h-8 px-4 font-black text-[9px] uppercase"
+                            onClick={() => updateDoc(doc(firestore, 'users', u.id), { isBanned: !u.isBanned })}
+                          >
+                            {u.isBanned ? "Restore" : "Ban"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === 'campaigns' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-black uppercase italic tracking-tighter">Campaign Intelligence</h3>
+                <Button onClick={() => { setEditingTournament({}); setIsTournamentDialogOpen(true); }} className="rounded-xl h-11 font-black px-6"><Plus className="mr-2 h-4 w-4" /> DEPLOY NEW</Button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {tournamentsData?.map(t => (
+                  <Card key={t.id} className="p-6 border-border/50 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                      <Trophy className="h-12 w-12" />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <Badge className="bg-primary/20 text-primary border-primary/20 uppercase font-black px-3">{t.gameType}</Badge>
+                        <Badge variant="outline" className="uppercase font-black text-[9px]">{t.status}</Badge>
+                      </div>
+                      <h4 className="text-xl font-black uppercase tracking-tight">{t.name}</h4>
+                      <div className="grid grid-cols-2 gap-4 text-xs font-bold text-muted-foreground uppercase">
+                        <div>Entry: <span className="text-white">{t.entryFee} 🪙</span></div>
+                        <div>Pool: <span className="text-white">{t.prizePool}</span></div>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button variant="outline" size="sm" onClick={() => { setEditingTournament(t); setIsTournamentDialogOpen(true); }} className="flex-1 h-9 font-black text-[9px] uppercase"><Edit2 className="h-3 w-3 mr-2" /> Modify</Button>
+                        <Button variant="destructive" size="sm" onClick={() => deleteDoc(doc(firestore, 'tournaments', t.id))} className="h-9 w-9 p-0"><Trash2 className="h-3 w-3" /></Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
           )}
 
           {activeTab === 'control' && (
@@ -233,7 +308,11 @@ export default function AdminDashboard() {
                     <Label className="text-[10px] font-black uppercase">Coin Value (Per 1.00 INR)</Label>
                     <Input type="number" value={config.coinValuePerDollar} onChange={e => setConfig({ ...config, coinValuePerDollar: Number(e.target.value) })} className="mt-1" />
                   </div>
-                  <Button onClick={() => handleUpdateSettings({ coinValuePerDollar: config.coinValuePerDollar })} className="w-full h-12 font-black">SYNC ECONOMY</Button>
+                  <div>
+                    <Label className="text-[10px] font-black uppercase">CPA LEAD API URL</Label>
+                    <Input value={config.cpaLeadUrl} onChange={e => setConfig({ ...config, cpaLeadUrl: e.target.value })} className="mt-1" />
+                  </div>
+                  <Button onClick={() => handleUpdateSettings({ coinValuePerDollar: config.coinValuePerDollar, cpaLeadUrl: config.cpaLeadUrl })} className="w-full h-12 font-black">SYNC ECONOMY</Button>
                 </div>
               </Card>
 
@@ -245,6 +324,19 @@ export default function AdminDashboard() {
                       <p className="text-[9px] text-muted-foreground uppercase italic">Prevent user access for updates</p>
                     </div>
                     <Switch checked={config.maintenanceMode} onCheckedChange={val => handleUpdateSettings({ maintenanceMode: val })} />
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Monetization Toggles</Label>
+                    <div className="grid gap-3">
+                       <div className="flex items-center justify-between p-3 bg-muted/20 rounded-xl">
+                          <span className="text-[10px] font-black uppercase">Offer Wall</span>
+                          <Switch checked={config.offerWallEnabled} onCheckedChange={val => handleUpdateSettings({ offerWallEnabled: val })} />
+                       </div>
+                       <div className="flex items-center justify-between p-3 bg-muted/20 rounded-xl">
+                          <span className="text-[10px] font-black uppercase">Video Ads</span>
+                          <Switch checked={config.videoWallEnabled} onCheckedChange={val => handleUpdateSettings({ videoWallEnabled: val })} />
+                       </div>
+                    </div>
                 </div>
               </Card>
             </div>
@@ -279,13 +371,27 @@ export default function AdminDashboard() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase">Prize Pool</Label>
-                <Input value={editingTournament?.prizePool} onChange={e => setEditingTournament({...editingTournament!, prizePool: e.target.value})} placeholder="₹5,000" />
+                <Label className="text-[10px] font-black uppercase">Game Category</Label>
+                <Select value={editingTournament?.gameType} onValueChange={val => setEditingTournament({...editingTournament!, gameType: val as GameType})}>
+                   <SelectTrigger className="h-10 rounded-xl">
+                      <SelectValue placeholder="Select Game" />
+                   </SelectTrigger>
+                   <SelectContent>
+                      <SelectItem value="BGMI">BGMI</SelectItem>
+                      <SelectItem value="Free Fire">Free Fire</SelectItem>
+                      <SelectItem value="Ludo King">Ludo King</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                   </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-black uppercase">Entry (Coins)</Label>
                 <Input type="number" value={editingTournament?.entryFee} onChange={e => setEditingTournament({...editingTournament!, entryFee: Number(e.target.value)})} placeholder="50" />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase">Prize Pool</Label>
+              <Input value={editingTournament?.prizePool} onChange={e => setEditingTournament({...editingTournament!, prizePool: e.target.value})} placeholder="₹5,000" />
             </div>
             <Button type="submit" className="w-full h-14 bg-primary font-black uppercase rounded-xl">DEPLOY CAMPAIGN</Button>
           </form>
