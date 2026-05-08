@@ -189,6 +189,19 @@ export default function AdminDashboard() {
     );
   }, [usersData, searchQuery]);
 
+  // Multi-Account Detection Intelligence
+  const deviceMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    usersData?.forEach(u => {
+      if (u.deviceId) {
+        const users = map.get(u.deviceId) || [];
+        users.push(u.id);
+        map.set(u.deviceId, users);
+      }
+    });
+    return map;
+  }, [usersData]);
+
   const financialStats = useMemo(() => {
     if (!ledgerData) return { revenue: 0, profit: 0, chart: [] };
     const chart = ledgerData.slice(0, 10).reverse().map(l => ({ date: l.date, value: l.amount }));
@@ -257,6 +270,7 @@ export default function AdminDashboard() {
           </div>
           
           <div className="flex items-center gap-6">
+             {settings?.maintenanceMode && <Badge className="bg-orange-100 text-orange-600 border-none px-4 py-1.5 font-black uppercase text-[10px] animate-pulse">MAINTENANCE ACTIVE</Badge>}
              <Button variant="ghost" size="icon" className="relative text-gray-400 hover:bg-gray-50 rounded-xl h-11 w-11">
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-3 right-3 h-2 w-2 bg-red-500 rounded-full border-2 border-white" />
@@ -365,7 +379,9 @@ export default function AdminDashboard() {
                      </TableRow>
                   </TableHeader>
                   <TableBody>
-                     {filteredUsers.map(u => (
+                     {filteredUsers.map(u => {
+                        const clones = (u.deviceId && deviceMap.get(u.deviceId)?.length || 1) > 1;
+                        return (
                         <TableRow key={u.id} className="border-gray-100 hover:bg-gray-50/50 transition-colors">
                            <TableCell className="py-6 px-8">
                               <div className="flex items-center gap-4">
@@ -376,6 +392,7 @@ export default function AdminDashboard() {
                                  <div>
                                     <p className="text-sm font-black text-gray-900">{u.email?.split('@')[0] || u.id.slice(0,8)}</p>
                                     <p className="text-[10px] text-gray-400 font-bold">UID: {u.id.slice(0,12)} | {u.mobile || 'No Mobile'}</p>
+                                    {clones && <Badge className="mt-1 bg-red-50 text-red-600 text-[8px] border-none px-2">CLONE DETECTED</Badge>}
                                  </div>
                               </div>
                            </TableCell>
@@ -403,7 +420,8 @@ export default function AdminDashboard() {
                               </Button>
                            </TableCell>
                         </TableRow>
-                     ))}
+                        );
+                     })}
                   </TableBody>
                </Table>
             </Card>
@@ -528,30 +546,51 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'control' && (
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-4xl mx-auto space-y-10">
                <Card className="border-none shadow-sm rounded-[2.5rem] p-12 space-y-12 bg-white">
-                  <div className="flex items-center gap-6">
-                    <div className="h-16 w-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 shadow-inner">
-                      <Settings className="h-8 w-8" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                      <div className="h-16 w-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 shadow-inner">
+                        <Settings className="h-8 w-8" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight italic">Core Protocols</h3>
+                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Global System Configuration</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight italic">Core Protocols</h3>
-                      <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Global System Configuration</p>
+                    <div className="flex items-center gap-4 bg-orange-50 p-4 rounded-2xl border border-orange-100">
+                       <Label className="text-[10px] font-black uppercase text-orange-600">Maintenance Mode</Label>
+                       <Switch checked={sysConfig.maintenanceMode} onCheckedChange={checked => setSysConfig({...sysConfig, maintenanceMode: checked})} />
                     </div>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-10">
-                     <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">CPA Network Lead URL</Label>
-                        <Input value={sysConfig.cpaLeadUrl || ''} onChange={e => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})} className="h-14 border-gray-100 rounded-2xl bg-gray-50/50 font-medium" />
+                     <div className="space-y-6">
+                        <div className="space-y-3">
+                           <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">CPA Network Lead URL</Label>
+                           <Input value={sysConfig.cpaLeadUrl || ''} onChange={e => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})} className="h-14 border-gray-100 rounded-2xl bg-gray-50/50 font-medium" />
+                        </div>
+                        <div className="space-y-3">
+                           <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Support Terminal (Telegram)</Label>
+                           <Input value={sysConfig.telegramUrl || ''} onChange={e => setSysConfig({...sysConfig, telegramUrl: e.target.value})} className="h-14 border-gray-100 rounded-2xl bg-gray-50/50 font-medium" />
+                        </div>
                      </div>
-                     <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Support Terminal (Telegram)</Label>
-                        <Input value={sysConfig.telegramUrl || ''} onChange={e => setSysConfig({...sysConfig, telegramUrl: e.target.value})} className="h-14 border-gray-100 rounded-2xl bg-gray-50/50 font-medium" />
+                     <div className="space-y-8 bg-gray-50/50 p-8 rounded-3xl border border-gray-100">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Operational Kill-Switches</p>
+                        <div className="space-y-6">
+                           <div className="flex items-center justify-between">
+                              <Label className="text-xs font-bold text-gray-600">Video Ad Hub Status</Label>
+                              <Switch checked={sysConfig.videoWallEnabled} onCheckedChange={c => setSysConfig({...sysConfig, videoWallEnabled: c})} />
+                           </div>
+                           <div className="flex items-center justify-between">
+                              <Label className="text-xs font-bold text-gray-600">CPA Offer Wall Status</Label>
+                              <Switch checked={sysConfig.offerWallEnabled} onCheckedChange={c => setSysConfig({...sysConfig, offerWallEnabled: c})} />
+                           </div>
+                        </div>
                      </div>
                   </div>
 
-                  <div className="grid md:grid-cols-3 gap-8">
+                  <div className="grid md:grid-cols-4 gap-6">
                      <div className="space-y-3">
                         <Label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Conv. Fee (%)</Label>
                         <Input type="number" value={sysConfig.conversionFeePercent || ''} onChange={e => setSysConfig({...sysConfig, conversionFeePercent: Number(e.target.value)})} className="h-12 rounded-xl" />
@@ -563,6 +602,10 @@ export default function AdminDashboard() {
                      <div className="space-y-3">
                         <Label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Referral Bounty</Label>
                         <Input type="number" value={sysConfig.referralRewardCoins || ''} onChange={e => setSysConfig({...sysConfig, referralRewardCoins: Number(e.target.value)})} className="h-12 rounded-xl" />
+                     </div>
+                     <div className="space-y-3">
+                        <Label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Passive Commission (%)</Label>
+                        <Input type="number" value={sysConfig.passiveReferralPercent || ''} onChange={e => setSysConfig({...sysConfig, passiveReferralPercent: Number(e.target.value)})} className="h-12 rounded-xl" />
                      </div>
                   </div>
 
