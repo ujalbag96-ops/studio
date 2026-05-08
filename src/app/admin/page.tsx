@@ -66,6 +66,8 @@ import { AppSettings, UserProfile, UserLedgerEntry, Tournament, Registration } f
 import { useToast } from '@/hooks/use-toast';
 import TransactionReceipt from '@/components/TransactionReceipt';
 import Link from 'next/link';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -115,33 +117,50 @@ export default function AdminDashboard() {
     }
   };
 
-  const saveSettings = async (updates: Partial<AppSettings>) => {
+  const saveSettings = (updates: Partial<AppSettings>) => {
     if (!settingsRef) {
       toast({ variant: "destructive", title: "Sync Failure", description: "Reference signal lost." });
       return;
     }
+    
     setIsSavingSettings(true);
-    try {
-      await setDoc(settingsRef, updates, { merge: true });
-      toast({ title: "System Matrix Synchronized", description: "Analytical parameters updated globally." });
-    } catch (e: any) {
-      console.error("Sync Error:", e);
-      toast({ variant: "destructive", title: "Sync Failure", description: e.message || "Network timeout." });
-    } finally {
-      // Ensure loader stops even on error
+
+    // Safety timeout to ensure loader stops even if promise hangs
+    const timeout = setTimeout(() => {
       setIsSavingSettings(false);
-    }
+    }, 5000);
+
+    // NON-BLOCKING Write Protocol
+    setDoc(settingsRef, updates, { merge: true })
+      .then(() => {
+        clearTimeout(timeout);
+        setIsSavingSettings(false);
+        toast({ title: "System Matrix Synchronized", description: "Analytical parameters updated globally." });
+      })
+      .catch(async (serverError) => {
+        clearTimeout(timeout);
+        setIsSavingSettings(false);
+        const permissionError = new FirestorePermissionError({
+          path: settingsRef.path,
+          operation: 'update',
+          requestResourceData: updates,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: "destructive", title: "Sync Failure", description: "Access denied or network timeout." });
+      });
   };
 
   const handlePayoutAction = async (tx: UserLedgerEntry, status: 'completed' | 'failed') => {
     if (!firestore || !tx.userId) return;
-    try {
-      const txRef = doc(firestore, 'users', tx.userId, 'ledger', tx.id);
-      await updateDoc(txRef, { status });
-      toast({ title: `Payout ${status === 'completed' ? 'Approved' : 'Rejected'}` });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Payout Sync Failure" });
-    }
+    const txRef = doc(firestore, 'users', tx.userId, 'ledger', tx.id);
+    updateDoc(txRef, { status }).catch(async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: txRef.path,
+        operation: 'update',
+        requestResourceData: { status }
+      }));
+    });
+    toast({ title: `Payout ${status === 'completed' ? 'Approved' : 'Rejected'}` });
   };
 
   const handleAdjustBalance = async () => {
@@ -149,37 +168,53 @@ export default function AdminDashboard() {
     const amount = parseFloat(adjAmount);
     if (isNaN(amount)) return;
 
-    try {
-      const userRef = doc(firestore, 'users', balanceAdjustment.user.id);
-      await updateDoc(userRef, {
-        [balanceAdjustment.bucket]: increment(amount),
-        coins: increment(amount)
-      });
+    const userRef = doc(firestore, 'users', balanceAdjustment.user.id);
+    const updates = {
+      [balanceAdjustment.bucket]: increment(amount),
+      coins: increment(amount)
+    };
 
-      await addDoc(collection(firestore, 'users', balanceAdjustment.user.id, 'ledger'), {
-        type: 'income',
-        amount: Math.abs(amount),
-        date: new Date().toISOString().split('T')[0],
-        status: 'completed',
-        description: `Manual Administrative ${amount >= 0 ? 'Credit' : 'Debit'}: ${balanceAdjustment.bucket}`
-      });
+    updateDoc(userRef, updates).catch(async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: userRef.path,
+        operation: 'update',
+        requestResourceData: updates
+      }));
+    });
 
-      toast({ title: "Capital Re-allocation Complete" });
-      setBalanceAdjustment(null);
-      setAdjAmount('');
-    } catch (e) {
-      toast({ variant: "destructive", title: "Allocation Failure" });
-    }
+    const ledgerRef = collection(firestore, 'users', balanceAdjustment.user.id, 'ledger');
+    const ledgerData = {
+      type: 'income',
+      amount: Math.abs(amount),
+      date: new Date().toISOString().split('T')[0],
+      status: 'completed',
+      description: `Manual Administrative ${amount >= 0 ? 'Credit' : 'Debit'}: ${balanceAdjustment.bucket}`
+    };
+
+    addDoc(ledgerRef, ledgerData).catch(async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: `users/${balanceAdjustment.user.id}/ledger`,
+        operation: 'create',
+        requestResourceData: ledgerData
+      }));
+    });
+
+    toast({ title: "Capital Re-allocation Complete" });
+    setBalanceAdjustment(null);
+    setAdjAmount('');
   };
 
   const handleSuspendAccount = async (userId: string, currentStatus: boolean) => {
     if (!firestore) return;
-    try {
-      await updateDoc(doc(firestore, 'users', userId), { isBanned: !currentStatus });
-      toast({ title: `Compliance Lockdown: ${!currentStatus ? 'Activated' : 'Released'}` });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Compliance Sync Failure" });
-    }
+    const userRef = doc(firestore, 'users', userId);
+    updateDoc(userRef, { isBanned: !currentStatus }).catch(async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: userRef.path,
+        operation: 'update',
+        requestResourceData: { isBanned: !currentStatus }
+      }));
+    });
+    toast({ title: `Compliance Lockdown: ${!currentStatus ? 'Activated' : 'Released'}` });
   };
 
   const handlePublishRoom = async (tournamentId: string) => {
@@ -187,19 +222,23 @@ export default function AdminDashboard() {
        toast({ variant: "destructive", title: "Validation Error", description: "Input credentials before publishing." });
        return;
     }
-    try {
-      await updateDoc(doc(firestore, 'tournaments', tournamentId), {
-        roomCredentials: {
-          roomId: roomDeployment.roomId,
-          roomPassword: roomDeployment.roomPass,
-          isDeployed: true
-        }
-      });
-      toast({ title: "Session Keys Transmitted", description: "Participants can now access the arena." });
-      setRoomDeployment(null);
-    } catch (e) {
-      toast({ variant: "destructive", title: "Deployment Failure" });
-    }
+    const tRef = doc(firestore, 'tournaments', tournamentId);
+    const roomUpdate = {
+      roomCredentials: {
+        roomId: roomDeployment.roomId,
+        roomPassword: roomDeployment.roomPass,
+        isDeployed: true
+      }
+    };
+    updateDoc(tRef, roomUpdate).catch(async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: tRef.path,
+        operation: 'update',
+        requestResourceData: roomUpdate
+      }));
+    });
+    toast({ title: "Session Keys Transmitted", description: "Participants can now access the arena." });
+    setRoomDeployment(null);
   };
 
   const stats = useMemo(() => {
