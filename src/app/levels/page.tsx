@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -20,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { UserProfile } from '@/app/lib/types';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -30,6 +29,7 @@ export default function LevelsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isClaiming, setIsClaiming] = useState<string | null>(null);
+  const [showCoinAnim, setShowCoinAnim] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
@@ -37,9 +37,10 @@ export default function LevelsPage() {
   );
   const { data: profile } = useDoc<UserProfile>(userProfileRef);
 
-  const currentXp = 120;
-  const nextLevelXp = 500;
-  const progress = (currentXp / nextLevelXp) * 100;
+  const playClaimSound = () => {
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+    audio.play().catch(() => {});
+  };
 
   const handleClaimReward = (rewardId: string, amount: number) => {
     if (!user || !firestore) {
@@ -62,10 +63,9 @@ export default function LevelsPage() {
       amount: amount,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Level ${rewardId} Winning Reward`
+      description: `Level ${rewardId} Reward`
     };
 
-    // 1. Update User Profile (Non-Blocking)
     updateDoc(userRef, updateData).catch(async (serverError) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: userRef.path,
@@ -74,7 +74,6 @@ export default function LevelsPage() {
       }));
     });
 
-    // 2. Add Ledger Entry (Non-Blocking)
     addDoc(ledgerRef, ledgerData).catch(async (serverError) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: ledgerRef.path,
@@ -83,67 +82,50 @@ export default function LevelsPage() {
       }));
     });
 
-    // Instant Feedback
     setTimeout(() => {
       setIsClaiming(null);
+      playClaimSound();
+      setShowCoinAnim(true);
       toast({
-        title: "Winning Reward Claimed!",
-        description: `${amount} 🪙 added to your winning balance.`,
+        title: "Reward Claimed!",
+        description: `${amount} 🪙 added to your wallet.`,
       });
+      setTimeout(() => setShowCoinAnim(false), 2000);
     }, 800);
   };
 
-  if (isUserLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
+  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
+    <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32 relative">
+      {showCoinAnim && (
+        <div className="fixed inset-0 pointer-events-none z-[200] flex items-center justify-center">
+          <div className="coin-collect-animation bg-primary rounded-full h-20 w-20 flex items-center justify-center shadow-2xl">
+            <Sparkles className="h-10 w-10 text-white" />
+          </div>
+        </div>
+      )}
+
       <section className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-white/5 shadow-2xl p-8 md:p-16">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] -mr-48 -mt-48 animate-pulse" />
-        
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
           <div className="space-y-6 text-center md:text-left max-w-xl">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 shadow-xl">
-              <Trophy className="h-4 w-4 text-primary animate-bounce" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Bronze Tier Active</span>
-            </div>
-            
-            <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/40">
-              ARENA <span className="text-primary italic">LEVELS</span>
-            </h1>
-            
-            <p className="text-lg text-muted-foreground font-medium leading-relaxed">
-              Level rewards are added directly to your <span className="text-white font-bold">Winning Amount</span> for instant withdrawal.
-            </p>
+            <Badge className="bg-primary/10 text-primary uppercase font-black px-4 py-1 tracking-widest">TIER: BRONZE I</Badge>
+            <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic">Arena <span className="text-primary">Levels</span></h1>
+            <p className="text-lg text-muted-foreground font-medium">Progress through tiers to unlock withdrawable rewards.</p>
           </div>
-
           <div className="w-full md:w-80 space-y-4">
-            <div className="flex justify-between items-end">
-               <div className="space-y-1">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Current Status</p>
-                 <p className="text-3xl font-black text-white">BRONZE I</p>
-               </div>
-               <p className="text-xs font-bold text-muted-foreground">XP: {currentXp} / {nextLevelXp}</p>
-            </div>
-            <div className="relative h-4 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 shadow-inner">
-               <div 
-                 className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-secondary shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all duration-1000"
-                 style={{ width: `${progress}%` }}
-               />
-            </div>
+             <div className="h-4 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
+                <div className="h-full bg-primary w-[30%] shadow-[0_0_20px_rgba(255,123,0,0.5)]" />
+             </div>
+             <p className="text-[10px] font-black uppercase text-center text-muted-foreground tracking-widest">30% to next tier</p>
           </div>
         </div>
       </section>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <LevelRewardCard 
-          title="Daily Winning Payout"
-          description="Claim your daily winning dividend for being active."
+          title="Daily Bonus"
+          description="Login daily to collect your activity dividend."
           value="10.00"
           icon={<Clock className="h-8 w-8 text-primary" />}
           id="daily"
@@ -152,8 +134,8 @@ export default function LevelsPage() {
           color="primary"
         />
         <LevelRewardCard 
-          title="Welcome Winnings"
-          description="Starter gift added to your withdrawable balance."
+          title="Welcome Gift"
+          description="Starter reward for newly registered warriors."
           value="50.00"
           icon={<Gift className="h-8 w-8 text-secondary" />}
           id="welcome"
@@ -162,8 +144,8 @@ export default function LevelsPage() {
           color="secondary"
         />
         <LevelRewardCard 
-          title="Weekly Winning Drop"
-          description="Exclusive weekly winning drop for grinders."
+          title="Weekly Drop"
+          description="Special bonus for high activity throughout the week."
           value="100.00"
           icon={<Trophy className="h-8 w-8 text-white" />}
           id="weekly"
@@ -185,15 +167,10 @@ function LevelRewardCard({ title, description, value, icon, id, isClaiming, onCl
 
   return (
     <Card className={cn(
-      "relative bg-[#1a1a1a] border-white/5 overflow-hidden transition-all duration-500 group hover:border-white/10 rounded-[2.5rem] p-8 flex flex-col justify-between min-h-[400px]",
-      "shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
+      "relative bg-[#1a1a1a] border-white/5 overflow-hidden rounded-[2.5rem] p-8 flex flex-col justify-between min-h-[400px] shadow-2xl",
     )}>
-      <div className={cn("absolute top-0 right-0 p-8 opacity-10 transition-transform group-hover:scale-125 duration-700", colorStyles)}>
-        {icon}
-      </div>
-
       <div className="space-y-6 relative z-10">
-        <div className={cn("h-16 w-16 rounded-2xl bg-gradient-to-br flex items-center justify-center border shadow-2xl", colorStyles)}>
+        <div className={cn("h-16 w-16 rounded-2xl bg-gradient-to-br flex items-center justify-center border shadow-xl", colorStyles)}>
            {icon}
         </div>
         <div className="space-y-2">
@@ -211,12 +188,12 @@ function LevelRewardCard({ title, description, value, icon, id, isClaiming, onCl
           onClick={onClaim}
           disabled={isClaiming}
           className={cn(
-            "w-full font-black uppercase tracking-widest h-14 rounded-2xl transition-all shadow-xl",
+            "w-full font-black uppercase tracking-widest h-14 rounded-2xl",
             color === 'primary' ? "bg-primary hover:bg-primary/90 text-white" : 
             color === 'secondary' ? "bg-secondary hover:bg-secondary/90 text-black" : "bg-white text-black hover:bg-white/90"
           )}
         >
-          {isClaiming ? <Loader2 className="h-5 w-5 animate-spin" /> : "CLAIM WINNINGS"}
+          {isClaiming ? <Loader2 className="h-5 w-5 animate-spin" /> : "CLAIM REWARD"}
         </Button>
       </div>
     </Card>

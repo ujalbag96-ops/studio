@@ -36,16 +36,22 @@
   }
 }
 
+.coin-collect-animation {
+  animation: coin-fly 0.8s ease-out forwards;
+}
+
+@keyframes coin-fly {
+  0% { transform: scale(1) translateY(0); opacity: 1; }
+  50% { transform: scale(1.5) translateY(-20px); opacity: 1; }
+  100% { transform: scale(0.5) translateY(-100px); opacity: 0; }
+}
+
 .winzo-card-gradient {
   background: linear-gradient(135deg, rgba(255, 123, 0, 0.1) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
 .winzo-button-glow {
   box-shadow: 0 10px 20px -5px rgba(255, 123, 0, 0.4);
-}
-
-.text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/60;
 }
 
 .no-scrollbar::-webkit-scrollbar {
