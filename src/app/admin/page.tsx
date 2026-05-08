@@ -41,7 +41,10 @@ import {
   Send,
   Bell,
   BarChart3,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Lock,
+  Key,
+  Filter
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -189,6 +192,17 @@ export default function AdminDashboard() {
     );
   }, [ledgerData, searchQuery]);
 
+  const multiAccountMap = useMemo(() => {
+    if (!usersData) return new Map();
+    const map = new Map<string, number>();
+    usersData.forEach(u => {
+      if (u.deviceId) {
+        map.set(u.deviceId, (map.get(u.deviceId) || 0) + 1);
+      }
+    });
+    return map;
+  }, [usersData]);
+
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black tracking-[0.5em] italic uppercase">Access Denied: Eagle Eye Only</div>;
 
@@ -307,64 +321,67 @@ export default function AdminDashboard() {
                      </TableRow>
                   </TableHeader>
                   <TableBody>
-                     {filteredUsers.map(u => (
-                        <TableRow key={u.id} className="border-white/5 hover:bg-white/[0.02] transition-all h-24">
-                           <TableCell className="px-8">
-                              <div className="flex items-center gap-3">
-                                 <code className="text-[10px] font-black text-primary bg-primary/10 px-3 py-1.5 rounded-lg">#{u.id.slice(0,6).toUpperCase()}</code>
-                                 <Button onClick={() => copyToClipboard(u.id)} variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10 text-muted-foreground"><Copy className="h-3.5 w-3.5" /></Button>
-                              </div>
-                           </TableCell>
-                           <TableCell>
-                              <div className="flex items-center gap-4">
-                                 <Avatar className="h-10 w-10 border border-white/10">
-                                    <AvatarImage src={`https://picsum.photos/seed/${u.id}/100/100`} />
-                                    <AvatarFallback>W</AvatarFallback>
-                                 </Avatar>
-                                 <div>
-                                    <p className="text-xs font-black uppercase italic">{u.email?.split('@')[0] || 'Unknown Warrior'}</p>
-                                    <p className="text-[9px] text-muted-foreground uppercase">{u.email || u.mobile || 'No Signal'}</p>
-                                 </div>
-                              </div>
-                           </TableCell>
-                           <TableCell>
-                              <div className="flex flex-col gap-1.5">
-                                 <div className="flex items-center gap-3 text-[9px] font-bold">
-                                    <span className="w-12 text-blue-400">DEP:</span>
-                                    <span className="text-white">₹{u.depositBalance?.toFixed(1) || '0.0'}</span>
-                                 </div>
-                                 <div className="flex items-center gap-3 text-[9px] font-bold">
-                                    <span className="w-12 text-green-400">WIN:</span>
-                                    <span className="text-white">₹{u.winningBalance?.toFixed(1) || '0.0'}</span>
-                                 </div>
-                                 <div className="flex items-center gap-3 text-[9px] font-bold">
-                                    <span className="w-12 text-amber-400">TSK:</span>
-                                    <span className="text-white">{u.taskBalance?.toFixed(1) || '0.0'} 🪙</span>
-                                 </div>
-                              </div>
-                           </TableCell>
-                           <TableCell>
-                              <div className="flex items-center gap-2">
-                                 <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", u.isBanned ? "bg-red-500" : "bg-green-500")} />
-                                 <span className="text-[10px] font-black uppercase italic">{u.isBanned ? 'OFFLINE' : 'IN-ARENA'}</span>
-                              </div>
-                              <p className="text-[8px] text-muted-foreground uppercase tracking-widest mt-1">Tier: {u.rank || 'Bronze'}</p>
-                           </TableCell>
-                           <TableCell>
-                              {u.isVpnActive ? (
-                                 <Badge className="bg-red-500/20 text-red-500 border-none text-[8px] font-black uppercase tracking-widest px-3 italic">VPN SIGNAL</Badge>
-                              ) : (
-                                 <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase tracking-widest px-3 italic">VERIFIED</Badge>
-                              )}
-                           </TableCell>
-                           <TableCell className="text-right px-8 space-x-2">
-                              <Button onClick={() => setCoinAdjustment({ userId: u.id, bucket: 'winning', amount: 0 })} variant="outline" className="h-9 border-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-white/5 px-4">CREDIT / DEBIT</Button>
-                              <Button onClick={() => handleRestrictAccess(u)} variant={u.isBanned ? "outline" : "destructive"} className="h-9 rounded-lg text-[9px] font-black uppercase tracking-widest px-4">
-                                 SUSPEND ACCOUNT
-                              </Button>
-                           </TableCell>
-                        </TableRow>
-                     ))}
+                     {filteredUsers.map(u => {
+                        const isSameDevice = u.deviceId && (multiAccountMap.get(u.deviceId) || 0) > 1;
+                        return (
+                          <TableRow key={u.id} className="border-white/5 hover:bg-white/[0.02] transition-all h-24">
+                             <TableCell className="px-8">
+                                <div className="flex items-center gap-3">
+                                   <code className="text-[10px] font-black text-primary bg-primary/10 px-3 py-1.5 rounded-lg">#{u.id.slice(0,6).toUpperCase()}</code>
+                                   <Button onClick={() => copyToClipboard(u.id)} variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10 text-muted-foreground"><Copy className="h-3.5 w-3.5" /></Button>
+                                </div>
+                             </TableCell>
+                             <TableCell>
+                                <div className="flex items-center gap-4">
+                                   <Avatar className="h-10 w-10 border border-white/10">
+                                      <AvatarImage src={`https://picsum.photos/seed/${u.id}/100/100`} />
+                                      <AvatarFallback>W</AvatarFallback>
+                                   </Avatar>
+                                   <div>
+                                      <p className="text-xs font-black uppercase italic">{u.email?.split('@')[0] || 'Unknown Warrior'}</p>
+                                      <p className="text-[9px] text-muted-foreground uppercase">{u.email || u.mobile || 'No Signal'}</p>
+                                   </div>
+                                </div>
+                             </TableCell>
+                             <TableCell>
+                                <div className="flex flex-col gap-1.5">
+                                   <div className="flex items-center gap-3 text-[9px] font-bold">
+                                      <span className="w-12 text-blue-400">DEP:</span>
+                                      <span className="text-white">₹{u.depositBalance?.toFixed(1) || '0.0'}</span>
+                                   </div>
+                                   <div className="flex items-center gap-3 text-[9px] font-bold">
+                                      <span className="w-12 text-green-400">WIN:</span>
+                                      <span className="text-white">₹{u.winningBalance?.toFixed(1) || '0.0'}</span>
+                                   </div>
+                                   <div className="flex items-center gap-3 text-[9px] font-bold">
+                                      <span className="w-12 text-amber-400">TSK:</span>
+                                      <span className="text-white">{u.taskBalance?.toFixed(1) || '0.0'} 🪙</span>
+                                   </div>
+                                </div>
+                             </TableCell>
+                             <TableCell>
+                                <div className="flex items-center gap-2">
+                                   <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", u.isBanned ? "bg-red-500" : "bg-green-500")} />
+                                   <span className="text-[10px] font-black uppercase italic">{u.isBanned ? 'OFFLINE' : 'IN-ARENA'}</span>
+                                </div>
+                                <p className="text-[8px] text-muted-foreground uppercase tracking-widest mt-1">Tier: {u.rank || 'Bronze'}</p>
+                             </TableCell>
+                             <TableCell>
+                                <div className="flex flex-col gap-1">
+                                   {u.isVpnActive && <Badge className="bg-red-500/20 text-red-500 border-none text-[8px] font-black uppercase tracking-widest px-3 italic mb-1 w-fit">VPN SIGNAL</Badge>}
+                                   {isSameDevice && <Badge className="bg-orange-500/20 text-orange-500 border-none text-[8px] font-black uppercase tracking-widest px-3 italic w-fit">SAME DEVICE</Badge>}
+                                   {!u.isVpnActive && !isSameDevice && <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase tracking-widest px-3 italic w-fit">VERIFIED</Badge>}
+                                </div>
+                             </TableCell>
+                             <TableCell className="text-right px-8 space-x-2">
+                                <Button onClick={() => setCoinAdjustment({ userId: u.id, bucket: 'winning', amount: 0 })} variant="outline" className="h-9 border-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-white/5 px-4">CREDIT / DEBIT</Button>
+                                <Button onClick={() => handleRestrictAccess(u)} variant={u.isBanned ? "outline" : "destructive"} className="h-9 rounded-lg text-[9px] font-black uppercase tracking-widest px-4">
+                                   SUSPEND ACCOUNT
+                                </Button>
+                             </TableCell>
+                          </TableRow>
+                        );
+                     })}
                   </TableBody>
                </Table>
             </Card>
