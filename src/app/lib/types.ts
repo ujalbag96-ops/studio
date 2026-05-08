@@ -61,6 +61,7 @@ export interface UserLedgerEntry {
   id: string;
   type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'passive_referral';
   amount: number;
+  currencySymbol?: string;
   date: string;
   status: 'pending' | 'completed' | 'failed' | 'review_required';
   description?: string;

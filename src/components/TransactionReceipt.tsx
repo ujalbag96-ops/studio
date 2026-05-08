@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -18,7 +19,8 @@ import {
   Trophy,
   Wallet,
   ArrowUpRight,
-  TrendingUp
+  TrendingUp,
+  Globe
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -34,6 +36,7 @@ export default function TransactionReceipt({ transaction, onClose }: Transaction
 
   const isPositive = transaction.type === 'income' || transaction.type === 'deposit' || transaction.type === 'referral';
   const txHash = `TX-${transaction.id.substring(0, 8).toUpperCase()}-${Date.now().toString().substring(8)}`;
+  const currency = transaction.currencySymbol || (transaction.type === 'withdrawal' ? '₹' : '');
 
   return (
     <Dialog open={!!transaction} onOpenChange={onClose}>
@@ -66,7 +69,7 @@ export default function TransactionReceipt({ transaction, onClose }: Transaction
                   "text-5xl font-black tracking-tighter tabular-nums",
                   isPositive ? "text-green-400" : "text-red-400"
                 )}>
-                  {isPositive ? '+' : '-'}{transaction.type === 'withdrawal' ? `₹${transaction.amount.toFixed(2)}` : `${transaction.amount} 🪙`}
+                  {isPositive ? '+' : '-'}{transaction.type === 'withdrawal' ? `${currency}${transaction.amount.toFixed(2)}` : `${transaction.amount} 🪙`}
                 </h2>
                 <Badge variant="outline" className="border-white/10 text-[8px] font-black uppercase px-3 py-1">
                    {transaction.type} Protocol
@@ -82,7 +85,7 @@ export default function TransactionReceipt({ transaction, onClose }: Transaction
                   )}>{transaction.status}</span>
                 } />
                 <DetailRow label="Auth Hash" value={txHash} />
-                <DetailRow label="Tactical ID" value={transaction.id.substring(0, 12)} />
+                <DetailRow label="Operational Hub" value={<div className="flex items-center gap-1.5"><Globe className="h-2 w-2" /> Global Secure</div>} />
                 <div className="pt-2">
                    <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Briefing</p>
                    <p className="text-xs font-medium leading-relaxed">{transaction.description || 'Standard Arena Operation'}</p>

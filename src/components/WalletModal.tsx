@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Wallet, ArrowUpRight, Plus, CreditCard, Info, IndianRupee, Trophy, Zap, RefreshCcw, Loader2, Crown, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Wallet, ArrowUpRight, Plus, CreditCard, Info, IndianRupee, Trophy, Zap, RefreshCcw, Loader2, Crown, ShieldCheck, ArrowRight, Globe } from 'lucide-react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment, addDoc, getDoc } from 'firebase/firestore';
 import { UserProfile, AppSettings } from '@/app/lib/types';
@@ -20,6 +20,7 @@ import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { collection } from 'firebase/firestore';
+import { getCurrencyData } from '@/lib/currency';
 
 export default function WalletModal({ children }: { children?: React.ReactNode }) {
   const { user } = useUser();
@@ -42,6 +43,8 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   const winningBal = profile?.winningBalance || 0;
   const taskBal = profile?.taskBalance || 0;
   
+  const currencyData = getCurrencyData(profile?.country);
+  
   // TIER BASED FEES
   const baseFee = 0.012; // 1.2%
   const tierFee = profile?.rank === 'Gold' ? 0.005 : profile?.rank === 'Silver' ? 0.008 : baseFee;
@@ -49,7 +52,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   const telegramUrl = settings?.telegramUrl || 'https://t.me/bracketbattles_support';
 
   const handleManualTopup = () => {
-    const message = encodeURIComponent('I want to add funds to my Arena Wallet');
+    const message = encodeURIComponent(`I want to add funds to my Arena Wallet. Country: ${profile?.country}`);
     window.open(`${telegramUrl}?text=${message}`, '_blank');
   };
 
@@ -139,8 +142,8 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                <div>
                  <h2 className="text-2xl font-black uppercase tracking-tighter italic">Tactical Vault</h2>
                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-3 w-3 text-green-500" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">3-Layer Encryption Active</span>
+                    <Globe className="h-3 w-3 text-green-500" />
+                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{profile?.country || 'Global'} Hub Active</span>
                  </div>
                </div>
              </div>
@@ -153,12 +156,18 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-             {/* Dynamic Wallet Display */}
              <div className="grid grid-cols-3 gap-3">
                <BalanceRow label="DEPOSIT" value={depositBal} color="blue" icon={<CreditCard className="h-3 w-3" />} />
                <BalanceRow label="TASK" value={taskBal} color="amber" icon={<Zap className="h-3 w-3" />} />
                <BalanceRow label="WINNING" value={winningBal} color="green" icon={<Trophy className="h-3 w-3" />} />
              </div>
+          </div>
+          
+          <div className="text-center bg-white/5 py-3 rounded-xl border border-white/5">
+             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Estimated Value</p>
+             <p className="text-xl font-black text-primary italic">
+                {currencyData.symbol}{((depositBal + winningBal) / currencyData.rateToCoins).toFixed(2)}
+             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -166,13 +175,12 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                 <Plus className="h-4 w-4 mr-2 group-hover:scale-125 transition-transform" /> ADD FUNDS
              </Button>
              <Button asChild className="bg-[#121216] border border-white/10 hover:bg-white/5 h-20 rounded-2xl font-black uppercase tracking-widest text-xs italic">
-                <Link href="/withdraw" className="flex items-center">
+                <Link href="/withdraw" className="flex items-center justify-center">
                    WITHDRAW <ArrowUpRight className="h-4 w-4 ml-2" />
                 </Link>
              </Button>
           </div>
 
-          {/* Conversion Pathway Section */}
           <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-inner relative overflow-hidden">
              <div className="flex items-center justify-between relative z-10">
                 <div className="space-y-1">
@@ -203,18 +211,12 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                   {isConverting ? <Loader2 className="animate-spin h-5 w-5" /> : "EXECUTE"}
                 </Button>
              </div>
-
-             <div className="flex items-center justify-center gap-4 py-2">
-                <div className="text-[10px] font-black text-amber-500 uppercase">TASK HUB</div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground opacity-40" />
-                <div className="text-[10px] font-black text-green-500 uppercase">WINNING VAULT</div>
-             </div>
           </div>
 
           <div className="bg-black/40 border border-white/5 rounded-2xl p-6 flex items-start gap-4">
              <Info className="h-5 w-5 text-primary shrink-0 mt-1" />
              <p className="text-[10px] text-muted-foreground leading-relaxed font-bold uppercase tracking-tight">
-                <strong>STANDARD POLICY:</strong> Only Winning Balance can be withdrawn. Minimum ₹110. Multiple task completions are verified by admin before release.
+                <strong>Standard Policy:</strong> 1 unit of {currencyData.code} = {currencyData.rateToCoins} Coins. Withdrawals are processed in your detected local currency.
              </p>
           </div>
         </div>

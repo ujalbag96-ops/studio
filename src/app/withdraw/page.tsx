@@ -8,15 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wallet, ArrowLeft, Loader2, AlertCircle, CreditCard, IndianRupee, Percent, Coins, Trophy, ShieldCheck } from 'lucide-react';
+import { Wallet, ArrowLeft, Loader2, AlertCircle, CreditCard, IndianRupee, Percent, Coins, Trophy, ShieldCheck, Globe } from 'lucide-react';
 import { AppSettings, UserProfile } from '@/app/lib/types';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-const COIN_TO_RUPEE_RATE = 10; 
+import { getCurrencyData } from '@/lib/currency';
 
 export default function WithdrawPage() {
   const { user } = useUser();
@@ -24,9 +23,9 @@ export default function WithdrawPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [amountRupees, setAmountRupees] = useState('');
+  const [amountLocal, setAmountLocal] = useState('');
   const [method, setMethod] = useState('');
-  const [upiId, setUpiId] = useState('');
+  const [destinationId, setDestinationId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,30 +35,32 @@ export default function WithdrawPage() {
   const { data: settings } = useDoc<AppSettings>(settingsRef);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
-  const rupeeValue = parseFloat(amountRupees) || 0;
-  const coinsRequired = rupeeValue * COIN_TO_RUPEE_RATE;
+  const currencyData = getCurrencyData(profile?.country);
+  const localValue = parseFloat(amountLocal) || 0;
+  const coinsRequired = localValue * currencyData.rateToCoins;
   
   const feeRate = 0.08; 
-  const feeAmount = rupeeValue * feeRate;
-  const payoutAmount = rupeeValue - feeAmount;
+  const feeAmount = localValue * feeRate;
+  const payoutAmount = localValue - feeAmount;
 
   const availableWinningBal = profile?.winningBalance || 0;
+  const minWithdrawLocal = 110 / 10; // Base min is ₹110, adjusted for other regions
 
   const handleWithdraw = async () => {
     if (!user || !firestore || !profile || !userRef) return;
     
-    if (isNaN(rupeeValue) || rupeeValue < 110) {
-      setError("Minimum withdrawal protocol requires ₹110.");
+    if (isNaN(localValue) || localValue < minWithdrawLocal) {
+      setError(`Minimum withdrawal protocol requires ${currencyData.symbol}${minWithdrawLocal.toFixed(2)}.`);
       return;
     }
 
     if (coinsRequired > availableWinningBal) {
-      setError(`Insufficient Intel Funds. Max withdrawal: ₹${(availableWinningBal / COIN_TO_RUPEE_RATE).toFixed(2)}.`);
+      setError(`Insufficient Intel Funds. Max withdrawal: ${currencyData.symbol}${(availableWinningBal / currencyData.rateToCoins).toFixed(2)}.`);
       return;
     }
 
-    if (!method || !upiId.trim()) {
-      setError("Provide gateway and tactical destination (UPI).");
+    if (!method || !destinationId.trim()) {
+      setError("Provide gateway and tactical destination.");
       return;
     }
 
@@ -69,18 +70,18 @@ export default function WithdrawPage() {
     try {
       const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
       
-      // AI FRAUD CHECK: If user did > 5 tasks today, flag for manual review
       const isSuspect = (profile.tasksCompletedToday || 0) > 5;
       const status = isSuspect ? 'review_required' : 'pending';
 
       await addDoc(ledgerRef, {
         userId: user.uid,
         type: 'withdrawal',
-        amount: rupeeValue,
+        amount: localValue,
+        currencySymbol: currencyData.symbol,
         date: new Date().toISOString().split('T')[0],
         status: status,
         isFlagged: isSuspect,
-        description: `Withdrawal via ${method}: ${upiId} (Net: ₹${payoutAmount.toFixed(2)})`
+        description: `Withdrawal via ${method}: ${destinationId} (Net: ${currencyData.symbol}${payoutAmount.toFixed(2)})`
       });
 
       await updateDoc(userRef, {
@@ -103,7 +104,9 @@ export default function WithdrawPage() {
 
   if (!user) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
 
-  const gateways = settings?.withdrawalGateways || ['UPI', 'Paytm', 'PhonePe'];
+  const gateways = profile?.country === 'India' 
+    ? ['UPI', 'Paytm', 'PhonePe'] 
+    : ['PayPal', 'Binance Pay', 'Skrill', 'TransferWise'];
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-10 space-y-10 pb-32">
@@ -113,7 +116,7 @@ export default function WithdrawPage() {
         </Button>
         <div className="space-y-1">
           <h1 className="text-4xl font-black uppercase tracking-tighter italic">Tactical <span className="text-primary">Vault</span></h1>
-          <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest italic">Secure Withdrawal Sector</p>
+          <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest italic">Secure Withdrawal Sector • {profile?.country || 'Global'} Region</p>
         </div>
       </div>
 
@@ -127,10 +130,10 @@ export default function WithdrawPage() {
                 </p>
                 <h2 className="text-5xl font-black text-white tracking-tighter">
                   {Math.floor(availableWinningBal).toLocaleString()} <span className="text-2xl align-top">🪙</span>
-                  <span className="text-lg text-muted-foreground ml-4">≈ ₹{(availableWinningBal / 10).toFixed(2)}</span>
+                  <span className="text-lg text-muted-foreground ml-4">≈ {currencyData.symbol}{(availableWinningBal / currencyData.rateToCoins).toFixed(2)}</span>
                 </h2>
               </div>
-              <IndianRupee className="h-10 w-10 text-green-500 opacity-20" />
+              <Globe className="h-10 w-10 text-green-500 opacity-20" />
             </div>
 
             <CardContent className="p-10 space-y-8">
@@ -159,11 +162,11 @@ export default function WithdrawPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">UPI Destination</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Destination Account ({method || 'ID'})</Label>
                     <Input 
-                      value={upiId} 
-                      onChange={(e) => setUpiId(e.target.value)} 
-                      placeholder="warrior@upi" 
+                      value={destinationId} 
+                      onChange={(e) => setDestinationId(e.target.value)} 
+                      placeholder={profile?.country === 'India' ? "warrior@upi" : "user@email.com"} 
                       className="bg-black/40 border-white/10 h-14 rounded-xl font-black uppercase"
                     />
                   </div>
@@ -171,29 +174,29 @@ export default function WithdrawPage() {
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Volume (₹)</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Volume ({currencyData.symbol})</Label>
                     <Input 
                       type="number" 
-                      value={amountRupees} 
-                      onChange={(e) => setAmountRupees(e.target.value)} 
-                      placeholder="Min. 110" 
+                      value={amountLocal} 
+                      onChange={(e) => setAmountLocal(e.target.value)} 
+                      placeholder={`Min. ${minWithdrawLocal.toFixed(1)}`} 
                       className="bg-black/40 border-white/10 h-14 rounded-xl text-3xl font-black text-green-500 tabular-nums"
                     />
                   </div>
 
-                  {rupeeValue >= 110 && (
+                  {localValue >= minWithdrawLocal && (
                     <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4 shadow-inner">
                       <div className="flex justify-between items-center text-[10px] font-black uppercase">
                         <span className="text-muted-foreground">Volume in Coins</span>
-                        <span className="text-white">{coinsRequired} 🪙</span>
+                        <span className="text-white">{coinsRequired.toFixed(0)} 🪙</span>
                       </div>
                       <div className="flex justify-between items-center text-[10px] font-black uppercase">
                         <span className="text-muted-foreground">Admin Fee (8%)</span>
-                        <span className="text-destructive">-₹{feeAmount.toFixed(2)}</span>
+                        <span className="text-destructive">-{currencyData.symbol}{feeAmount.toFixed(2)}</span>
                       </div>
                       <div className="border-t border-white/5 pt-4 flex justify-between items-center">
                         <span className="text-[10px] font-black uppercase text-white">Net Payout</span>
-                        <span className="text-2xl font-black text-green-500 tabular-nums">₹{payoutAmount.toFixed(2)}</span>
+                        <span className="text-2xl font-black text-green-500 tabular-nums">{currencyData.symbol}{payoutAmount.toFixed(2)}</span>
                       </div>
                     </div>
                   )}
@@ -204,7 +207,7 @@ export default function WithdrawPage() {
             <CardFooter className="p-10 pt-0">
               <Button 
                 onClick={handleWithdraw} 
-                disabled={isSubmitting || !amountRupees || !upiId || !method || rupeeValue < 110} 
+                disabled={isSubmitting || !amountLocal || !destinationId || !method || localValue < minWithdrawLocal} 
                 className="w-full bg-primary hover:bg-primary/90 h-18 rounded-2xl font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 text-lg transition-all italic"
               >
                 {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "INITIATE WITHDRAWAL"}
@@ -222,7 +225,7 @@ export default function WithdrawPage() {
                 <h3 className="text-lg font-black uppercase italic tracking-tighter">Security Policy</h3>
                 <div className="text-[10px] text-muted-foreground leading-relaxed font-bold space-y-4 text-left uppercase tracking-widest">
                   <p>• Only <span className="text-white">Winning Balance</span> is withdrawable.</p>
-                  <p>• Conversion from Tasks requires protocol verification.</p>
+                  <p>• Your current region: <span className="text-primary">{profile?.country || 'Detected'}</span>.</p>
                   <p>• VPN/Proxy detection active. Violators will face <span className="text-red-500">Blacklist Status</span>.</p>
                   <p>• Manual review active for high-volume task earners.</p>
                 </div>

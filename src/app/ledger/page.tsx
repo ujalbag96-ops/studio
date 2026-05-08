@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -24,6 +25,7 @@ import { UserProfile, UserLedgerEntry } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import TransactionReceipt from '@/components/TransactionReceipt';
+import { getCurrencyData } from '@/lib/currency';
 
 export default function LedgerPage() {
   const { user, isUserLoading } = useUser();
@@ -58,6 +60,8 @@ export default function LedgerPage() {
 
   const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
   const { data: ledgerData, isLoading: isLedgerLoading } = useCollection<UserLedgerEntry>(ledgerQuery);
+
+  const currencyData = getCurrencyData(profile?.country);
 
   if (isUserLoading) {
     return (
@@ -107,7 +111,7 @@ export default function LedgerPage() {
             <div>
               <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Winning Balance</p>
               <p className="text-xl font-black text-secondary tabular-nums">
-                {isProfileLoading ? "---" : (profile?.withdrawableCoins?.toLocaleString() || 0)} 🪙
+                {isProfileLoading ? "---" : (profile?.winningBalance?.toLocaleString() || 0)} 🪙
               </p>
             </div>
             <div className="h-10 w-10 rounded-xl bg-secondary/10 flex items-center justify-center border border-secondary/20">
@@ -123,19 +127,19 @@ export default function LedgerPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <SummaryCard 
           title="30D Income" 
-          value={`₹${(income / 10).toFixed(2)}`} 
+          value={`${currencyData.symbol}${(income / currencyData.rateToCoins).toFixed(2)}`} 
           icon={<TrendingUp className="text-green-500" />} 
-          description="Earnings from Ads & Tasks"
+          description={`Earnings in local ${currencyData.code}`}
         />
         <SummaryCard 
           title="Volume Sent" 
-          value={`₹${(withdrawals / 1).toFixed(2)}`} 
+          value={`${currencyData.symbol}${(withdrawals).toFixed(2)}`} 
           icon={<ArrowUpCircle className="text-red-500" />} 
           description="Total withdrawal requests"
         />
         <SummaryCard 
           title="Asset Value" 
-          value={`₹${((profile?.coins || 0) / 10).toFixed(2)}`} 
+          value={`${currencyData.symbol}${((profile?.coins || 0) / currencyData.rateToCoins).toFixed(2)}`} 
           icon={<Wallet className="text-primary" />} 
           description="Combined account worth"
         />
@@ -148,7 +152,7 @@ export default function LedgerPage() {
                <Zap className="h-4 w-4 text-primary" />
                Transaction Stream
              </CardTitle>
-             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Encrypted financial data feed</p>
+             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Encrypted financial data feed • {profile?.country}</p>
           </div>
           
           <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-xl border border-white/5">
@@ -185,6 +189,7 @@ export default function LedgerPage() {
               <TableBody>
                 {ledgerData.map((entry) => {
                    const isPositive = entry.type === 'income' || entry.type === 'deposit' || entry.type === 'referral';
+                   const entryCurrency = entry.currencySymbol || (entry.type === 'withdrawal' ? '₹' : '');
                    return (
                     <TableRow key={entry.id} onClick={() => setSelectedTx(entry)} className="border-white/5 hover:bg-white/5 transition-all group cursor-pointer">
                       <TableCell className="px-8 py-6">
@@ -211,7 +216,7 @@ export default function LedgerPage() {
                           isPositive ? 'text-green-400' : 'text-red-400'
                         )}>
                           {isPositive ? '+' : '-'}
-                          {entry.type === 'withdrawal' ? `₹${entry.amount.toFixed(2)}` : `${entry.amount} 🪙`}
+                          {entry.type === 'withdrawal' ? `${entryCurrency}${entry.amount.toFixed(2)}` : `${entry.amount} 🪙`}
                         </div>
                       </TableCell>
                       <TableCell className="px-8 text-right">
