@@ -52,14 +52,20 @@ export default function LoginPage() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showReset, setShowReset] = useState(false);
   const [detectedCountry, setDetectedCountry] = useState<string>('India');
+  const [isVpn, setIsVpn] = useState(false);
 
   useEffect(() => {
+    // SECURITY: Detect VPN/Proxy & Country
     fetch('https://ipapi.co/json/')
       .then(res => res.json())
       .then(data => {
         if (data.country_name) setDetectedCountry(data.country_name);
+        // Simplified VPN detection (most providers flag high-risk IPs)
+        if (data.security && (data.security.proxy || data.security.vpn)) {
+           setIsVpn(true);
+        }
       })
-      .catch(() => console.log('Country detection failed.'));
+      .catch(() => console.log('Location intelligence unavailable.'));
   }, []);
 
   const getDeviceId = () => {
@@ -85,7 +91,7 @@ export default function LoginPage() {
           const userDoc = await getDoc(userDocRef);
           
           if (userDoc.exists() && userDoc.data()?.isBanned) {
-            setAuthError("Security Lock: This device signature is blacklisted.");
+            setAuthError("SECURITY LOCK: This device signature is blacklisted.");
             setIsRedirecting(false);
             return;
           }
@@ -114,14 +120,12 @@ export default function LoginPage() {
                    const referrerDoc = refSnap.docs[0];
                    referredById = referrerDoc.id;
 
-                   // Get Settings for reward
                    const settingsSnap = await getDoc(doc(firestore, 'settings', 'global'));
                    const reward = settingsSnap.exists() ? (settingsSnap.data().referralRewardCoins || 10) : 10;
 
-                   // Award Referrer
                    await setDoc(doc(firestore, 'users', referrerDoc.id), {
                      coins: increment(reward),
-                     withdrawableCoins: increment(reward)
+                     winningBalance: increment(reward)
                    }, { merge: true });
 
                    await addDoc(collection(firestore, 'users', referrerDoc.id, 'ledger'), {
@@ -139,9 +143,16 @@ export default function LoginPage() {
                  email: user.email || '',
                  mobile: user.phoneNumber || '',
                  coins: 0,
+                 winningBalance: 0,
+                 depositBalance: 0,
+                 taskBalance: 0,
                  withdrawableCoins: 0,
                  isAdmin: false,
                  isBanned: false,
+                 isVpnActive: isVpn,
+                 rank: 'Bronze',
+                 xp: 0,
+                 tasksCompletedToday: 0,
                  deviceId: getDeviceId(),
                  country: detectedCountry,
                  referralCode: generateReferralCode(),
@@ -149,7 +160,7 @@ export default function LoginPage() {
                  joinedAt: new Date().toISOString()
                });
              } else {
-               await setDoc(userDocRef, { lastActive: new Date().toISOString() }, { merge: true });
+               await setDoc(userDocRef, { lastActive: new Date().toISOString(), isVpnActive: isVpn }, { merge: true });
              }
              router.push('/dashboard');
           }
@@ -159,7 +170,7 @@ export default function LoginPage() {
       };
       handleAuthFlow();
     }
-  }, [user, isUserLoading, router, firestore, isRedirecting, detectedCountry]);
+  }, [user, isUserLoading, router, firestore, isRedirecting, detectedCountry, isVpn]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
     setIsLoading(true);
@@ -171,7 +182,7 @@ export default function LoginPage() {
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
       }
-      toast({ title: mode === 'login' ? "Access Granted" : "Warrior Enlisted" });
+      toast({ title: "Protocol Authenticated" });
     } catch (error: any) {
       setAuthError(error.message);
       setIsLoading(false);
@@ -186,7 +197,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await sendPasswordResetEmail(getAuth(), email);
-      toast({ title: "Reset Protocol Initiated", description: "Check your comms for the link." });
+      toast({ title: "Reset Key Transmitted" });
       setShowReset(false);
     } catch (e: any) {
       setAuthError(e.message);
@@ -209,7 +220,7 @@ export default function LoginPage() {
         toast({ title: "OTP Transmitted" });
       } else {
         await confirmationResult.confirm(otp);
-        toast({ title: "Phone Verified" });
+        toast({ title: "Identity Verified" });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -218,7 +229,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isUserLoading || isRedirecting) return <div className="flex flex-col items-center justify-center min-h-screen space-y-4"><Loader2 className="animate-spin h-10 w-10 text-primary" /><p className="text-xs font-black uppercase tracking-widest text-muted-foreground italic">Synchronizing Tactical Data...</p></div>;
+  if (isUserLoading || isRedirecting) return <div className="flex flex-col items-center justify-center min-h-screen space-y-4 bg-black"><Loader2 className="animate-spin h-10 w-10 text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Synchronizing Tactical Data...</p></div>;
 
   return (
     <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in zoom-in-95 duration-500">
@@ -226,32 +237,35 @@ export default function LoginPage() {
         <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center mx-auto shadow-2xl rotate-3">
           <Trophy className="h-10 w-10 text-white" />
         </div>
-        <h1 className="text-3xl font-black uppercase tracking-tighter">Arena Access</h1>
-        <p className="text-muted-foreground text-sm font-medium">Identify yourself to enter the combat sector.</p>
-        <Badge variant="outline" className="mt-2 border-white/10 px-4 py-1.5 opacity-60">
-          <Globe className="h-3 w-3 mr-2" /> {detectedCountry} HUB
-        </Badge>
+        <h1 className="text-3xl font-black uppercase tracking-tighter italic">Arena <span className="text-primary">Access</span></h1>
+        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Enlist to Enter the Combat Sector</p>
+        <div className="flex items-center justify-center gap-2 mt-2">
+           <Badge variant="outline" className="border-white/10 px-4 py-1.5 opacity-60">
+              <Globe className="h-3 w-3 mr-2" /> {detectedCountry} HUB
+           </Badge>
+           {isVpn && <Badge className="bg-red-500/20 text-red-500 border-none">VPN DETECTED</Badge>}
+        </div>
       </div>
 
       {authError && (
         <Alert variant="destructive" className="rounded-2xl bg-destructive/10 border-destructive/20 text-destructive">
           <ShieldAlert className="h-4 w-4" />
-          <AlertTitle className="font-black uppercase text-xs">Security Protocol Alert</AlertTitle>
+          <AlertTitle className="font-black uppercase text-[10px]">Policy Restriction</AlertTitle>
           <AlertDescription className="text-xs font-bold">{authError}</AlertDescription>
         </Alert>
       )}
 
       <Tabs defaultValue="email" className="w-full">
         <TabsList className="grid grid-cols-2 w-full h-12 bg-muted/20 p-1 rounded-xl">
-          <TabsTrigger value="email" className="font-bold flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white"><Mail className="h-4 w-4" /> Email</TabsTrigger>
-          <TabsTrigger value="phone" className="font-bold flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white"><Phone className="h-4 w-4" /> Phone</TabsTrigger>
+          <TabsTrigger value="email" className="font-bold flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white uppercase text-[10px] tracking-widest italic">Email Access</TabsTrigger>
+          <TabsTrigger value="phone" className="font-bold flex items-center gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white uppercase text-[10px] tracking-widest italic">Mobile ID</TabsTrigger>
         </TabsList>
 
         <TabsContent value="email" className="mt-6 space-y-4">
-          <Card className="bg-card/20 border-white/5 rounded-3xl p-6 space-y-5">
+          <Card className="bg-card/20 border-white/5 rounded-[2rem] p-8 space-y-5 shadow-2xl">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Email Terminal</Label>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="warrior@arena.com" className="h-12 bg-black/40 border-white/10 rounded-xl" />
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Warrior Terminal (Email)</Label>
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="warrior@arena.com" className="h-14 bg-black/40 border-white/10 rounded-xl" />
             </div>
             
             {!showReset && (
@@ -259,13 +273,13 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Secure Cipher</Label>
-                    <Button variant="link" onClick={() => setShowReset(true)} className="text-[10px] uppercase font-black tracking-widest p-0 h-auto text-primary">Forgot Key?</Button>
+                    <Button variant="link" onClick={() => setShowReset(true)} className="text-[10px] uppercase font-black tracking-widest p-0 h-auto text-primary">Key Recovery?</Button>
                   </div>
-                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-black/40 border-white/10 rounded-xl" />
+                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-14 bg-black/40 border-white/10 rounded-xl" />
                 </div>
                 <div className="space-y-2">
-                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Referral Link (Optional)</Label>
-                   <Input value={referralCode} onChange={(e) => setReferralCode(e.target.value)} placeholder="EX: ARX742" className="h-12 bg-black/40 border-white/10 rounded-xl uppercase font-black" />
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Recruiter Code (Optional)</Label>
+                   <Input value={referralCode} onChange={(e) => setReferralCode(e.target.value)} placeholder="EX: ARX742" className="h-14 bg-black/40 border-white/10 rounded-xl uppercase font-black" />
                 </div>
               </>
             )}
@@ -273,19 +287,15 @@ export default function LoginPage() {
             <div className="flex flex-col gap-3 pt-2">
               {showReset ? (
                 <>
-                  <Button onClick={handleResetPassword} disabled={isLoading} className="h-14 font-black rounded-xl bg-primary">
-                    {isLoading ? <Loader2 className="animate-spin" /> : "SEND RESET KEY"}
+                  <Button onClick={handleResetPassword} disabled={isLoading} className="h-16 font-black rounded-xl bg-primary">
+                    {isLoading ? <Loader2 className="animate-spin" /> : "TRANSMIT RECOVERY KEY"}
                   </Button>
                   <Button variant="ghost" onClick={() => setShowReset(false)} className="h-10 font-bold uppercase text-[10px]">Back to Terminal</Button>
                 </>
               ) : (
                 <>
-                  <Button onClick={() => handleEmailAuth('login')} disabled={isLoading} className="h-14 font-black rounded-xl bg-primary shadow-xl shadow-primary/20">
-                    {isLoading ? <Loader2 className="animate-spin" /> : "AUTHENTICATE"}
-                  </Button>
-                  <Button variant="outline" onClick={() => handleEmailAuth('signup')} disabled={isLoading} className="h-14 font-black rounded-xl border-white/10 hover:bg-white/5">
-                    ENLIST NEW WARRIOR
-                  </Button>
+                  <Button onClick={() => handleEmailAuth('login')} disabled={isLoading} className="h-16 font-black rounded-xl bg-primary shadow-xl shadow-primary/20 text-lg uppercase italic italic">AUTHENTICATE</Button>
+                  <Button variant="outline" onClick={() => handleEmailAuth('signup')} disabled={isLoading} className="h-14 font-black rounded-xl border-white/10 hover:bg-white/5 uppercase text-[10px] tracking-widest">ENLIST NEW WARRIOR</Button>
                 </>
               )}
             </div>
@@ -293,14 +303,14 @@ export default function LoginPage() {
         </TabsContent>
 
         <TabsContent value="phone" className="mt-6">
-          <Card className="bg-card/20 border-white/5 rounded-3xl p-6 space-y-4">
+          <Card className="bg-card/20 border-white/5 rounded-[2rem] p-8 space-y-4 shadow-2xl">
             <div id="recaptcha-container"></div>
             {!confirmationResult ? (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Regional Hub</Label>
                   <Select value={countryCode} onValueChange={setCountryCode}>
-                    <SelectTrigger className="bg-black/40 border-white/10 h-12 rounded-xl">
+                    <SelectTrigger className="bg-black/40 border-white/10 h-14 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-[#121216] border-white/10">
@@ -312,17 +322,17 @@ export default function LoginPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mobile Comms</Label>
-                  <Input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="9876543210" className="h-12 bg-black/40 border-white/10 rounded-xl" />
+                  <Input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="9876543210" className="h-14 bg-black/40 border-white/10 rounded-xl" />
                 </div>
               </div>
             ) : (
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">OTP Verification</Label>
-                <Input value={otp} onChange={(e) => setOtp(e.target.value)} className="h-14 bg-black/40 border-white/10 rounded-xl text-center text-2xl font-black tracking-[0.5em]" />
+                <Input value={otp} onChange={(e) => setOtp(e.target.value)} className="h-16 bg-black/40 border-white/10 rounded-xl text-center text-3xl font-black tracking-[0.5em]" />
               </div>
             )}
-            <Button onClick={handlePhoneFlow} disabled={isLoading} className="w-full h-14 font-black rounded-xl bg-primary shadow-xl shadow-primary/20">
-              {isLoading ? <Loader2 className="animate-spin" /> : (!confirmationResult ? "SEND OTP LINK" : "VERIFY IDENTITY")}
+            <Button onClick={handlePhoneFlow} disabled={isLoading} className="w-full h-18 font-black rounded-xl bg-primary shadow-xl shadow-primary/20 text-lg uppercase italic">
+              {isLoading ? <Loader2 className="animate-spin" /> : (!confirmationResult ? "TRANSMIT OTP" : "VERIFY IDENTITY")}
             </Button>
           </Card>
         </TabsContent>

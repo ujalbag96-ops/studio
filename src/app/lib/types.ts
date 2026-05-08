@@ -1,6 +1,7 @@
 
 export type TournamentStatus = 'active' | 'upcoming' | 'completed';
 export type GameType = 'BGMI' | 'Free Fire' | 'Ludo King' | 'Other';
+export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
 
 export interface Team {
   id: string;
@@ -52,16 +53,18 @@ export interface SupportMessage {
   message: string;
   aiResponse?: string;
   isFlagged?: boolean;
+  status: 'open' | 'resolved';
   timestamp: string;
 }
 
 export interface UserLedgerEntry {
   id: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'passive_referral';
   amount: number;
   date: string;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'completed' | 'failed' | 'review_required';
   description?: string;
+  isFlagged?: boolean;
 }
 
 export interface UserProfile {
@@ -71,15 +74,20 @@ export interface UserProfile {
   deviceId?: string;
   country?: string;
   countryCode?: string;
-  depositBalance: number;    // Money added by user
-  winningBalance: number;    // tournament wins + converted tasks (Withdrawable)
-  taskBalance: number;       // CPA Lead + Ads earnings
-  coins: number;             // Legacy compatibility/Total
-  withdrawableCoins: number; // Legacy compatibility/Winnings
+  depositBalance: number;
+  winningBalance: number;
+  taskBalance: number;
+  coins: number;
+  withdrawableCoins: number;
   referralCode: string;
   referredBy?: string;
   isAdmin?: boolean;
   isBanned?: boolean;
+  isVpnActive?: boolean;
+  rank: UserRank;
+  xp: number;
+  tasksCompletedToday: number;
+  lastTaskDate?: string;
   upiId?: string;
   lastActive?: string;
   joinedAt?: string;
@@ -96,7 +104,6 @@ export interface AppSettings {
   coinValuePerDollar?: number;
   adminProfitPercentage?: number;
   referralRewardCoins?: number;
+  passiveReferralPercent?: number; // Level 2 earning percentage
   withdrawalGateways?: string[];
-  videoAdProvider?: 'unity' | 'applovin';
-  videoAdPlacementId?: string;
 }

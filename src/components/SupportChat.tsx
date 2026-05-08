@@ -3,18 +3,20 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { MessageCircle, X, Send, Loader2, User, Bot, AlertCircle } from 'lucide-react';
+import { collection, addDoc, query, where, orderBy, limit, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { MessageCircle, X, Send, Loader2, User, Bot, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './ui/card';
 import { supportChat } from '@/ai/flows/support-chat-flow';
 import { SupportMessage } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SupportChat() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<SupportMessage[]>([]);
@@ -53,17 +55,20 @@ export default function SupportChat() {
     setIsLoading(true);
 
     try {
-      // 1. Get AI response
       const aiResult = await supportChat({ message: userMessage });
       
-      // 2. Save both to Firestore
       await addDoc(collection(firestore, 'support'), {
         userId: user.uid,
         message: userMessage,
         aiResponse: aiResult.response,
         isFlagged: aiResult.shouldFlag,
+        status: 'open',
         timestamp: new Date().toISOString()
       });
+      
+      if (aiResult.shouldFlag) {
+         toast({ title: "Priority Support Ticket Created", description: "Admin has been notified of your query." });
+      }
     } catch (error) {
       console.error("Chat error", error);
     } finally {
@@ -81,8 +86,8 @@ export default function SupportChat() {
             <div className="flex items-center gap-3">
                <Bot className="h-5 w-5 text-primary" />
                <div>
-                  <CardTitle className="text-sm font-black uppercase">Arena Support</CardTitle>
-                  <p className="text-[10px] text-muted-foreground font-bold italic">AI Assistant Active</p>
+                  <CardTitle className="text-sm font-black uppercase italic">Arena Support</CardTitle>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Tactical Helpdesk</p>
                </div>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="rounded-full hover:bg-white/5 h-8 w-8">
@@ -91,27 +96,28 @@ export default function SupportChat() {
           </CardHeader>
           
           <CardContent ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-            <div className="bg-white/5 p-4 rounded-2xl text-[11px] text-muted-foreground border border-white/5 leading-relaxed font-medium">
-              Hello! I am your Arena Assistant. How can I help you today?
+            <div className="bg-white/5 p-4 rounded-2xl text-[10px] text-muted-foreground border border-white/5 leading-relaxed font-bold uppercase tracking-widest">
+              Identify your issue, Warrior. Our AI analyst is standing by.
             </div>
             {messages.map((m) => (
               <div key={m.id} className="space-y-3">
                 <div className="flex justify-end">
-                   <div className="bg-primary text-white p-4 rounded-2xl rounded-tr-none text-xs max-w-[80%] font-medium shadow-lg">
+                   <div className="bg-primary text-white p-4 rounded-2xl rounded-tr-none text-xs max-w-[80%] font-black italic shadow-lg">
                       {m.message}
                    </div>
                 </div>
                 {m.aiResponse && (
                   <div className="flex justify-start gap-2">
-                     <div className={cn("p-4 rounded-2xl rounded-tl-none text-xs max-w-[80%] font-medium shadow-lg", m.isFlagged ? "bg-amber-500/10 border border-amber-500/20 text-amber-500" : "bg-[#2a2a2a] text-muted-foreground")}>
-                        {m.aiResponse}
-                        {m.isFlagged && <div className="mt-2 pt-2 border-t border-amber-500/10 flex items-center gap-1.5 text-[9px] font-black uppercase"><AlertCircle className="h-3 w-3" /> Admin Intervention Requested</div>}
+                     <div className={cn("p-4 rounded-2xl rounded-tl-none text-xs max-w-[80%] font-medium shadow-lg", m.isFlagged ? "bg-red-500/10 border border-red-500/20 text-red-400" : "bg-[#2a2a2a] text-muted-foreground")}>
+                        <p className="font-bold italic">"{m.aiResponse}"</p>
+                        {m.isFlagged && <div className="mt-2 pt-2 border-t border-red-500/10 flex items-center gap-1.5 text-[8px] font-black uppercase"><AlertCircle className="h-3 w-3" /> Priority Manual Review Active</div>}
+                        {m.status === 'resolved' && <div className="mt-2 pt-2 border-t border-green-500/10 flex items-center gap-1.5 text-[8px] font-black uppercase text-green-500"><CheckCircle2 className="h-3 w-3" /> Resolved</div>}
                      </div>
                   </div>
                 )}
               </div>
             ))}
-            {isLoading && <Loader2 className="h-4 w-4 animate-spin text-primary mx-auto" />}
+            {isLoading && <div className="flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>}
           </CardContent>
 
           <CardFooter className="p-6 border-t border-white/5">
@@ -119,10 +125,10 @@ export default function SupportChat() {
                <Input 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Type your query..." 
-                className="bg-black/40 border-white/10 rounded-xl h-12 focus:ring-primary"
+                placeholder="Brief your issue..." 
+                className="bg-black/40 border-white/10 rounded-xl h-12 focus:ring-primary text-[11px] font-bold"
                />
-               <Button type="submit" size="icon" className="h-12 w-12 rounded-xl bg-primary hover:bg-primary/90">
+               <Button type="submit" size="icon" className="h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 flex-shrink-0">
                  <Send className="h-4 w-4" />
                </Button>
             </form>
@@ -133,7 +139,10 @@ export default function SupportChat() {
           onClick={() => setIsOpen(true)}
           className="h-16 w-16 rounded-full bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/20 flex items-center justify-center p-0 transition-all hover:scale-110 active:scale-95"
         >
-          <MessageCircle className="h-8 w-8 text-white" />
+          <div className="relative">
+            <MessageCircle className="h-8 w-8 text-white" />
+            <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-[#050508]" />
+          </div>
         </Button>
       )}
     </div>
