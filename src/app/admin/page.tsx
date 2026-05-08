@@ -34,7 +34,11 @@ import {
   Share2,
   AlertTriangle,
   LayoutGrid,
-  Briefcase
+  Briefcase,
+  Key,
+  CheckCircle2,
+  PlayCircle,
+  Clock
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -44,7 +48,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -70,16 +74,22 @@ export default function AdminDashboard() {
   const [selectedTx, setSelectedTx] = useState<UserLedgerEntry | null>(null);
   const [balanceAdjustment, setBalanceAdjustment] = useState<{ userId: string; bucket: 'deposit' | 'winning' | 'task'; amount: number } | null>(null);
   const [sysConfig, setSysConfig] = useState<Partial<AppSettings>>({});
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
 
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
   const tournamentsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'tournaments') : null, [firestore, isAdminUser]);
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
+  const withdrawalQuery = useMemoFirebase(() => {
+     if (!firestore || !isAdminUser) return null;
+     return query(collectionGroup(firestore, 'ledger'), where('type', '==', 'withdrawal'), orderBy('date', 'desc'), limit(50));
+  }, [firestore, isAdminUser]);
   
   const { data: usersData } = useCollection<UserProfile>(usersQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
+  const { data: globalWithdrawals } = useCollection<UserLedgerEntry>(withdrawalQuery);
 
   useEffect(() => { if (settings) setSysConfig(settings); }, [settings]);
 
@@ -90,10 +100,73 @@ export default function AdminDashboard() {
     }
   };
 
+  const saveSettings = async (updates: Partial<AppSettings>) => {
+    if (!settingsRef) return;
+    setIsSavingSettings(true);
+    try {
+      await setDoc(settingsRef, updates, { merge: true });
+      toast({ title: "System Matrix Synchronized" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Sync Failure" });
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const handlePayoutAction = async (tx: UserLedgerEntry, status: 'completed' | 'failed') => {
+    if (!firestore || !tx.userId) return;
+    try {
+      const txRef = doc(firestore, 'users', tx.userId, 'ledger', tx.id);
+      await updateDoc(txRef, { status });
+      toast({ title: `Payout ${status === 'completed' ? 'Approved' : 'Rejected'}` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Payout Sync Failure" });
+    }
+  };
+
+  const handleTournamentAction = async (t: Tournament, status: 'completed' | 'cancelled') => {
+    if (!firestore) return;
+    try {
+      const tRef = doc(firestore, 'tournaments', t.id);
+      await updateDoc(tRef, { status });
+      
+      if (status === 'cancelled') {
+        // Simple refund logic: Find all registrations and credit back entry fee
+        const regQuery = query(collection(firestore, 'registrations'), where('tournamentId', '==', t.id));
+        const regSnap = await getDocs(regQuery);
+        const batch = writeBatch(firestore);
+        
+        regSnap.docs.forEach(d => {
+          const reg = d.data() as Registration;
+          const uRef = doc(firestore, 'users', reg.userId);
+          const lRef = doc(collection(firestore, 'users', reg.userId, 'ledger'));
+          
+          batch.update(uRef, { 
+            depositBalance: increment(t.entryFee),
+            coins: increment(t.entryFee)
+          });
+          batch.set(lRef, {
+            type: 'refund',
+            amount: t.entryFee,
+            date: new Date().toISOString().split('T')[0],
+            status: 'completed',
+            description: `Auto-Refund: Cancellation of ${t.name}`
+          });
+        });
+        await batch.commit();
+        toast({ title: "Operation Terminated", description: "All assets refunded to participants." });
+      } else {
+        toast({ title: "Operation Finalized" });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Event Sync Failure" });
+    }
+  };
+
   const filteredUsers = useMemo(() => {
     if (!usersData) return [];
     const q = searchQuery.toLowerCase().trim();
-    return usersData.filter(u => !q || u.email?.toLowerCase().includes(q) || u.id.toLowerCase().includes(q));
+    return usersData.filter(u => !q || u.email?.toLowerCase().includes(q) || u.id.toLowerCase().includes(q) || u.mobile?.includes(q));
   }, [usersData, searchQuery]);
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
@@ -103,7 +176,7 @@ export default function AdminDashboard() {
     <div className="flex min-h-screen bg-[#050508] text-white">
       <TransactionReceipt transaction={selectedTx} onClose={() => setSelectedTx(null)} />
       
-      {/* Sidebar - Matching Image Style */}
+      {/* Sidebar */}
       <aside className="w-[280px] flex flex-col fixed inset-y-0 z-50 bg-[#0a0a0f] border-r border-white/5 shadow-2xl">
         <div className="p-8 flex items-center gap-3">
           <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 rotate-3">
@@ -111,7 +184,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <span className="font-black text-xl italic tracking-tighter block uppercase leading-none">PLATFORM<span className="text-primary">CORE</span></span>
-            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Operational Core</span>
+            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Executive Suite</span>
           </div>
         </div>
         
@@ -135,7 +208,6 @@ export default function AdminDashboard() {
 
       {/* Main Content Area */}
       <main className="flex-1 ml-[280px]">
-        {/* Top Navigation - Matching Image Style */}
         <header className="h-20 bg-[#050508]/80 backdrop-blur-3xl flex items-center justify-between px-10 border-b border-white/5 sticky top-0 z-40">
           <div className="relative w-[450px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -152,14 +224,10 @@ export default function AdminDashboard() {
               <HeaderLink label="PORTAL" href="/" />
               <HeaderLink label="EXECUTIVE HUB" href="/dashboard" />
               <HeaderLink label="SYSTEM INBOX" href="/inbox" />
-              <HeaderLink label="AFFILIATE" href="/refer" />
               <HeaderLink label="ADMINISTRATION" active />
             </nav>
             <div className="flex items-center gap-4 border-l border-white/10 pl-8">
-               <div className="bg-white/5 px-4 py-1.5 rounded-lg flex items-center gap-2 border border-white/5">
-                  <Coins className="h-3 w-3 text-primary" />
-                  <span className="text-xs font-black">0 🪙</span>
-               </div>
+               <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black px-3 py-1">ADMIN SECTOR</Badge>
                <Avatar className="h-9 w-9 border border-primary/40">
                   <AvatarFallback className="bg-primary text-white text-[10px] font-black">U</AvatarFallback>
                </Avatar>
@@ -170,15 +238,13 @@ export default function AdminDashboard() {
         <div className="p-10 space-y-10">
           {activeTab === 'overview' && (
             <div className="space-y-10 animate-in fade-in duration-500">
-              {/* Stat Cards - Matching Screenshot */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <ExactStatCard label="TOTAL USER POPULATION" value="0" sub="+1.2% GROWTH" icon={<UsersIcon className="h-5 w-5 text-primary" />} />
+                <ExactStatCard label="TOTAL USER POPULATION" value={usersData?.length || 0} sub="+1.2% GROWTH" icon={<UsersIcon className="h-5 w-5 text-primary" />} />
                 <ExactStatCard label="GLOBAL ASSETS FLOW" value="₹1,44,210" sub="VERIFIED PAYOUTS" icon={<TrendingUp className="h-5 w-5 text-orange-500" />} />
                 <ExactStatCard label="PLATFORM LIABILITIES" value="₹3,24,000" sub="HELD IN VAULTS" icon={<Shield className="h-5 w-5 text-orange-500" />} />
                 <ExactStatCard label="OPERATIONAL YIELD" value="₹44,500" sub="POST-PROCESSING" icon={<Trophy className="h-5 w-5 text-orange-500" />} />
               </div>
 
-              {/* Placeholder for Revenue Chart */}
               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] p-10 h-[400px] flex items-center justify-center border-dashed">
                  <div className="text-center opacity-20">
                     <BarChart3 className="h-20 w-20 mx-auto mb-4" />
@@ -214,15 +280,15 @@ export default function AdminDashboard() {
                                <div className="flex items-center gap-3">
                                   <Avatar className="h-8 w-8 border border-white/10"><AvatarImage src={`https://picsum.photos/seed/${u.id}/100/100`} /></Avatar>
                                   <div>
-                                     <p className="text-xs font-black uppercase italic text-white">{u.email?.split('@')[0]}</p>
-                                     <p className="text-[9px] text-muted-foreground font-bold">{u.email}</p>
+                                     <p className="text-xs font-black uppercase italic text-white">{u.email?.split('@')[0] || u.mobile || 'Warrior'}</p>
+                                     <p className="text-[9px] text-muted-foreground font-bold">{u.email || u.mobile}</p>
                                   </div>
                                </div>
                             </TableCell>
                             <TableCell>
                                <div className="text-[9px] font-black space-y-1">
-                                  <p className="text-blue-400">INVESTMENT: ₹{u.depositBalance?.toFixed(1) || '0.0'}</p>
-                                  <p className="text-green-400">LIQUIDITY: ₹{u.winningBalance?.toFixed(1) || '0.0'}</p>
+                                  <p className="text-blue-400">INVESTMENT: {u.depositBalance?.toFixed(1) || '0.0'} 🪙</p>
+                                  <p className="text-green-400">LIQUIDITY: {u.winningBalance?.toFixed(1) || '0.0'} 🪙</p>
                                </div>
                             </TableCell>
                             <TableCell>
@@ -232,6 +298,17 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell className="text-right px-8 space-x-2">
                                <Button onClick={() => setBalanceAdjustment({ userId: u.id, bucket: 'winning', amount: 0 })} variant="outline" size="sm" className="h-8 rounded-lg text-[9px] font-black uppercase border-white/10">CREDIT / DEBIT</Button>
+                               <Button 
+                                onClick={async () => {
+                                  await updateDoc(doc(firestore!, 'users', u.id), { isBanned: !u.isBanned });
+                                  toast({ title: u.isBanned ? "Account Reinstated" : "Compliance Lockdown Executed" });
+                                }} 
+                                variant={u.isBanned ? "secondary" : "destructive"} 
+                                size="sm" 
+                                className="h-8 rounded-lg text-[9px] font-black uppercase"
+                               >
+                                  {u.isBanned ? 'ACTIVATE' : 'SUSPEND'}
+                               </Button>
                             </TableCell>
                          </TableRow>
                       ))}
@@ -240,7 +317,279 @@ export default function AdminDashboard() {
              </Card>
           )}
 
-          {/* Additional tabs like Arena Management, System settings can follow the same layout */}
+          {activeTab === 'events' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-bottom-5 duration-500">
+               {tournamentsData?.map(t => (
+                 <Card key={t.id} className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col group hover:border-primary/20 transition-all">
+                    <div className="relative h-40">
+                       <img src={t.banner} className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-700" />
+                       <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent" />
+                       <div className="absolute bottom-6 left-8">
+                          <Badge className="bg-primary/20 text-primary border-none font-black text-[8px] uppercase tracking-widest px-3 mb-2">{t.gameType}</Badge>
+                          <h4 className="text-xl font-black uppercase italic leading-none">{t.name}</h4>
+                       </div>
+                    </div>
+                    <CardContent className="p-8 space-y-6 flex-1">
+                       <div className="grid grid-cols-3 gap-4">
+                          <StatItem label="ENTRY" value={`${t.entryFee} 🪙`} />
+                          <StatItem label="PRIZE" value={t.prizePool} />
+                          <StatItem label="STATUS" value={t.status.toUpperCase()} />
+                       </div>
+                       
+                       {t.status === 'active' && (
+                         <div className="space-y-4 pt-4 border-t border-white/5">
+                            <div className="grid grid-cols-2 gap-4">
+                               <div className="space-y-1">
+                                  <Label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Access ID</Label>
+                                  <Input 
+                                    defaultValue={t.roomCredentials?.roomId} 
+                                    placeholder="Enter Room ID" 
+                                    className="h-10 bg-white/5 border-white/10 rounded-xl text-xs font-black"
+                                    onBlur={async (e) => {
+                                      await updateDoc(doc(firestore!, 'tournaments', t.id), { 'roomCredentials.roomId': e.target.value });
+                                      toast({ title: "Access ID Published" });
+                                    }}
+                                  />
+                               </div>
+                               <div className="space-y-1">
+                                  <Label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Access Pass</Label>
+                                  <Input 
+                                    defaultValue={t.roomCredentials?.roomPassword} 
+                                    placeholder="Enter Password" 
+                                    className="h-10 bg-white/5 border-white/10 rounded-xl text-xs font-black"
+                                    onBlur={async (e) => {
+                                      await updateDoc(doc(firestore!, 'tournaments', t.id), { 'roomCredentials.roomPassword': e.target.value });
+                                      toast({ title: "Access Pass Published" });
+                                    }}
+                                  />
+                               </div>
+                            </div>
+                            <div className="flex gap-2">
+                               <Button onClick={() => handleTournamentAction(t, 'completed')} className="flex-1 h-12 bg-secondary hover:bg-secondary/90 font-black uppercase text-[10px] rounded-xl italic">SET RESULT</Button>
+                               <Button onClick={() => handleTournamentAction(t, 'cancelled')} variant="destructive" className="h-12 w-12 rounded-xl flex items-center justify-center p-0"><X className="h-4 w-4" /></Button>
+                            </div>
+                         </div>
+                       )}
+                    </CardContent>
+                 </Card>
+               ))}
+            </div>
+          )}
+
+          {activeTab === 'payouts' && (
+            <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
+               <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+                  <div>
+                    <h3 className="text-xl font-black uppercase italic">Payment Gateway</h3>
+                    <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Asset Extraction Audit & Processing</p>
+                  </div>
+               </div>
+               <Table>
+                  <TableHeader className="bg-white/[0.03]">
+                     <TableRow className="border-white/5">
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-8">Transaction</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">User Audit</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Volume</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right px-8">Audit Commands</TableHead>
+                     </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                     {globalWithdrawals?.map(tx => (
+                        <TableRow key={tx.id} className="border-white/5 hover:bg-white/[0.01] transition-all">
+                           <TableCell className="px-8 font-mono text-[9px] text-primary italic">TXN#{tx.id.slice(0,10).toUpperCase()}</TableCell>
+                           <TableCell>
+                              <div className="text-[10px] font-black">
+                                 <p className="text-white uppercase italic">{tx.userId?.slice(0,15)}</p>
+                                 <p className="text-muted-foreground mt-0.5">{tx.description?.split(':')[1] || 'DESTINATION REDACTED'}</p>
+                              </div>
+                           </TableCell>
+                           <TableCell className="text-lg font-black tracking-tighter tabular-nums">
+                              {tx.currencySymbol}{tx.amount.toFixed(2)}
+                           </TableCell>
+                           <TableCell>
+                              <Badge className={cn("text-[8px] font-black border-none", tx.status === 'completed' ? "bg-green-500/20 text-green-500" : tx.status === 'pending' ? "bg-amber-500/20 text-amber-500" : "bg-red-500/20 text-red-500")}>
+                                 {tx.status.toUpperCase()}
+                              </Badge>
+                           </TableCell>
+                           <TableCell className="text-right px-8 space-x-2">
+                              {tx.status === 'pending' && (
+                                <>
+                                  <Button onClick={() => handlePayoutAction(tx, 'completed')} className="h-8 rounded-lg bg-green-600 hover:bg-green-700 text-[9px] font-black uppercase">APPROVE</Button>
+                                  <Button onClick={() => handlePayoutAction(tx, 'failed')} variant="destructive" className="h-8 rounded-lg text-[9px] font-black uppercase">REJECT</Button>
+                                </>
+                              )}
+                              <Button onClick={() => setSelectedTx(tx)} variant="ghost" className="h-8 rounded-lg border border-white/10 text-[9px] font-black uppercase px-4 hover:bg-white/5">RECEIPT</Button>
+                           </TableCell>
+                        </TableRow>
+                     ))}
+                  </TableBody>
+               </Table>
+            </Card>
+          )}
+
+          {activeTab === 'security' && (
+             <div className="space-y-8 animate-in fade-in duration-500">
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] p-10 flex items-center justify-between shadow-2xl relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-10 opacity-5"><ShieldAlert className="h-40 w-40" /></div>
+                   <div className="space-y-4 relative z-10">
+                      <h3 className="text-3xl font-black uppercase italic tracking-tighter">Security Intelligence</h3>
+                      <p className="text-sm text-muted-foreground font-medium max-w-lg">Monitoring real-time telemetry for VPN signals and device-identity clones to preserve economic integrity.</p>
+                   </div>
+                   <div className="flex gap-4 relative z-10">
+                      <StatMini label="VPN FLAGS" value={usersData?.filter(u => u.isVpnActive).length || 0} color="red" />
+                      <StatMini label="SUSPENDED" value={usersData?.filter(u => u.isBanned).length || 0} color="red" />
+                   </div>
+                </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden">
+                      <div className="p-6 border-b border-white/5 bg-white/5 font-black uppercase text-[10px] tracking-widest italic">Suspect Device Cluster</div>
+                      <Table>
+                         <TableHeader>
+                            <TableRow className="border-white/5 hover:bg-transparent">
+                               <TableHead className="text-[8px] font-black px-6">Hardware Signature</TableHead>
+                               <TableHead className="text-[8px] font-black">Linked IDs</TableHead>
+                            </TableRow>
+                         </TableHeader>
+                         <TableBody>
+                            {/* In a real app, we'd group users by deviceId. This is a simplified simulation. */}
+                            <TableRow className="border-white/5">
+                               <TableCell className="px-6 font-mono text-[8px] opacity-40 italic">#DEV_991X_A920...</TableCell>
+                               <TableCell className="text-[9px] font-black text-primary">3 ACCOUNTS DETECTED</TableCell>
+                            </TableRow>
+                         </TableBody>
+                      </Table>
+                   </Card>
+                </div>
+             </div>
+          )}
+
+          {activeTab === 'adhub' && (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-right-5 duration-500">
+                <ConfigCard 
+                  title="CPA Lead Integration" 
+                  description="Manage tactical analytical missions provided by global lead networks."
+                  icon={<Globe />}
+                >
+                   <div className="space-y-6 pt-4">
+                      <div className="flex items-center justify-between">
+                         <Label className="text-[10px] font-black uppercase">Mission Signal Enabled</Label>
+                         <Switch checked={sysConfig.offerWallEnabled} onCheckedChange={(val) => saveSettings({ offerWallEnabled: val })} />
+                      </div>
+                      <div className="space-y-2">
+                         <Label className="text-[10px] font-black uppercase text-muted-foreground">API Data Stream (JSON)</Label>
+                         <Input 
+                            value={sysConfig.cpaLeadUrl} 
+                            onChange={(e) => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})}
+                            className="bg-white/5 border-white/10 font-mono text-[10px] h-12"
+                         />
+                         <Button onClick={() => saveSettings({ cpaLeadUrl: sysConfig.cpaLeadUrl })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest mt-2">SYNC API SIGNAL</Button>
+                      </div>
+                   </div>
+                </ConfigCard>
+
+                <ConfigCard 
+                  title="Corporate Video Ads" 
+                  description="Configure intervals and rewards for sponsored video interactions."
+                  icon={<PlayCircle />}
+                >
+                   <div className="space-y-6 pt-4">
+                      <div className="flex items-center justify-between">
+                         <Label className="text-[10px] font-black uppercase">Video Ad Protocol</Label>
+                         <Switch checked={sysConfig.videoWallEnabled} onCheckedChange={(val) => saveSettings({ videoWallEnabled: val })} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase opacity-40">Value per dollaR</Label>
+                            <Input 
+                              type="number" 
+                              value={sysConfig.coinValuePerDollar} 
+                              onChange={(e) => setSysConfig({...sysConfig, coinValuePerDollar: Number(e.target.value)})}
+                              className="bg-white/5 border-white/10 h-12 font-black tabular-nums"
+                            />
+                         </div>
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase opacity-40">Platform Profit %</Label>
+                            <Input 
+                              type="number" 
+                              value={sysConfig.adminProfitPercentage} 
+                              onChange={(e) => setSysConfig({...sysConfig, adminProfitPercentage: Number(e.target.value)})}
+                              className="bg-white/5 border-white/10 h-12 font-black tabular-nums"
+                            />
+                         </div>
+                      </div>
+                      <Button onClick={() => saveSettings({ coinValuePerDollar: sysConfig.coinValuePerDollar, adminProfitPercentage: sysConfig.adminProfitPercentage })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">UPDATE VALUES</Button>
+                   </div>
+                </ConfigCard>
+             </div>
+          )}
+
+          {activeTab === 'referral' && (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-left-5 duration-500">
+                <ConfigCard title="Recruitment Protocol" description="Incentives for enlisting new professional warriors." icon={<UsersIcon />}>
+                   <div className="space-y-6 pt-4">
+                      <div className="space-y-2">
+                         <Label className="text-[10px] font-black uppercase text-muted-foreground">Direct Reward (Credits)</Label>
+                         <Input 
+                            type="number" 
+                            value={sysConfig.referralRewardCoins} 
+                            onChange={(e) => setSysConfig({...sysConfig, referralRewardCoins: Number(e.target.value)})}
+                            className="bg-white/5 border-white/10 h-12 font-black"
+                         />
+                      </div>
+                      <Button onClick={() => saveSettings({ referralRewardCoins: sysConfig.referralRewardCoins })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">SAVE REWARD</Button>
+                   </div>
+                </ConfigCard>
+
+                <ConfigCard title="Passive Yield Engine" description="Affiliate commission from recruit analytical tasks." icon={<Share2 />}>
+                   <div className="space-y-6 pt-4">
+                      <div className="space-y-2">
+                         <Label className="text-[10px] font-black uppercase text-muted-foreground">Commission Percentage (%)</Label>
+                         <Input 
+                            type="number" 
+                            value={sysConfig.passiveReferralPercent} 
+                            onChange={(e) => setSysConfig({...sysConfig, passiveReferralPercent: Number(e.target.value)})}
+                            className="bg-white/5 border-white/10 h-12 font-black"
+                         />
+                      </div>
+                      <Button onClick={() => saveSettings({ passiveReferralPercent: sysConfig.passiveReferralPercent })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">ACTIVATE YIELD</Button>
+                   </div>
+                </ConfigCard>
+             </div>
+          )}
+
+          {activeTab === 'system' && (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-500">
+                <ConfigCard title="Operational Status" description="Global platform access kill-switches." icon={<Settings />}>
+                   <div className="space-y-6 pt-4">
+                      <div className="p-6 rounded-2xl bg-destructive/5 border border-destructive/20 space-y-4">
+                         <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                               <p className="text-xs font-black uppercase italic text-destructive">Maintenance Protocol</p>
+                               <p className="text-[8px] text-muted-foreground font-bold uppercase">Suspends all non-administrative analytical sessions.</p>
+                            </div>
+                            <Switch checked={sysConfig.maintenanceMode} onCheckedChange={(val) => saveSettings({ maintenanceMode: val })} />
+                         </div>
+                      </div>
+                   </div>
+                </ConfigCard>
+
+                <ConfigCard title="Strategic Hubs" description="Management of official external communication links." icon={<Link />}>
+                   <div className="space-y-6 pt-4">
+                      <div className="space-y-2">
+                         <Label className="text-[10px] font-black uppercase text-muted-foreground">Telegram Command Channel</Label>
+                         <Input 
+                            value={sysConfig.telegramUrl} 
+                            onChange={(e) => setSysConfig({...sysConfig, telegramUrl: e.target.value})}
+                            className="bg-white/5 border-white/10 h-12 text-xs"
+                         />
+                      </div>
+                      <Button onClick={() => saveSettings({ telegramUrl: sysConfig.telegramUrl })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">SYNC SYSTEM API</Button>
+                   </div>
+                </ConfigCard>
+             </div>
+          )}
         </div>
       </main>
 
@@ -274,8 +623,17 @@ export default function AdminDashboard() {
                  if (bucket === 'winning') payload.winningBalance = increment(amount);
                  if (bucket === 'task') payload.taskBalance = increment(amount);
                  await updateDoc(doc(firestore!, 'users', userId), payload);
+                 
+                 await addDoc(collection(firestore!, 'users', userId, 'ledger'), {
+                    type: 'income',
+                    amount: Math.abs(amount),
+                    date: new Date().toISOString().split('T')[0],
+                    status: 'completed',
+                    description: `Executive Adjustment: Manual Capital ${amount >= 0 ? 'Credit' : 'Debit'}`
+                 });
+
                  setBalanceAdjustment(null);
-                 toast({ title: "Ledger Updated" });
+                 toast({ title: "Ledger Matrix Updated" });
               }} className="w-full h-14 bg-primary hover:bg-primary/90 rounded-xl font-black uppercase text-xs italic shadow-lg shadow-primary/20">EXECUTE CREDIT / DEBIT</Button>
             </div>
           </DialogContent>
@@ -318,8 +676,41 @@ function ExactStatCard({ label, value, sub, icon }: any) {
        <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-white/5 text-primary border border-white/10 group-hover:rotate-6 transition-transform relative z-10">
           {icon}
        </div>
-       {/* Small line decoration seen in some dashboards */}
        <div className="absolute bottom-0 left-0 h-[2px] bg-primary/20 w-0 group-hover:w-full transition-all duration-500" />
     </Card>
   );
+}
+
+function StatItem({ label, value }: any) {
+   return (
+      <div className="text-center p-3 rounded-2xl bg-white/5 border border-white/5">
+         <p className="text-[7px] font-black text-muted-foreground uppercase mb-1">{label}</p>
+         <p className="text-xs font-black truncate">{value}</p>
+      </div>
+   );
+}
+
+function StatMini({ label, value, color }: any) {
+   const colors = color === 'red' ? "text-red-500 bg-red-500/10 border-red-500/20" : "text-primary bg-primary/10 border-primary/20";
+   return (
+      <div className={cn("px-6 py-3 rounded-2xl border text-center", colors)}>
+         <p className="text-[8px] font-black uppercase opacity-60 mb-1">{label}</p>
+         <p className="text-xl font-black tabular-nums">{value}</p>
+      </div>
+   );
+}
+
+function ConfigCard({ title, description, icon, children }: any) {
+   return (
+      <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
+         <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary">{icon}</div>
+            <div>
+               <h4 className="text-lg font-black uppercase italic">{title}</h4>
+               <p className="text-[9px] font-bold text-muted-foreground uppercase">{description}</p>
+            </div>
+         </div>
+         {children}
+      </Card>
+   );
 }
