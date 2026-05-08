@@ -41,7 +41,8 @@ import {
   Check,
   X,
   Key,
-  Award
+  Award,
+  SearchX
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -121,9 +122,9 @@ export default function AdminDashboard() {
   const tournamentsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'tournaments') : null, [firestore, isAdminUser]);
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
 
-  const { data: usersData } = useCollection<UserProfile>(usersQuery);
+  const { data: usersData, isLoading: isUsersLoading } = useCollection<UserProfile>(usersQuery);
   const { data: ledgerData, isLoading: isLedgerLoading } = useCollection<UserLedgerEntry>(allLedgerQuery);
-  const { data: supportTickets } = useCollection<SupportMessage>(supportQuery);
+  const { data: supportTickets, isLoading: isSupportLoading } = useCollection<SupportMessage>(supportQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
@@ -131,14 +132,50 @@ export default function AdminDashboard() {
     if (settings) setSysConfig(settings);
   }, [settings]);
 
+  // Reset search when switching tabs
+  useEffect(() => {
+    setSearchQuery('');
+  }, [activeTab]);
+
   const filteredUsers = useMemo(() => {
     if (!usersData) return [];
     return usersData.filter(u => {
       const matchesCountry = countryFilter === 'All' || u.country === countryFilter;
-      const matchesSearch = !searchQuery || u.email?.toLowerCase().includes(searchQuery.toLowerCase()) || u.id.toLowerCase().includes(searchQuery.toLowerCase());
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch = !q || 
+        u.email?.toLowerCase().includes(q) || 
+        u.id.toLowerCase().includes(q) || 
+        u.mobile?.includes(q);
       return matchesCountry && matchesSearch;
     });
   }, [usersData, countryFilter, searchQuery]);
+
+  const filteredLedger = useMemo(() => {
+    if (!ledgerData) return [];
+    let list = ledgerData;
+    if (ledgerFilter === 'flagged') list = list.filter(t => t.status === 'review_required' || t.isFlagged);
+    else if (ledgerFilter !== 'all') list = list.filter(t => t.type === ledgerFilter);
+    
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(t => 
+        t.userId?.toLowerCase().includes(q) || 
+        t.id.toLowerCase().includes(q) || 
+        t.description?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [ledgerData, ledgerFilter, searchQuery]);
+
+  const filteredSupport = useMemo(() => {
+    if (!supportTickets) return [];
+    if (!searchQuery.trim()) return supportTickets;
+    const q = searchQuery.toLowerCase().trim();
+    return supportTickets.filter(s => 
+      s.userId.toLowerCase().includes(q) || 
+      s.message.toLowerCase().includes(q)
+    );
+  }, [supportTickets, searchQuery]);
 
   const multiAccountAlerts = useMemo(() => {
     if (!usersData) return new Set();
@@ -155,14 +192,6 @@ export default function AdminDashboard() {
     });
     return suspectDevices;
   }, [usersData]);
-
-  const filteredLedger = useMemo(() => {
-    if (!ledgerData) return [];
-    let list = ledgerData;
-    if (ledgerFilter === 'flagged') list = list.filter(t => t.status === 'review_required' || t.isFlagged);
-    else if (ledgerFilter !== 'all') list = list.filter(t => t.type === ledgerFilter);
-    return list;
-  }, [ledgerData, ledgerFilter]);
 
   const financialStats = useMemo(() => {
     if (!ledgerData || !usersData) return { totalRevenue: 0, totalProfit: 0, totalUserBalance: 0, chartData: [] };
@@ -360,7 +389,7 @@ export default function AdminDashboard() {
               <div className="flex gap-4">
                  <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search by Email or Warrior UID..." className="h-14 pl-12 bg-black/40 border-white/10 rounded-2xl" />
+                    <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search by Email, Mobile or Warrior UID..." className="h-14 pl-12 bg-black/40 border-white/10 rounded-2xl" />
                  </div>
                  <Select value={countryFilter} onValueChange={setCountryFilter}>
                     <SelectTrigger className="w-64 h-14 bg-black/40 border-white/10 rounded-2xl">
@@ -385,31 +414,37 @@ export default function AdminDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map(u => (
-                      <TableRow key={u.id} className="border-white/5">
-                        <TableCell className="px-8 py-8">
-                           <p className="font-black text-xs uppercase text-white">{u.email || u.id.substring(0,10)}</p>
-                           <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{u.id}</p>
-                        </TableCell>
-                        <TableCell>
-                           <div className="flex gap-2 text-[10px] font-black">
-                              <span className="text-blue-400">D:{u.depositBalance}</span>
-                              <span className="text-green-400">W:{u.winningBalance?.toFixed(0)}</span>
-                              <span className="text-amber-400">T:{u.taskBalance?.toFixed(0)}</span>
-                           </div>
-                        </TableCell>
-                        <TableCell>
-                           {multiAccountAlerts.has(u.deviceId) && <Badge className="bg-red-500 text-white text-[8px] font-black uppercase">SAME DEVICE ALERT</Badge>}
-                           {u.isVpnActive && <Badge className="bg-orange-500 text-white text-[8px] font-black uppercase ml-1">VPN</Badge>}
-                        </TableCell>
-                        <TableCell className="text-right px-8 space-x-2">
-                           <Button onClick={() => setCoinAdjustment({ userId: u.id, bucket: 'winning', amount: 0 })} size="sm" className="h-9 px-4 text-[9px] font-black uppercase rounded-xl">EDIT BAL</Button>
-                           <Button onClick={() => updateDoc(doc(firestore!, 'users', u.id), { isBanned: !u.isBanned })} variant={u.isBanned ? "outline" : "destructive"} size="sm" className="h-9 px-4 text-[9px] font-black uppercase rounded-xl">
-                              {u.isBanned ? "RELEASE" : "BAN"}
-                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {isUsersLoading ? (
+                      <TableRow><TableCell colSpan={4} className="h-64 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
+                    ) : filteredUsers.length > 0 ? (
+                      filteredUsers.map(u => (
+                        <TableRow key={u.id} className="border-white/5">
+                          <TableCell className="px-8 py-8">
+                             <p className="font-black text-xs uppercase text-white">{u.email || u.mobile || u.id.substring(0,10)}</p>
+                             <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{u.id}</p>
+                          </TableCell>
+                          <TableCell>
+                             <div className="flex gap-2 text-[10px] font-black">
+                                <span className="text-blue-400">D:{u.depositBalance}</span>
+                                <span className="text-green-400">W:{u.winningBalance?.toFixed(0)}</span>
+                                <span className="text-amber-400">T:{u.taskBalance?.toFixed(0)}</span>
+                             </div>
+                          </TableCell>
+                          <TableCell>
+                             {multiAccountAlerts.has(u.deviceId) && <Badge className="bg-red-500 text-white text-[8px] font-black uppercase">SAME DEVICE ALERT</Badge>}
+                             {u.isVpnActive && <Badge className="bg-orange-500 text-white text-[8px] font-black uppercase ml-1">VPN</Badge>}
+                          </TableCell>
+                          <TableCell className="text-right px-8 space-x-2">
+                             <Button onClick={() => setCoinAdjustment({ userId: u.id, bucket: 'winning', amount: 0 })} size="sm" className="h-9 px-4 text-[9px] font-black uppercase rounded-xl">EDIT BAL</Button>
+                             <Button onClick={() => updateDoc(doc(firestore!, 'users', u.id), { isBanned: !u.isBanned })} variant={u.isBanned ? "outline" : "destructive"} size="sm" className="h-9 px-4 text-[9px] font-black uppercase rounded-xl">
+                                {u.isBanned ? "RELEASE" : "BAN"}
+                             </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow><TableCell colSpan={4} className="h-64 text-center text-muted-foreground italic uppercase text-[10px] font-black tracking-widest"><SearchX className="h-8 w-8 mx-auto mb-4 opacity-10" />No Warriors Found in this Sector</TableCell></TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </Card>
@@ -418,19 +453,25 @@ export default function AdminDashboard() {
 
           {activeTab === 'finance' && (
             <div className="space-y-8">
-               <div className="flex justify-between items-center">
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <h3 className="text-xl font-black uppercase italic">Transactional Audit Sector</h3>
-                  <Select value={ledgerFilter} onValueChange={setLedgerFilter}>
-                    <SelectTrigger className="w-48 bg-black/40 border-white/10 rounded-xl h-10 text-[10px] font-black uppercase">
-                       <SelectValue placeholder="All Activities" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black border-white/10 text-white">
-                       <SelectItem value="all">All Records</SelectItem>
-                       <SelectItem value="withdrawal">Withdrawals</SelectItem>
-                       <SelectItem value="deposit">Deposits</SelectItem>
-                       <SelectItem value="flagged">Flagged Alerts</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-4 w-full md:w-auto">
+                    <div className="relative flex-1 md:w-64">
+                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                       <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search User or TX ID..." className="h-10 pl-10 bg-black/40 border-white/10 rounded-xl text-xs" />
+                    </div>
+                    <Select value={ledgerFilter} onValueChange={setLedgerFilter}>
+                      <SelectTrigger className="w-48 bg-black/40 border-white/10 rounded-xl h-10 text-[10px] font-black uppercase">
+                         <SelectValue placeholder="All Activities" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black border-white/10 text-white">
+                         <SelectItem value="all">All Records</SelectItem>
+                         <SelectItem value="withdrawal">Withdrawals</SelectItem>
+                         <SelectItem value="deposit">Deposits</SelectItem>
+                         <SelectItem value="flagged">Flagged Alerts</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                </div>
                <Card className="bg-black/20 border-white/5 rounded-[2.5rem] overflow-hidden">
                  <Table>
@@ -444,28 +485,76 @@ export default function AdminDashboard() {
                        </TableRow>
                     </TableHeader>
                     <TableBody>
-                       {filteredLedger.map(tx => (
-                         <TableRow key={tx.id} className="border-white/5 hover:bg-white/5">
-                            <TableCell className="px-8 py-6">
-                               <p className="font-black text-xs uppercase">{tx.type}</p>
-                               <p className="text-[8px] font-bold text-muted-foreground">{tx.date}</p>
-                            </TableCell>
-                            <TableCell className="text-[10px] font-bold">{tx.userId?.substring(0,12)}</TableCell>
-                            <TableCell className={cn("text-lg font-black", tx.type === 'withdrawal' ? 'text-red-400' : 'text-green-400')}>
-                               {tx.currencySymbol}{tx.amount.toFixed(2)}
-                            </TableCell>
-                            <TableCell>
-                               <Badge className={cn("text-[8px] font-black", tx.status === 'completed' ? 'bg-green-500/10 text-green-500' : tx.status === 'review_required' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-500')}>
-                                  {tx.status}
-                               </Badge>
-                            </TableCell>
-                            <TableCell className="text-right px-8 space-x-2">
-                               <Button size="icon" variant="ghost" onClick={() => setSelectedTx(tx)}><Eye className="h-4 w-4" /></Button>
-                               {tx.status !== 'completed' && <Button onClick={() => handleUpdateStatus(tx, 'completed')} size="icon" className="bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white"><Check className="h-4 w-4" /></Button>}
-                               {tx.status !== 'failed' && <Button onClick={() => handleUpdateStatus(tx, 'failed')} size="icon" variant="ghost" className="text-red-400"><X className="h-4 w-4" /></Button>}
-                            </TableCell>
-                         </TableRow>
-                       ))}
+                       {isLedgerLoading ? (
+                          <TableRow><TableCell colSpan={5} className="h-64 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
+                       ) : filteredLedger.length > 0 ? (
+                         filteredLedger.map(tx => (
+                           <TableRow key={tx.id} className="border-white/5 hover:bg-white/5">
+                              <TableCell className="px-8 py-6">
+                                 <p className="font-black text-xs uppercase">{tx.type}</p>
+                                 <p className="text-[8px] font-bold text-muted-foreground">{tx.date}</p>
+                              </TableCell>
+                              <TableCell className="text-[10px] font-bold">{tx.userId?.substring(0,12)}</TableCell>
+                              <TableCell className={cn("text-lg font-black", tx.type === 'withdrawal' ? 'text-red-400' : 'text-green-400')}>
+                                 {tx.currencySymbol}{tx.amount.toFixed(2)}
+                              </TableCell>
+                              <TableCell>
+                                 <Badge className={cn("text-[8px] font-black", tx.status === 'completed' ? 'bg-green-500/10 text-green-500' : tx.status === 'review_required' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-500')}>
+                                    {tx.status}
+                                 </Badge>
+                              </TableCell>
+                              <TableCell className="text-right px-8 space-x-2">
+                                 <Button size="icon" variant="ghost" onClick={() => setSelectedTx(tx)}><Eye className="h-4 w-4" /></Button>
+                                 {tx.status !== 'completed' && <Button onClick={() => handleUpdateStatus(tx, 'completed')} size="icon" className="bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white"><Check className="h-4 w-4" /></Button>}
+                                 {tx.status !== 'failed' && <Button onClick={() => handleUpdateStatus(tx, 'failed')} size="icon" variant="ghost" className="text-red-400"><X className="h-4 w-4" /></Button>}
+                              </TableCell>
+                           </TableRow>
+                         ))
+                       ) : (
+                        <TableRow><TableCell colSpan={5} className="h-64 text-center text-muted-foreground uppercase text-[10px] font-black"><SearchX className="h-8 w-8 mx-auto mb-4 opacity-10" />No Transaction Intel Matches</TableCell></TableRow>
+                       )}
+                    </TableBody>
+                 </Table>
+               </Card>
+            </div>
+          )}
+
+          {activeTab === 'support' && (
+            <div className="space-y-8">
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <h3 className="text-xl font-black uppercase italic">Support Command Hub</h3>
+                  <div className="relative w-full md:w-64">
+                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                     <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search tickets..." className="h-10 pl-10 bg-black/40 border-white/10 rounded-xl text-xs" />
+                  </div>
+               </div>
+               <Card className="bg-black/20 border-white/5 rounded-[2.5rem] overflow-hidden">
+                 <Table>
+                    <TableHeader className="bg-white/5">
+                       <TableRow className="border-white/5">
+                          <TableHead className="px-8 py-5 font-black uppercase text-[9px]">Warrior UID</TableHead>
+                          <TableHead className="font-black uppercase text-[9px]">Message Intel</TableHead>
+                          <TableHead className="font-black uppercase text-[9px]">AI Analysis</TableHead>
+                          <TableHead className="text-right px-8 font-black uppercase text-[9px]">Action</TableHead>
+                       </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                       {isSupportLoading ? (
+                          <TableRow><TableCell colSpan={4} className="h-64 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
+                       ) : filteredSupport.length > 0 ? (
+                         filteredSupport.map(ticket => (
+                           <TableRow key={ticket.id} className="border-white/5">
+                              <TableCell className="px-8 font-bold text-[10px]">{ticket.userId}</TableCell>
+                              <TableCell className="max-w-xs truncate text-[11px] italic font-medium">"{ticket.message}"</TableCell>
+                              <TableCell className="text-[11px] text-primary font-bold">{ticket.isFlagged ? "URGENT: Human Intervene" : "Standard Query"}</TableCell>
+                              <TableCell className="text-right px-8">
+                                 <Button onClick={() => handleResolveSupport(ticket.id)} size="sm" className="h-8 px-4 text-[9px] font-black uppercase rounded-lg">RESOLVE</Button>
+                              </TableCell>
+                           </TableRow>
+                         ))
+                       ) : (
+                        <TableRow><TableCell colSpan={4} className="h-64 text-center text-muted-foreground uppercase text-[10px] font-black">All Sectors Clear • No Pending Tickets</TableCell></TableRow>
+                       )}
                     </TableBody>
                  </Table>
                </Card>
