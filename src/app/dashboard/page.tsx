@@ -19,7 +19,8 @@ import {
   CreditCard,
   Crown,
   Briefcase,
-  ShieldCheck
+  ShieldCheck,
+  Wifi
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { UserProfile, UserLedgerEntry } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -66,8 +67,9 @@ export default function UserDashboard() {
 
   if (isUserLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#050508]">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Establishing Secure Identity...</p>
       </div>
     );
   }
@@ -124,7 +126,7 @@ export default function UserDashboard() {
             <div className="flex items-center gap-3">
                <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Verified Professional</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-black uppercase tracking-widest">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Global Secure Protocol
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> <Wifi className="h-3 w-3" /> Real-time Synchronized
                </div>
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Analytical <span className="text-primary">Portfolio</span></h1>
@@ -177,7 +179,7 @@ export default function UserDashboard() {
                </Button>
             </div>
             
-            <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+            <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl min-h-[300px]">
               <CardContent className="p-0">
                 {isActivityLoading ? (
                   <div className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
@@ -308,7 +310,7 @@ function WalletCard({ label, value, icon, description, color, isWithdrawable }: 
         <div>
           <p className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground/60 mb-2">{label}</p>
           <h4 className="text-4xl font-black text-white italic tracking-tighter tabular-nums flex items-baseline gap-2">
-            {value.toFixed(1)} <span className="text-lg opacity-40 font-bold">🪙</span>
+            {(value || 0).toFixed(1)} <span className="text-lg opacity-40 font-bold">🪙</span>
           </h4>
           <p className="text-[9px] font-bold text-muted-foreground mt-4 uppercase tracking-widest italic">{description}</p>
           {isWithdrawable && (
