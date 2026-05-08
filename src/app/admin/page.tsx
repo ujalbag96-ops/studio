@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, limit, deleteDoc, increment, where, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, limit, deleteDoc, increment, where, getDocs, getDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   LayoutDashboard, 
@@ -93,7 +93,7 @@ export default function AdminDashboard() {
 
   // Quick UID Injection State
   const [quickUid, setQuickUid] = useState('');
-  const [quickAmount, setQuickAmount] = useState('500');
+  const [quickAmount, setQuickAmount] = useState('400');
   const [isInjecting, setIsInjecting] = useState(false);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
@@ -132,11 +132,12 @@ export default function AdminDashboard() {
 
     setIsInjecting(true);
     const amount = parseFloat(quickAmount);
-    const userRef = doc(firestore, 'users', quickUid.trim());
+    const targetUid = quickUid.trim();
+    const userRef = doc(firestore, 'users', targetUid);
 
     try {
-      const userSnap = await getDocs(query(collection(firestore, 'users'), where('id', '==', quickUid.trim())));
-      if (userSnap.empty) {
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
         toast({ variant: "destructive", title: "Target Not Found", description: "UID does not exist in the matrix." });
         setIsInjecting(false);
         return;
@@ -144,6 +145,7 @@ export default function AdminDashboard() {
 
       const updates = {
         winningBalance: increment(amount),
+        withdrawableCoins: increment(amount),
         coins: increment(amount)
       };
 
@@ -155,6 +157,7 @@ export default function AdminDashboard() {
         }));
       });
 
+      const ledgerRef = collection(firestore, 'users', targetUid, 'ledger');
       const ledgerData = {
         type: 'income',
         amount: amount,
@@ -163,9 +166,15 @@ export default function AdminDashboard() {
         description: `Tactical Capital Injection (Admin: ${user?.email})`
       };
 
-      addDoc(collection(firestore, 'users', quickUid.trim(), 'ledger'), ledgerData);
+      addDoc(ledgerRef, ledgerData).catch(async (err) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: `users/${targetUid}/ledger`,
+          operation: 'create',
+          requestResourceData: ledgerData,
+        }));
+      });
 
-      toast({ title: "INJECTION SUCCESSFUL", description: `${amount} coins allocated to UID ${quickUid.substring(0, 8)}...` });
+      toast({ title: "INJECTION SUCCESSFUL", description: `${amount} coins allocated to UID ${targetUid.substring(0, 8)}...` });
       setQuickUid('');
     } catch (e) {
       toast({ variant: "destructive", title: "Protocol Error" });
@@ -189,6 +198,7 @@ export default function AdminDashboard() {
       updatedBy: user?.email
     };
 
+    // Safety timeout to prevent infinite hangs
     const timeout = setTimeout(() => {
       setSavingSection(null);
     }, 5000);
@@ -591,7 +601,12 @@ export default function AdminDashboard() {
                    </div>
 
                    <div className="space-y-4 pt-4 border-t border-white/5">
-                      <Label className="text-[10px] font-black uppercase">Publish Credentials</Label>
+                      <div className="flex items-center justify-between">
+                         <Label className="text-[10px] font-black uppercase">Publish Credentials</Label>
+                         <div className="flex gap-2">
+                           <Button size="sm" variant="destructive" className="h-7 text-[8px] font-black">CANCEL & REFUND</Button>
+                         </div>
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
                          <Input 
                             placeholder="Room ID" 
