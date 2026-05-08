@@ -19,7 +19,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- Public Read Collections (Fixes Home Page Permission Error) ---
+    // --- Public Read Collections (Essential for Landing Pages) ---
     match /tournaments/{tournamentId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -39,16 +39,18 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isSignedIn();
+      // Allow users to update their own profile, except sensitive fields
       allow update: if (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isBanned'])) || isAdmin();
-    }
-
-    // --- Ledger (Collection Group Support) ---
-    match /users/{userId}/ledger/{entryId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isAdmin();
+      
+      // Nested ledger within users
+      match /ledger/{entryId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isAdmin();
+      }
     }
     
+    // --- Collection Group Support (For Admin Ledger View) ---
     match /{path=**}/ledger/{entryId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
@@ -59,7 +61,7 @@ service cloud.firestore {
       allow create: if isSignedIn();
     }
 
-    // --- Support ---
+    // --- Support Messages ---
     match /support/{msgId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
