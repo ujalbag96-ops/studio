@@ -5,9 +5,10 @@ import { collection } from 'firebase/firestore';
 import TournamentCard from '@/components/TournamentCard';
 import MatchCard from '@/components/MatchCard';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Zap, Trophy, TrendingUp, Sparkles, Loader2, Globe, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Zap, Trophy, TrendingUp, Sparkles, Loader2, Globe, Gamepad2, Gift, Crown } from 'lucide-react';
 import Link from 'next/link';
 import { Match, Tournament } from './lib/types';
+import Image from 'next/image';
 
 export default function Home() {
   const firestore = useFirestore();
@@ -21,128 +22,119 @@ export default function Home() {
   const activeTournaments = tournaments?.filter(t => t.status === 'active') || [];
   
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-20 pb-24 md:pb-12">
-      {/* Hero Section - Elite Global Design */}
-      <section className="relative overflow-hidden rounded-[4rem] bg-[#0a0a0f] border border-white/5 shadow-2xl">
-        <div className="absolute top-0 -left-20 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[160px] animate-pulse" />
-        <div className="absolute bottom-0 -right-20 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[160px] animate-pulse delay-700" />
+    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-12 pb-24 md:pb-12 bg-background">
+      {/* Dynamic WinZO Style Hero */}
+      <section className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#1E1B4B] to-[#0F172A] border border-white/5 shadow-2xl">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/20 rounded-full blur-[100px] -mr-40 -mt-40 animate-pulse" />
         
-        <div className="relative z-10 grid lg:grid-cols-2 items-center gap-16 p-10 md:p-24">
-          <div className="space-y-10 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full glass-morphism mx-auto lg:mx-0">
-              <Globe className="h-5 w-5 text-secondary animate-spin-slow" />
-              <span className="text-[11px] font-black uppercase tracking-[0.3em] text-secondary">Global Pro Arena Active</span>
+        <div className="relative z-10 grid lg:grid-cols-2 items-center gap-8 p-8 md:p-16">
+          <div className="space-y-8 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+              <Zap className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">India's #1 Gaming Arena</span>
             </div>
             
-            <h1 className="text-7xl md:text-9xl font-black tracking-tighter leading-[0.8] text-gradient">
-              THE <br />
-              <span className="text-primary italic">ELITE</span> <br />
-              LEAGUE.
+            <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-white">
+              PLAY GAMES <br />
+              <span className="text-primary">WIN CASH</span>
             </h1>
             
-            <p className="text-xl text-muted-foreground font-medium max-w-lg leading-relaxed mx-auto lg:mx-0">
-              The premier destination for professional gaming in the <span className="text-white font-bold">UK, US & India</span>. Predict, Play, and Dominate.
+            <p className="text-lg text-muted-foreground font-medium max-w-md mx-auto lg:mx-0">
+              Join 10Cr+ players. Play BGMI, Free Fire & Ludo King to win withdrawable rewards.
             </p>
             
-            <div className="flex flex-wrap justify-center lg:justify-start gap-6 pt-6">
-              <Button asChild size="lg" className="h-20 bg-primary hover:bg-primary/90 text-white font-black px-14 rounded-3xl shadow-2xl shadow-primary/40 text-xl tracking-widest transition-all hover:scale-105 active:scale-95">
-                <Link href="/login">JOIN THE ARENA</Link>
+            <div className="flex flex-wrap justify-center lg:justify-start gap-4">
+              <Button asChild size="lg" className="h-14 bg-primary hover:bg-primary/90 text-white font-black px-10 rounded-2xl winzo-button-glow text-lg">
+                <Link href="/login">GET ₹500 BONUS</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="h-20 glass-morphism text-white font-black px-12 rounded-3xl hover:bg-white/5 text-lg">
-                <Link href="/dashboard">COMMAND HQ</Link>
+              <Button asChild variant="outline" size="lg" className="h-14 border-white/10 hover:bg-white/5 text-white font-black px-8 rounded-2xl text-base">
+                <Link href="/earning-hub">EARN FREE COINS</Link>
               </Button>
             </div>
           </div>
           
-          <div className="hidden lg:flex relative items-center justify-center">
-             <div className="absolute inset-0 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-             <Trophy className="w-[450px] h-[450px] text-primary/40 drop-shadow-[0_0_80px_rgba(147,69,255,0.4)]" />
-             <div className="absolute bottom-10 right-10 glass-morphism p-8 rounded-[2.5rem] animate-bounce shadow-2xl border-white/20">
-                <ShieldCheck className="h-14 w-14 text-secondary" />
-                <p className="text-[9px] font-black uppercase tracking-widest mt-3 text-center text-white">Verified Sector</p>
+          <div className="hidden lg:flex justify-center relative">
+             <div className="relative w-80 h-80 animate-float">
+                <div className="absolute inset-0 bg-primary/30 rounded-full blur-3xl" />
+                <Trophy className="w-full h-full text-accent drop-shadow-[0_0_30px_rgba(250,204,21,0.5)]" />
              </div>
           </div>
         </div>
       </section>
 
-      {/* Real-time Battle Tracker */}
-      <section className="space-y-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 text-destructive font-black uppercase tracking-[0.4em] text-[11px] animate-pulse">
-              <Zap className="h-5 w-5" />
-              Live Deployment
-            </div>
-            <h2 className="text-5xl font-black uppercase tracking-tighter italic">Tactical <span className="text-primary">Ops</span></h2>
+      {/* Game Categories Selector */}
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+         <CategoryCard icon={<Gamepad2 />} label="BGMI" color="from-orange-500 to-red-600" />
+         <CategoryCard icon={<Zap />} label="FREE FIRE" color="from-blue-500 to-indigo-600" />
+         <CategoryCard icon={<Trophy />} label="LUDO KING" color="from-green-500 to-teal-600" />
+         <CategoryCard icon={<Gift />} label="CASINO" color="from-purple-500 to-pink-600" />
+      </section>
+
+      {/* Live Battles - High Urgency */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-3">
+             <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center border border-destructive/20">
+                <div className="h-3 w-3 rounded-full bg-destructive animate-ping" />
+             </div>
+             <h2 className="text-2xl font-black uppercase tracking-tight italic">Live <span className="text-destructive">Arena</span></h2>
           </div>
-          <Button variant="ghost" asChild className="hover:text-primary font-black uppercase tracking-[0.2em] group text-xs glass-morphism h-12 rounded-2xl px-8">
-            <Link href="/dashboard" className="flex items-center gap-3">
-              Full Intel Intel <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-2" />
-            </Link>
-          </Button>
+          <Link href="/dashboard" className="text-xs font-black text-muted-foreground hover:text-primary transition-colors uppercase tracking-widest flex items-center gap-2">
+            View All <ArrowRight className="h-3 w-3" />
+          </Link>
         </div>
         
         {matchisLoading ? (
-          <div className="flex justify-center py-32"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
+          <div className="flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {matches?.map(match => (
               <MatchCard key={match.id} match={match} />
             ))}
-            {(!matches || matches.length === 0) && !matchisLoading && (
-              <div className="md:col-span-3 py-32 glass-morphism rounded-[4rem] text-center space-y-6">
-                 <Loader2 className="h-16 w-16 text-muted-foreground/10 mx-auto" />
-                 <p className="text-base text-muted-foreground italic font-black uppercase tracking-[0.4em]">Battle Sector Idle.</p>
-              </div>
-            )}
           </div>
         )}
       </section>
 
-      {/* Global Major Hubs */}
-      <section className="space-y-12">
-        <div className="flex items-center gap-5 px-4">
-          <div className="h-16 w-16 rounded-[2rem] bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Trophy className="h-9 w-9 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-5xl font-black uppercase tracking-tighter italic">Major Hubs</h2>
-            <p className="text-[11px] text-muted-foreground font-black uppercase tracking-[0.4em]">UK • US • INDIA PRIZE SECTORS</p>
-          </div>
+      {/* Major Tournaments - WinZO Card Style */}
+      <section className="space-y-8">
+        <div className="flex items-center gap-4 px-2">
+          <Crown className="h-8 w-8 text-accent" />
+          <h2 className="text-3xl font-black uppercase italic tracking-tight">Pro Tournaments</h2>
         </div>
         
         {tourisLoading ? (
-          <div className="flex justify-center py-32"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
+          <div className="flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {activeTournaments.map(tournament => (
               <TournamentCard key={tournament.id} tournament={tournament} />
             ))}
-            {activeTournaments.length === 0 && !tourisLoading && (
-              <div className="md:col-span-2 py-32 glass-morphism rounded-[4rem] text-center">
-                 <p className="text-muted-foreground italic font-black uppercase tracking-[0.4em]">No major campaigns active.</p>
-              </div>
-            )}
           </div>
         )}
       </section>
 
-      {/* Elite Recruitment Section */}
-      <section className="relative overflow-hidden rounded-[5rem] border border-white/5 p-20 text-center bg-[#0a0a0f] group shadow-2xl">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-secondary/20 opacity-40 group-hover:opacity-100 transition-opacity duration-1000" />
-        <div className="max-w-3xl mx-auto space-y-10 relative z-10">
-          <div className="h-24 w-24 glass-morphism rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl transition-transform group-hover:rotate-12 group-hover:scale-110 duration-500">
-            <TrendingUp className="h-12 w-12 text-secondary" />
-          </div>
-          <h2 className="text-6xl font-black tracking-tight uppercase italic">GLOBAL SQUAD <span className="text-secondary">BONUS</span></h2>
-          <p className="text-xl text-muted-foreground font-medium leading-relaxed">
-            Expand the global elite network. Recruit international warriors and earn <span className="text-white font-black">100 🪙 Winnings</span> instantly.
-          </p>
-          <Button variant="outline" className="h-20 border-secondary/40 text-secondary hover:bg-secondary/10 font-black px-16 rounded-3xl transition-all hover:scale-110 shadow-2xl shadow-secondary/20 text-lg uppercase tracking-widest">
-            RECRUIT SQUAD
-          </Button>
-        </div>
+      {/* Refer & Earn Banner */}
+      <section className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-primary to-orange-600 p-10 flex flex-col md:flex-row items-center justify-between gap-8 group cursor-pointer shadow-xl">
+         <div className="space-y-4 text-center md:text-left">
+            <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter">Refer & Earn ₹100</h2>
+            <p className="text-white/80 font-bold">Invite your squad and get instant withdrawable cash for every joining.</p>
+            <Button className="bg-white text-primary hover:bg-white/90 font-black rounded-xl px-10 h-12">INVITE NOW</Button>
+         </div>
+         <div className="h-32 w-32 md:h-40 md:w-40 bg-white/10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110">
+            <TrendingUp className="h-20 w-20 text-white opacity-40" />
+         </div>
       </section>
+    </div>
+  );
+}
+
+function CategoryCard({ icon, label, color }: { icon: any, label: string, color: string }) {
+  return (
+    <div className={`p-6 rounded-3xl bg-gradient-to-br ${color} flex flex-col items-center justify-center gap-3 cursor-pointer transition-all hover:scale-105 hover:shadow-2xl border border-white/10`}>
+       <div className="h-12 w-12 bg-white/20 rounded-2xl flex items-center justify-center text-white">
+          {icon}
+       </div>
+       <span className="font-black text-white uppercase text-xs tracking-widest">{label}</span>
     </div>
   );
 }

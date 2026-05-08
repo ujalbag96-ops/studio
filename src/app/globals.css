@@ -10,20 +10,20 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 265 100% 64%; /* #9345FF */
+    --primary: 26 100% 50%; /* #FF7B00 WinZO Orange */
     --primary-foreground: 0 0% 100%;
-    --secondary: 180 100% 50%; /* Electric Cyan */
+    --secondary: 142 71% 45%; /* #22C55E Winning Green */
     --secondary-foreground: 240 10% 3.9%;
     --muted: 240 5% 15%;
     --muted-foreground: 240 5% 65%;
-    --accent: 265 100% 64%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 48 96% 53%; /* #FACC15 Gold */
+    --accent-foreground: 240 10% 3.9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5% 12%;
     --input: 240 5% 12%;
-    --ring: 265 100% 64%;
-    --radius: 1.25rem;
+    --ring: 26 100% 50%;
+    --radius: 1rem;
   }
 }
 
@@ -36,16 +36,16 @@
   }
 }
 
-.glass-morphism {
-  @apply bg-white/5 backdrop-blur-2xl border border-white/10;
+.winzo-card-gradient {
+  background: linear-gradient(135deg, rgba(255, 123, 0, 0.1) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.winzo-button-glow {
+  box-shadow: 0 10px 20px -5px rgba(255, 123, 0, 0.4);
 }
 
 .text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/40;
-}
-
-.pro-card-shadow {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/60;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -56,11 +56,12 @@
   scrollbar-width: none;
 }
 
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 }
 
-.animate-spin-slow {
-  animation: spin-slow 8s linear infinite;
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }

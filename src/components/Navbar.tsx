@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Trophy, Home, Zap, Wallet, Settings, LogIn, User, LogOut, Shield, Crown, Activity } from 'lucide-react';
+import { Trophy, Home, Zap, Wallet, Settings, LogIn, User, LogOut, Shield, Crown, Activity, IndianRupee } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -33,9 +33,7 @@ export default function Navbar() {
     if (auth) {
       try {
         await signOut(auth);
-        toast({ title: "Session Terminated", description: "Identity sector closed." });
-        localStorage.removeItem('last_video_watch_time');
-        router.refresh();
+        toast({ title: "Session Terminated" });
         router.push('/login');
       } catch (error: any) {
         toast({ variant: "destructive", title: "Termination Error" });
@@ -47,121 +45,104 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Mobile Top Branding - Elite APK Look */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-[100] h-20 glass-morphism border-b border-white/10 flex items-center justify-between px-6 shadow-2xl">
-        <Link href="/" className="flex items-center gap-4">
-          <div className="h-11 w-11 bg-primary rounded-[1rem] flex items-center justify-center shadow-2xl shadow-primary/40 rotate-3 transition-transform active:rotate-0">
-            <Trophy className="h-6 w-6 text-white" />
-          </div>
-          <span className="text-2xl font-black tracking-tighter uppercase italic text-white">ARENA</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          {user ? (
-            <>
-              <WalletModal />
-              <UserMenu user={user} isAdmin={isAdmin} onLogout={handleLogout} />
-            </>
-          ) : (
-            <Button asChild size="sm" className="h-11 px-8 font-black uppercase tracking-widest rounded-2xl bg-primary shadow-xl shadow-primary/20 transition-transform active:scale-90">
-              <Link href="/login">LOG IN</Link>
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Global Bottom-Bar / Top-Bar Navigation */}
-      <nav className={cn(
-        "fixed bottom-0 left-0 right-0 z-[100] glass-morphism md:top-0 md:bottom-auto border-t md:border-t-0 md:border-b border-white/10",
-        "h-24 md:h-20"
-      )}>
-        <div className="mx-auto flex h-full max-w-7xl items-center justify-around px-4 md:px-10 md:justify-between">
-          <Link href="/" className="hidden items-center gap-5 md:flex group">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-primary text-white shadow-2xl shadow-primary/50 transition-all group-hover:rotate-12 group-hover:scale-110">
-              <Trophy className="h-6 w-6" />
+      {/* Top Bar for Desktop */}
+      <nav className="fixed top-0 left-0 right-0 z-[100] bg-[#0F172A] border-b border-white/10 h-16 hidden md:block">
+        <div className="max-w-7xl mx-auto h-full px-8 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <Trophy className="h-6 w-6 text-white" />
             </div>
-            <span className="text-3xl font-black tracking-tighter text-white uppercase italic">BRACKET<span className="text-primary">BATTLES</span></span>
+            <span className="text-2xl font-black italic text-white uppercase tracking-tighter">WINZO<span className="text-primary">PRO</span></span>
           </Link>
-          
-          <div className="flex items-center gap-2 md:gap-12 w-full md:w-auto justify-around md:justify-start">
-            <NavLink href="/" icon={<Home className="h-6 w-6" />} label="Home" active={pathname === '/'} />
-            <NavLink href="/dashboard" icon={<Shield className="h-6 w-6" />} label="HQ" active={pathname === '/dashboard'} />
-            <NavLink href="/earning-hub" icon={<Zap className="h-6 w-6" />} label="Earn" active={pathname === '/earning-hub'} />
-            <NavLink href="/levels" icon={<Crown className="h-6 w-6" />} label="Tier" active={pathname === '/levels'} />
-            <NavLink href="/ledger" icon={<Wallet className="h-6 w-6" />} label="Vault" active={pathname === '/ledger'} />
-            {isAdmin && <NavLink href="/admin" icon={<Settings className="h-6 w-6" />} label="Admin" active={pathname === '/admin'} />}
+
+          <div className="flex items-center gap-8">
+            <Link href="/" className={cn("text-xs font-black uppercase tracking-widest transition-colors", pathname === '/' ? "text-primary" : "text-white/60 hover:text-white")}>Home</Link>
+            <Link href="/dashboard" className={cn("text-xs font-black uppercase tracking-widest transition-colors", pathname === '/dashboard' ? "text-primary" : "text-white/60 hover:text-white")}>My Battles</Link>
+            <Link href="/earning-hub" className={cn("text-xs font-black uppercase tracking-widest transition-colors", pathname === '/earning-hub' ? "text-primary" : "text-white/60 hover:text-white")}>Refer & Earn</Link>
+            {isAdmin && <Link href="/admin" className="text-xs font-black uppercase tracking-widest text-accent">Command</Link>}
           </div>
 
-          <div className="hidden items-center gap-8 md:flex">
+          <div className="flex items-center gap-6">
             {user ? (
               <>
                 <WalletModal />
                 <UserMenu user={user} isAdmin={isAdmin} onLogout={handleLogout} />
               </>
             ) : (
-              <Button asChild className="font-black uppercase tracking-widest rounded-[1.25rem] px-12 h-14 bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/40 transition-transform hover:scale-105">
-                <Link href="/login">
-                  <LogIn className="h-5 w-5 mr-3" /> LOGIN
-                </Link>
+              <Button asChild className="bg-primary text-white font-black rounded-xl px-8 h-10 winzo-button-glow">
+                <Link href="/login">LOGIN</Link>
               </Button>
             )}
           </div>
         </div>
+      </nav>
+
+      {/* Mobile Top Branding */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-[100] h-16 bg-[#0F172A] border-b border-white/5 flex items-center justify-between px-6">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
+            <Trophy className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-xl font-black italic text-white">WINZO</span>
+        </div>
+        <div className="flex items-center gap-3">
+          {user && <WalletModal />}
+          <UserMenu user={user} isAdmin={isAdmin} onLogout={handleLogout} />
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation (WinZO APK Style) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#1E1B4B] border-t border-white/10 flex items-center justify-around px-2">
+        <MobileNavItem active={pathname === '/'} icon={<Home />} label="HOME" href="/" />
+        <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="BATTLES" href="/dashboard" />
+        <MobileNavItem active={pathname === '/earning-hub'} icon={<Zap />} label="REFER" href="/earning-hub" />
+        <MobileNavItem active={pathname === '/levels'} icon={<Crown />} label="VIP" href="/levels" />
+        <MobileNavItem active={pathname === '/ledger'} icon={<Wallet />} label="WALLET" href="/ledger" />
       </nav>
     </>
   );
 }
 
 function UserMenu({ user, isAdmin, onLogout }: any) {
+  if (!user) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-12 w-12 rounded-[1.25rem] p-0 border-2 border-primary/40 bg-primary/10 overflow-hidden shadow-2xl transition-transform active:scale-90">
-          <div className="h-full w-full flex items-center justify-center bg-primary text-white font-black text-lg italic">
-            {user.email?.[0].toUpperCase() || 'U'}
+        <Button variant="ghost" className="h-9 w-9 rounded-lg p-0 border border-white/10 bg-white/5 overflow-hidden">
+          <div className="h-full w-full flex items-center justify-center text-primary font-black uppercase">
+            {user.email?.[0] || 'U'}
           </div>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72 bg-[#1a1a24] border-white/10 rounded-[2rem] p-3 shadow-[0_40px_100px_rgba(0,0,0,0.8)] backdrop-blur-3xl">
-        <DropdownMenuLabel className="p-5">
-          <p className="font-black text-[10px] uppercase tracking-[0.4em] text-muted-foreground mb-2">Verified Warrior</p>
-          <p className="text-base truncate font-black italic text-white">{user.email || user.phoneNumber}</p>
+      <DropdownMenuContent align="end" className="bg-[#1E1B4B] border-white/10 text-white p-2 rounded-2xl w-56">
+        <DropdownMenuLabel className="p-4">
+          <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-1">Signed In As</p>
+          <p className="text-xs font-black truncate">{user.email || user.phoneNumber}</p>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-white/5 mx-3" />
-        <DropdownMenuItem asChild className="rounded-2xl h-14 focus:bg-primary/20 mb-1 px-4 cursor-pointer">
-          <Link href="/dashboard" className="w-full flex items-center gap-3 font-black uppercase text-[11px] tracking-widest">
-            <Activity className="h-4 w-4 text-primary" /> COMMAND HQ
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild className="rounded-2xl h-14 focus:bg-secondary/20 mb-1 px-4 cursor-pointer">
-          <Link href="/earning-hub" className="w-full flex items-center gap-3 font-black uppercase text-[11px] tracking-widest text-secondary">
-            <Zap className="h-4 w-4" /> GLOBAL HUB
-          </Link>
+        <DropdownMenuSeparator className="bg-white/5" />
+        <DropdownMenuItem asChild className="rounded-xl h-11 focus:bg-white/5 cursor-pointer">
+          <Link href="/dashboard" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] tracking-widest"><User className="h-4 w-4" /> My Profile</Link>
         </DropdownMenuItem>
         {isAdmin && (
-          <DropdownMenuItem asChild className="rounded-2xl h-14 focus:bg-primary/20 mb-1 px-4 cursor-pointer">
-            <Link href="/admin" className="w-full flex items-center gap-3 text-primary font-black uppercase text-[11px] tracking-widest">
-              <Shield className="h-4 w-4" /> ADMIN SECTOR
-            </Link>
+          <DropdownMenuItem asChild className="rounded-xl h-11 focus:bg-primary/20 cursor-pointer">
+            <Link href="/admin" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] tracking-widest text-primary"><Shield className="h-4 w-4" /> Command Hub</Link>
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator className="bg-white/5 mx-3" />
-        <DropdownMenuItem onSelect={onLogout} className="rounded-2xl h-14 text-destructive font-black uppercase text-[11px] tracking-widest cursor-pointer flex items-center gap-3 px-4 focus:bg-destructive focus:text-white">
-          <LogOut className="h-4 w-4" /> TERMINATE SESSION
+        <DropdownMenuSeparator className="bg-white/5" />
+        <DropdownMenuItem onSelect={onLogout} className="rounded-xl h-11 text-destructive font-bold uppercase text-[10px] tracking-widest cursor-pointer focus:bg-destructive focus:text-white px-4">
+          <LogOut className="h-4 w-4 mr-3" /> Logout
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
-function NavLink({ href, icon, label, active }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
+function MobileNavItem({ active, icon, label, href }: any) {
   return (
-    <Link href={href} className={cn(
-      "flex flex-col items-center gap-2 transition-all duration-500 md:flex-row md:gap-4 px-4 py-3 rounded-2xl relative group",
-      active ? "text-primary bg-primary/10 font-black" : "text-muted-foreground hover:text-white hover:bg-white/5"
-    )}>
-      <span className={cn("transition-transform duration-500", active && "scale-125 rotate-6")}>{icon}</span>
-      <span className="text-[10px] font-black uppercase tracking-[0.3em] md:text-sm italic">{label}</span>
-      {active && <div className="hidden md:block absolute -bottom-1 left-1/2 -translate-x-1/2 h-1.5 w-6 rounded-full bg-primary shadow-[0_0_15px_rgba(147,69,255,0.8)]" />}
+    <Link href={href} className={cn("flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all", active ? "text-primary scale-110" : "text-muted-foreground opacity-60")}>
+      <span className={cn("h-5 w-5", active && "animate-pulse")}>{icon}</span>
+      <span className="text-[8px] font-black uppercase tracking-widest">{label}</span>
+      {active && <div className="mt-1 h-1 w-4 bg-primary rounded-full shadow-[0_0_10px_#FF7B00]" />}
     </Link>
   );
 }
