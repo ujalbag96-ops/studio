@@ -42,7 +42,12 @@ import {
   ExternalLink,
   Smartphone,
   Cpu,
-  SmartphoneNfc
+  SmartphoneNfc,
+  Copy,
+  UserCheck,
+  UserX,
+  RefreshCcw,
+  Ban
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -76,9 +81,11 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTx, setSelectedTx] = useState<UserLedgerEntry | null>(null);
-  const [balanceAdjustment, setBalanceAdjustment] = useState<{ userId: string; bucket: 'deposit' | 'winning' | 'task'; amount: number } | null>(null);
+  const [balanceAdjustment, setBalanceAdjustment] = useState<{ user: UserProfile; bucket: 'depositBalance' | 'winningBalance' | 'taskBalance' } | null>(null);
+  const [adjAmount, setAdjAmount] = useState('');
   const [sysConfig, setSysConfig] = useState<Partial<AppSettings>>({});
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [roomDeployment, setRoomDeployment] = useState<{ id: string; roomId: string; roomPass: string } | null>(null);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
 
@@ -132,6 +139,61 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAdjustBalance = async () => {
+    if (!balanceAdjustment || !firestore || !adjAmount) return;
+    const amount = parseFloat(adjAmount);
+    if (isNaN(amount)) return;
+
+    try {
+      const userRef = doc(firestore, 'users', balanceAdjustment.user.id);
+      await updateDoc(userRef, {
+        [balanceAdjustment.bucket]: increment(amount),
+        coins: increment(amount)
+      });
+
+      await addDoc(collection(firestore, 'users', balanceAdjustment.user.id, 'ledger'), {
+        type: 'income',
+        amount: Math.abs(amount),
+        date: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        description: `Manual Administrative ${amount >= 0 ? 'Credit' : 'Debit'}: ${balanceAdjustment.bucket}`
+      });
+
+      toast({ title: "Capital Re-allocation Complete" });
+      setBalanceAdjustment(null);
+      setAdjAmount('');
+    } catch (e) {
+      toast({ variant: "destructive", title: "Allocation Failure" });
+    }
+  };
+
+  const handleSuspendAccount = async (userId: string, currentStatus: boolean) => {
+    if (!firestore) return;
+    try {
+      await updateDoc(doc(firestore, 'users', userId), { isBanned: !currentStatus });
+      toast({ title: `Compliance Lockdown: ${!currentStatus ? 'Activated' : 'Released'}` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Compliance Sync Failure" });
+    }
+  };
+
+  const handlePublishRoom = async () => {
+    if (!roomDeployment || !firestore) return;
+    try {
+      await updateDoc(doc(firestore, 'tournaments', roomDeployment.id), {
+        roomCredentials: {
+          roomId: roomDeployment.roomId,
+          roomPassword: roomDeployment.roomPass,
+          isDeployed: true
+        }
+      });
+      toast({ title: "Session Keys Transmitted", description: "Participants can now access the arena." });
+      setRoomDeployment(null);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Deployment Failure" });
+    }
+  };
+
   const stats = useMemo(() => {
     if (!usersData || !globalWithdrawals) return { totalUsers: 0, assetFlow: 0, liabilities: 0 };
     const totalUsers = usersData.length;
@@ -140,6 +202,16 @@ export default function AdminDashboard() {
     return { totalUsers, assetFlow, liabilities };
   }, [usersData, globalWithdrawals]);
 
+  const filteredUsers = useMemo(() => {
+    if (!usersData) return [];
+    const q = searchQuery.toLowerCase();
+    return usersData.filter(u => 
+      u.email?.toLowerCase().includes(q) || 
+      u.id.toLowerCase().includes(q) || 
+      u.referralCode?.toLowerCase().includes(q)
+    );
+  }, [usersData, searchQuery]);
+
   if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Synchronizing Analytical Data...</p></div>;
   if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black uppercase tracking-widest">ACCESS DENIED: EXECUTIVE CLEARANCE REQUIRED</div>;
 
@@ -147,6 +219,7 @@ export default function AdminDashboard() {
     <div className="flex min-h-screen bg-[#050508] text-white">
       <TransactionReceipt transaction={selectedTx} onClose={() => setSelectedTx(null)} />
       
+      {/* SIDEBAR */}
       <aside className="w-[280px] flex flex-col fixed inset-y-0 z-50 bg-[#0a0a0f] border-r border-white/5 shadow-2xl">
         <div className="p-8 flex items-center gap-3">
           <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 rotate-3">
@@ -177,6 +250,7 @@ export default function AdminDashboard() {
       </aside>
 
       <main className="flex-1 ml-[280px]">
+        {/* HEADER */}
         <header className="h-20 bg-[#050508]/80 backdrop-blur-3xl flex items-center justify-between px-10 border-b border-white/5 sticky top-0 z-40">
           <div className="relative w-[450px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -201,6 +275,7 @@ export default function AdminDashboard() {
         </header>
 
         <div className="p-10 space-y-10">
+          {/* TAB: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-10 animate-in fade-in duration-500">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -212,9 +287,151 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* TAB: USERS */}
+          {activeTab === 'users' && (
+            <div className="animate-in fade-in duration-500 space-y-6">
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-white/5">
+                      <TableRow className="border-white/5">
+                        <TableHead className="text-[9px] font-black uppercase tracking-widest px-8">Warrior ID</TableHead>
+                        <TableHead className="text-[9px] font-black uppercase tracking-widest">Name / Email</TableHead>
+                        <TableHead className="text-[9px] font-black uppercase tracking-widest">Wallet Status</TableHead>
+                        <TableHead className="text-[9px] font-black uppercase tracking-widest">Security Flag</TableHead>
+                        <TableHead className="text-[9px] font-black uppercase tracking-widest text-right px-8">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map(u => (
+                        <TableRow key={u.id} className="border-white/5 hover:bg-white/5">
+                          <TableCell className="px-8 font-mono text-[10px] text-muted-foreground flex items-center gap-2">
+                             #{u.id.substring(0,8).toUpperCase()}
+                             <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => navigator.clipboard.writeText(u.id)}><Copy className="h-3 w-3" /></Button>
+                          </TableCell>
+                          <TableCell>
+                             <div className="space-y-1">
+                                <p className="text-xs font-black uppercase">{u.email?.split('@')[0] || 'Unknown'}</p>
+                                <p className="text-[8px] font-bold text-muted-foreground uppercase">{u.email}</p>
+                             </div>
+                          </TableCell>
+                          <TableCell>
+                             <div className="flex gap-2">
+                                <Badge variant="outline" className="text-[8px] bg-blue-500/10 border-blue-500/20 text-blue-400">D: {u.depositBalance?.toFixed(1)}</Badge>
+                                <Badge variant="outline" className="text-[8px] bg-green-500/10 border-green-500/20 text-green-400">W: {u.winningBalance?.toFixed(1)}</Badge>
+                                <Badge variant="outline" className="text-[8px] bg-amber-500/10 border-amber-500/20 text-amber-400">T: {u.taskBalance?.toFixed(1)}</Badge>
+                             </div>
+                          </TableCell>
+                          <TableCell>
+                             {u.isVpnActive ? <Badge className="bg-red-500/20 text-red-500 text-[8px] font-black">VPN DETECTED</Badge> : <Badge className="bg-green-500/20 text-green-500 text-[8px] font-black">NORMAL</Badge>}
+                          </TableCell>
+                          <TableCell className="text-right px-8">
+                             <div className="flex items-center justify-end gap-2">
+                                <Button size="sm" variant="outline" onClick={() => setBalanceAdjustment({ user: u, bucket: 'winningBalance' })} className="h-8 text-[8px] font-black uppercase border-primary/20 hover:bg-primary/10">MANUAL CREDIT</Button>
+                                <Button size="sm" variant="ghost" onClick={() => handleSuspendAccount(u.id, !!u.isBanned)} className={cn("h-8 text-[8px] font-black uppercase", u.isBanned ? "text-green-500" : "text-red-500")}>
+                                   {u.isBanned ? <RefreshCcw className="h-3 w-3 mr-1" /> : <Ban className="h-3 w-3 mr-1" />}
+                                   {u.isBanned ? 'RESTORE' : 'RESTRICT'}
+                                </Button>
+                             </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+               </Card>
+            </div>
+          )}
+
+          {/* TAB: PAYOUTS */}
+          {activeTab === 'payouts' && (
+            <div className="animate-in fade-in duration-500 space-y-6">
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-white/5">
+                      <TableRow className="border-white/5">
+                        <TableHead className="text-[9px] font-black uppercase tracking-widest px-8">Reference ID</TableHead>
+                        <TableHead className="text-[9px] font-black uppercase tracking-widest">User / UPI Details</TableHead>
+                        <TableHead className="text-[9px] font-black uppercase tracking-widest">Amount (₹)</TableHead>
+                        <TableHead className="text-[9px] font-black uppercase tracking-widest">Conversion Fee</TableHead>
+                        <TableHead className="text-[9px] font-black uppercase tracking-widest text-right px-8">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {globalWithdrawals?.map(tx => (
+                        <TableRow key={tx.id} className="border-white/5 hover:bg-white/5">
+                          <TableCell className="px-8 font-mono text-[10px] text-muted-foreground">
+                             #{tx.id.substring(0,10).toUpperCase()}
+                          </TableCell>
+                          <TableCell>
+                             <div className="space-y-1">
+                                <p className="text-xs font-black uppercase">{tx.description?.split(':')[1] || 'No ID'}</p>
+                                <p className="text-[8px] font-bold text-muted-foreground uppercase">{tx.userId}</p>
+                             </div>
+                          </TableCell>
+                          <TableCell className="text-lg font-black italic tracking-tighter text-white">₹{tx.amount.toFixed(2)}</TableCell>
+                          <TableCell className="text-[10px] font-black text-red-400">1.2% (₹{(tx.amount * 0.012).toFixed(2)})</TableCell>
+                          <TableCell className="text-right px-8">
+                             {tx.status === 'pending' ? (
+                               <div className="flex items-center justify-end gap-2">
+                                  <Button size="sm" onClick={() => handlePayoutAction(tx, 'completed')} className="bg-green-500 hover:bg-green-600 text-black h-8 text-[8px] font-black uppercase">APPROVE PAYOUT</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => handlePayoutAction(tx, 'failed')} className="h-8 text-[8px] font-black uppercase text-red-500">REJECT</Button>
+                               </div>
+                             ) : (
+                               <Badge className={cn("text-[8px] font-black uppercase px-3", tx.status === 'completed' ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500")}>
+                                  {tx.status}
+                               </Badge>
+                             )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+               </Card>
+            </div>
+          )}
+
+          {/* TAB: EVENTS */}
+          {activeTab === 'events' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-5">
+              {tournamentsData?.map(t => (
+                <Card key={t.id} className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6">
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                         <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary"><Trophy /></div>
+                         <div>
+                            <h4 className="text-lg font-black uppercase italic">{t.name}</h4>
+                            <Badge className="bg-primary/20 text-primary text-[8px] px-2">{t.gameType}</Badge>
+                         </div>
+                      </div>
+                      <Badge variant={t.status === 'active' ? 'destructive' : 'secondary'} className="uppercase text-[8px] font-black">{t.status}</Badge>
+                   </div>
+                   
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                         <p className="text-[8px] font-black uppercase text-muted-foreground">Entry Fee</p>
+                         <p className="text-xl font-black">{t.entryFee} 🪙</p>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                         <p className="text-[8px] font-black uppercase text-muted-foreground">Prize Pool</p>
+                         <p className="text-xl font-black text-amber-500">{t.prizePool}</p>
+                      </div>
+                   </div>
+
+                   <div className="space-y-4 pt-4 border-t border-white/5">
+                      <Label className="text-[10px] font-black uppercase">Publish Credentials</Label>
+                      <div className="grid grid-cols-2 gap-4">
+                         <Input placeholder="Room ID" className="h-10 bg-white/5 text-[10px]" onChange={e => setRoomDeployment(prev => ({...prev!, id: t.id, roomId: e.target.value, roomPass: prev?.roomPass || ''}))} />
+                         <Input placeholder="Password" className="h-10 bg-white/5 text-[10px]" onChange={e => setRoomDeployment(prev => ({...prev!, id: t.id, roomPass: e.target.value, roomId: prev?.roomId || ''}))} />
+                      </div>
+                      <Button onClick={handlePublishRoom} className="w-full bg-primary h-10 text-[10px] font-black uppercase italic">PUBLISH CREDENTIALS</Button>
+                   </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* TAB: AD HUB */}
           {activeTab === 'adhub' && (
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-right-5 duration-500 pb-20">
-                {/* CPA LEAD CONFIG */}
                 <ConfigCard title="CPA Lead Integration" description="Manage tactical analytical missions." icon={<Globe />}>
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
@@ -225,7 +442,7 @@ export default function AdminDashboard() {
                          <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase text-muted-foreground">API Data Stream (JSON URL)</Label>
                             <Input 
-                               value={sysConfig.cpaLeadUrl} 
+                               value={sysConfig.cpaLeadUrl || ''} 
                                onChange={(e) => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})}
                                className="bg-white/5 border-white/10 font-mono text-[10px] h-12 text-white"
                             />
@@ -233,18 +450,19 @@ export default function AdminDashboard() {
                          <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase text-muted-foreground">CPA API Key (Verification)</Label>
                             <Input 
-                               value={sysConfig.cpaLeadApiKey} 
+                               value={sysConfig.cpaLeadApiKey || ''} 
                                onChange={(e) => setSysConfig({...sysConfig, cpaLeadApiKey: e.target.value})}
                                className="bg-white/5 border-white/10 font-mono text-[10px] h-12 text-white"
                                placeholder="Enter CPA Key"
                             />
                          </div>
-                         <Button onClick={() => saveSettings({ cpaLeadUrl: sysConfig.cpaLeadUrl, cpaLeadApiKey: sysConfig.cpaLeadApiKey })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">SYNC CPA PROTOCOL</Button>
+                         <Button onClick={() => saveSettings({ cpaLeadUrl: sysConfig.cpaLeadUrl, cpaLeadApiKey: sysConfig.cpaLeadApiKey })} disabled={isSavingSettings} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                            {isSavingSettings ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC CPA PROTOCOL"}
+                         </Button>
                       </div>
                    </div>
                 </ConfigCard>
 
-                {/* ADMOB CONFIG */}
                 <ConfigCard title="Google AdMob Hub" description="Industrial advertisement signals." icon={<Smartphone />}>
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
@@ -252,46 +470,34 @@ export default function AdminDashboard() {
                          <Switch checked={sysConfig.adMobEnabled} onCheckedChange={(val) => saveSettings({ adMobEnabled: val })} />
                       </div>
                       <div className="grid grid-cols-1 gap-4">
-                         <ConfigInput label="AdMob App ID" value={sysConfig.adMobAppId} onChange={(v) => setSysConfig({...sysConfig, adMobAppId: v})} />
+                         <ConfigInput label="AdMob App ID" value={sysConfig.adMobAppId} onChange={(v: string) => setSysConfig({...sysConfig, adMobAppId: v})} />
                          <div className="grid grid-cols-2 gap-4">
-                            <ConfigInput label="Rewarded ID" value={sysConfig.adMobRewardedId} onChange={(v) => setSysConfig({...sysConfig, adMobRewardedId: v})} />
-                            <ConfigInput label="Interstitial ID" value={sysConfig.adMobInterstitialId} onChange={(v) => setSysConfig({...sysConfig, adMobInterstitialId: v})} />
+                            <ConfigInput label="Rewarded ID" value={sysConfig.adMobRewardedId} onChange={(v: string) => setSysConfig({...sysConfig, adMobRewardedId: v})} />
+                            <ConfigInput label="Interstitial ID" value={sysConfig.adMobInterstitialId} onChange={(v: string) => setSysConfig({...sysConfig, adMobInterstitialId: v})} />
                          </div>
                       </div>
-                      <Button onClick={() => saveSettings({ adMobAppId: sysConfig.adMobAppId, adMobRewardedId: sysConfig.adMobRewardedId, adMobInterstitialId: sysConfig.adMobInterstitialId })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">UPDATE AD SIGNALS</Button>
+                      <Button onClick={() => saveSettings({ adMobAppId: sysConfig.adMobAppId, adMobRewardedId: sysConfig.adMobRewardedId, adMobInterstitialId: sysConfig.adMobInterstitialId })} disabled={isSavingSettings} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                         {isSavingSettings ? <Loader2 className="animate-spin h-4 w-4" /> : "UPDATE AD SIGNALS"}
+                      </Button>
                    </div>
                 </ConfigCard>
 
-                {/* VIDEO WALL CONFIG */}
-                <ConfigCard title="Video Revenue Wall" description="Third-party video ad providers." icon={<PlayCircle />}>
-                   <div className="space-y-6 pt-4">
-                      <div className="flex items-center justify-between">
-                         <Label className="text-[10px] font-black uppercase">Video Ad Protocol</Label>
-                         <Switch checked={sysConfig.videoWallEnabled} onCheckedChange={(val) => saveSettings({ videoWallEnabled: val })} />
-                      </div>
-                      <ConfigInput label="Video Provider Endpoint" value={sysConfig.videoWallUrl} onChange={(v) => setSysConfig({...sysConfig, videoWallUrl: v})} />
-                      <div className="grid grid-cols-2 gap-4">
-                         <ConfigInput label="Value per dollar" type="number" value={sysConfig.coinValuePerDollar} onChange={(v) => setSysConfig({...sysConfig, coinValuePerDollar: Number(v)})} />
-                         <ConfigInput label="Platform Profit %" type="number" value={sysConfig.adminProfitPercentage} onChange={(v) => setSysConfig({...sysConfig, adminProfitPercentage: Number(v)})} />
-                      </div>
-                      <Button onClick={() => saveSettings({ videoWallUrl: sysConfig.videoWallUrl, coinValuePerDollar: sysConfig.coinValuePerDollar, adminProfitPercentage: sysConfig.adminProfitPercentage })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">COMMIT REVENUE PARAMS</Button>
-                   </div>
-                </ConfigCard>
-
-                {/* SYSTEM ECONOMICS */}
                 <ConfigCard title="System Economics" description="Global financial constants." icon={<Coins />}>
                    <div className="space-y-6 pt-4">
                       <div className="grid grid-cols-2 gap-4">
-                         <ConfigInput label="Conversion Fee %" type="number" value={sysConfig.conversionFeePercent} onChange={(v) => setSysConfig({...sysConfig, conversionFeePercent: Number(v)})} />
-                         <ConfigInput label="Withdrawal Fee %" type="number" value={sysConfig.withdrawalFeePercent} onChange={(v) => setSysConfig({...sysConfig, withdrawalFeePercent: Number(v)})} />
+                         <ConfigInput label="Conversion Fee %" type="number" value={sysConfig.conversionFeePercent} onChange={(v: string) => setSysConfig({...sysConfig, conversionFeePercent: Number(v)})} />
+                         <ConfigInput label="Withdrawal Fee %" type="number" value={sysConfig.withdrawalFeePercent} onChange={(v: string) => setSysConfig({...sysConfig, withdrawalFeePercent: Number(v)})} />
                       </div>
-                      <ConfigInput label="Auto-Withdraw Threshold (₹)" type="number" value={sysConfig.autoWithdrawalThreshold} onChange={(v) => setSysConfig({...sysConfig, autoWithdrawalThreshold: Number(v)})} />
-                      <Button onClick={() => saveSettings({ conversionFeePercent: sysConfig.conversionFeePercent, withdrawalFeePercent: sysConfig.withdrawalFeePercent, autoWithdrawalThreshold: sysConfig.autoWithdrawalThreshold })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">SAVE ECONOMIC MATRIX</Button>
+                      <ConfigInput label="Auto-Withdraw Threshold (₹)" type="number" value={sysConfig.autoWithdrawalThreshold} onChange={(v: string) => setSysConfig({...sysConfig, autoWithdrawalThreshold: Number(v)})} />
+                      <Button onClick={() => saveSettings({ conversionFeePercent: sysConfig.conversionFeePercent, withdrawalFeePercent: sysConfig.withdrawalFeePercent, autoWithdrawalThreshold: sysConfig.autoWithdrawalThreshold })} disabled={isSavingSettings} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                        {isSavingSettings ? <Loader2 className="animate-spin h-4 w-4" /> : "SAVE ECONOMIC MATRIX"}
+                      </Button>
                    </div>
                 </ConfigCard>
              </div>
           )}
 
+          {/* TAB: SYSTEM */}
           {activeTab === 'system' && (
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in zoom-in-95 duration-500">
                 <ConfigCard title="Operational Status" description="Global platform kill-switches." icon={<Settings />}>
@@ -314,15 +520,48 @@ export default function AdminDashboard() {
                          <Label className="text-[10px] font-black uppercase">Deposit Gateway Enabled</Label>
                          <Switch checked={sysConfig.paymentGatewayEnabled} onCheckedChange={(val) => saveSettings({ paymentGatewayEnabled: val })} />
                       </div>
-                      <ConfigInput label="Razorpay / Gateway Key ID" value={sysConfig.paymentGatewayKey} onChange={(v) => setSysConfig({...sysConfig, paymentGatewayKey: v})} />
-                      <ConfigInput label="Gateway Secret Key" type="password" value={sysConfig.paymentGatewaySecret} onChange={(v) => setSysConfig({...sysConfig, paymentGatewaySecret: v})} />
-                      <Button onClick={() => saveSettings({ paymentGatewayKey: sysConfig.paymentGatewayKey, paymentGatewaySecret: sysConfig.paymentGatewaySecret })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">SYNC GATEWAY KEYS</Button>
+                      <ConfigInput label="Razorpay / Gateway Key ID" value={sysConfig.paymentGatewayKey} onChange={(v: string) => setSysConfig({...sysConfig, paymentGatewayKey: v})} />
+                      <ConfigInput label="Gateway Secret Key" type="password" value={sysConfig.paymentGatewaySecret} onChange={(v: string) => setSysConfig({...sysConfig, paymentGatewaySecret: v})} />
+                      <Button onClick={() => saveSettings({ paymentGatewayKey: sysConfig.paymentGatewayKey, paymentGatewaySecret: sysConfig.paymentGatewaySecret })} disabled={isSavingSettings} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                        {isSavingSettings ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC GATEWAY KEYS"}
+                      </Button>
                    </div>
                 </ConfigCard>
              </div>
           )}
         </div>
       </main>
+
+      {/* MODAL: BALANCE ADJUSTMENT */}
+      {balanceAdjustment && (
+        <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
+           <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-sm rounded-[2rem]">
+              <DialogHeader>
+                 <DialogTitle className="text-lg font-black uppercase italic">Capital Allocation</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                 <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-1">
+                    <p className="text-[8px] font-black uppercase text-muted-foreground">Target User</p>
+                    <p className="text-xs font-bold">{balanceAdjustment.user.email}</p>
+                 </div>
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Volume (Positive/Negative)</Label>
+                    <Input 
+                       type="number" 
+                       value={adjAmount} 
+                       onChange={e => setAdjAmount(e.target.value)} 
+                       className="bg-white/5 h-12 text-xl font-black"
+                       placeholder="e.g. 500 or -50"
+                    />
+                 </div>
+                 <p className="text-[8px] font-bold text-muted-foreground uppercase">Protocol: CREDITING TO {balanceAdjustment.bucket.toUpperCase()}</p>
+              </div>
+              <DialogFooter>
+                 <Button onClick={handleAdjustBalance} className="w-full bg-primary font-black uppercase text-[10px] h-12 rounded-xl">EXECUTE ALLOCATION</Button>
+              </DialogFooter>
+           </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
