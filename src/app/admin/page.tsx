@@ -138,13 +138,13 @@ export default function AdminDashboard() {
       setSavingSection(null);
     }, 5000);
 
-    // NON-BLOCKING Write Protocol
+    // Master Synchronization Protocol (Non-Blocking)
     setDoc(settingsRef, updatesWithMeta, { merge: true })
       .then(() => {
         clearTimeout(timeout);
         setSavingSection(null);
         setStatusMsg({ section, msg: "PROTOCOL SYNCHRONIZED", type: 'success' });
-        toast({ title: "SAVE CONFIRMED", description: "Remote configuration updated successfully." });
+        toast({ title: "SAVE CONFIRMED", description: "Global infrastructure updated." });
         setTimeout(() => setStatusMsg(null), 4000);
       })
       .catch(async (serverError) => {
@@ -157,7 +157,7 @@ export default function AdminDashboard() {
           requestResourceData: updatesWithMeta,
         });
         errorEmitter.emit('permission-error', permissionError);
-        toast({ variant: "destructive", title: "SYNC REJECTED", description: "Check permissions or network signal." });
+        toast({ variant: "destructive", title: "SYNC REJECTED" });
       });
   };
 
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
         requestResourceData: roomUpdate
       }));
     });
-    toast({ title: "Session Keys Transmitted", description: "Participants can now access the arena." });
+    toast({ title: "Session Keys Transmitted" });
     setRoomDeployment(null);
   };
 
@@ -586,9 +586,10 @@ export default function AdminDashboard() {
                             <ConfigInput label="Rewarded ID" value={sysConfig.adMobRewardedId} onChange={(v: string) => setSysConfig({...sysConfig, adMobRewardedId: v})} />
                             <ConfigInput label="Interstitial ID" value={sysConfig.adMobInterstitialId} onChange={(v: string) => setSysConfig({...sysConfig, adMobInterstitialId: v})} />
                          </div>
+                         <ConfigInput label="Banner ID" value={sysConfig.adMobBannerId} onChange={(v: string) => setSysConfig({...sysConfig, adMobBannerId: v})} />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Button onClick={() => saveSettings('admob_sync', { adMobAppId: sysConfig.adMobAppId, adMobRewardedId: sysConfig.adMobRewardedId, adMobInterstitialId: sysConfig.adMobInterstitialId })} disabled={savingSection === 'admob_sync'} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                        <Button onClick={() => saveSettings('admob_sync', { adMobAppId: sysConfig.adMobAppId, adMobRewardedId: sysConfig.adMobRewardedId, adMobInterstitialId: sysConfig.adMobInterstitialId, adMobBannerId: sysConfig.adMobBannerId })} disabled={savingSection === 'admob_sync'} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
                            {savingSection === 'admob_sync' ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC ADMOB API"}
                         </Button>
                         {statusMsg?.section === 'admob_sync' && (
@@ -608,12 +609,40 @@ export default function AdminDashboard() {
                          <ConfigInput label="Conversion Fee %" type="number" value={sysConfig.conversionFeePercent} onChange={(v: string) => setSysConfig({...sysConfig, conversionFeePercent: Number(v)})} />
                          <ConfigInput label="Withdrawal Fee %" type="number" value={sysConfig.withdrawalFeePercent} onChange={(v: string) => setSysConfig({...sysConfig, withdrawalFeePercent: Number(v)})} />
                       </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <ConfigInput label="Coin Value ($1 = X)" type="number" value={sysConfig.coinValuePerDollar} onChange={(v: string) => setSysConfig({...sysConfig, coinValuePerDollar: Number(v)})} />
+                        <ConfigInput label="Admin Profit %" type="number" value={sysConfig.adminProfitPercentage} onChange={(v: string) => setSysConfig({...sysConfig, adminProfitPercentage: Number(v)})} />
+                      </div>
                       <ConfigInput label="Auto-Withdraw Threshold (₹)" type="number" value={sysConfig.autoWithdrawalThreshold} onChange={(v: string) => setSysConfig({...sysConfig, autoWithdrawalThreshold: Number(v)})} />
                       <div className="flex flex-col gap-2">
-                        <Button onClick={() => saveSettings('econ_sync', { conversionFeePercent: sysConfig.conversionFeePercent, withdrawalFeePercent: sysConfig.withdrawalFeePercent, autoWithdrawalThreshold: sysConfig.autoWithdrawalThreshold })} disabled={savingSection === 'econ_sync'} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                        <Button onClick={() => saveSettings('econ_sync', { conversionFeePercent: sysConfig.conversionFeePercent, withdrawalFeePercent: sysConfig.withdrawalFeePercent, autoWithdrawalThreshold: sysConfig.autoWithdrawalThreshold, coinValuePerDollar: sysConfig.coinValuePerDollar, adminProfitPercentage: sysConfig.adminProfitPercentage })} disabled={savingSection === 'econ_sync'} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
                           {savingSection === 'econ_sync' ? <Loader2 className="animate-spin h-4 w-4" /> : "SAVE ECONOMIC MATRIX"}
                         </Button>
                         {statusMsg?.section === 'econ_sync' && (
+                           <div className={cn("p-2 rounded-lg text-center", statusMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20')}>
+                              <p className={cn("text-[10px] font-black uppercase tracking-widest", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
+                                 {statusMsg.msg}
+                              </p>
+                           </div>
+                        )}
+                      </div>
+                   </div>
+                </ConfigCard>
+             </div>
+          )}
+
+          {/* TAB: REFERRAL */}
+          {activeTab === 'referral' && (
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-left-5">
+                <ConfigCard title="Affiliate Protocols" description="Manage network growth multipliers." icon={<Share2 />} lastUpdated={sysConfig.lastUpdated}>
+                   <div className="space-y-6 pt-4">
+                      <ConfigInput label="Enlistment Reward (Coins)" type="number" value={sysConfig.referralRewardCoins} onChange={(v: string) => setSysConfig({...sysConfig, referralRewardCoins: Number(v)})} />
+                      <ConfigInput label="Passive Yield %" type="number" value={sysConfig.passiveReferralPercent} onChange={(v: string) => setSysConfig({...sysConfig, passiveReferralPercent: Number(v)})} />
+                      <div className="flex flex-col gap-2">
+                        <Button onClick={() => saveSettings('ref_sync', { referralRewardCoins: sysConfig.referralRewardCoins, passiveReferralPercent: sysConfig.passiveReferralPercent })} disabled={savingSection === 'ref_sync'} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                          SAVE AFFILIATE MATRIX
+                        </Button>
+                        {statusMsg?.section === 'ref_sync' && (
                            <div className={cn("p-2 rounded-lg text-center", statusMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20')}>
                               <p className={cn("text-[10px] font-black uppercase tracking-widest", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
                                  {statusMsg.msg}
@@ -640,6 +669,8 @@ export default function AdminDashboard() {
                             <Switch checked={sysConfig.maintenanceMode} onCheckedChange={(val) => saveSettings('maintenance_toggle', { maintenanceMode: val })} />
                          </div>
                       </div>
+                      <ConfigInput label="Telegram Support URL" value={sysConfig.telegramUrl} onChange={(v: string) => setSysConfig({...sysConfig, telegramUrl: v})} />
+                      <Button onClick={() => saveSettings('sys_extra', { telegramUrl: sysConfig.telegramUrl })} className="w-full bg-white/5 border border-white/10 h-10 rounded-xl text-[10px] font-black uppercase">SYNC SUPPORT LINK</Button>
                    </div>
                 </ConfigCard>
 
