@@ -40,7 +40,7 @@ export default function EarningHub() {
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   
   const { data: settings, isLoading: settingsLoading } = useDoc<AppSettings>(settingsRef);
-  const { data: profile } = useDoc<UserProfile>(userRef);
+  const { data: profile, isLoading: profileLoading } = useDoc<UserProfile>(userRef);
 
   useEffect(() => {
     const checkCooldown = () => {
@@ -136,7 +136,7 @@ export default function EarningHub() {
     }
   };
 
-  if (settingsLoading) {
+  if (settingsLoading || profileLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -144,6 +144,8 @@ export default function EarningHub() {
       </div>
     );
   }
+
+  const isRestricted = !settings?.offerWallEnabled || profile?.isVpnActive;
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
@@ -154,7 +156,7 @@ export default function EarningHub() {
               <ShieldCheck className="h-4 w-4 text-primary" /> Verified Payout Protocols
            </div>
         </div>
-        <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-none italic">
+        <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-none italic text-white">
           Activity <span className="text-primary">Incentive</span> Hub
         </h1>
         <p className="text-muted-foreground font-medium text-lg max-w-2xl mx-auto md:mx-0 leading-relaxed">
@@ -163,7 +165,7 @@ export default function EarningHub() {
       </div>
 
       {profile?.isVpnActive && (
-        <Card className="bg-red-500/10 border-red-500/20 border-2 rounded-[2rem] p-6 flex items-center gap-4">
+        <Card className="bg-red-500/10 border-red-500/20 border-2 rounded-[2rem] p-6 flex items-center gap-4 animate-in fade-in zoom-in-95">
            <ShieldAlert className="h-8 w-8 text-red-500 animate-pulse" />
            <div>
               <h4 className="text-sm font-black uppercase tracking-widest text-red-500">Security Warning: VPN Active</h4>
@@ -179,7 +181,7 @@ export default function EarningHub() {
                  <FileBarChart className="h-8 w-8 text-amber-500" />
               </div>
               <div>
-                 <h3 className="text-xl font-black uppercase italic">Accrued Incentives</h3>
+                 <h3 className="text-xl font-black uppercase italic text-white">Accrued Incentives</h3>
                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Pending Exchange Transfer</p>
               </div>
               <h2 className="text-6xl font-black text-white italic tracking-tighter">
@@ -194,7 +196,7 @@ export default function EarningHub() {
         <Card className="lg:col-span-2 bg-[#1a1a1a] border-primary/20 border-2 rounded-[3rem] overflow-hidden relative group">
           <CardHeader className="p-10 border-b border-white/5 bg-white/5 flex flex-row items-center justify-between">
             <div>
-               <CardTitle className="text-3xl font-black uppercase tracking-tight italic">Corporate Interaction</CardTitle>
+               <CardTitle className="text-3xl font-black uppercase tracking-tight italic text-white">Corporate Interaction</CardTitle>
                <CardDescription className="text-primary font-bold uppercase text-xs">+5 Incentive Coins per engagement</CardDescription>
             </div>
             <PlayCircle className="h-12 w-12 text-primary opacity-40" />
@@ -227,7 +229,7 @@ export default function EarningHub() {
 
       <section className="space-y-8">
         <div className="flex items-center justify-between px-4">
-           <h2 className="text-3xl font-black uppercase italic tracking-tighter">Analytical <span className="text-amber-500">Missions</span></h2>
+           <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">Analytical <span className="text-amber-500">Missions</span></h2>
            <Badge variant="outline" className="border-white/10 px-4 py-2 opacity-60 text-[10px] font-black uppercase">Audited Disbursements Only</Badge>
         </div>
         
@@ -239,10 +241,13 @@ export default function EarningHub() {
                   Notice: Asset synchronization occurs after 3rd-party verification (Standard duration: 5-15 minutes).
                 </p>
              </div>
-             {!settings?.offerWallEnabled || profile?.isVpnActive ? (
+             {isRestricted ? (
                <div className="py-24 text-center space-y-4">
                   <Zap className="h-20 w-20 text-muted-foreground opacity-10 mx-auto" />
                   <p className="text-muted-foreground italic font-black uppercase tracking-[0.4em]">Incentive Gateway Restricted</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">
+                    {profile?.isVpnActive ? "Reason: VPN Detection active." : "Reason: Admin switch is currently OFF."}
+                  </p>
                </div>
              ) : (
                <OfferWall />
