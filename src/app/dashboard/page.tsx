@@ -9,7 +9,6 @@ import {
   Trophy, 
   Zap, 
   History, 
-  Settings, 
   ChevronRight,
   Activity,
   Shield,
@@ -19,7 +18,8 @@ import {
   TrendingUp,
   ArrowUpRight,
   LogOut,
-  User as UserIcon,
+  Coins,
+  CreditCard,
   Crown
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +32,7 @@ import { useState } from 'react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import WalletModal from '@/components/WalletModal';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -99,16 +100,16 @@ export default function UserDashboard() {
 
         <nav className="flex-1 p-8 space-y-2">
           <div className="pb-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 mb-4 px-4">Tactical Sectors</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 mb-4 px-4">Warrior HQ</p>
             <SidebarItem active={activeNav === 'hq'} icon={<LayoutDashboard />} label="COMMAND HQ" onClick={() => setActiveNav('hq')} />
-            <SidebarItem active={activeNav === 'earning'} icon={<Zap />} label="EARNING HUB" href="/earning-hub" />
-            <SidebarItem active={activeNav === 'ledger'} icon={<History />} label="OPERATIONAL LOG" href="/ledger" />
+            <SidebarItem active={activeNav === 'earning'} icon={<Zap />} label="MISSION HUB" href="/earning-hub" />
+            <SidebarItem active={activeNav === 'ledger'} icon={<History />} label="FINANCIAL LOG" href="/ledger" />
             <SidebarItem active={activeNav === 'vault'} icon={<Wallet />} label="TACTICAL VAULT" href="/withdraw" />
           </div>
           
           <div className="pt-8 border-t border-white/5">
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 mb-4 px-4">Warrior Rank</p>
-            <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label="BRONZE TIER I" href="/levels" />
+            <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'BRONZE'} TIER`} href="/levels" />
           </div>
         </nav>
 
@@ -124,52 +125,47 @@ export default function UserDashboard() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-               <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Active Warrior</Badge>
+               <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Elite Warrior</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-black uppercase tracking-widest">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Status
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Platform Stabilized
                </div>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Operational <span className="text-primary">Brief</span></h1>
-            <p className="text-muted-foreground font-medium text-lg">Welcome back, <span className="text-white font-black">{user.email?.split('@')[0]}</span>. System stabilized.</p>
+            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Warrior <span className="text-primary">Dashboard</span></h1>
+            <p className="text-muted-foreground font-medium text-lg">System access granted: <span className="text-white font-black">{user.email || user.phoneNumber}</span></p>
           </div>
 
           <div className="flex items-center gap-4">
-            <Card className="bg-white/5 border-white/10 p-4 rounded-2xl flex items-center gap-4 backdrop-blur-3xl">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                <Target className="h-5 w-5 text-primary" />
-              </div>
-              <div className="text-right">
-                <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Arena Rank</p>
-                <p className="text-sm font-black text-white uppercase italic">Elite Bronze</p>
-              </div>
-            </Card>
+            <WalletModal>
+              <Button className="bg-white/5 border border-white/10 hover:bg-white/10 h-16 px-8 rounded-2xl text-lg font-black italic uppercase">
+                VAULT COMMAND <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
+              </Button>
+            </WalletModal>
           </div>
         </header>
 
-        {/* Intelligence Stats */}
+        {/* Triple Wallet Intelligence Sector */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <HQStatsCard 
-            title="Total Assets" 
-            value={isProfileLoading ? "---" : (profile?.coins?.toLocaleString() || 0)} 
-            suffix="🪙"
-            icon={<Wallet />} 
-            description="Combined credit value"
-            color="white"
+          <WalletCard 
+            label="Deposit Balance" 
+            value={profile?.depositBalance || 0} 
+            icon={<CreditCard />} 
+            description="Funds added for battles"
+            color="blue"
           />
-          <HQStatsCard 
-            title="Withdrawable Winnings" 
-            value={isProfileLoading ? "---" : (profile?.withdrawableCoins?.toLocaleString() || 0)} 
-            suffix="🪙"
+          <WalletCard 
+            label="Task Balance" 
+            value={profile?.taskBalance || 0} 
+            icon={<Zap />} 
+            description="Earned from missions"
+            color="amber"
+          />
+          <WalletCard 
+            label="Winning Balance" 
+            value={profile?.winningBalance || 0} 
             icon={<Trophy />} 
-            description="Verified battle earnings"
-            color="primary"
-          />
-          <HQStatsCard 
-            title="Conversion Value" 
-            value={`₹${((profile?.withdrawableCoins || 0) / 10).toFixed(2)}`} 
-            icon={<TrendingUp />} 
-            description="Estimated local currency"
-            color="secondary"
+            description="Withdrawable winnings"
+            color="green"
+            isWithdrawable
           />
         </div>
 
@@ -179,7 +175,7 @@ export default function UserDashboard() {
             <div className="flex items-center justify-between px-2">
                <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic">
                  <Activity className="h-6 w-6 text-primary" />
-                 Operational Log
+                 Operational History
                </h3>
                <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary font-black uppercase text-[10px] tracking-widest h-10 px-6 rounded-xl border border-white/5">
                   <Link href="/ledger">Full Intel <ChevronRight className="h-4 w-4 ml-2" /></Link>
@@ -214,7 +210,7 @@ export default function UserDashboard() {
                             activity.type === 'withdrawal' || activity.type === 'entry_fee' ? "text-red-400" : "text-green-400"
                           )}>
                             {activity.type === 'withdrawal' || activity.type === 'entry_fee' ? '-' : '+'}
-                            {activity.type === 'withdrawal' ? `₹${activity.amount.toFixed(2)}` : `${activity.amount} 🪙`}
+                            {activity.type === 'withdrawal' ? `₹${activity.amount.toFixed(2)}` : `${activity.amount.toFixed(1)} 🪙`}
                           </p>
                           <Badge variant="outline" className={cn(
                              "text-[9px] font-black uppercase px-4 py-1 border-2",
@@ -245,11 +241,11 @@ export default function UserDashboard() {
                   <Zap className="h-12 w-12 text-primary animate-pulse" />
                </div>
                <div className="space-y-4 relative z-10">
-                  <h3 className="text-3xl font-black uppercase tracking-tighter italic">Tactical Boost</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed font-medium">Earn credit directly into your <span className="text-white font-bold">Tactical Vault</span> by completing high-stakes missions.</p>
+                  <h3 className="text-3xl font-black uppercase tracking-tighter italic">Mission Hub</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed font-medium">Earn extra credits by completing high-yield global missions in the hub.</p>
                </div>
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-18 rounded-[1.5rem] font-black uppercase tracking-widest text-lg shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                  <Link href="/earning-hub">DEPLOY TO HUB</Link>
+                  <Link href="/earning-hub">DEPLOY MISSIONS</Link>
                </Button>
             </Card>
 
@@ -259,17 +255,17 @@ export default function UserDashboard() {
                   HQ Policy
                </h3>
                <div className="space-y-4 text-xs font-medium text-muted-foreground leading-relaxed">
-                  <p>• Only <span className="text-white">Winning Balance</span> can be converted to local currency.</p>
-                  <p>• Minimum payout starts at <span className="text-white">₹110</span>.</p>
-                  <p>• Tactical processing fee of <span className="text-white">8%</span> applies to all vault transfers.</p>
+                  <p>• Only <span className="text-white">Winning Balance</span> is eligible for payout.</p>
+                  <p>• Convert <span className="text-amber-500 font-bold">Task Income</span> in the vault with a 1.2% protocol fee.</p>
+                  <p>• Minimum withdrawal: <span className="text-white">₹110</span>.</p>
                </div>
             </Card>
           </aside>
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation (Native App Style) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 h-24 bg-[#0a0a0f]/80 backdrop-blur-3xl border-t border-white/10 flex items-center justify-around px-4">
+      {/* Mobile Bottom Navigation */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] h-24 bg-[#0a0a0f]/90 backdrop-blur-3xl border-t border-white/10 flex items-center justify-around px-4">
         <MobileNavItem active={activeNav === 'hq'} icon={<LayoutDashboard />} label="HQ" href="/dashboard" />
         <MobileNavItem active={activeNav === 'earning'} icon={<Zap />} label="EARN" href="/earning-hub" />
         <MobileNavItem active={activeNav === 'ledger'} icon={<History />} label="LOG" href="/ledger" />
@@ -284,7 +280,7 @@ function SidebarItem({ active, icon, label, onClick, href }: any) {
     <>
       <span className={cn("h-6 w-6 transition-all", active ? "scale-125 rotate-6 text-white" : "text-muted-foreground")}>{icon}</span>
       <span className="text-[11px] font-black uppercase tracking-[0.3em] italic">{label}</span>
-      {active && <div className="absolute left-3 h-6 w-1 bg-primary rounded-full shadow-[0_0_15px_#9345FF]" />}
+      {active && <div className="absolute left-3 h-6 w-1 bg-primary rounded-full shadow-[0_0_15px_#FF7B00]" />}
     </>
   );
 
@@ -308,36 +304,40 @@ function MobileNavItem({ active, icon, label, href }: any) {
     <Link href={href} className={cn("flex flex-col items-center gap-1.5 px-6 py-2 rounded-2xl transition-all", active ? "text-primary scale-110" : "text-muted-foreground")}>
       <span className={cn("h-6 w-6", active && "animate-pulse")}>{icon}</span>
       <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
-      {active && <div className="absolute -bottom-1 h-1 w-4 bg-primary rounded-full shadow-[0_0_10px_#9345FF]" />}
     </Link>
   );
 }
 
-function HQStatsCard({ title, value, suffix, icon, description, color }: any) {
+function WalletCard({ label, value, icon, description, color, isWithdrawable }: any) {
   const colorMap = {
-    primary: "border-primary/20 text-primary bg-primary/5",
-    secondary: "border-secondary/20 text-secondary bg-secondary/5",
-    white: "border-white/10 text-white bg-white/5"
+    blue: "border-blue-500/20 text-blue-400 bg-blue-500/5",
+    amber: "border-amber-500/20 text-amber-500 bg-amber-500/5",
+    green: "border-green-500/20 text-green-500 bg-green-500/5"
   };
 
   return (
     <Card className={cn(
-      "relative overflow-hidden p-10 rounded-[3rem] border-2 transition-all hover:scale-[1.05] duration-500 shadow-2xl group",
+      "relative overflow-hidden p-8 rounded-[2.5rem] border-2 transition-all hover:scale-[1.05] duration-500 shadow-2xl group",
       colorMap[color as keyof typeof colorMap]
     )}>
       <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-150 transition-transform duration-1000">
          {icon}
       </div>
       <div className="relative z-10 space-y-6">
-        <div className={cn("h-16 w-16 rounded-[1.5rem] flex items-center justify-center border-2 shadow-2xl", colorMap[color as keyof typeof colorMap])}>
+        <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center border-2 shadow-2xl", colorMap[color as keyof typeof colorMap])}>
            {icon}
         </div>
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/60 mb-2">{title}</p>
-          <h4 className="text-5xl font-black text-white italic tracking-tighter tabular-nums">
-            {value} <span className="text-2xl align-top opacity-40">{suffix}</span>
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground/60 mb-2">{label}</p>
+          <h4 className="text-4xl font-black text-white italic tracking-tighter tabular-nums flex items-baseline gap-2">
+            {value.toFixed(1)} <span className="text-lg opacity-40 font-bold">🪙</span>
           </h4>
           <p className="text-[9px] font-bold text-muted-foreground mt-4 uppercase tracking-widest italic">{description}</p>
+          {isWithdrawable && (
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <Badge className="bg-green-500 text-black font-black uppercase text-[8px] px-3">Withdrawable</Badge>
+            </div>
+          )}
         </div>
       </div>
     </Card>

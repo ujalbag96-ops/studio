@@ -6,7 +6,7 @@ import { collection } from 'firebase/firestore';
 import TournamentCard from '@/components/TournamentCard';
 import MatchCard from '@/components/MatchCard';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Zap, Trophy, TrendingUp, Sparkles, Loader2, Globe, Gamepad2, Gift, Crown } from 'lucide-react';
+import { ArrowRight, Zap, Trophy, TrendingUp, Sparkles, Loader2, Globe, Gamepad2, Gift, Crown, Target } from 'lucide-react';
 import Link from 'next/link';
 import { Match, Tournament, GameType } from './lib/types';
 import { useState } from 'react';
@@ -29,32 +29,32 @@ export default function Home() {
   
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-12 pb-24 md:pb-12 bg-background">
-      {/* Tactical Arena Hero */}
+      {/* High-Octane Gaming Hero */}
       <section className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-[#121216] to-[#0a0a0f] border border-white/5 shadow-2xl">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -mr-40 -mt-40 animate-pulse" />
         
         <div className="relative z-10 grid lg:grid-cols-2 items-center gap-12 p-8 md:p-20">
           <div className="space-y-8 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-primary/10 border border-primary/20 shadow-xl">
-              <Zap className="h-4 w-4 text-primary animate-bounce" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Elite Competitive Arena</span>
+              <Target className="h-4 w-4 text-primary animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Live Tournament Arena</span>
             </div>
             
             <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-white uppercase italic">
-              CONQUER <br />
-              <span className="text-primary">THE ARENA</span>
+              BATTLE FOR <br />
+              <span className="text-primary">THE CROWN</span>
             </h1>
             
             <p className="text-lg text-muted-foreground font-medium max-w-md mx-auto lg:mx-0 leading-relaxed">
-              Join thousands of warriors in high-stakes tournaments. Dominate BGMI, Free Fire & Ludo to claim your rewards.
+              Enlist in elite BGMI, Free Fire & Ludo King tournaments. Spend <span className="text-white">Deposits</span>, win <span className="text-primary">Real Rewards</span>.
             </p>
             
             <div className="flex flex-wrap justify-center lg:justify-start gap-6">
               <Button asChild size="lg" className="h-16 bg-primary hover:bg-primary/90 text-white font-black px-12 rounded-2xl shadow-2xl shadow-primary/20 text-xl tracking-widest uppercase italic transition-all hover:scale-105">
-                <Link href="/login">DEPLOY NOW</Link>
+                <Link href="/login">PLAY NOW</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="h-16 border-white/10 hover:bg-white/5 text-white font-black px-10 rounded-2xl text-lg uppercase tracking-widest transition-all hover:border-primary/40">
-                <Link href="/earning-hub">EARN COINS</Link>
+                <Link href="/earning-hub">FREE INCOME</Link>
               </Button>
             </div>
           </div>
@@ -68,61 +68,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Game Sectors Selector */}
+      {/* Game Sectors */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-6">
-         <CategoryCard 
-          icon={<Gamepad2 />} 
-          label="BGMI" 
-          color="from-orange-500/20 to-transparent border-orange-500/30" 
-          active={selectedGame === 'BGMI'}
-          onClick={() => setSelectedGame(selectedGame === 'BGMI' ? 'All' : 'BGMI')}
-         />
-         <CategoryCard 
-          icon={<Zap />} 
-          label="FREE FIRE" 
-          color="from-blue-500/20 to-transparent border-blue-500/30" 
-          active={selectedGame === 'Free Fire'}
-          onClick={() => setSelectedGame(selectedGame === 'Free Fire' ? 'All' : 'Free Fire')}
-         />
-         <CategoryCard 
-          icon={<Trophy />} 
-          label="LUDO KING" 
-          color="from-green-500/20 to-transparent border-green-500/30" 
-          active={selectedGame === 'Ludo King'}
-          onClick={() => setSelectedGame(selectedGame === 'Ludo King' ? 'All' : 'Ludo King')}
-         />
-         <CategoryCard 
-          icon={<Gift />} 
-          label="ALL MISSIONS" 
-          color="from-purple-500/20 to-transparent border-purple-500/30" 
-          active={selectedGame === 'All'}
-          onClick={() => setSelectedGame('All')}
-         />
-      </section>
-
-      {/* Live Battles - Tactical View */}
-      <section className="space-y-8">
-        <div className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-4">
-             <div className="h-12 w-12 rounded-2xl bg-destructive/10 flex items-center justify-center border border-destructive/20 shadow-xl">
-                <div className="h-4 w-4 rounded-full bg-destructive animate-ping" />
-             </div>
-             <h2 className="text-3xl font-black uppercase tracking-tighter italic">Live <span className="text-destructive">Operations</span></h2>
-          </div>
-          <Link href="/dashboard" className="text-xs font-black text-muted-foreground hover:text-primary transition-colors uppercase tracking-[0.2em] flex items-center gap-2 italic">
-            All Intel <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
-        
-        {matchisLoading ? (
-          <div className="flex justify-center py-24"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {matches?.map(match => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
-        )}
+         <CategoryCard icon={<Gamepad2 />} label="BGMI" color="from-orange-500/20 to-transparent border-orange-500/30" active={selectedGame === 'BGMI'} onClick={() => setSelectedGame(selectedGame === 'BGMI' ? 'All' : 'BGMI')} />
+         <CategoryCard icon={<Zap />} label="FREE FIRE" color="from-blue-500/20 to-transparent border-blue-500/30" active={selectedGame === 'Free Fire'} onClick={() => setSelectedGame(selectedGame === 'Free Fire' ? 'All' : 'Free Fire')} />
+         <CategoryCard icon={<Trophy />} label="LUDO KING" color="from-green-500/20 to-transparent border-green-500/30" active={selectedGame === 'Ludo King'} onClick={() => setSelectedGame(selectedGame === 'Ludo King' ? 'All' : 'Ludo King')} />
+         <CategoryCard icon={<Gift />} label="ALL ARENAS" color="from-purple-500/20 to-transparent border-purple-500/30" active={selectedGame === 'All'} onClick={() => setSelectedGame('All')} />
       </section>
 
       {/* High-Stakes Campaigns */}
@@ -131,11 +82,11 @@ export default function Home() {
           <div className="flex items-center gap-6">
             <Crown className="h-10 w-10 text-primary drop-shadow-[0_0_15px_rgba(255,123,0,0.5)]" />
             <h2 className="text-4xl font-black uppercase italic tracking-tighter">
-              {selectedGame === 'All' ? 'Elite Campaigns' : `${selectedGame} Sector`}
+              {selectedGame === 'All' ? 'Active Campaigns' : `${selectedGame} Sector`}
             </h2>
           </div>
           {selectedGame !== 'All' && (
-            <Button variant="ghost" onClick={() => setSelectedGame('All')} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Clear Filter</Button>
+            <Button variant="ghost" onClick={() => setSelectedGame('All')} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Clear Sector</Button>
           )}
         </div>
         
@@ -150,21 +101,9 @@ export default function Home() {
         ) : (
           <div className="py-24 text-center border-2 border-dashed border-white/5 rounded-[3rem]">
             <Gamepad2 className="h-12 w-12 text-muted-foreground opacity-10 mx-auto mb-4" />
-            <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">No active campaigns in this sector</p>
+            <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">No active deployments in this sector</p>
           </div>
         )}
-      </section>
-
-      {/* Referral Protocol Banner */}
-      <section className="relative overflow-hidden rounded-[3rem] bg-gradient-to-r from-primary/90 to-orange-600 p-12 flex flex-col md:flex-row items-center justify-between gap-10 group cursor-pointer shadow-2xl transition-all hover:scale-[1.01]">
-         <div className="space-y-6 text-center md:text-left max-w-lg">
-            <h2 className="text-5xl font-black text-white uppercase italic tracking-tighter leading-none">Referral Protocol <br /> <span className="text-white/80">Earn ₹100</span></h2>
-            <p className="text-white/90 font-bold text-lg leading-relaxed">Invite your tactical squad to the arena. Get instant withdrawable credit for every successful enlistment.</p>
-            <Button className="bg-white text-primary hover:bg-white/95 font-black rounded-2xl px-12 h-16 text-lg uppercase tracking-widest shadow-2xl">INITIATE INVITE</Button>
-         </div>
-         <div className="h-40 w-40 md:h-56 md:w-56 bg-white/10 rounded-full flex items-center justify-center transition-all group-hover:rotate-12 group-hover:scale-110">
-            <TrendingUp className="h-24 w-24 md:h-32 md:w-32 text-white opacity-30" />
-         </div>
       </section>
     </div>
   );
