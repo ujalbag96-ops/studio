@@ -62,19 +62,24 @@ export default function LoginPage() {
             return;
           }
 
-          const isAdmin = user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
+          // Robust check for Admin Identity
+          const userEmail = user.email?.toLowerCase().trim();
+          const targetAdminEmail = ADMIN_EMAIL.toLowerCase().trim();
+          const isAdmin = !!userEmail && userEmail === targetAdminEmail;
           
-          // FORCE SYNC ADMIN IDENTITY
           if (isAdmin) {
+             // Force sync admin document
              await setDoc(userDocRef, { 
                id: user.uid,
                isAdmin: true,
                email: ADMIN_EMAIL,
                lastActive: new Date().toISOString(),
                deviceId: getDeviceId(),
-               coins: userDoc.exists() ? userDoc.data()?.coins : 0,
-               withdrawableCoins: userDoc.exists() ? userDoc.data()?.withdrawableCoins : 0
+               coins: userDoc.exists() ? (userDoc.data()?.coins || 0) : 0,
+               withdrawableCoins: userDoc.exists() ? (userDoc.data()?.withdrawableCoins || 0) : 0
              }, { merge: true });
+             
+             toast({ title: "Admin Protocol Initialized", description: "Identity verified. Entering Command Sector." });
              router.push('/admin');
           } else {
              if (!userDoc.exists()) {

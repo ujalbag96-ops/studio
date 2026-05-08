@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -51,8 +50,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'revenue' | 'transactions' | 'matches' | 'repair'>('dashboard');
   const [isRepairing, setIsRepairing] = useState(false);
 
-  // Identity logic
-  const isAdminUser = !!user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
+  // Robust Identity check
+  const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
 
   // Queries
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
