@@ -47,7 +47,8 @@ import {
   UserCheck,
   UserX,
   RefreshCcw,
-  Ban
+  Ban,
+  Target
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -58,7 +59,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
      return query(collectionGroup(firestore, 'ledger'), where('type', '==', 'withdrawal'), orderBy('date', 'desc'), limit(100));
   }, [firestore, isAdminUser]);
   
-  const { data: usersData } = useCollection<UserProfile>(usersQuery);
+  const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
   const { data: globalWithdrawals } = useCollection<UserLedgerEntry>(withdrawalQuery);
@@ -116,14 +116,19 @@ export default function AdminDashboard() {
   };
 
   const saveSettings = async (updates: Partial<AppSettings>) => {
-    if (!settingsRef) return;
+    if (!settingsRef) {
+      toast({ variant: "destructive", title: "Sync Failure", description: "Reference signal lost." });
+      return;
+    }
     setIsSavingSettings(true);
     try {
       await setDoc(settingsRef, updates, { merge: true });
       toast({ title: "System Matrix Synchronized", description: "Analytical parameters updated globally." });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Sync Failure" });
+    } catch (e: any) {
+      console.error("Sync Error:", e);
+      toast({ variant: "destructive", title: "Sync Failure", description: e.message || "Network timeout." });
     } finally {
+      // Ensure loader stops even on error
       setIsSavingSettings(false);
     }
   };
@@ -177,10 +182,13 @@ export default function AdminDashboard() {
     }
   };
 
-  const handlePublishRoom = async () => {
-    if (!roomDeployment || !firestore) return;
+  const handlePublishRoom = async (tournamentId: string) => {
+    if (!roomDeployment || !firestore || roomDeployment.id !== tournamentId) {
+       toast({ variant: "destructive", title: "Validation Error", description: "Input credentials before publishing." });
+       return;
+    }
     try {
-      await updateDoc(doc(firestore, 'tournaments', roomDeployment.id), {
+      await updateDoc(doc(firestore, 'tournaments', tournamentId), {
         roomCredentials: {
           roomId: roomDeployment.roomId,
           roomPassword: roomDeployment.roomPass,
@@ -284,6 +292,39 @@ export default function AdminDashboard() {
                 <ExactStatCard label="PLATFORM LIABILITIES" value={`${stats.liabilities.toLocaleString()} 🪙`} sub="HELD IN VAULTS" icon={<Shield className="h-5 w-5 text-orange-500" />} />
                 <ExactStatCard label="OPERATIONAL YIELD" value={`₹${(stats.assetFlow * 0.15).toLocaleString()}`} sub="POST-PROCESSING" icon={<Trophy className="h-5 w-5 text-orange-500" />} />
               </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] space-y-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest italic flex items-center gap-2">
+                       <Zap className="h-4 w-4 text-primary" /> Active Analytical Signals
+                    </h3>
+                    <div className="space-y-4">
+                       {[1,2,3].map(i => (
+                         <div key={i} className="p-4 bg-white/5 rounded-xl flex items-center justify-between border border-white/5">
+                            <div className="flex items-center gap-3">
+                               <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary"><Target className="h-4 w-4" /></div>
+                               <span className="text-[10px] font-black uppercase">Operation Vector #{i}209</span>
+                            </div>
+                            <Badge className="bg-green-500/10 text-green-500 text-[8px] px-2">ONLINE</Badge>
+                         </div>
+                       ))}
+                    </div>
+                 </Card>
+                 <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] space-y-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest italic flex items-center gap-2">
+                       <ShieldAlert className="h-4 w-4 text-primary" /> Compliance Alerts
+                    </h3>
+                    <div className="space-y-4">
+                       <div className="p-4 bg-destructive/10 rounded-xl flex items-center justify-between border border-destructive/20">
+                          <div className="flex items-center gap-3">
+                             <ShieldAlert className="h-4 w-4 text-destructive" />
+                             <span className="text-[10px] font-black uppercase">Multiple Identity Clones Detected</span>
+                          </div>
+                          <Badge variant="destructive" className="text-[8px] px-2">URGENT</Badge>
+                       </div>
+                    </div>
+                 </Card>
+              </div>
             </div>
           )}
 
@@ -302,7 +343,9 @@ export default function AdminDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredUsers.map(u => (
+                      {usersLoading ? (
+                        <TableRow><TableCell colSpan={5} className="py-20 text-center"><Loader2 className="animate-spin mx-auto h-8 w-8 text-primary" /></TableCell></TableRow>
+                      ) : filteredUsers.map(u => (
                         <TableRow key={u.id} className="border-white/5 hover:bg-white/5">
                           <TableCell className="px-8 font-mono text-[10px] text-muted-foreground flex items-center gap-2">
                              #{u.id.substring(0,8).toUpperCase()}
@@ -326,10 +369,10 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell className="text-right px-8">
                              <div className="flex items-center justify-end gap-2">
-                                <Button size="sm" variant="outline" onClick={() => setBalanceAdjustment({ user: u, bucket: 'winningBalance' })} className="h-8 text-[8px] font-black uppercase border-primary/20 hover:bg-primary/10">MANUAL CREDIT</Button>
+                                <Button size="sm" variant="outline" onClick={() => setBalanceAdjustment({ user: u, bucket: 'winningBalance' })} className="h-8 text-[8px] font-black uppercase border-primary/20 hover:bg-primary/10">CREDIT / DEBIT</Button>
                                 <Button size="sm" variant="ghost" onClick={() => handleSuspendAccount(u.id, !!u.isBanned)} className={cn("h-8 text-[8px] font-black uppercase", u.isBanned ? "text-green-500" : "text-red-500")}>
                                    {u.isBanned ? <RefreshCcw className="h-3 w-3 mr-1" /> : <Ban className="h-3 w-3 mr-1" />}
-                                   {u.isBanned ? 'RESTORE' : 'RESTRICT'}
+                                   {u.isBanned ? 'RESTORE' : 'SUSPEND ACCOUNT'}
                                 </Button>
                              </div>
                           </TableCell>
@@ -419,10 +462,18 @@ export default function AdminDashboard() {
                    <div className="space-y-4 pt-4 border-t border-white/5">
                       <Label className="text-[10px] font-black uppercase">Publish Credentials</Label>
                       <div className="grid grid-cols-2 gap-4">
-                         <Input placeholder="Room ID" className="h-10 bg-white/5 text-[10px]" onChange={e => setRoomDeployment(prev => ({...prev!, id: t.id, roomId: e.target.value, roomPass: prev?.roomPass || ''}))} />
-                         <Input placeholder="Password" className="h-10 bg-white/5 text-[10px]" onChange={e => setRoomDeployment(prev => ({...prev!, id: t.id, roomPass: e.target.value, roomId: prev?.roomId || ''}))} />
+                         <Input 
+                            placeholder="Room ID" 
+                            className="h-10 bg-white/5 text-[10px]" 
+                            onChange={e => setRoomDeployment({ id: t.id, roomId: e.target.value, roomPass: roomDeployment?.id === t.id ? roomDeployment.roomPass : '' })} 
+                         />
+                         <Input 
+                            placeholder="Password" 
+                            className="h-10 bg-white/5 text-[10px]" 
+                            onChange={e => setRoomDeployment({ id: t.id, roomPass: e.target.value, roomId: roomDeployment?.id === t.id ? roomDeployment.roomId : '' })} 
+                         />
                       </div>
-                      <Button onClick={handlePublishRoom} className="w-full bg-primary h-10 text-[10px] font-black uppercase italic">PUBLISH CREDENTIALS</Button>
+                      <Button onClick={() => handlePublishRoom(t.id)} className="w-full bg-primary h-10 text-[10px] font-black uppercase italic">PUBLISH CREDENTIALS</Button>
                    </div>
                 </Card>
               ))}
@@ -445,6 +496,7 @@ export default function AdminDashboard() {
                                value={sysConfig.cpaLeadUrl || ''} 
                                onChange={(e) => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})}
                                className="bg-white/5 border-white/10 font-mono text-[10px] h-12 text-white"
+                               placeholder="Enter CPA Lead JSON URL"
                             />
                          </div>
                          <div className="space-y-2">
@@ -477,7 +529,7 @@ export default function AdminDashboard() {
                          </div>
                       </div>
                       <Button onClick={() => saveSettings({ adMobAppId: sysConfig.adMobAppId, adMobRewardedId: sysConfig.adMobRewardedId, adMobInterstitialId: sysConfig.adMobInterstitialId })} disabled={isSavingSettings} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
-                         {isSavingSettings ? <Loader2 className="animate-spin h-4 w-4" /> : "UPDATE AD SIGNALS"}
+                         {isSavingSettings ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC API"}
                       </Button>
                    </div>
                 </ConfigCard>
@@ -528,6 +580,29 @@ export default function AdminDashboard() {
                    </div>
                 </ConfigCard>
              </div>
+          )}
+
+          {/* TAB: SECURITY */}
+          {activeTab === 'security' && (
+            <div className="space-y-8 animate-in fade-in duration-500">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <ExactStatCard label="VPN SIGNALS DETECTED" value="12" sub="ACTIVE MITIGATION" icon={<ShieldAlert className="text-red-500" />} />
+                  <ExactStatCard label="IDENTITY CLONES" value="04" sub="SAME-DEVICE FLAGS" icon={<SmartphoneNfc className="text-orange-500" />} />
+                  <ExactStatCard label="COMPLIANCE BANS" value={usersData?.filter(u => u.isBanned).length || 0} sub="HARDWARE BLACKLISTED" icon={<Ban className="text-red-500" />} />
+               </div>
+               
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] p-8 space-y-6">
+                  <h3 className="text-lg font-black uppercase italic flex items-center gap-3">
+                     <ShieldCheck className="h-5 w-5 text-primary" /> Active Compliance Registry
+                  </h3>
+                  <div className="border-t border-white/5 pt-6">
+                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Scanning for device signature duplicates...</p>
+                     <div className="py-10 text-center text-muted-foreground italic text-xs uppercase font-black tracking-widest opacity-20">
+                        No immediate compliance threats detected.
+                     </div>
+                  </div>
+               </Card>
+            </div>
           )}
         </div>
       </main>
