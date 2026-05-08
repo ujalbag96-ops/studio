@@ -96,7 +96,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-type AdminTab = 'overview' | 'warriors' | 'arena' | 'finance' | 'security' | 'ads' | 'growth' | 'system';
+type AdminTab = 'overview' | 'warriors' | 'arena' | 'finance' | 'security' | 'ads' | 'growth' | 'system' | 'support';
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
@@ -138,11 +138,13 @@ export default function AdminDashboard() {
 
   const tournamentsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'tournaments') : null, [firestore, isAdminUser]);
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
+  const supportQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'support'), orderBy('timestamp', 'desc'), limit(50)) : null, [firestore, isAdminUser]);
 
   const { data: usersData, isLoading: isUsersLoading } = useCollection<UserProfile>(usersQuery);
   const { data: ledgerData, isLoading: isLedgerLoading } = useCollection<UserLedgerEntry>(allLedgerQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
+  const { data: supportMessages } = useCollection<SupportMessage>(supportQuery);
 
   useEffect(() => {
     if (settings) setSysConfig(settings);
@@ -157,10 +159,10 @@ export default function AdminDashboard() {
 
   const handleRestrictAccess = (u: UserProfile) => {
     if (!firestore) return;
-    const confirmMsg = u.isBanned ? "Lift Access Restriction?" : "Execute Hard-Device Ban? (User will be blacklisted by signature)";
+    const confirmMsg = u.isBanned ? "Lift Suspension?" : "Execute SUSPEND ACCOUNT protocol? (Device ID will be blacklisted)";
     if (confirm(confirmMsg)) {
       updateDoc(doc(firestore, 'users', u.id), { isBanned: !u.isBanned });
-      toast({ title: u.isBanned ? "Warrior Pardoned" : "Access Restricted", description: "Device signature updated." });
+      toast({ title: u.isBanned ? "Warrior Pardoned" : "ACCOUNT SUSPENDED", description: "Device signature blacklisted." });
     }
   };
 
@@ -179,12 +181,18 @@ export default function AdminDashboard() {
        toast({ title: "Distribution Initiated", description: `Processing rewards for ${regsSnap.size} warriors.` });
        await new Promise(r => setTimeout(r, 2000));
        
-       toast({ title: "Match Finalized", description: "Winnings synchronized." });
+       toast({ title: "RESULT SET", description: "Winnings synchronized across registry." });
     } catch (e) {
        toast({ variant: "destructive", title: "Distribution Failed" });
     } finally {
        setIsProcessingMatch(null);
     }
+  };
+
+  const handleResolveSupport = (msgId: string) => {
+    if (!firestore) return;
+    updateDoc(doc(firestore, 'support', msgId), { status: 'resolved' });
+    toast({ title: "ISSUE RESOLVED", description: "Support ticket closed." });
   };
 
   const filteredUsers = useMemo(() => {
@@ -226,19 +234,20 @@ export default function AdminDashboard() {
           </div>
           <div>
             <span className="font-black text-xl italic tracking-tighter block leading-none uppercase">WAR<span className="text-primary">ROOM</span></span>
-            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.3em]">v4.5 Elite Command</span>
+            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.3em]">v5.0 Enterprise</span>
           </div>
         </div>
         
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
-          <SideLink active={activeTab === 'overview'} icon={<LayoutDashboard />} label="DASHBOARD OVERVIEW" onClick={() => setActiveTab('overview')} />
-          <SideLink active={activeTab === 'warriors'} icon={<UsersIcon />} label="USER MANAGEMENT" onClick={() => setActiveTab('warriors')} />
-          <SideLink active={activeTab === 'arena'} icon={<Trophy />} label="TOURNAMENT CONTROL" onClick={() => setActiveTab('arena')} />
-          <SideLink active={activeTab === 'finance'} icon={<TrendingUp />} label="FINANCIAL LEDGER" onClick={() => setActiveTab('finance')} />
-          <SideLink active={activeTab === 'security'} icon={<ShieldAlert />} label="SECURITY & MONITORING" onClick={() => setActiveTab('security')} badge={multiAccountCount > 0 ? "CLONES" : undefined} />
-          <SideLink active={activeTab === 'ads'} icon={<Zap />} label="AD & OFFER CONFIG" onClick={() => setActiveTab('ads')} />
-          <SideLink active={activeTab === 'growth'} icon={<Gift />} label="MARKETING & GROWTH" onClick={() => setActiveTab('growth')} />
-          <SideLink active={activeTab === 'system'} icon={<Settings />} label="SYSTEM SETTINGS" onClick={() => setActiveTab('system')} />
+          <SideLink active={activeTab === 'overview'} icon={<LayoutDashboard />} label="SYSTEM DASHBOARD" onClick={() => setActiveTab('overview')} />
+          <SideLink active={activeTab === 'warriors'} icon={<UsersIcon />} label="USER DIRECTORY" onClick={() => setActiveTab('warriors')} />
+          <SideLink active={activeTab === 'arena'} icon={<Trophy />} label="ARENA MANAGEMENT" onClick={() => setActiveTab('arena')} />
+          <SideLink active={activeTab === 'finance'} icon={<TrendingUp />} label="PAYMENT GATEWAY" onClick={() => setActiveTab('finance')} />
+          <SideLink active={activeTab === 'security'} icon={<ShieldAlert />} label="SECURITY CENTER" onClick={() => setActiveTab('security')} badge={multiAccountCount > 0 ? "CLONES" : undefined} />
+          <SideLink active={activeTab === 'ads'} icon={<Zap />} label="AD & REVENUE HUB" onClick={() => setActiveTab('ads')} />
+          <SideLink active={activeTab === 'growth'} icon={<Gift />} label="REFERRAL NETWORK" onClick={() => setActiveTab('growth')} />
+          <SideLink active={activeTab === 'support'} icon={<MessageSquare />} label="SUPPORT DESK" onClick={() => setActiveTab('support')} />
+          <SideLink active={activeTab === 'system'} icon={<Settings />} label="APPLICATION SETTINGS" onClick={() => setActiveTab('system')} />
           
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-5 rounded-2xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all text-xs font-black uppercase tracking-widest mt-10">
              <LogOut className="h-5 w-5" /> TERMINATE SESSION
@@ -254,7 +263,7 @@ export default function AdminDashboard() {
                 <Input 
                   value={searchQuery} 
                   onChange={e => setSearchQuery(e.target.value)} 
-                  placeholder="Search Warrior Signal (Email, UID, Mobile)..." 
+                  placeholder="Search Signal (UID, Email, Mobile)..." 
                   className="bg-white/5 border-white/5 rounded-2xl pl-12 h-12 text-[11px] font-black uppercase tracking-widest focus:ring-primary"
                 />
              </div>
@@ -296,7 +305,7 @@ export default function AdminDashboard() {
                       <ResponsiveContainer width="100%" height="100%">
                          <AreaChart data={ledgerData?.slice(0,12).reverse().map(l => ({ date: l.date, value: l.amount }))}>
                             <defs>
-                              <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                              <linearGradient id="colorRev" x1="0" x1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#FF7B00" stopOpacity={0.3}/>
                                 <stop offset="95%" stopColor="#FF7B00" stopOpacity={0}/>
                               </linearGradient>
@@ -333,9 +342,9 @@ export default function AdminDashboard() {
             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
                <div className="p-10 border-b border-white/5 flex justify-between items-center">
                   <div>
-                    <h3 className="text-2xl font-black uppercase tracking-tighter italic">Warrior Roster</h3>
+                    <h3 className="text-2xl font-black uppercase tracking-tighter italic">Warrior Directory</h3>
                   </div>
-                  <Button className="h-14 bg-primary hover:bg-primary/90 rounded-2xl font-black px-10 shadow-2xl shadow-primary/20 uppercase tracking-widest italic text-xs"><UserPlus className="h-4 w-4 mr-3" /> Recruit Warrior</Button>
+                  <Button className="h-14 bg-primary hover:bg-primary/90 rounded-2xl font-black px-10 shadow-2xl shadow-primary/20 uppercase tracking-widest italic text-xs"><UserPlus className="h-4 w-4 mr-3" /> RECRUIT WARRIOR</Button>
                </div>
                <Table>
                   <TableHeader className="bg-white/5">
@@ -371,9 +380,9 @@ export default function AdminDashboard() {
                               <span className="text-lg font-black text-white italic">{u.coins.toFixed(1)} 🪙</span>
                            </TableCell>
                            <TableCell className="text-right px-10 space-x-3">
-                              <Button onClick={() => setCoinAdjustment({ userId: u.id, bucket: 'winning', amount: 0 })} variant="outline" className="h-10 border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/5">MANUAL CREDIT</Button>
+                              <Button onClick={() => setCoinAdjustment({ userId: u.id, bucket: 'winning', amount: 0 })} variant="outline" className="h-10 border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/5">CREDIT / DEBIT</Button>
                               <Button onClick={() => handleRestrictAccess(u)} variant={u.isBanned ? "outline" : "destructive"} className="h-10 rounded-xl text-[9px] font-black uppercase tracking-widest">
-                                 {u.isBanned ? 'LIFT BAN' : 'RESTRICT ACCESS'}
+                                 {u.isBanned ? 'LIFT SUSPENSION' : 'SUSPEND ACCOUNT'}
                               </Button>
                            </TableCell>
                         </TableRow>
@@ -387,10 +396,10 @@ export default function AdminDashboard() {
             <div className="space-y-12">
                <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="text-4xl font-black uppercase tracking-tighter italic">Arena Master</h3>
+                    <h3 className="text-4xl font-black uppercase tracking-tighter italic">Arena Management</h3>
                   </div>
                   <Button onClick={() => setIsCreatingTournament(true)} className="h-16 bg-primary hover:bg-primary/90 font-black text-xs px-12 rounded-[1.5rem] shadow-2xl shadow-primary/20 uppercase tracking-[0.2em] italic">
-                    <Plus className="h-5 w-5 mr-3" /> Deploy New Arena
+                    <Plus className="h-5 w-5 mr-3" /> DEPLOY NEW ARENA
                   </Button>
                </div>
                
@@ -434,7 +443,7 @@ export default function AdminDashboard() {
                              className="w-full h-14 bg-white/5 hover:bg-primary/20 text-white font-black uppercase tracking-widest italic rounded-2xl transition-all border border-white/5"
                           >
                              {isProcessingMatch === tour.id ? <Loader2 className="animate-spin h-5 w-5 mr-3" /> : <ShieldCheck className="h-4 w-4 mr-3" />}
-                             PUBLISH CREDENTIALS
+                             SET RESULT
                           </Button>
                        </CardContent>
                     </Card>
@@ -446,7 +455,7 @@ export default function AdminDashboard() {
           {activeTab === 'finance' && (
             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
                <div className="p-10 border-b border-white/5 flex justify-between items-center">
-                  <h3 className="text-2xl font-black uppercase tracking-tighter italic">Financial Ledger</h3>
+                  <h3 className="text-2xl font-black uppercase tracking-tighter italic">Payment Gateway</h3>
                </div>
                <Table>
                   <TableHeader className="bg-white/5">
@@ -489,29 +498,78 @@ export default function AdminDashboard() {
             </Card>
           )}
 
+          {activeTab === 'support' && (
+            <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
+               <div className="p-10 border-b border-white/5 flex justify-between items-center">
+                  <h3 className="text-2xl font-black uppercase tracking-tighter italic">Support Desk</h3>
+               </div>
+               <Table>
+                  <TableHeader className="bg-white/5">
+                     <TableRow className="border-white/5 hover:bg-transparent">
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground py-8 px-10">Warrior / Issue</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AI Intelligence</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right px-10">Command</TableHead>
+                     </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                     {supportMessages?.map(m => (
+                        <TableRow key={m.id} className="border-white/5 hover:bg-white/5 transition-all">
+                           <TableCell className="py-8 px-10">
+                              <div className="space-y-1">
+                                 <p className="text-sm font-black text-white uppercase italic">{m.message}</p>
+                                 <p className="text-[8px] text-muted-foreground uppercase">UID: {m.userId.slice(0,10)}</p>
+                              </div>
+                           </TableCell>
+                           <TableCell>
+                              <p className="text-xs italic text-muted-foreground leading-relaxed max-w-md">"{m.aiResponse}"</p>
+                           </TableCell>
+                           <TableCell className="text-right px-10">
+                              {m.status === 'open' ? (
+                                <Button onClick={() => handleResolveSupport(m.id)} className="bg-green-500/20 text-green-500 hover:bg-green-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest">RESOLVE ISSUE</Button>
+                              ) : (
+                                <Badge className="bg-white/5 text-muted-foreground uppercase text-[8px]">RESOLVED</Badge>
+                              )}
+                           </TableCell>
+                        </TableRow>
+                     ))}
+                  </TableBody>
+               </Table>
+            </Card>
+          )}
+
           {activeTab === 'system' && (
             <div className="max-w-4xl space-y-12">
                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 space-y-10">
-                  <h4 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary"><Wrench className="h-6 w-6" /> System Core Protocols</h4>
+                  <h4 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary"><Wrench className="h-6 w-6" /> Application Settings</h4>
                   <div className="space-y-8">
                      <ProtocolItem label="Maintenance Protocol" desc="Lock platform for updates" checked={sysConfig.maintenanceMode} onChange={c => setSysConfig({...sysConfig, maintenanceMode: c})} />
+                     <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">CPA NETWORK API URL</Label>
+                        <Input value={sysConfig.cpaLeadUrl} onChange={e => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})} className="h-16 bg-white/5 border-white/5 rounded-2xl font-black uppercase text-xs" />
+                     </div>
                      <Button 
                        onClick={async () => {
                           await setDoc(doc(firestore!, 'settings', 'global'), sysConfig, { merge: true });
-                          toast({ title: "Core Synchronized" });
+                          toast({ title: "API SYNCED", description: "Global links updated." });
                        }}
                        className="w-full h-18 bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase tracking-widest italic"
+                     >SYNC API</Button>
+                     <Button 
+                       onClick={async () => {
+                          await setDoc(doc(firestore!, 'settings', 'global'), { maintenanceMode: true }, { merge: true });
+                          toast({ title: "MAINTENANCE ACTIVE" });
+                       }}
+                       className="w-full h-18 border border-white/10 hover:bg-white/5 rounded-2xl font-black uppercase tracking-widest italic text-red-500"
                      >ACTIVATE MAINTENANCE</Button>
                   </div>
                </Card>
             </div>
           )}
           
-          {/* Other tabs remain fully functional as integrated previously */}
           {(activeTab === 'security' || activeTab === 'ads' || activeTab === 'growth') && (
             <div className="p-20 text-center border-2 border-dashed border-white/5 rounded-[3rem]">
                <Activity className="h-12 w-12 text-muted-foreground opacity-10 mx-auto mb-4" />
-               <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">{activeTab.toUpperCase()} Sector Live-Scanning</p>
+               <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">{activeTab.toUpperCase()} CENTER ACTIVE SCANNING</p>
             </div>
           )}
         </div>
@@ -521,7 +579,7 @@ export default function AdminDashboard() {
       {coinAdjustment && (
         <Dialog open={!!coinAdjustment} onOpenChange={() => setCoinAdjustment(null)}>
           <DialogContent className="bg-[#0a0a0f] border-white/10 rounded-[2.5rem] p-12 max-w-sm text-white">
-            <DialogHeader><DialogTitle className="text-3xl font-black uppercase italic leading-none">Manual Credit</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="text-3xl font-black uppercase italic leading-none">CREDIT / DEBIT</DialogTitle></DialogHeader>
             <div className="space-y-10 pt-10">
               <Select value={coinAdjustment.bucket} onValueChange={(val: any) => setCoinAdjustment({...coinAdjustment, bucket: val})}>
                 <SelectTrigger className="h-16 bg-white/5 border-white/5 rounded-2xl font-black uppercase text-[10px] tracking-widest"><SelectValue /></SelectTrigger>
@@ -535,10 +593,10 @@ export default function AdminDashboard() {
                  if (bucket === 'winning') payload.winningBalance = increment(amount);
                  if (bucket === 'task') payload.taskBalance = increment(amount);
                  await updateDoc(doc(firestore!, 'users', userId), payload);
-                 await addDoc(collection(firestore!, 'users', userId, 'ledger'), { type: 'income', amount, date: new Date().toISOString().split('T')[0], status: 'completed', description: `Admin Credit: ${bucket} manual load` });
+                 await addDoc(collection(firestore!, 'users', userId, 'ledger'), { type: 'income', amount, date: new Date().toISOString().split('T')[0], status: 'completed', description: `Admin Credit: ${bucket} adjustment` });
                  setCoinAdjustment(null);
-                 toast({ title: "Manual Credit Applied" });
-              }} className="w-full h-18 bg-primary hover:bg-primary/90 font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl italic">EXECUTE MANUAL CREDIT</Button>
+                 toast({ title: "ADJUSTMENT APPLIED" });
+              }} className="w-full h-18 bg-primary hover:bg-primary/90 font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl italic">EXECUTE ADJUSTMENT</Button>
             </div>
           </DialogContent>
         </Dialog>
