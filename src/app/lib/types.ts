@@ -36,7 +36,9 @@ export interface Tournament {
   roomCredentials?: {
     roomId?: string;
     roomPassword?: string;
+    isDeployed?: boolean;
   };
+  winnerId?: string;
 }
 
 export interface Registration {
@@ -59,6 +61,7 @@ export interface SupportMessage {
 
 export interface UserLedgerEntry {
   id: string;
+  userId?: string;
   type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'passive_referral';
   amount: number;
   currencySymbol?: string;
@@ -105,6 +108,7 @@ export interface AppSettings {
   coinValuePerDollar?: number;
   adminProfitPercentage?: number;
   referralRewardCoins?: number;
-  passiveReferralPercent?: number; // Level 2 earning percentage
-  withdrawalGateways?: string[];
+  passiveReferralPercent?: number;
+  conversionFeePercent?: number;
+  withdrawalFeePercent?: number;
 }

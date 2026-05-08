@@ -10,16 +10,15 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Wallet, ArrowUpRight, Plus, CreditCard, Info, IndianRupee, Trophy, Zap, RefreshCcw, Loader2, Crown, ShieldCheck, ArrowRight, Globe } from 'lucide-react';
+import { Wallet, ArrowUpRight, Plus, CreditCard, Info, Trophy, Zap, RefreshCcw, Loader2, Crown, Globe } from 'lucide-react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, increment, addDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, addDoc, getDoc, collection } from 'firebase/firestore';
 import { UserProfile, AppSettings } from '@/app/lib/types';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
-import { collection } from 'firebase/firestore';
 import { getCurrencyData } from '@/lib/currency';
 
 export default function WalletModal({ children }: { children?: React.ReactNode }) {
@@ -45,8 +44,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   
   const currencyData = getCurrencyData(profile?.country);
   
-  // TIER BASED FEES
-  const baseFee = 0.012; // 1.2%
+  const baseFee = settings?.conversionFeePercent || 0.012; 
   const tierFee = profile?.rank === 'Gold' ? 0.005 : profile?.rank === 'Silver' ? 0.008 : baseFee;
   
   const telegramUrl = settings?.telegramUrl || 'https://t.me/bracketbattles_support';
@@ -72,7 +70,6 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
     try {
       const fee = amount * tierFee;
       const netAmount = amount - fee;
-
       const passivePercent = settings?.passiveReferralPercent || 2;
       const passiveBonus = netAmount * (passivePercent / 100);
 
@@ -82,7 +79,6 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
         coins: increment(-fee)
       });
 
-      // Credit Referrer (Level 2 Passive Earning)
       if (profile.referredBy) {
          const refRef = doc(firestore, 'users', profile.referredBy);
          const refSnap = await getDoc(refRef);
@@ -155,24 +151,15 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
              </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-             <div className="grid grid-cols-3 gap-3">
-               <BalanceRow label="DEPOSIT" value={depositBal} color="blue" icon={<CreditCard className="h-3 w-3" />} />
-               <BalanceRow label="TASK" value={taskBal} color="amber" icon={<Zap className="h-3 w-3" />} />
-               <BalanceRow label="WINNING" value={winningBal} color="green" icon={<Trophy className="h-3 w-3" />} />
-             </div>
+          <div className="grid grid-cols-3 gap-3">
+             <BalanceRow label="DEPOSIT" value={depositBal} color="blue" icon={<CreditCard className="h-3 w-3" />} />
+             <BalanceRow label="TASK" value={taskBal} color="amber" icon={<Zap className="h-3 w-3" />} />
+             <BalanceRow label="WINNING" value={winningBal} color="green" icon={<Trophy className="h-3 w-3" />} />
           </div>
           
-          <div className="text-center bg-white/5 py-3 rounded-xl border border-white/5">
-             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Estimated Value</p>
-             <p className="text-xl font-black text-primary italic">
-                {currencyData.symbol}{((depositBal + winningBal) / currencyData.rateToCoins).toFixed(2)}
-             </p>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
-             <Button onClick={handleManualTopup} className="bg-primary hover:bg-primary/90 h-20 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/20 italic group">
-                <Plus className="h-4 w-4 mr-2 group-hover:scale-125 transition-transform" /> ADD FUNDS
+             <Button onClick={handleManualTopup} className="bg-primary hover:bg-primary/90 h-20 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/20 italic">
+                <Plus className="h-4 w-4 mr-2" /> ADD FUNDS
              </Button>
              <Button asChild className="bg-[#121216] border border-white/10 hover:bg-white/5 h-20 rounded-2xl font-black uppercase tracking-widest text-xs italic">
                 <Link href="/withdraw" className="flex items-center justify-center">
@@ -181,8 +168,8 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
              </Button>
           </div>
 
-          <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-inner relative overflow-hidden">
-             <div className="flex items-center justify-between relative z-10">
+          <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 space-y-6">
+             <div className="flex items-center justify-between">
                 <div className="space-y-1">
                    <h4 className="text-xs font-black uppercase tracking-widest italic flex items-center gap-2">
                       <RefreshCcw className="h-4 w-4 text-amber-500" /> Conversion Protocol
@@ -192,7 +179,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                 <Badge className="bg-amber-500 text-black text-[9px] font-black border-none px-3 py-1 uppercase">{(tierFee * 100).toFixed(1)}% FEE</Badge>
              </div>
              
-             <div className="flex gap-3 relative z-10">
+             <div className="flex gap-3">
                 <div className="flex-1 relative">
                    <Input 
                     type="number" 
@@ -206,18 +193,11 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                 <Button 
                   onClick={handleConvertTasks}
                   disabled={isConverting || !convertAmount}
-                  className="bg-amber-500 hover:bg-amber-600 text-black h-16 px-10 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-amber-500/20"
+                  className="bg-amber-500 hover:bg-amber-600 text-black h-16 px-10 rounded-2xl font-black text-xs uppercase shadow-xl"
                 >
                   {isConverting ? <Loader2 className="animate-spin h-5 w-5" /> : "EXECUTE"}
                 </Button>
              </div>
-          </div>
-
-          <div className="bg-black/40 border border-white/5 rounded-2xl p-6 flex items-start gap-4">
-             <Info className="h-5 w-5 text-primary shrink-0 mt-1" />
-             <p className="text-[10px] text-muted-foreground leading-relaxed font-bold uppercase tracking-tight">
-                <strong>Standard Policy:</strong> 1 unit of {currencyData.code} = {currencyData.rateToCoins} Coins. Withdrawals are processed in your detected local currency.
-             </p>
           </div>
         </div>
       </DialogContent>
@@ -233,8 +213,8 @@ function BalanceRow({ label, value, color, icon }: any) {
   };
 
   return (
-    <div className={cn("p-4 rounded-2xl border text-center space-y-1.5 backdrop-blur-3xl transition-transform hover:scale-105", colorMap[color as keyof typeof colorMap])}>
-       <p className="text-[8px] font-black uppercase tracking-[0.1em] opacity-60 flex items-center justify-center gap-1.5">
+    <div className={cn("p-4 rounded-2xl border text-center space-y-1.5 backdrop-blur-3xl", colorMap[color as keyof typeof colorMap])}>
+       <p className="text-[8px] font-black uppercase opacity-60 flex items-center justify-center gap-1.5">
           {icon} {label}
        </p>
        <h3 className="text-xl font-black tracking-tighter tabular-nums">{value.toFixed(1)}</h3>
