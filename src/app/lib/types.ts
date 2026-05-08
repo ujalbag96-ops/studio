@@ -1,5 +1,5 @@
 
-export type TournamentStatus = 'active' | 'upcoming' | 'completed';
+export type TournamentStatus = 'active' | 'upcoming' | 'completed' | 'cancelled';
 export type GameType = 'BGMI' | 'Free Fire' | 'Ludo King' | 'Other';
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
 
@@ -61,10 +61,19 @@ export interface SupportMessage {
   timestamp: string;
 }
 
+export interface SystemNotification {
+  id: string;
+  title: string;
+  body: string;
+  imageUrl?: string;
+  timestamp: string;
+  audience: 'all' | 'paid' | 'inactive';
+}
+
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'passive_referral';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'passive_referral' | 'refund';
   amount: number;
   currencySymbol?: string;
   date: string;
