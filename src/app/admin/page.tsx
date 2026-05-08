@@ -14,7 +14,6 @@ import {
   Wrench,
   Loader2,
   TrendingUp,
-  Zap,
   Edit2,
   Trash2,
   Fingerprint,
@@ -35,7 +34,11 @@ import {
   Activity,
   Palette,
   CreditCard,
-  Target
+  Target,
+  FileText,
+  Search,
+  Eye,
+  Check
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -63,6 +66,7 @@ import {
   BarChart,
   Bar
 } from 'recharts';
+import TransactionReceipt from '@/components/TransactionReceipt';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -86,6 +90,8 @@ export default function AdminDashboard() {
   const [theme, setTheme] = useState<AdminTheme>('midnight');
   const [countryFilter, setCountryFilter] = useState<string>('All');
   const [financeTimeFilter, setFinanceTimeFilter] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('month');
+  const [ledgerFilter, setLedgerFilter] = useState<string>('all');
+  const [selectedTx, setSelectedTx] = useState<UserLedgerEntry | null>(null);
   const [coinAdjustment, setCoinAdjustment] = useState<{ userId: string; bucket: 'deposit' | 'winning' | 'task'; amount: number } | null>(null);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
@@ -97,10 +103,11 @@ export default function AdminDashboard() {
     return query(collection(firestore, 'users'), where('country', '==', countryFilter));
   }, [firestore, isAdminUser, countryFilter]);
 
-  const allLedgerQuery = useMemoFirebase(() => 
-    (firestore && isAdminUser) ? collectionGroup(firestore, 'ledger') : null, 
-    [firestore, isAdminUser]
-  );
+  const allLedgerQuery = useMemoFirebase(() => {
+    if (!firestore || !isAdminUser) return null;
+    let baseQuery = collectionGroup(firestore, 'ledger');
+    return query(baseQuery, orderBy('date', 'desc'), limit(100));
+  }, [firestore, isAdminUser]);
 
   const flaggedTxsQuery = useMemoFirebase(() => 
     (firestore && isAdminUser) ? query(collectionGroup(firestore, 'ledger'), where('status', '==', 'review_required'), orderBy('date', 'desc')) : null, 
@@ -116,24 +123,25 @@ export default function AdminDashboard() {
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
 
   const { data: usersData } = useCollection<UserProfile>(usersQuery);
-  const { data: ledgerData } = useCollection<UserLedgerEntry>(allLedgerQuery);
+  const { data: ledgerData, isLoading: isLedgerLoading } = useCollection<UserLedgerEntry>(allLedgerQuery);
   const { data: flaggedTxs } = useCollection<UserLedgerEntry>(flaggedTxsQuery);
   const { data: supportTickets } = useCollection<SupportMessage>(supportQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
-  const [config, setConfig] = useState<Partial<AppSettings>>({});
-
-  useEffect(() => {
-    if (settings) setConfig(settings);
-  }, [settings]);
+  const filteredLedger = useMemo(() => {
+    if (!ledgerData) return [];
+    if (ledgerFilter === 'all') return ledgerData;
+    if (ledgerFilter === 'flagged') return ledgerData.filter(t => t.status === 'review_required' || t.isFlagged);
+    return ledgerData.filter(t => t.type === ledgerFilter);
+  }, [ledgerData, ledgerFilter]);
 
   // Financial Intelligence Engine
   const financialStats = useMemo(() => {
     if (!ledgerData || !usersData) return { totalRevenue: 0, totalProfit: 0, totalUserBalance: 0, chartData: [] };
 
     const now = new Date();
-    const filteredLedger = ledgerData.filter(tx => {
+    const filteredForStats = ledgerData.filter(tx => {
       if (financeTimeFilter === 'all') return true;
       const txDate = new Date(tx.date);
       const diffTime = Math.abs(now.getTime() - txDate.getTime());
@@ -149,7 +157,7 @@ export default function AdminDashboard() {
     let totalRevenue = 0;
     let totalProfit = 0;
     
-    filteredLedger.forEach(tx => {
+    filteredForStats.forEach(tx => {
       if (tx.type === 'deposit' || tx.type === 'income') totalRevenue += tx.amount;
       if (tx.type === 'conversion' || tx.type === 'withdrawal') {
         const fee = tx.type === 'conversion' ? (tx.amount / 0.988) * 0.012 : (tx.amount / 0.92) * 0.08;
@@ -160,7 +168,7 @@ export default function AdminDashboard() {
     const totalUserBalance = usersData.reduce((acc, u) => acc + (u.coins || 0), 0) / 10;
 
     const dailyData: Record<string, { date: string, revenue: number, profit: number }> = {};
-    filteredLedger.forEach(tx => {
+    filteredForStats.forEach(tx => {
       const d = tx.date;
       if (!dailyData[d]) dailyData[d] = { date: d, revenue: 0, profit: 0 };
       if (tx.type === 'deposit' || tx.type === 'income') dailyData[d].revenue += tx.amount / 10;
@@ -175,35 +183,14 @@ export default function AdminDashboard() {
     return { totalRevenue, totalProfit, totalUserBalance, chartData };
   }, [ledgerData, usersData, financeTimeFilter]);
 
-  const handleUpdateSettings = async (updates: Partial<AppSettings>) => {
-    if (!firestore || !settingsRef) return;
-    await setDoc(settingsRef, updates, { merge: true });
-    toast({ title: "Intelligence Synced" });
-  };
-
-  const handleAdjustBalance = async () => {
-    if (!firestore || !coinAdjustment) return;
-    const { userId, bucket, amount } = coinAdjustment;
+  const handleUpdateStatus = async (tx: UserLedgerEntry, newStatus: string) => {
+    if (!firestore || !tx.userId) return;
     try {
-      const uRef = doc(firestore, 'users', userId);
-      const updatePayload: any = {};
-      if (bucket === 'deposit') updatePayload.depositBalance = increment(amount);
-      if (bucket === 'winning') updatePayload.winningBalance = increment(amount);
-      if (bucket === 'task') updatePayload.taskBalance = increment(amount);
-      updatePayload.coins = increment(amount);
-
-      await updateDoc(uRef, updatePayload);
-      await addDoc(collection(firestore, 'users', userId, 'ledger'), {
-        type: 'income',
-        amount: amount,
-        date: new Date().toISOString().split('T')[0],
-        status: 'completed',
-        description: `Command Override: ${bucket} manual adjustment`
-      });
-      toast({ title: "Transfer Executed" });
-      setCoinAdjustment(null);
+      const txRef = doc(firestore, 'users', tx.userId, 'ledger', tx.id);
+      await updateDoc(txRef, { status: newStatus });
+      toast({ title: `Transaction marked as ${newStatus}` });
     } catch (e) {
-      toast({ variant: "destructive", title: "Sync Protocol Interrupted" });
+      toast({ variant: "destructive", title: "Update Failed" });
     }
   };
 
@@ -214,6 +201,8 @@ export default function AdminDashboard() {
 
   return (
     <div className={cn("flex min-h-screen transition-colors duration-500", activeTheme.bg, activeTheme.text)}>
+      <TransactionReceipt transaction={selectedTx} onClose={() => setSelectedTx(null)} />
+      
       <aside className="w-64 bg-black/40 border-r border-white/5 hidden lg:flex flex-col fixed inset-y-0 z-50 backdrop-blur-xl">
         <div className="p-8 border-b border-white/5 flex items-center gap-3">
           <ShieldCheck className={cn("h-6 w-6", activeTheme.primary)} />
@@ -262,13 +251,130 @@ export default function AdminDashboard() {
         </header>
 
         <div className="p-8 space-y-8">
+          {activeTab === 'finance' && (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title="Total Revenue" value={`₹${financialStats.totalRevenue.toFixed(0)}`} icon={<TrendingUp />} color="green" />
+                <StatCard title="Platform Profit" value={`₹${financialStats.totalProfit.toFixed(0)}`} icon={<Target />} color="orange" />
+                <StatCard title="User Liability" value={`₹${financialStats.totalUserBalance.toFixed(0)}`} icon={<Coins />} color="blue" />
+                <StatCard title="Security Flags" value={flaggedTxs?.length || 0} icon={<ShieldAlert />} color="red" />
+              </div>
+
+              {/* Advanced Ledger Audit Section */}
+              <Card className="bg-black/20 border-white/5 rounded-[3rem] overflow-hidden">
+                <CardHeader className="p-10 border-b border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="space-y-1">
+                    <CardTitle className="text-2xl font-black italic uppercase flex items-center gap-3">
+                      <History className={activeTheme.primary} />
+                      Transactional Intelligence
+                    </CardTitle>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Global Payout & Intake Audit Feed</p>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <Select value={ledgerFilter} onValueChange={setLedgerFilter}>
+                      <SelectTrigger className="w-40 bg-black/40 border-white/10 h-11 rounded-xl text-[10px] font-black uppercase">
+                        <SelectValue placeholder="Protocol" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0a0a0f] border-white/10">
+                        <SelectItem value="all">All Protocols</SelectItem>
+                        <SelectItem value="withdrawal">Withdrawals</SelectItem>
+                        <SelectItem value="deposit">Deposits</SelectItem>
+                        <SelectItem value="conversion">Conversions</SelectItem>
+                        <SelectItem value="flagged">Flagged Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader className="bg-white/5">
+                      <TableRow className="border-white/5">
+                        <TableHead className="px-10 font-black uppercase text-[9px] tracking-widest py-6">Warrior / Date</TableHead>
+                        <TableHead className="font-black uppercase text-[9px] tracking-widest">Operation</TableHead>
+                        <TableHead className="font-black uppercase text-[9px] tracking-widest">Volume</TableHead>
+                        <TableHead className="font-black uppercase text-[9px] tracking-widest">Status</TableHead>
+                        <TableHead className="px-10 text-right font-black uppercase text-[9px] tracking-widest">Command</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLedgerLoading ? (
+                        <TableRow><TableCell colSpan={5} className="py-20 text-center"><Loader2 className="animate-spin h-10 w-10 text-primary mx-auto" /></TableCell></TableRow>
+                      ) : filteredLedger.length > 0 ? (
+                        filteredLedger.map(tx => (
+                          <TableRow key={tx.id} className="border-white/5 hover:bg-white/5 transition-all group">
+                            <TableCell className="px-10 py-6">
+                               <div className="space-y-1">
+                                  <p className="font-black text-xs uppercase tracking-tight text-white">{tx.userId?.substring(0,12) || 'UNKNOWN'}</p>
+                                  <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest italic">{tx.date}</p>
+                               </div>
+                            </TableCell>
+                            <TableCell>
+                               <Badge variant="outline" className="border-white/10 text-[8px] font-black uppercase px-3 bg-white/5">
+                                  {tx.type}
+                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                               <p className={cn(
+                                 "text-lg font-black tracking-tighter tabular-nums",
+                                 tx.type === 'withdrawal' ? 'text-red-400' : 'text-green-400'
+                               )}>
+                                 {tx.type === 'withdrawal' ? `₹${tx.amount.toFixed(2)}` : `${tx.amount} 🪙`}
+                               </p>
+                            </TableCell>
+                            <TableCell>
+                               <Badge 
+                                className={cn(
+                                  "capitalize text-[8px] font-black px-4 py-1 rounded-lg",
+                                  tx.status === 'completed' ? "bg-green-500/10 text-green-500 border-green-500/20" : 
+                                  tx.status === 'review_required' ? "bg-red-500/10 text-red-500 border-red-500/20" : 
+                                  "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                                )}
+                               >
+                                 {tx.status}
+                               </Badge>
+                            </TableCell>
+                            <TableCell className="px-10 text-right space-x-2">
+                               <Button size="icon" variant="ghost" onClick={() => setSelectedTx(tx)} className="h-9 w-9 rounded-xl hover:bg-white/10">
+                                  <Eye className="h-4 w-4" />
+                               </Button>
+                               {tx.status !== 'completed' && (
+                                 <Button 
+                                   onClick={() => handleUpdateStatus(tx, 'completed')}
+                                   className="h-9 w-9 rounded-xl bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white border-none"
+                                 >
+                                    <Check className="h-4 w-4" />
+                                 </Button>
+                               )}
+                               {tx.status !== 'review_required' && !tx.isFlagged && (
+                                 <Button 
+                                   onClick={() => handleUpdateStatus(tx, 'review_required')}
+                                   className="h-9 w-9 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border-none"
+                                 >
+                                    <ShieldAlert className="h-4 w-4" />
+                                 </Button>
+                               )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow><TableCell colSpan={5} className="py-20 text-center text-muted-foreground italic font-black uppercase text-[10px]">No operational records found.</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {activeTab === 'overview' && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard title="Total Warriors" value={usersData?.length || 0} icon={<UsersIcon />} color="blue" />
-                <StatCard title="Security Flags" value={flaggedTxs?.length || 0} icon={<AlertTriangle />} color="red" />
                 <StatCard title="Active Campaigns" value={tournamentsData?.length || 0} icon={<Trophy />} color="orange" />
-                <StatCard title="Daily Revenue" value={`₹${financialStats.totalRevenue.toFixed(0)}`} icon={<TrendingUp />} color="green" />
+                <StatCard title="Platform Profit" value={`₹${financialStats.totalProfit.toFixed(0)}`} icon={<Target />} color="green" />
+                <StatCard title="Support Tickets" value={supportTickets?.length || 0} icon={<MessageSquare />} color="red" />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -421,8 +527,6 @@ export default function AdminDashboard() {
               </Card>
             </div>
           )}
-          
-          {/* Other tabs follow same structure */}
         </div>
       </main>
 
@@ -456,7 +560,25 @@ export default function AdminDashboard() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                  <Button onClick={() => setCoinAdjustment(null)} variant="outline" className="h-16 rounded-2xl font-black uppercase tracking-widest border-white/5">CANCEL</Button>
-                 <Button onClick={handleAdjustBalance} className={cn("h-16 rounded-2xl font-black uppercase tracking-widest shadow-2xl text-black", activeTheme.accent)}>EXECUTE</Button>
+                 <Button onClick={() => {
+                   if (!firestore || !coinAdjustment) return;
+                   const { userId, bucket, amount } = coinAdjustment;
+                   const uRef = doc(firestore, 'users', userId);
+                   const updatePayload: any = { coins: increment(amount) };
+                   if (bucket === 'deposit') updatePayload.depositBalance = increment(amount);
+                   if (bucket === 'winning') updatePayload.winningBalance = increment(amount);
+                   if (bucket === 'task') updatePayload.taskBalance = increment(amount);
+                   updateDoc(uRef, updatePayload);
+                   addDoc(collection(firestore, 'users', userId, 'ledger'), {
+                     type: 'income',
+                     amount: amount,
+                     date: new Date().toISOString().split('T')[0],
+                     status: 'completed',
+                     description: `Command Override: ${bucket} manual adjustment`
+                   });
+                   toast({ title: "Transfer Executed" });
+                   setCoinAdjustment(null);
+                 }} className={cn("h-16 rounded-2xl font-black uppercase tracking-widest shadow-2xl text-black", activeTheme.accent)}>EXECUTE</Button>
               </div>
             </div>
           </DialogContent>
