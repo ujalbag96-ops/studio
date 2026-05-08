@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trophy, Calendar, Users, ShieldAlert, Key, Gamepad2, Coins, Loader2, ArrowLeft, ShieldCheck, Copy, CheckCircle2, PlayCircle } from 'lucide-react';
+import { Trophy, Calendar, Users, ShieldAlert, Key, Gamepad2, Coins, Loader2, ArrowLeft, ShieldCheck, Copy, CheckCircle2, PlayCircle, Wallet, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { Tournament, Registration, UserProfile } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +42,7 @@ export default function TournamentDetails() {
 
   const isJoined = registrations && registrations.length > 0;
   const playableBalance = (profile?.depositBalance || 0) + (profile?.winningBalance || 0);
+  const canAfford = playableBalance >= (tournament?.entryFee || 0);
 
   const copyToClipboard = (text: string, field: string) => {
     if (!text || text === "SECURED") return;
@@ -62,8 +63,8 @@ export default function TournamentDetails() {
       return;
     }
 
-    if (playableBalance < tournament.entryFee) {
-      toast({ variant: "destructive", title: "Insufficient Funds", description: "Add funds or convert tasks to join." });
+    if (!canAfford) {
+      toast({ variant: "destructive", title: "Insufficient Funds", description: "Recharge your vault to continue." });
       return;
     }
 
@@ -118,7 +119,7 @@ export default function TournamentDetails() {
       }));
     });
 
-    toast({ title: "Battle Enlisted!", description: "Check room credentials before start." });
+    toast({ title: "Battle Enlisted!", description: "Funds deducted. Room ID is now visible." });
     setIsJoining(false);
   };
 
@@ -170,7 +171,10 @@ export default function TournamentDetails() {
                  <CardTitle className="text-2xl font-black text-green-500 uppercase flex items-center gap-3 italic">
                    <Key className="h-6 w-6" /> Secured Credentials
                  </CardTitle>
-                 <CardDescription className="font-bold text-xs uppercase tracking-widest text-muted-foreground/80">Available 15 minutes before mission start. Copy to join game.</CardDescription>
+                 <div className="mt-4 flex items-center gap-3 bg-black/40 p-4 rounded-2xl border border-green-500/20">
+                    <CountdownTimer targetDate={tournament.startDate} />
+                    <span className="text-[10px] font-black uppercase text-muted-foreground">Until Squad Deploy</span>
+                 </div>
                </CardHeader>
                <CardContent className="px-0 space-y-6 pt-4 relative z-10">
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -182,6 +186,7 @@ export default function TournamentDetails() {
                        <Button 
                         onClick={() => copyToClipboard(tournament.roomCredentials?.roomId || '', 'Room ID')}
                         variant="ghost" 
+                        disabled={!tournament.roomCredentials?.roomId}
                         className="mt-4 w-full justify-between font-black uppercase text-[10px] tracking-widest hover:bg-green-500/20 hover:text-green-500"
                        >
                           {copiedField === 'Room ID' ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -196,6 +201,7 @@ export default function TournamentDetails() {
                        <Button 
                         onClick={() => copyToClipboard(tournament.roomCredentials?.roomPassword || '', 'Password')}
                         variant="ghost" 
+                        disabled={!tournament.roomCredentials?.roomPassword}
                         className="mt-4 w-full justify-between font-black uppercase text-[10px] tracking-widest hover:bg-green-500/20 hover:text-green-500"
                        >
                           {copiedField === 'Password' ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -205,7 +211,7 @@ export default function TournamentDetails() {
                  </div>
                  
                  <div className="pt-4 border-t border-white/10">
-                    <p className="text-[10px] font-bold text-muted-foreground italic">Mission Instructions: Copy the Room ID and Password, open {tournament.gameType}, go to Custom Room, search for the ID, and enter the password to join your squad.</p>
+                    <p className="text-[10px] font-bold text-muted-foreground italic">Mission Instructions: Credentials appear 15m before start. Copy them and join the custom room in {tournament.gameType}.</p>
                  </div>
                </CardContent>
             </Card>
@@ -228,17 +234,32 @@ export default function TournamentDetails() {
                     className="bg-black/40 border-white/10 h-16 rounded-2xl font-black text-xl tracking-widest focus:ring-primary focus:border-primary/40"
                   />
                 </div>
+                
                 <div className="p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between shadow-inner">
                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Available Combat Credit:</span>
-                   <span className="text-xl font-black text-secondary tabular-nums">{playableBalance.toFixed(1)} 🪙</span>
+                   <span className={`text-xl font-black tabular-nums ${canAfford ? 'text-secondary' : 'text-destructive animate-pulse'}`}>
+                      {playableBalance.toFixed(1)} 🪙
+                   </span>
                 </div>
-                <Button 
-                  onClick={handleJoin}
-                  disabled={isJoining}
-                  className="w-full h-20 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black text-xl tracking-[0.2em] uppercase italic shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95"
-                >
-                  {isJoining ? <Loader2 className="animate-spin h-8 w-8" /> : `DEPLOY ${tournament.entryFee} COINS`}
-                </Button>
+
+                {!canAfford ? (
+                  <div className="grid grid-cols-2 gap-4">
+                     <Button asChild variant="outline" className="h-16 rounded-xl border-white/10 font-black uppercase text-[10px]">
+                        <Link href="/earning-hub"><Zap className="h-3 w-3 mr-2" /> EARN HUB</Link>
+                     </Button>
+                     <Button asChild className="h-16 rounded-xl bg-secondary hover:bg-secondary/90 font-black uppercase text-[10px]">
+                        <Link href="/withdraw"><Wallet className="h-3 w-3 mr-2" /> ADD MONEY</Link>
+                     </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={handleJoin}
+                    disabled={isJoining}
+                    className="w-full h-20 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black text-xl tracking-[0.2em] uppercase italic shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95"
+                  >
+                    {isJoining ? <Loader2 className="animate-spin h-8 w-8" /> : `DEPLOY ${tournament.entryFee} COINS`}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
@@ -255,17 +276,6 @@ export default function TournamentDetails() {
                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Discuss tactics and match rules with fellow arena warriors in the lounge.</p>
              </div>
              <Button variant="outline" className="w-full border-white/10 h-14 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors">ENTER COMMAND LOUNGE</Button>
-          </Card>
-          
-          <Card className="bg-black/40 border-white/5 rounded-[2rem] p-8 space-y-4 shadow-xl">
-             <div className="flex items-center gap-3 text-[10px] font-black uppercase text-amber-500 tracking-[0.2em]">
-                <ShieldAlert className="h-4 w-4" /> Integrity Protocol
-             </div>
-             <ul className="space-y-3 text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-                <li className="flex gap-3"><span className="text-amber-500">•</span> Teaming is strictly prohibited and results in a permanent ban.</li>
-                <li className="flex gap-3"><span className="text-amber-500">•</span> Only mobile devices are allowed. Emulators will be disqualified.</li>
-                <li className="flex gap-3"><span className="text-amber-500">•</span> Prizes are distributed within 2 hours of match completion.</li>
-             </ul>
           </Card>
         </div>
       </div>
