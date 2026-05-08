@@ -6,8 +6,8 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import SupportChat from '@/components/SupportChat';
 
 export const metadata: Metadata = {
-  title: 'Bracket Battles | Competitive Gaming Hub',
-  description: 'Participate in tournaments, vote on matches, and win rewards.',
+  title: 'Bracket Battles | Elite Gaming Arena',
+  description: 'Join the most competitive gaming arena. Participate in tournaments, vote on matches, and win rewards.',
 };
 
 export default function RootLayout({
