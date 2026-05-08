@@ -38,7 +38,8 @@ import {
   Key,
   CheckCircle2,
   PlayCircle,
-  Clock
+  Clock,
+  ExternalLink
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -95,7 +96,6 @@ export default function AdminDashboard() {
     if (settings) {
       setSysConfig(settings);
     } else if (firestore && isAdminUser) {
-      // Initialize default settings if missing
       setDoc(doc(firestore, 'settings', 'global'), {
         maintenanceMode: false,
         cpaLeadUrl: 'https://www.cpalead.com/api/conversions?id=774893&api_key=339981d6420141b986bb5562172675ea',
@@ -185,6 +185,17 @@ export default function AdminDashboard() {
     return usersData.filter(u => !q || u.email?.toLowerCase().includes(q) || u.id.toLowerCase().includes(q) || u.mobile?.includes(q) || u.referralCode?.toLowerCase().includes(q));
   }, [usersData, searchQuery]);
 
+  const clones = useMemo(() => {
+    if (!usersData) return [];
+    const deviceGroups: Record<string, UserProfile[]> = {};
+    usersData.forEach(u => {
+       if (!u.deviceId) return;
+       if (!deviceGroups[u.deviceId]) deviceGroups[u.deviceId] = [];
+       deviceGroups[u.deviceId].push(u);
+    });
+    return Object.entries(deviceGroups).filter(([_, list]) => list.length > 1);
+  }, [usersData]);
+
   const stats = useMemo(() => {
     if (!usersData || !globalWithdrawals) return { totalUsers: 0, assetFlow: 0, liabilities: 0 };
     const totalUsers = usersData.length;
@@ -193,14 +204,13 @@ export default function AdminDashboard() {
     return { totalUsers, assetFlow, liabilities };
   }, [usersData, globalWithdrawals]);
 
-  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  if (isUserLoading) return <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Synchronizing Analytical Data...</p></div>;
   if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black uppercase tracking-widest">ACCESS DENIED: EXECUTIVE CLEARANCE REQUIRED</div>;
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white">
       <TransactionReceipt transaction={selectedTx} onClose={() => setSelectedTx(null)} />
       
-      {/* Sidebar */}
       <aside className="w-[280px] flex flex-col fixed inset-y-0 z-50 bg-[#0a0a0f] border-r border-white/5 shadow-2xl">
         <div className="p-8 flex items-center gap-3">
           <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 rotate-3">
@@ -230,7 +240,6 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="flex-1 ml-[280px]">
         <header className="h-20 bg-[#050508]/80 backdrop-blur-3xl flex items-center justify-between px-10 border-b border-white/5 sticky top-0 z-40">
           <div className="relative w-[450px]">
@@ -239,7 +248,7 @@ export default function AdminDashboard() {
               value={searchQuery} 
               onChange={e => setSearchQuery(e.target.value)} 
               placeholder="SCAN USER DATABASE (ID, EMAIL, PHONE, CODE)..." 
-              className="bg-white/5 border-white/10 rounded-xl pl-12 h-11 text-[10px] font-black uppercase tracking-widest focus:ring-primary"
+              className="bg-white/5 border-white/10 rounded-xl pl-12 h-11 text-[10px] font-black uppercase tracking-widest focus:ring-primary text-white"
             />
           </div>
           
@@ -247,7 +256,6 @@ export default function AdminDashboard() {
             <nav className="flex items-center gap-6">
               <HeaderLink label="PORTAL" href="/" />
               <HeaderLink label="EXECUTIVE HUB" href="/dashboard" />
-              <HeaderLink label="SYSTEM INBOX" href="/inbox" />
               <HeaderLink label="ADMINISTRATION" active />
             </nav>
             <div className="flex items-center gap-4 border-l border-white/10 pl-8">
@@ -369,7 +377,7 @@ export default function AdminDashboard() {
                                   <Input 
                                     defaultValue={t.roomCredentials?.roomId} 
                                     placeholder="Enter Room ID" 
-                                    className="h-10 bg-white/5 border-white/10 rounded-xl text-xs font-black"
+                                    className="h-10 bg-white/5 border-white/10 rounded-xl text-xs font-black text-white"
                                     onBlur={async (e) => {
                                       await updateDoc(doc(firestore!, 'tournaments', t.id), { 'roomCredentials.roomId': e.target.value });
                                       toast({ title: "Access ID Published" });
@@ -381,7 +389,7 @@ export default function AdminDashboard() {
                                   <Input 
                                     defaultValue={t.roomCredentials?.roomPassword} 
                                     placeholder="Enter Password" 
-                                    className="h-10 bg-white/5 border-white/10 rounded-xl text-xs font-black"
+                                    className="h-10 bg-white/5 border-white/10 rounded-xl text-xs font-black text-white"
                                     onBlur={async (e) => {
                                       await updateDoc(doc(firestore!, 'tournaments', t.id), { 'roomCredentials.roomPassword': e.target.value });
                                       toast({ title: "Access Pass Published" });
@@ -399,6 +407,52 @@ export default function AdminDashboard() {
                  </Card>
                ))}
             </div>
+          )}
+
+          {activeTab === 'security' && (
+             <div className="space-y-8 animate-in zoom-in-95 duration-500">
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
+                   <div className="p-8 border-b border-white/5 flex items-center gap-4 bg-white/[0.02]">
+                      <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                         <Database className="text-primary h-6 w-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black uppercase italic">Hardware Identity Monitor</h3>
+                        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Multi-Account Detection & Device Blacklisting</p>
+                      </div>
+                   </div>
+                   <Table>
+                      <TableHeader className="bg-white/[0.03]">
+                         <TableRow className="border-white/5">
+                            <TableHead className="text-[10px] font-black uppercase px-8">Hardware Signature</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase">Clones Detected</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase">Risk Level</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase text-right px-8">Operational Action</TableHead>
+                         </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                         {clones.map(([deviceId, list]) => (
+                            <TableRow key={deviceId} className="border-white/5 hover:bg-white/[0.01]">
+                               <TableCell className="px-8 font-mono text-[9px] text-muted-foreground">{deviceId}</TableCell>
+                               <TableCell>
+                                  <div className="flex -space-x-2">
+                                     {list.map(u => (
+                                        <div key={u.id} className="h-8 w-8 rounded-full border-2 border-[#0a0a0f] bg-primary/20 flex items-center justify-center text-[8px] font-black uppercase">
+                                           {u.email?.[0] || 'U'}
+                                        </div>
+                                     ))}
+                                  </div>
+                               </TableCell>
+                               <TableCell><Badge className="bg-red-500/20 text-red-500 border-none text-[8px] font-black">CRITICAL</Badge></TableCell>
+                               <TableCell className="text-right px-8">
+                                  <Button onClick={() => toast({ title: "Signal Jammed", description: "All associated profiles locked." })} variant="destructive" size="sm" className="h-8 rounded-lg text-[9px] font-black uppercase">LOCK ALL</Button>
+                               </TableCell>
+                            </TableRow>
+                         ))}
+                      </TableBody>
+                   </Table>
+                </Card>
+             </div>
           )}
 
           {activeTab === 'payouts' && (
@@ -455,33 +509,25 @@ export default function AdminDashboard() {
 
           {activeTab === 'adhub' && (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-right-5 duration-500">
-                <ConfigCard 
-                  title="CPA Lead Integration" 
-                  description="Manage tactical analytical missions provided by global lead networks."
-                  icon={<Globe />}
-                >
+                <ConfigCard title="CPA Lead Integration" description="Manage tactical analytical missions." icon={<Globe />}>
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
                          <Label className="text-[10px] font-black uppercase">Mission Signal Enabled</Label>
                          <Switch checked={sysConfig.offerWallEnabled} onCheckedChange={(val) => saveSettings({ offerWallEnabled: val })} />
                       </div>
                       <div className="space-y-2">
-                         <Label className="text-[10px] font-black uppercase text-muted-foreground">API Data Stream (JSON)</Label>
+                         <Label className="text-[10px] font-black uppercase text-muted-foreground">API Data Stream</Label>
                          <Input 
                             value={sysConfig.cpaLeadUrl} 
                             onChange={(e) => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})}
-                            className="bg-white/5 border-white/10 font-mono text-[10px] h-12"
+                            className="bg-white/5 border-white/10 font-mono text-[10px] h-12 text-white"
                          />
                          <Button onClick={() => saveSettings({ cpaLeadUrl: sysConfig.cpaLeadUrl })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest mt-2">SYNC SYSTEM API</Button>
                       </div>
                    </div>
                 </ConfigCard>
 
-                <ConfigCard 
-                  title="Corporate Video Ads" 
-                  description="Configure intervals and rewards for sponsored video interactions."
-                  icon={<PlayCircle />}
-                >
+                <ConfigCard title="Corporate Video Ads" description="Configure reward parameters." icon={<PlayCircle />}>
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
                          <Label className="text-[10px] font-black uppercase">Video Ad Protocol</Label>
@@ -494,7 +540,7 @@ export default function AdminDashboard() {
                               type="number" 
                               value={sysConfig.coinValuePerDollar} 
                               onChange={(e) => setSysConfig({...sysConfig, coinValuePerDollar: Number(e.target.value)})}
-                              className="bg-white/5 border-white/10 h-12 font-black tabular-nums"
+                              className="bg-white/5 border-white/10 h-12 font-black text-white"
                             />
                          </div>
                          <div className="space-y-2">
@@ -503,7 +549,7 @@ export default function AdminDashboard() {
                               type="number" 
                               value={sysConfig.adminProfitPercentage} 
                               onChange={(e) => setSysConfig({...sysConfig, adminProfitPercentage: Number(e.target.value)})}
-                              className="bg-white/5 border-white/10 h-12 font-black tabular-nums"
+                              className="bg-white/5 border-white/10 h-12 font-black text-white"
                             />
                          </div>
                       </div>
@@ -515,33 +561,18 @@ export default function AdminDashboard() {
 
           {activeTab === 'referral' && (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-left-5 duration-500">
-                <ConfigCard title="Recruitment Protocol" description="Incentives for enlisting new professional warriors." icon={<UsersIcon />}>
+                <ConfigCard title="Recruitment Protocol" description="Incentives for enlisting new users." icon={<UsersIcon />}>
                    <div className="space-y-6 pt-4">
                       <div className="space-y-2">
-                         <Label className="text-[10px] font-black uppercase text-muted-foreground">Direct Reward (Credits)</Label>
+                         <Label className="text-[10px] font-black uppercase text-muted-foreground">Direct Reward</Label>
                          <Input 
                             type="number" 
                             value={sysConfig.referralRewardCoins} 
                             onChange={(e) => setSysConfig({...sysConfig, referralRewardCoins: Number(e.target.value)})}
-                            className="bg-white/5 border-white/10 h-12 font-black"
+                            className="bg-white/5 border-white/10 h-12 font-black text-white"
                          />
                       </div>
                       <Button onClick={() => saveSettings({ referralRewardCoins: sysConfig.referralRewardCoins })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">SAVE REWARD</Button>
-                   </div>
-                </ConfigCard>
-
-                <ConfigCard title="Passive Yield Engine" description="Affiliate commission from recruit analytical tasks." icon={<Share2 />}>
-                   <div className="space-y-6 pt-4">
-                      <div className="space-y-2">
-                         <Label className="text-[10px] font-black uppercase text-muted-foreground">Commission Percentage (%)</Label>
-                         <Input 
-                            type="number" 
-                            value={sysConfig.passiveReferralPercent} 
-                            onChange={(e) => setSysConfig({...sysConfig, passiveReferralPercent: Number(e.target.value)})}
-                            className="bg-white/5 border-white/10 h-12 font-black"
-                         />
-                      </div>
-                      <Button onClick={() => saveSettings({ passiveReferralPercent: sysConfig.passiveReferralPercent })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">ACTIVATE YIELD</Button>
                    </div>
                 </ConfigCard>
              </div>
@@ -549,31 +580,17 @@ export default function AdminDashboard() {
 
           {activeTab === 'system' && (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-500">
-                <ConfigCard title="Operational Status" description="Global platform access kill-switches." icon={<Settings />}>
+                <ConfigCard title="Operational Status" description="Global platform kill-switches." icon={<Settings />}>
                    <div className="space-y-6 pt-4">
                       <div className="p-6 rounded-2xl bg-destructive/5 border border-destructive/20 space-y-4">
                          <div className="flex items-center justify-between">
                             <div className="space-y-1">
                                <p className="text-xs font-black uppercase italic text-destructive">Maintenance Protocol</p>
-                               <p className="text-[8px] text-muted-foreground font-bold uppercase">Suspends all non-administrative analytical sessions.</p>
+                               <p className="text-[8px] text-muted-foreground font-bold uppercase">Suspends all analytical sessions.</p>
                             </div>
                             <Switch checked={sysConfig.maintenanceMode} onCheckedChange={(val) => saveSettings({ maintenanceMode: val })} />
                          </div>
                       </div>
-                   </div>
-                </ConfigCard>
-
-                <ConfigCard title="Strategic Hubs" description="Management of official external communication links." icon={<Globe />}>
-                   <div className="space-y-6 pt-4">
-                      <div className="space-y-2">
-                         <Label className="text-[10px] font-black uppercase text-muted-foreground">Telegram Command Channel</Label>
-                         <Input 
-                            value={sysConfig.telegramUrl} 
-                            onChange={(e) => setSysConfig({...sysConfig, telegramUrl: e.target.value})}
-                            className="bg-white/5 border-white/10 h-12 text-xs"
-                         />
-                      </div>
-                      <Button onClick={() => saveSettings({ telegramUrl: sysConfig.telegramUrl })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">SYNC SYSTEM API</Button>
                    </div>
                 </ConfigCard>
              </div>
@@ -581,7 +598,6 @@ export default function AdminDashboard() {
         </div>
       </main>
 
-      {/* Balance Adjustment Dialog */}
       {balanceAdjustment && (
         <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
           <DialogContent className="bg-[#0a0a0f] border-white/10 rounded-[2rem] p-8 max-w-md text-white">
@@ -602,7 +618,7 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-2">
                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center block">Volume Adjustment (Credits)</Label>
-                 <Input type="number" value={balanceAdjustment.amount} onChange={e => setBalanceAdjustment({...balanceAdjustment, amount: Number(e.target.value)})} className="h-16 bg-white/5 border-white/10 rounded-xl text-3xl font-black text-center tabular-nums" />
+                 <Input type="number" value={balanceAdjustment.amount} onChange={e => setBalanceAdjustment({...balanceAdjustment, amount: Number(e.target.value)})} className="h-16 bg-white/5 border-white/10 rounded-xl text-3xl font-black text-center tabular-nums text-white" />
               </div>
               <Button onClick={async () => {
                  const { userId, bucket, amount } = balanceAdjustment;

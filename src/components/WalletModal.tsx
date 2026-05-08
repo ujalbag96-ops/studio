@@ -20,6 +20,8 @@ import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { getCurrencyData } from '@/lib/currency';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function WalletModal({ children }: { children?: React.ReactNode }) {
   const { user } = useUser();
@@ -43,14 +45,12 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   const taskBal = profile?.taskBalance || 0;
   
   const currencyData = getCurrencyData(profile?.country);
-  
   const baseFee = settings?.conversionFeePercent || 0.012; 
   const tierFee = profile?.rank === 'Gold' ? 0.005 : profile?.rank === 'Silver' ? 0.008 : baseFee;
-  
   const telegramUrl = settings?.telegramUrl || 'https://t.me/bracketbattles_support';
 
   const handleManualTopup = () => {
-    const message = encodeURIComponent(`Executive Support: Manual Capital Allocation Request. Country: ${profile?.country}`);
+    const message = encodeURIComponent(`Executive Support: Manual Capital Allocation Request. User: ${user?.email || user?.uid}`);
     window.open(`${telegramUrl}?text=${message}`, '_blank');
   };
 
@@ -67,52 +67,43 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
     }
 
     setIsConverting(true);
-    try {
-      const fee = amount * tierFee;
-      const netAmount = amount - fee;
-      const passivePercent = settings?.passiveReferralPercent || 2;
-      const passiveBonus = netAmount * (passivePercent / 100);
+    const fee = amount * tierFee;
+    const netAmount = amount - fee;
 
-      // Logical Lock: Using Firestore increments to prevent race conditions
-      await updateDoc(userProfileRef, {
-        taskBalance: increment(-amount),
-        winningBalance: increment(netAmount),
-        coins: increment(-fee)
-      });
+    // RACE CONDITION GUARD: Logical Firestore updates
+    const updateData = {
+      taskBalance: increment(-amount),
+      winningBalance: increment(netAmount),
+      coins: increment(-fee)
+    };
 
-      if (profile.referredBy) {
-         const refRef = doc(firestore, 'users', profile.referredBy);
-         const refSnap = await getDoc(refRef);
-         if (refSnap.exists()) {
-            await updateDoc(refRef, {
-               winningBalance: increment(passiveBonus),
-               coins: increment(passiveBonus)
-            });
-            await addDoc(collection(firestore, 'users', profile.referredBy, 'ledger'), {
-               type: 'passive_referral',
-               amount: passiveBonus,
-               date: new Date().toISOString().split('T')[0],
-               status: 'completed',
-               description: `Affiliate Commission: Recruit incentive synchronization.`
-            });
-         }
-      }
+    updateDoc(userProfileRef, updateData).catch(async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: userProfileRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      }));
+    });
 
-      await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
-        type: 'conversion',
-        amount: netAmount,
-        date: new Date().toISOString().split('T')[0],
-        status: 'completed',
-        description: `Protocol Conversion: ${(tierFee * 100).toFixed(1)}% Operational Fee`
-      });
+    const ledgerData = {
+      type: 'conversion',
+      amount: netAmount,
+      date: new Date().toISOString().split('T')[0],
+      status: 'completed',
+      description: `Protocol Conversion: ${(tierFee * 100).toFixed(1)}% Operational Fee`
+    };
 
-      toast({ title: "Asset Synchronization Complete", description: `${netAmount.toFixed(1)} credits allocated to Withdrawable Assets.` });
-      setConvertAmount('');
-    } catch (e) {
-      toast({ variant: "destructive", title: "Analytical Sync Failure" });
-    } finally {
-      setIsConverting(false);
-    }
+    addDoc(collection(firestore, 'users', user.uid, 'ledger'), ledgerData).catch(async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: `users/${user.uid}/ledger`,
+        operation: 'create',
+        requestResourceData: ledgerData,
+      }));
+    });
+
+    toast({ title: "Asset Synchronization Complete", description: `${netAmount.toFixed(1)} credits allocated to Withdrawable Assets.` });
+    setConvertAmount('');
+    setIsConverting(false);
   };
 
   return (
@@ -187,7 +178,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                     placeholder="Volume..." 
                     value={convertAmount}
                     onChange={(e) => setConvertAmount(e.target.value)}
-                    className="bg-black/40 border-white/10 h-16 rounded-2xl text-lg font-black focus:ring-amber-500 pl-12"
+                    className="bg-black/40 border-white/10 h-16 rounded-2xl text-lg font-black focus:ring-amber-500 pl-12 text-white"
                    />
                    <Zap className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-500 opacity-40" />
                 </div>
