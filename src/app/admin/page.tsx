@@ -107,7 +107,7 @@ export default function AdminDashboard() {
 
   useEffect(() => { 
     if (settings) {
-      setSysConfig(settings);
+      setSysConfig(prev => ({ ...prev, ...settings }));
     }
   }, [settings]);
 
@@ -127,31 +127,37 @@ export default function AdminDashboard() {
     setSavingSection(section);
     setStatusMsg(null);
 
+    const updatesWithMeta = {
+      ...updates,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: user?.email
+    };
+
     // Safety timeout to prevent UI hang
     const timeout = setTimeout(() => {
       setSavingSection(null);
     }, 5000);
 
     // NON-BLOCKING Write Protocol
-    setDoc(settingsRef, updates, { merge: true })
+    setDoc(settingsRef, updatesWithMeta, { merge: true })
       .then(() => {
         clearTimeout(timeout);
         setSavingSection(null);
-        setStatusMsg({ section, msg: "PROTOCOL UPDATED SUCCESSFULLY", type: 'success' });
-        toast({ title: "UPDATE SUCCESSFUL", description: `${section.toUpperCase()} parameters synchronized globally.` });
-        setTimeout(() => setStatusMsg(null), 3000);
+        setStatusMsg({ section, msg: "PROTOCOL SYNCHRONIZED", type: 'success' });
+        toast({ title: "SAVE CONFIRMED", description: "Remote configuration updated successfully." });
+        setTimeout(() => setStatusMsg(null), 4000);
       })
       .catch(async (serverError) => {
         clearTimeout(timeout);
         setSavingSection(null);
-        setStatusMsg({ section, msg: "SYNC ERROR", type: 'error' });
+        setStatusMsg({ section, msg: "ACCESS DENIED / SYNC ERROR", type: 'error' });
         const permissionError = new FirestorePermissionError({
           path: settingsRef.path,
           operation: 'update',
-          requestResourceData: updates,
+          requestResourceData: updatesWithMeta,
         });
         errorEmitter.emit('permission-error', permissionError);
-        toast({ variant: "destructive", title: "SYNC ERROR", description: "Access denied or network timeout." });
+        toast({ variant: "destructive", title: "SYNC REJECTED", description: "Check permissions or network signal." });
       });
   };
 
@@ -527,7 +533,7 @@ export default function AdminDashboard() {
           {/* TAB: AD HUB */}
           {activeTab === 'adhub' && (
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-right-5 duration-500 pb-20">
-                <ConfigCard title="CPA Lead Integration" description="Manage tactical analytical missions." icon={<Globe />}>
+                <ConfigCard title="CPA Lead Integration" description="Manage tactical analytical missions." icon={<Globe />} lastUpdated={sysConfig.lastUpdated}>
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
                          <Label className="text-[10px] font-black uppercase">Mission Signal Enabled</Label>
@@ -553,20 +559,22 @@ export default function AdminDashboard() {
                             />
                          </div>
                          <div className="flex flex-col gap-2">
-                           <Button onClick={() => saveSettings('cpa_sync', { cpaLeadUrl: sysConfig.cpaLeadUrl, cpaLeadApiKey: sysConfig.cpaLeadApiKey })} disabled={savingSection === 'cpa_sync'} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest">
+                           <Button onClick={() => saveSettings('cpa_sync', { cpaLeadUrl: sysConfig.cpaLeadUrl, cpaLeadApiKey: sysConfig.cpaLeadApiKey })} disabled={savingSection === 'cpa_sync'} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
                               {savingSection === 'cpa_sync' ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC CPA PROTOCOL"}
                            </Button>
                            {statusMsg?.section === 'cpa_sync' && (
-                             <p className={cn("text-[8px] font-black text-center uppercase tracking-widest animate-pulse", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
-                               {statusMsg.msg}
-                             </p>
+                             <div className={cn("p-2 rounded-lg text-center animate-in zoom-in-95", statusMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20')}>
+                                <p className={cn("text-[10px] font-black uppercase tracking-widest", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
+                                   {statusMsg.msg}
+                                </p>
+                             </div>
                            )}
                          </div>
                       </div>
                    </div>
                 </ConfigCard>
 
-                <ConfigCard title="Google AdMob Hub" description="Industrial advertisement signals." icon={<Smartphone />}>
+                <ConfigCard title="Google AdMob Hub" description="Industrial advertisement signals." icon={<Smartphone />} lastUpdated={sysConfig.lastUpdated}>
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
                          <Label className="text-[10px] font-black uppercase">AdMob Global Switch</Label>
@@ -584,15 +592,17 @@ export default function AdminDashboard() {
                            {savingSection === 'admob_sync' ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC ADMOB API"}
                         </Button>
                         {statusMsg?.section === 'admob_sync' && (
-                           <p className={cn("text-[8px] font-black text-center uppercase tracking-widest animate-pulse", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
-                              {statusMsg.msg}
-                           </p>
+                           <div className={cn("p-2 rounded-lg text-center", statusMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20')}>
+                              <p className={cn("text-[10px] font-black uppercase tracking-widest", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
+                                 {statusMsg.msg}
+                              </p>
+                           </div>
                         )}
                       </div>
                    </div>
                 </ConfigCard>
 
-                <ConfigCard title="System Economics" description="Global financial constants." icon={<Coins />}>
+                <ConfigCard title="System Economics" description="Global financial constants." icon={<Coins />} lastUpdated={sysConfig.lastUpdated}>
                    <div className="space-y-6 pt-4">
                       <div className="grid grid-cols-2 gap-4">
                          <ConfigInput label="Conversion Fee %" type="number" value={sysConfig.conversionFeePercent} onChange={(v: string) => setSysConfig({...sysConfig, conversionFeePercent: Number(v)})} />
@@ -604,9 +614,11 @@ export default function AdminDashboard() {
                           {savingSection === 'econ_sync' ? <Loader2 className="animate-spin h-4 w-4" /> : "SAVE ECONOMIC MATRIX"}
                         </Button>
                         {statusMsg?.section === 'econ_sync' && (
-                           <p className={cn("text-[8px] font-black text-center uppercase tracking-widest animate-pulse", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
-                              {statusMsg.msg}
-                           </p>
+                           <div className={cn("p-2 rounded-lg text-center", statusMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20')}>
+                              <p className={cn("text-[10px] font-black uppercase tracking-widest", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
+                                 {statusMsg.msg}
+                              </p>
+                           </div>
                         )}
                       </div>
                    </div>
@@ -617,7 +629,7 @@ export default function AdminDashboard() {
           {/* TAB: SYSTEM */}
           {activeTab === 'system' && (
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in zoom-in-95 duration-500">
-                <ConfigCard title="Operational Status" description="Global platform kill-switches." icon={<Settings />}>
+                <ConfigCard title="Operational Status" description="Global platform kill-switches." icon={<Settings />} lastUpdated={sysConfig.lastUpdated}>
                    <div className="space-y-6 pt-4">
                       <div className="p-6 rounded-2xl bg-destructive/5 border border-destructive/20 space-y-4">
                          <div className="flex items-center justify-between">
@@ -631,7 +643,7 @@ export default function AdminDashboard() {
                    </div>
                 </ConfigCard>
 
-                <ConfigCard title="Payment Gateway API" description="Secure asset injection keys." icon={<ShieldCheck />}>
+                <ConfigCard title="Payment Gateway API" description="Secure asset injection keys." icon={<ShieldCheck />} lastUpdated={sysConfig.lastUpdated}>
                    <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
                          <Label className="text-[10px] font-black uppercase">Deposit Gateway Enabled</Label>
@@ -644,9 +656,11 @@ export default function AdminDashboard() {
                           {savingSection === 'gateway_sync' ? <Loader2 className="animate-spin h-4 w-4" /> : "SYNC GATEWAY KEYS"}
                         </Button>
                         {statusMsg?.section === 'gateway_sync' && (
-                           <p className={cn("text-[8px] font-black text-center uppercase tracking-widest animate-pulse", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
-                              {statusMsg.msg}
-                           </p>
+                           <div className={cn("p-2 rounded-lg text-center", statusMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20')}>
+                              <p className={cn("text-[10px] font-black uppercase tracking-widest", statusMsg.type === 'success' ? 'text-green-500' : 'text-red-500')}>
+                                 {statusMsg.msg}
+                              </p>
+                           </div>
                         )}
                       </div>
                    </div>
@@ -766,15 +780,22 @@ function ExactStatCard({ label, value, sub, icon }: any) {
   );
 }
 
-function ConfigCard({ title, description, icon, children }: any) {
+function ConfigCard({ title, description, icon, children, lastUpdated }: any) {
    return (
-      <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 shadow-2xl space-y-6 h-fit">
-         <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary">{icon}</div>
-            <div>
-               <h4 className="text-lg font-black uppercase italic">{title}</h4>
-               <p className="text-[9px] font-bold text-muted-foreground uppercase">{description}</p>
+      <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 shadow-2xl space-y-6 h-fit relative overflow-hidden group">
+         <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+               <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary">{icon}</div>
+               <div>
+                  <h4 className="text-lg font-black uppercase italic">{title}</h4>
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase">{description}</p>
+               </div>
             </div>
+            {lastUpdated && (
+               <Badge variant="outline" className="text-[8px] border-white/10 font-bold text-muted-foreground group-hover:text-primary transition-colors">
+                  LAST SYNC: {new Date(lastUpdated).toLocaleTimeString()}
+               </Badge>
+            )}
          </div>
          {children}
       </Card>

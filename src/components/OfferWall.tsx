@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Smartphone, ExternalLink, AlertCircle, Coins, Globe, Clock } from 'lucide-react';
+import { Loader2, Smartphone, ExternalLink, AlertCircle, Coins, Globe, Clock, ShieldAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -48,16 +48,20 @@ export default function OfferWall() {
         if (!response.ok) throw new Error('CPA SIGNAL JAMMED');
         
         const data = await response.json();
-        const allOffers: CPALeadOffer[] = data.offers || [];
         
-        const filtered = allOffers.filter(offer => 
-          offer.incentive && offer.incentive.toLowerCase().includes('yes')
-        );
-
-        setOffers(filtered.slice(0, 15));
+        // Validation for common CPA Lead JSON formats
+        if (data.offers && Array.isArray(data.offers)) {
+           const filtered = data.offers.filter((offer: any) => 
+              offer.incentive && offer.incentive.toLowerCase().includes('yes')
+           );
+           setOffers(filtered.slice(0, 15));
+        } else if (data.status === 'success' && !data.offers) {
+           throw new Error('API format mismatch: URL might be for conversions postback, not offers feed.');
+        } else {
+           throw new Error('Unrecognized API response format.');
+        }
       } catch (err: any) {
-        setError('Analytical Mission Synchronizer Down');
-        // Fallback or empty state handled by error state
+        setError(err.message || 'Analytical Mission Synchronizer Down');
       } finally {
         setIsLoading(false);
       }
@@ -72,8 +76,21 @@ export default function OfferWall() {
   if (error) return (
     <div className="p-20 text-center space-y-4 border border-red-500/10 rounded-[2.5rem] bg-red-500/5">
       <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
-      <p className="text-sm font-black uppercase italic text-muted-foreground">{error}</p>
+      <p className="text-sm font-black uppercase italic text-red-400">ERROR: {error}</p>
+      <div className="p-4 bg-black/40 rounded-xl border border-white/5 max-w-sm mx-auto">
+         <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed">
+            Ensure the URL in Admin Settings is your "CPA Lead Offers Feed" (JSON format). 
+            Do not use the conversions API link here.
+         </p>
+      </div>
       <Button variant="outline" onClick={() => window.location.reload()} className="h-10 rounded-xl uppercase text-[10px] font-black">REBOOT SIGNAL</Button>
+    </div>
+  );
+
+  if (offers.length === 0) return (
+    <div className="py-24 text-center space-y-4">
+       <ShieldAlert className="h-20 w-20 text-muted-foreground opacity-10 mx-auto" />
+       <p className="text-muted-foreground italic font-black uppercase tracking-[0.4em]">No Missions Available in this Sector</p>
     </div>
   );
 
