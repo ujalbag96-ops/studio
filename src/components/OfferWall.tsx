@@ -14,9 +14,9 @@ interface CPALeadOffer {
   title: string;
   payout: string;
   link: string;
-  mobile_app: string;
-  incentive: string;
-  device: string;
+  mobile_app?: string;
+  incentive?: string;
+  device?: string;
 }
 
 export default function OfferWall() {
@@ -39,7 +39,6 @@ export default function OfferWall() {
       setIsLoading(true);
       setError(null);
       try {
-        // Use our local API proxy to bypass CORS
         const proxyUrl = `/api/cpa-offers?url=${encodeURIComponent(settings.cpaLeadUrl)}`;
         const response = await fetch(proxyUrl);
         
@@ -50,8 +49,8 @@ export default function OfferWall() {
         
         const data = await response.json();
         
-        // Handle CPA Lead JSON structure (iterating through 'offers' array)
-        let offerList: any[] = [];
+        // Handle CPA Lead JSON structure variants
+        let offerList: CPALeadOffer[] = [];
         if (data.offers && Array.isArray(data.offers)) {
            offerList = data.offers;
         } else if (Array.isArray(data)) {
@@ -61,8 +60,6 @@ export default function OfferWall() {
         if (offerList.length > 0) {
            setOffers(offerList.slice(0, 20));
         } else {
-           // If it's a success response but no offers, could be a regional issue or empty feed
-           console.warn('API returned success but no offers found.');
            setOffers([]);
         }
       } catch (err: any) {

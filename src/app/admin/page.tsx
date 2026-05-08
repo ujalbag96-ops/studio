@@ -49,7 +49,8 @@ import {
   RefreshCcw,
   Ban,
   Target,
-  Terminal
+  Terminal,
+  Sparkles
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -124,17 +125,11 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleQuickInjection = async () => {
-    if (!firestore || !quickUid || !quickAmount) {
-      toast({ variant: "destructive", title: "Input Required", description: "Paste UID and enter volume." });
-      return;
-    }
-
+  const executeInjection = async (targetId: string, amountValue: number, description: string = "Tactical Capital Injection") => {
+    if (!firestore) return;
     setIsInjecting(true);
-    const amount = parseFloat(quickAmount);
-    const targetUid = quickUid.trim();
-    const userRef = doc(firestore, 'users', targetUid);
-
+    
+    const userRef = doc(firestore, 'users', targetId);
     try {
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {
@@ -144,9 +139,9 @@ export default function AdminDashboard() {
       }
 
       const updates = {
-        winningBalance: increment(amount),
-        withdrawableCoins: increment(amount),
-        coins: increment(amount)
+        winningBalance: increment(amountValue),
+        withdrawableCoins: increment(amountValue),
+        coins: increment(amountValue)
       };
 
       updateDoc(userRef, updates).catch(async (err) => {
@@ -157,30 +152,42 @@ export default function AdminDashboard() {
         }));
       });
 
-      const ledgerRef = collection(firestore, 'users', targetUid, 'ledger');
+      const ledgerRef = collection(firestore, 'users', targetId, 'ledger');
       const ledgerData = {
         type: 'income',
-        amount: amount,
+        amount: amountValue,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: `Tactical Capital Injection (Admin: ${user?.email})`
+        description: `${description} (Admin: ${user?.email})`
       };
 
       addDoc(ledgerRef, ledgerData).catch(async (err) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: `users/${targetUid}/ledger`,
+          path: `users/${targetId}/ledger`,
           operation: 'create',
           requestResourceData: ledgerData,
         }));
       });
 
-      toast({ title: "INJECTION SUCCESSFUL", description: `${amount} coins allocated to UID ${targetUid.substring(0, 8)}...` });
-      setQuickUid('');
+      toast({ title: "INJECTION SUCCESSFUL", description: `${amountValue} coins allocated to target.` });
     } catch (e) {
       toast({ variant: "destructive", title: "Protocol Error" });
     } finally {
       setIsInjecting(false);
     }
+  };
+
+  const handleQuickInjection = () => {
+    if (!quickUid || !quickAmount) {
+      toast({ variant: "destructive", title: "Input Required", description: "Paste UID and enter volume." });
+      return;
+    }
+    executeInjection(quickUid.trim(), parseFloat(quickAmount));
+  };
+
+  const handleAdminCredit = () => {
+    if (!user?.uid) return;
+    executeInjection(user.uid, 500, "Executive Bonus Allocation");
   };
 
   const saveSettings = (section: string, updates: Partial<AppSettings>) => {
@@ -198,7 +205,6 @@ export default function AdminDashboard() {
       updatedBy: user?.email
     };
 
-    // Safety timeout to prevent infinite hangs
     const timeout = setTimeout(() => {
       setSavingSection(null);
     }, 5000);
@@ -410,9 +416,14 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                  {/* QUICK UID INJECTION TOOL */}
                  <Card className="bg-[#0a0a0f] border-primary/20 p-8 rounded-[2rem] space-y-6 shadow-2xl shadow-primary/5">
-                    <h3 className="text-sm font-black uppercase tracking-widest italic flex items-center gap-2 text-primary">
-                       <Terminal className="h-4 w-4" /> Tactical Capital Injection
-                    </h3>
+                    <div className="flex items-center justify-between">
+                       <h3 className="text-sm font-black uppercase tracking-widest italic flex items-center gap-2 text-primary">
+                          <Terminal className="h-4 w-4" /> Tactical Capital Injection
+                       </h3>
+                       <Button onClick={handleAdminCredit} variant="outline" size="sm" className="h-8 border-primary/20 bg-primary/5 text-primary font-black uppercase text-[8px] italic">
+                          <Sparkles className="h-3 w-3 mr-2" /> Credit My Account (+500)
+                       </Button>
+                    </div>
                     <div className="space-y-4 pt-2">
                        <div className="space-y-2">
                           <Label className="text-[10px] font-black uppercase text-muted-foreground">Target Warrior UID</Label>
