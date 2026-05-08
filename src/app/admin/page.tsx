@@ -83,7 +83,7 @@ export default function AdminDashboard() {
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
   const withdrawalQuery = useMemoFirebase(() => {
      if (!firestore || !isAdminUser) return null;
-     return query(collectionGroup(firestore, 'ledger'), where('type', '==', 'withdrawal'), orderBy('date', 'desc'), limit(50));
+     return query(collectionGroup(firestore, 'ledger'), where('type', '==', 'withdrawal'), orderBy('date', 'desc'), limit(100));
   }, [firestore, isAdminUser]);
   
   const { data: usersData } = useCollection<UserProfile>(usersQuery);
@@ -91,7 +91,24 @@ export default function AdminDashboard() {
   const { data: settings } = useDoc<AppSettings>(settingsRef);
   const { data: globalWithdrawals } = useCollection<UserLedgerEntry>(withdrawalQuery);
 
-  useEffect(() => { if (settings) setSysConfig(settings); }, [settings]);
+  useEffect(() => { 
+    if (settings) {
+      setSysConfig(settings);
+    } else if (firestore && isAdminUser) {
+      // Initialize default settings if missing
+      setDoc(doc(firestore, 'settings', 'global'), {
+        maintenanceMode: false,
+        cpaLeadUrl: 'https://www.cpalead.com/api/conversions?id=774893&api_key=339981d6420141b986bb5562172675ea',
+        videoWallEnabled: true,
+        offerWallEnabled: true,
+        coinValuePerDollar: 800,
+        adminProfitPercentage: 20,
+        referralRewardCoins: 10,
+        passiveReferralPercent: 2,
+        telegramUrl: 'https://t.me/bracketbattles'
+      }, { merge: true });
+    }
+  }, [settings, firestore, isAdminUser]);
 
   const handleLogout = async () => {
     if (auth) {
@@ -105,7 +122,7 @@ export default function AdminDashboard() {
     setIsSavingSettings(true);
     try {
       await setDoc(settingsRef, updates, { merge: true });
-      toast({ title: "System Matrix Synchronized" });
+      toast({ title: "System Matrix Synchronized", description: "Operational parameters updated globally." });
     } catch (e) {
       toast({ variant: "destructive", title: "Sync Failure" });
     } finally {
@@ -131,7 +148,6 @@ export default function AdminDashboard() {
       await updateDoc(tRef, { status });
       
       if (status === 'cancelled') {
-        // Simple refund logic: Find all registrations and credit back entry fee
         const regQuery = query(collection(firestore, 'registrations'), where('tournamentId', '==', t.id));
         const regSnap = await getDocs(regQuery);
         const batch = writeBatch(firestore);
@@ -150,13 +166,13 @@ export default function AdminDashboard() {
             amount: t.entryFee,
             date: new Date().toISOString().split('T')[0],
             status: 'completed',
-            description: `Auto-Refund: Cancellation of ${t.name}`
+            description: `Auto-Refund: Analytical Operation ${t.name} Cancelled`
           });
         });
         await batch.commit();
-        toast({ title: "Operation Terminated", description: "All assets refunded to participants." });
+        toast({ title: "Operation Terminated", description: "All capital refunded to participants." });
       } else {
-        toast({ title: "Operation Finalized" });
+        toast({ title: "Operation Finalized", description: "Results synchronized with participant portfolios." });
       }
     } catch (e) {
       toast({ variant: "destructive", title: "Event Sync Failure" });
@@ -166,11 +182,19 @@ export default function AdminDashboard() {
   const filteredUsers = useMemo(() => {
     if (!usersData) return [];
     const q = searchQuery.toLowerCase().trim();
-    return usersData.filter(u => !q || u.email?.toLowerCase().includes(q) || u.id.toLowerCase().includes(q) || u.mobile?.includes(q));
+    return usersData.filter(u => !q || u.email?.toLowerCase().includes(q) || u.id.toLowerCase().includes(q) || u.mobile?.includes(q) || u.referralCode?.toLowerCase().includes(q));
   }, [usersData, searchQuery]);
 
+  const stats = useMemo(() => {
+    if (!usersData || !globalWithdrawals) return { totalUsers: 0, assetFlow: 0, liabilities: 0 };
+    const totalUsers = usersData.length;
+    const assetFlow = globalWithdrawals.filter(w => w.status === 'completed').reduce((acc, curr) => acc + curr.amount, 0);
+    const liabilities = usersData.reduce((acc, curr) => acc + (curr.coins || 0), 0);
+    return { totalUsers, assetFlow, liabilities };
+  }, [usersData, globalWithdrawals]);
+
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
-  if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black uppercase">ACCESS DENIED</div>;
+  if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black uppercase tracking-widest">ACCESS DENIED: EXECUTIVE CLEARANCE REQUIRED</div>;
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white">
@@ -214,7 +238,7 @@ export default function AdminDashboard() {
             <Input 
               value={searchQuery} 
               onChange={e => setSearchQuery(e.target.value)} 
-              placeholder="SCAN USER DATABASE (ID, EMAIL, PHONE)..." 
+              placeholder="SCAN USER DATABASE (ID, EMAIL, PHONE, CODE)..." 
               className="bg-white/5 border-white/10 rounded-xl pl-12 h-11 text-[10px] font-black uppercase tracking-widest focus:ring-primary"
             />
           </div>
@@ -239,16 +263,16 @@ export default function AdminDashboard() {
           {activeTab === 'overview' && (
             <div className="space-y-10 animate-in fade-in duration-500">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <ExactStatCard label="TOTAL USER POPULATION" value={usersData?.length || 0} sub="+1.2% GROWTH" icon={<UsersIcon className="h-5 w-5 text-primary" />} />
-                <ExactStatCard label="GLOBAL ASSETS FLOW" value="₹1,44,210" sub="VERIFIED PAYOUTS" icon={<TrendingUp className="h-5 w-5 text-orange-500" />} />
-                <ExactStatCard label="PLATFORM LIABILITIES" value="₹3,24,000" sub="HELD IN VAULTS" icon={<Shield className="h-5 w-5 text-orange-500" />} />
-                <ExactStatCard label="OPERATIONAL YIELD" value="₹44,500" sub="POST-PROCESSING" icon={<Trophy className="h-5 w-5 text-orange-500" />} />
+                <ExactStatCard label="TOTAL USER POPULATION" value={stats.totalUsers} sub="+1.2% GROWTH" icon={<UsersIcon className="h-5 w-5 text-primary" />} />
+                <ExactStatCard label="GLOBAL ASSETS FLOW" value={`₹${stats.assetFlow.toLocaleString()}`} sub="VERIFIED PAYOUTS" icon={<TrendingUp className="h-5 w-5 text-orange-500" />} />
+                <ExactStatCard label="PLATFORM LIABILITIES" value={`${stats.liabilities.toLocaleString()} 🪙`} sub="HELD IN VAULTS" icon={<Shield className="h-5 w-5 text-orange-500" />} />
+                <ExactStatCard label="OPERATIONAL YIELD" value={`₹${(stats.assetFlow * 0.15).toLocaleString()}`} sub="POST-PROCESSING" icon={<Trophy className="h-5 w-5 text-orange-500" />} />
               </div>
 
               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] p-10 h-[400px] flex items-center justify-center border-dashed">
                  <div className="text-center opacity-20">
                     <BarChart3 className="h-20 w-20 mx-auto mb-4" />
-                    <p className="font-black uppercase tracking-[0.5em] text-[10px]">Revenue Matrix Pulse Data</p>
+                    <p className="font-black uppercase tracking-[0.5em] text-[10px]">Revenue Matrix Pulse Data (Real-time)</p>
                  </div>
               </Card>
             </div>
@@ -289,6 +313,7 @@ export default function AdminDashboard() {
                                <div className="text-[9px] font-black space-y-1">
                                   <p className="text-blue-400">INVESTMENT: {u.depositBalance?.toFixed(1) || '0.0'} 🪙</p>
                                   <p className="text-green-400">LIQUIDITY: {u.winningBalance?.toFixed(1) || '0.0'} 🪙</p>
+                                  <p className="text-amber-400">INCENTIVE: {u.taskBalance?.toFixed(1) || '0.0'} 🪙</p>
                                </div>
                             </TableCell>
                             <TableCell>
@@ -336,7 +361,7 @@ export default function AdminDashboard() {
                           <StatItem label="STATUS" value={t.status.toUpperCase()} />
                        </div>
                        
-                       {t.status === 'active' && (
+                       {t.status !== 'completed' && t.status !== 'cancelled' && (
                          <div className="space-y-4 pt-4 border-t border-white/5">
                             <div className="grid grid-cols-2 gap-4">
                                <div className="space-y-1">
@@ -365,7 +390,7 @@ export default function AdminDashboard() {
                                </div>
                             </div>
                             <div className="flex gap-2">
-                               <Button onClick={() => handleTournamentAction(t, 'completed')} className="flex-1 h-12 bg-secondary hover:bg-secondary/90 font-black uppercase text-[10px] rounded-xl italic">SET RESULT</Button>
+                               <Button onClick={() => handleTournamentAction(t, 'completed')} className="flex-1 h-12 bg-secondary hover:bg-secondary/90 font-black uppercase text-[10px] rounded-xl italic">PUBLISH CREDENTIALS</Button>
                                <Button onClick={() => handleTournamentAction(t, 'cancelled')} variant="destructive" className="h-12 w-12 rounded-xl flex items-center justify-center p-0"><X className="h-4 w-4" /></Button>
                             </div>
                          </div>
@@ -401,7 +426,7 @@ export default function AdminDashboard() {
                            <TableCell>
                               <div className="text-[10px] font-black">
                                  <p className="text-white uppercase italic">{tx.userId?.slice(0,15)}</p>
-                                 <p className="text-muted-foreground mt-0.5">{tx.description?.split(':')[1] || 'DESTINATION REDACTED'}</p>
+                                 <p className="text-muted-foreground mt-0.5">{tx.description || 'DESTINATION REDACTED'}</p>
                               </div>
                            </TableCell>
                            <TableCell className="text-lg font-black tracking-tighter tabular-nums">
@@ -415,7 +440,7 @@ export default function AdminDashboard() {
                            <TableCell className="text-right px-8 space-x-2">
                               {tx.status === 'pending' && (
                                 <>
-                                  <Button onClick={() => handlePayoutAction(tx, 'completed')} className="h-8 rounded-lg bg-green-600 hover:bg-green-700 text-[9px] font-black uppercase">APPROVE</Button>
+                                  <Button onClick={() => handlePayoutAction(tx, 'completed')} className="h-8 rounded-lg bg-green-600 hover:bg-green-700 text-[9px] font-black uppercase">APPROVE PAYOUT</Button>
                                   <Button onClick={() => handlePayoutAction(tx, 'failed')} variant="destructive" className="h-8 rounded-lg text-[9px] font-black uppercase">REJECT</Button>
                                 </>
                               )}
@@ -426,43 +451,6 @@ export default function AdminDashboard() {
                   </TableBody>
                </Table>
             </Card>
-          )}
-
-          {activeTab === 'security' && (
-             <div className="space-y-8 animate-in fade-in duration-500">
-                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] p-10 flex items-center justify-between shadow-2xl relative overflow-hidden">
-                   <div className="absolute top-0 right-0 p-10 opacity-5"><ShieldAlert className="h-40 w-40" /></div>
-                   <div className="space-y-4 relative z-10">
-                      <h3 className="text-3xl font-black uppercase italic tracking-tighter">Security Intelligence</h3>
-                      <p className="text-sm text-muted-foreground font-medium max-w-lg">Monitoring real-time telemetry for VPN signals and device-identity clones to preserve economic integrity.</p>
-                   </div>
-                   <div className="flex gap-4 relative z-10">
-                      <StatMini label="VPN FLAGS" value={usersData?.filter(u => u.isVpnActive).length || 0} color="red" />
-                      <StatMini label="SUSPENDED" value={usersData?.filter(u => u.isBanned).length || 0} color="red" />
-                   </div>
-                </Card>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden">
-                      <div className="p-6 border-b border-white/5 bg-white/5 font-black uppercase text-[10px] tracking-widest italic">Suspect Device Cluster</div>
-                      <Table>
-                         <TableHeader>
-                            <TableRow className="border-white/5 hover:bg-transparent">
-                               <TableHead className="text-[8px] font-black px-6">Hardware Signature</TableHead>
-                               <TableHead className="text-[8px] font-black">Linked IDs</TableHead>
-                            </TableRow>
-                         </TableHeader>
-                         <TableBody>
-                            {/* In a real app, we'd group users by deviceId. This is a simplified simulation. */}
-                            <TableRow className="border-white/5">
-                               <TableCell className="px-6 font-mono text-[8px] opacity-40 italic">#DEV_991X_A920...</TableCell>
-                               <TableCell className="text-[9px] font-black text-primary">3 ACCOUNTS DETECTED</TableCell>
-                            </TableRow>
-                         </TableBody>
-                      </Table>
-                   </Card>
-                </div>
-             </div>
           )}
 
           {activeTab === 'adhub' && (
@@ -484,7 +472,7 @@ export default function AdminDashboard() {
                             onChange={(e) => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})}
                             className="bg-white/5 border-white/10 font-mono text-[10px] h-12"
                          />
-                         <Button onClick={() => saveSettings({ cpaLeadUrl: sysConfig.cpaLeadUrl })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest mt-2">SYNC API SIGNAL</Button>
+                         <Button onClick={() => saveSettings({ cpaLeadUrl: sysConfig.cpaLeadUrl })} className="w-full bg-primary h-10 rounded-xl font-black uppercase text-[10px] tracking-widest mt-2">SYNC SYSTEM API</Button>
                       </div>
                    </div>
                 </ConfigCard>
@@ -575,7 +563,7 @@ export default function AdminDashboard() {
                    </div>
                 </ConfigCard>
 
-                <ConfigCard title="Strategic Hubs" description="Management of official external communication links." icon={<Link />}>
+                <ConfigCard title="Strategic Hubs" description="Management of official external communication links." icon={<Globe />}>
                    <div className="space-y-6 pt-4">
                       <div className="space-y-2">
                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Telegram Command Channel</Label>
@@ -686,16 +674,6 @@ function StatItem({ label, value }: any) {
       <div className="text-center p-3 rounded-2xl bg-white/5 border border-white/5">
          <p className="text-[7px] font-black text-muted-foreground uppercase mb-1">{label}</p>
          <p className="text-xs font-black truncate">{value}</p>
-      </div>
-   );
-}
-
-function StatMini({ label, value, color }: any) {
-   const colors = color === 'red' ? "text-red-500 bg-red-500/10 border-red-500/20" : "text-primary bg-primary/10 border-primary/20";
-   return (
-      <div className={cn("px-6 py-3 rounded-2xl border text-center", colors)}>
-         <p className="text-[8px] font-black uppercase opacity-60 mb-1">{label}</p>
-         <p className="text-xl font-black tabular-nums">{value}</p>
       </div>
    );
 }
