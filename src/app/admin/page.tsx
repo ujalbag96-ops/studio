@@ -90,6 +90,8 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
+type AdminTheme = 'midnight' | 'electric' | 'blood' | 'gold' | 'neon' | 'royal';
+
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const { auth } = useAuth();
@@ -99,7 +101,7 @@ export default function AdminDashboard() {
   
   const [activeTab, setActiveTab] = useState<'overview' | 'warriors' | 'security' | 'support' | 'campaigns' | 'finance' | 'control'>('overview');
   const [searchQuery, setSearchQuery] = useState('');
-  const [ledgerFilter, setLedgerFilter] = useState<string>('all');
+  const [currentTheme, setCurrentTheme] = useState<AdminTheme>('midnight');
   const [selectedTx, setSelectedTx] = useState<UserLedgerEntry | null>(null);
   const [coinAdjustment, setCoinAdjustment] = useState<{ userId: string; bucket: 'deposit' | 'winning' | 'task'; amount: number } | null>(null);
   const [isCreatingTournament, setIsCreatingTournament] = useState(false);
@@ -116,6 +118,16 @@ export default function AdminDashboard() {
   });
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
+
+  // Theme Configs
+  const themeColors = {
+    midnight: "bg-[#1a2035] text-white",
+    electric: "bg-[#0f172a] text-blue-400",
+    blood: "bg-[#1a0f0f] text-red-400",
+    gold: "bg-[#1a1a0f] text-amber-400",
+    neon: "bg-[#0f1a1a] text-emerald-400",
+    royal: "bg-[#140f1a] text-purple-400"
+  };
 
   // Queries
   const usersQuery = useMemoFirebase(() => {
@@ -179,8 +191,8 @@ export default function AdminDashboard() {
 
   const financialStats = useMemo(() => {
     if (!ledgerData) return { revenue: 0, profit: 0, chart: [] };
-    const chart = ledgerData.slice(0, 7).reverse().map(l => ({ date: l.date, value: l.amount }));
-    return { revenue: 1410, profit: 41410, chart };
+    const chart = ledgerData.slice(0, 10).reverse().map(l => ({ date: l.date, value: l.amount }));
+    return { revenue: 41410, profit: 12450, chart };
   }, [ledgerData]);
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-[#f4f7f6]"><Loader2 className="h-10 w-10 animate-spin text-blue-600" /></div>;
@@ -190,38 +202,57 @@ export default function AdminDashboard() {
     <div className="flex min-h-screen bg-[#f4f7f6]">
       <TransactionReceipt transaction={selectedTx} onClose={() => setSelectedTx(null)} />
       
-      {/* Sidebar - ThemeKit Style */}
-      <aside className="w-[280px] bg-[#1a2035] text-white flex flex-col fixed inset-y-0 z-50 shadow-2xl">
+      {/* Sidebar - Professional ThemeKit Style */}
+      <aside className={cn("w-[280px] flex flex-col fixed inset-y-0 z-50 shadow-2xl transition-colors duration-500", themeColors[currentTheme])}>
         <div className="p-6 border-b border-white/5 flex items-center gap-3">
-          <div className="h-10 w-10 bg-blue-500 rounded-xl flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20">TK</div>
-          <span className="font-bold tracking-tight text-xl">ThemeKit</span>
+          <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center font-black text-white shadow-lg">BB</div>
+          <span className="font-bold tracking-tight text-xl">Eagle Eye Admin</span>
         </div>
         
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto mt-4">
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] px-4 mb-4">Navigation</p>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] px-4 mb-4">Core Navigation</p>
           <SideLink active={activeTab === 'overview'} icon={<LayoutDashboard className="h-5 w-5" />} label="Dashboard" onClick={() => setActiveTab('overview')} badge="LIVE" />
           
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] px-4 mb-4 mt-8">Operational Control</p>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] px-4 mb-4 mt-8">Warrior Command</p>
           <SideLink active={activeTab === 'warriors'} icon={<UsersIcon className="h-5 w-5" />} label="Warrior Roster" onClick={() => setActiveTab('warriors')} />
-          <SideLink active={activeTab === 'campaigns'} icon={<Trophy className="h-5 w-5" />} label="Arena Deployments" onClick={() => setActiveTab('campaigns')} />
-          <SideLink active={activeTab === 'finance'} icon={<TrendingUp className="h-5 w-5" />} label="Financial Hub" onClick={() => setActiveTab('finance')} />
-          <SideLink active={activeTab === 'support'} icon={<MessageSquare className="h-5 w-5" />} label="Tactical Helpdesk" onClick={() => setActiveTab('support')} count={supportTickets?.length} />
+          <SideLink active={activeTab === 'campaigns'} icon={<Trophy className="h-5 w-5" />} label="Arena Master" onClick={() => setActiveTab('campaigns')} />
+          <SideLink active={activeTab === 'finance'} icon={<TrendingUp className="h-5 w-5" />} label="Financial Matrix" onClick={() => setActiveTab('finance')} />
+          <SideLink active={activeTab === 'support'} icon={<MessageSquare className="h-5 w-5" />} label="Support Tactical" onClick={() => setActiveTab('support')} count={supportTickets?.length} />
           
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] px-4 mb-4 mt-8">System Protocols</p>
-          <SideLink active={activeTab === 'control'} icon={<Settings className="h-5 w-5" />} label="Core Configuration" onClick={() => setActiveTab('control')} />
-          <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all text-sm font-bold mt-4">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] px-4 mb-4 mt-8">Security Protocols</p>
+          <SideLink active={activeTab === 'security'} icon={<ShieldAlert className="h-5 w-5" />} label="Security Intel" onClick={() => setActiveTab('security')} />
+          <SideLink active={activeTab === 'control'} icon={<Settings className="h-5 w-5" />} label="Core System" onClick={() => setActiveTab('control')} />
+          
+          <div className="pt-8">
+             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] px-4 mb-4">Interface Themes</p>
+             <div className="px-4 grid grid-cols-3 gap-2">
+                {Object.keys(themeColors).map((t) => (
+                   <button 
+                     key={t}
+                     onClick={() => setCurrentTheme(t as AdminTheme)}
+                     className={cn(
+                       "h-8 rounded-lg border border-white/10 transition-all",
+                       currentTheme === t ? "ring-2 ring-white scale-110" : "opacity-40 hover:opacity-100",
+                       themeColors[t as AdminTheme].split(' ')[0]
+                     )}
+                   />
+                ))}
+             </div>
+          </div>
+
+          <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all text-sm font-bold mt-8">
              <LogOut className="h-5 w-5" /> Terminate Session
           </button>
         </nav>
       </aside>
 
       <main className="flex-1 ml-[280px]">
-        {/* Top Navbar */}
+        {/* Top Operational Navbar */}
         <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-10 sticky top-0 z-40">
           <div className="flex items-center gap-6">
              <div className="relative w-80">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search Warrior ID or Mobile..." className="bg-gray-50 border-gray-100 rounded-xl pl-12 h-11 text-xs font-medium" />
+                <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search Warrior UID, Email, Mobile..." className="bg-gray-50 border-gray-100 rounded-xl pl-12 h-11 text-xs font-medium" />
              </div>
           </div>
           
@@ -234,7 +265,7 @@ export default function AdminDashboard() {
              <div className="flex items-center gap-4">
                 <div className="text-right hidden md:block">
                    <p className="text-[11px] font-black text-gray-900 leading-none uppercase">Admin Commander</p>
-                   <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">Superuser Access</p>
+                   <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">Superuser Hub</p>
                 </div>
                 <Avatar className="h-11 w-11 border-2 border-white shadow-sm ring-1 ring-gray-100">
                    <AvatarImage src="https://picsum.photos/seed/admin/100/100" />
@@ -249,22 +280,26 @@ export default function AdminDashboard() {
           {activeTab === 'overview' && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <ModernStatCard label="Platform Users" value={usersData?.length || '0'} sub="Total Registered" icon={<UsersIcon />} color="blue" />
-                <ModernStatCard label="Arena Earnings" value="₹41,410" sub="+12% this week" icon={<Trophy />} color="green" />
-                <ModernStatCard label="Pending Support" value={supportTickets?.length || '0'} sub="Open Tickets" icon={<MessageSquare />} color="orange" />
-                <ModernStatCard label="Active Campaigns" value={tournamentsData?.length || '0'} sub="Live Arenas" icon={<Target />} color="purple" />
+                <ModernStatCard label="Platform Warriors" value={usersData?.length || '0'} sub="Total Enlisted" icon={<UsersIcon />} color="blue" />
+                <ModernStatCard label="Arena Revenue" value="₹41,410" sub="+18% growth" icon={<Trophy />} color="green" />
+                <ModernStatCard label="Unresolved Tickets" value={supportTickets?.length || '0'} sub="Pending Response" icon={<MessageSquare />} color="orange" />
+                <ModernStatCard label="Active Campaigns" value={tournamentsData?.length || '0'} sub="Live Combat Zones" icon={<Target />} color="purple" />
               </div>
 
               <div className="grid lg:grid-cols-3 gap-8">
                 <Card className="lg:col-span-2 border-none shadow-sm rounded-3xl p-10 bg-white">
                    <div className="flex justify-between items-center mb-10">
                       <div>
-                        <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Revenue Analysis</h3>
-                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Global Transaction Trends</p>
+                        <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Revenue Matrix</h3>
+                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Global Tactical Earnings</p>
                       </div>
-                      <Select defaultValue="month">
+                      <Select defaultValue="lifetime">
                          <SelectTrigger className="w-40 h-10 text-[10px] font-bold rounded-xl"><SelectValue /></SelectTrigger>
-                         <SelectContent><SelectItem value="month">Current Month</SelectItem></SelectContent>
+                         <SelectContent>
+                            <SelectItem value="lifetime">Lifetime</SelectItem>
+                            <SelectItem value="year">Yearly</SelectItem>
+                            <SelectItem value="month">Monthly</SelectItem>
+                         </SelectContent>
                       </Select>
                    </div>
                    <div className="h-[350px]">
@@ -291,7 +326,7 @@ export default function AdminDashboard() {
                    <div className="h-[280px] flex items-center justify-center">
                       <ResponsiveContainer width="100%" height="100%">
                          <RePieChart>
-                            <Pie data={[{name: 'A', value: 400}, {name: 'B', value: 300}, {name: 'C', value: 300}]} innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value">
+                            <Pie data={[{name: 'BGMI', value: 500}, {name: 'FF', value: 300}, {name: 'Ludo', value: 200}]} innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value">
                                <Cell fill="#3b82f6" stroke="none" />
                                <Cell fill="#10b981" stroke="none" />
                                <Cell fill="#f59e0b" stroke="none" />
@@ -301,9 +336,9 @@ export default function AdminDashboard() {
                       </ResponsiveContainer>
                    </div>
                    <div className="space-y-4 mt-8">
-                      <LegendItem color="bg-blue-500" label="Active BGMI" value="40%" />
-                      <LegendItem color="bg-green-500" label="Free Fire Elite" value="30%" />
-                      <LegendItem color="bg-yellow-500" label="Ludo Casual" value="30%" />
+                      <LegendItem color="bg-blue-500" label="BGMI Elite" value="50%" />
+                      <LegendItem color="bg-green-500" label="Free Fire Squad" value="30%" />
+                      <LegendItem color="bg-yellow-500" label="Ludo Casual" value="20%" />
                    </div>
                 </Card>
               </div>
@@ -315,17 +350,17 @@ export default function AdminDashboard() {
                <div className="p-8 border-b border-gray-100 flex justify-between items-center">
                   <div>
                     <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Warrior Roster</h3>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Manage platform participants</p>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Manage global platform participants</p>
                   </div>
-                  <Button size="sm" className="h-11 bg-blue-500 hover:bg-blue-600 rounded-xl font-bold px-6 shadow-lg shadow-blue-100"><Plus className="h-4 w-4 mr-2" /> ADD WARRIOR</Button>
+                  <Button size="sm" className="h-11 bg-blue-500 hover:bg-blue-600 rounded-xl font-bold px-6 shadow-lg shadow-blue-100"><UserPlus className="h-4 w-4 mr-2" /> RECRUIT WARRIOR</Button>
                </div>
                <Table>
                   <TableHeader className="bg-gray-50/50">
                      <TableRow className="border-gray-100 hover:bg-transparent">
-                        <TableHead className="text-[10px] font-black uppercase text-gray-400 py-6 px-8">Warrior Details</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-gray-400">Position / Tier</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-gray-400">Tactical Wealth</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-gray-400">Status</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-gray-400 py-6 px-8">Warrior Intel</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-gray-400">Tactical Rank</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-gray-400">Vault Breakdown</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-gray-400">Security Status</TableHead>
                         <TableHead className="text-right text-[10px] font-black uppercase text-gray-400 px-10">Command</TableHead>
                      </TableRow>
                   </TableHeader>
@@ -340,7 +375,7 @@ export default function AdminDashboard() {
                                  </Avatar>
                                  <div>
                                     <p className="text-sm font-black text-gray-900">{u.email?.split('@')[0] || u.id.slice(0,8)}</p>
-                                    <p className="text-[10px] text-gray-400 font-bold">UID: {u.id.slice(0,12)}</p>
+                                    <p className="text-[10px] text-gray-400 font-bold">UID: {u.id.slice(0,12)} | {u.mobile || 'No Mobile'}</p>
                                  </div>
                               </div>
                            </TableCell>
@@ -350,18 +385,21 @@ export default function AdminDashboard() {
                            <TableCell>
                               <div className="flex flex-col">
                                 <span className="text-xs font-black text-gray-900">{u.coins.toFixed(1)} 🪙</span>
-                                <span className="text-[9px] text-gray-400 font-bold uppercase mt-1">D: {u.depositBalance} | W: {u.winningBalance}</span>
+                                <span className="text-[9px] text-gray-400 font-bold uppercase mt-1">D: {u.depositBalance} | W: {u.winningBalance} | T: {u.taskBalance}</span>
                               </div>
                            </TableCell>
                            <TableCell>
-                              <Badge className={cn("text-[9px] font-black px-3 py-1 rounded-lg border-none uppercase", u.isBanned ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600")}>
-                                 {u.isBanned ? 'Banned' : 'Operational'}
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge className={cn("text-[9px] font-black px-3 py-1 rounded-lg border-none uppercase", u.isBanned ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600")}>
+                                   {u.isBanned ? 'Banned' : 'Operational'}
+                                </Badge>
+                                {u.isVpnActive && <Badge className="bg-orange-50 text-orange-600 text-[9px] font-black uppercase">VPN ACTIVE</Badge>}
+                              </div>
                            </TableCell>
                            <TableCell className="text-right px-10 space-x-2">
-                              <Button onClick={() => setCoinAdjustment({ userId: u.id, bucket: 'winning', amount: 0 })} variant="outline" size="sm" className="h-9 text-[10px] font-black border-gray-200 rounded-lg">ADJUST</Button>
+                              <Button onClick={() => setCoinAdjustment({ userId: u.id, bucket: 'winning', amount: 0 })} variant="outline" size="sm" className="h-9 text-[10px] font-black border-gray-200 rounded-lg">GIFT/ADJUST</Button>
                               <Button onClick={() => updateDoc(doc(firestore!, 'users', u.id), { isBanned: !u.isBanned })} variant={u.isBanned ? "outline" : "destructive"} size="sm" className="h-9 text-[10px] font-black rounded-lg">
-                                 {u.isBanned ? 'REVOKE' : 'BAN'}
+                                 {u.isBanned ? 'UNBAN' : 'BAN'}
                               </Button>
                            </TableCell>
                         </TableRow>
@@ -376,10 +414,10 @@ export default function AdminDashboard() {
                <div className="flex justify-between items-center">
                   <div>
                     <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight italic">Arena Master</h3>
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Deploy and monitor combat arenas</p>
+                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Deploy and monitor high-stakes combat arenas</p>
                   </div>
                   <Button onClick={() => setIsCreatingTournament(true)} className="h-12 bg-blue-500 hover:bg-blue-600 font-black text-xs px-8 rounded-xl shadow-xl shadow-blue-100 uppercase tracking-widest">
-                    <Plus className="h-4 w-4 mr-2" /> Deploy Arena
+                    <Plus className="h-4 w-4 mr-2" /> NEW CAMPAIGN
                   </Button>
                </div>
                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -426,12 +464,66 @@ export default function AdminDashboard() {
                           </div>
                           
                           <Button variant="outline" className="w-full h-11 border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                            <Activity className="h-4 w-4 mr-2" /> Monitor Arena
+                            <Activity className="h-4 w-4 mr-2" /> MONITOR INTEL
                           </Button>
                        </CardContent>
                     </Card>
                   ))}
                </div>
+            </div>
+          )}
+
+          {activeTab === 'finance' && (
+            <div className="space-y-10">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <FinanceCard label="Total Revenue" value="₹41,410" color="blue" icon={<TrendingUp />} />
+                  <FinanceCard label="Net Profit" value="₹12,450" color="green" icon={<DollarSign />} />
+                  <FinanceCard label="User Liabilities" value="₹89,200" color="orange" icon={<Coins />} sub="Combined Wallet Balances" />
+               </div>
+
+               <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-white">
+                  <div className="p-8 border-b border-gray-100 flex justify-between items-center">
+                     <div>
+                       <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Financial Audit Trail</h3>
+                       <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Monitor global transactional pulse</p>
+                     </div>
+                  </div>
+                  <Table>
+                     <TableHeader className="bg-gray-50/50">
+                        <TableRow className="border-gray-100 hover:bg-transparent">
+                           <TableHead className="text-[10px] font-black uppercase text-gray-400 py-6 px-8">Operation / Date</TableHead>
+                           <TableHead className="text-[10px] font-black uppercase text-gray-400">Protocol</TableHead>
+                           <TableHead className="text-[10px] font-black uppercase text-gray-400">Volume</TableHead>
+                           <TableHead className="text-[10px] font-black uppercase text-gray-400">Operational Status</TableHead>
+                           <TableHead className="text-right text-[10px] font-black uppercase text-gray-400 px-10">Audit</TableHead>
+                        </TableRow>
+                     </TableHeader>
+                     <TableBody>
+                        {ledgerData?.map(l => (
+                           <TableRow key={l.id} className="border-gray-100 hover:bg-gray-50/50 transition-colors">
+                              <TableCell className="py-6 px-8">
+                                 <div>
+                                    <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{l.description || l.type}</p>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase">{l.date}</p>
+                                 </div>
+                              </TableCell>
+                              <TableCell><Badge variant="outline" className="text-[9px] font-black uppercase px-3">{l.type}</Badge></TableCell>
+                              <TableCell className="font-black text-sm">{l.type === 'withdrawal' ? `₹${l.amount.toFixed(2)}` : `${l.amount} 🪙`}</TableCell>
+                              <TableCell>
+                                 <Badge className={cn("text-[9px] font-black px-3 py-1 rounded-lg uppercase border-none", l.status === 'completed' ? "bg-green-50 text-green-600" : "bg-yellow-50 text-yellow-600")}>
+                                    {l.status}
+                                 </Badge>
+                              </TableCell>
+                              <TableCell className="text-right px-10">
+                                 <Button onClick={() => setSelectedTx(l)} variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg hover:bg-blue-50 text-blue-500">
+                                    <Eye className="h-4 w-4" />
+                                 </Button>
+                              </TableCell>
+                           </TableRow>
+                        ))}
+                     </TableBody>
+                  </Table>
+               </Card>
             </div>
           )}
 
@@ -443,18 +535,18 @@ export default function AdminDashboard() {
                       <Settings className="h-8 w-8" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight italic">Core Systems</h3>
-                      <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Global Platform Configuration</p>
+                      <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight italic">Core Protocols</h3>
+                      <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Global System Configuration</p>
                     </div>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-10">
                      <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">CPA Network Target</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">CPA Network Lead URL</Label>
                         <Input value={sysConfig.cpaLeadUrl || ''} onChange={e => setSysConfig({...sysConfig, cpaLeadUrl: e.target.value})} className="h-14 border-gray-100 rounded-2xl bg-gray-50/50 font-medium" />
                      </div>
                      <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Support Comms Link</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Support Terminal (Telegram)</Label>
                         <Input value={sysConfig.telegramUrl || ''} onChange={e => setSysConfig({...sysConfig, telegramUrl: e.target.value})} className="h-14 border-gray-100 rounded-2xl bg-gray-50/50 font-medium" />
                      </div>
                   </div>
@@ -477,7 +569,7 @@ export default function AdminDashboard() {
                   <Button onClick={async () => {
                      if (!firestore) return;
                      await setDoc(doc(firestore, 'settings', 'global'), sysConfig, { merge: true });
-                     toast({ title: "System Protocols Updated" });
+                     toast({ title: "Core Protocols Updated" });
                   }} className="w-full h-18 bg-blue-500 hover:bg-blue-600 font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-blue-100 text-lg italic">Commit Configuration</Button>
                </Card>
             </div>
@@ -499,7 +591,7 @@ export default function AdminDashboard() {
                      <Input value={newTour.name} onChange={e => setNewTour({...newTour, name: e.target.value})} className="h-14 border-gray-100 rounded-xl font-bold" placeholder="E.g. Cyber Squad" />
                   </div>
                   <div className="space-y-3">
-                     <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Operational Hub</Label>
+                     <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Game Type</Label>
                      <Select value={newTour.gameType} onValueChange={(val: any) => setNewTour({...newTour, gameType: val})}>
                         <SelectTrigger className="h-14 border-gray-100 rounded-xl font-bold"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -517,7 +609,7 @@ export default function AdminDashboard() {
                      <Input type="number" value={newTour.entryFee} onChange={e => setNewTour({...newTour, entryFee: Number(e.target.value)})} className="h-14 border-gray-100 rounded-xl font-bold" />
                   </div>
                   <div className="space-y-3">
-                     <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Deployment Schedule</Label>
+                     <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Engagement Schedule</Label>
                      <Input type="datetime-local" value={newTour.startDate} onChange={e => setNewTour({...newTour, startDate: e.target.value})} className="h-14 border-gray-100 rounded-xl font-bold" />
                   </div>
                </div>
@@ -534,11 +626,11 @@ export default function AdminDashboard() {
          </DialogContent>
       </Dialog>
 
-      {/* Balance Adjustment Dialog */}
+      {/* Gift/Adjust Dialog */}
       {coinAdjustment && (
         <Dialog open={!!coinAdjustment} onOpenChange={() => setCoinAdjustment(null)}>
           <DialogContent className="bg-white rounded-[2rem] p-10 max-w-sm">
-            <DialogHeader><DialogTitle className="text-2xl font-black uppercase italic text-gray-900">Adjust Wealth</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="text-2xl font-black uppercase italic text-gray-900">Adjust Warrior Wealth</DialogTitle></DialogHeader>
             <div className="space-y-8 pt-8">
               <Select value={coinAdjustment.bucket} onValueChange={(val: any) => setCoinAdjustment({...coinAdjustment, bucket: val})}>
                 <SelectTrigger className="h-14 border-gray-100 rounded-xl font-bold"><SelectValue /></SelectTrigger>
@@ -555,9 +647,9 @@ export default function AdminDashboard() {
                  if (bucket === 'winning') payload.winningBalance = increment(amount);
                  if (bucket === 'task') payload.taskBalance = increment(amount);
                  await updateDoc(doc(firestore!, 'users', userId), payload);
-                 await addDoc(collection(firestore!, 'users', userId, 'ledger'), { type: 'income', amount, date: new Date().toISOString().split('T')[0], status: 'completed', description: `Admin Override: ${bucket}` });
+                 await addDoc(collection(firestore!, 'users', userId, 'ledger'), { type: 'income', amount, date: new Date().toISOString().split('T')[0], status: 'completed', description: `Admin Adjustment: ${bucket} gift` });
                  setCoinAdjustment(null);
-                 toast({ title: "Warrior Wealth Synced" });
+                 toast({ title: "Warrior Wealth Synchronized" });
               }} className="w-full h-16 bg-blue-500 hover:bg-blue-600 font-black uppercase tracking-widest rounded-2xl shadow-xl italic">Apply Override</Button>
             </div>
           </DialogContent>
@@ -573,7 +665,7 @@ function SideLink({ active, icon, label, onClick, badge, count }: any) {
       onClick={onClick} 
       className={cn(
         "w-full flex items-center justify-between px-6 py-4 rounded-xl transition-all text-sm font-bold",
-        active ? "bg-blue-500 text-white shadow-xl shadow-blue-900/20" : "text-gray-400 hover:bg-white/5 hover:text-white"
+        active ? "bg-white/10 text-white shadow-xl" : "text-white/60 hover:bg-white/5 hover:text-white"
       )}
     >
       <div className="flex items-center gap-4">
@@ -581,7 +673,7 @@ function SideLink({ active, icon, label, onClick, badge, count }: any) {
         <span className={cn(active ? "tracking-tight" : "opacity-80")}>{label}</span>
       </div>
       {badge && <Badge className="bg-blue-400/20 text-blue-300 text-[8px] font-black border-none px-2 py-0.5 rounded-md">{badge}</Badge>}
-      {count !== undefined && count > 0 && <Badge className="bg-red-500 text-white text-[8px] font-black border-none h-5 w-5 flex items-center justify-center p-0 rounded-full shadow-lg shadow-red-500/20">{count}</Badge>}
+      {count !== undefined && count > 0 && <Badge className="bg-red-500 text-white text-[8px] font-black border-none h-5 w-5 flex items-center justify-center p-0 rounded-full shadow-lg">{count}</Badge>}
     </button>
   );
 }
@@ -605,6 +697,22 @@ function ModernStatCard({ label, value, sub, icon, color }: any) {
        </div>
     </Card>
   );
+}
+
+function FinanceCard({ label, value, color, icon, sub }: any) {
+   const colorMap: any = {
+      blue: "border-blue-100 bg-blue-50/30 text-blue-600",
+      green: "border-green-100 bg-green-50/30 text-green-600",
+      orange: "border-orange-100 bg-orange-50/30 text-orange-600"
+   };
+   return (
+      <Card className={cn("p-8 rounded-[2.5rem] border-2 shadow-sm relative overflow-hidden", colorMap[color])}>
+         <div className="absolute right-0 top-0 p-6 opacity-5">{icon}</div>
+         <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">{label}</p>
+         <h2 className="text-4xl font-black tracking-tighter italic">{value}</h2>
+         {sub && <p className="text-[9px] font-bold uppercase mt-4 opacity-40">{sub}</p>}
+      </Card>
+   );
 }
 
 function LegendItem({ color, label, value }: any) {
