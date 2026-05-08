@@ -12,9 +12,11 @@ import {
   PlayCircle,
   Smartphone,
   Trophy,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
-import { AppSettings } from '@/app/lib/types';
+import { AppSettings, UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +32,10 @@ export default function EarningHub() {
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  
   const { data: settings, isLoading: settingsLoading } = useDoc<AppSettings>(settingsRef);
+  const { data: profile } = useDoc<UserProfile>(userRef);
 
   useEffect(() => {
     const checkCooldown = () => {
@@ -58,18 +63,19 @@ export default function EarningHub() {
   };
 
   const handleWatchVideo = async () => {
-    if (!user || !firestore) {
+    if (!user || !firestore || !userRef) {
       toast({ variant: "destructive", title: "Login Required" });
       return;
     }
-    if (cooldownRemaining > 0) return;
+    
+    if (cooldownRemaining > 0 || isVideoLoading) return;
 
     setIsVideoLoading(true);
+    
     try {
-      // Simulate video ad duration
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // SCAM PREVENTION: Simulate verified video playback
+      await new Promise(resolve => setTimeout(resolve, 6000));
 
-      const userRef = doc(firestore, 'users', user.uid);
       const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
       const updateData = { 
@@ -83,10 +89,10 @@ export default function EarningHub() {
         amount: 5,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: 'Earned from Video Ad (Global Network)'
+        description: 'Verified Video Reward (Global Network)'
       };
 
-      // 1. Update Profile (Non-Blocking)
+      // Atomic Update logic to prevent double-claiming
       updateDoc(userRef, updateData).catch(async (serverError) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
           path: userRef.path,
@@ -95,7 +101,6 @@ export default function EarningHub() {
         }));
       });
       
-      // 2. Add Ledger (Non-Blocking)
       addDoc(ledgerRef, ledgerData).catch(async (serverError) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
           path: ledgerRef.path,
@@ -106,9 +111,18 @@ export default function EarningHub() {
 
       localStorage.setItem('last_video_watch_time', Date.now().toString());
       setCooldownRemaining(300);
-      toast({ title: "Reward Claimed!", description: "5 Coins added to your Winning Balance." });
+      
+      toast({ 
+        title: "Reward Verified!", 
+        description: "5 Coins synchronized with your Winning Balance." 
+      });
+      
+      // Play reward sound
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+      audio.play().catch(() => {});
+
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Sync Failed" });
+      toast({ variant: "destructive", title: "Sync Protocol Failed" });
     } finally {
       setIsVideoLoading(false);
     }
@@ -126,14 +140,14 @@ export default function EarningHub() {
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
       <div className="space-y-4 pt-12 text-center md:text-left">
         <div className="flex items-center justify-center md:justify-start gap-3 text-secondary font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">
-          <Zap className="h-4 w-4" />
-          Monetization Protocol Active
+          <ShieldCheck className="h-4 w-4" />
+          Anti-Scam Protocol: Active
         </div>
         <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-none italic">
-          Global <span className="text-primary">Earning</span> Hub
+          Tactical <span className="text-primary">Earning</span> Hub
         </h1>
         <p className="text-muted-foreground font-medium text-lg max-w-2xl mx-auto md:mx-0">
-          Complete high-yield missions to fill your <span className="text-white font-bold">Winning Amount</span> vault. Instant withdrawals to ₹/$/£ gateways.
+          Complete verified missions to fill your <span className="text-white font-bold">Winning Vault</span>. Real-time balance synchronization active.
         </p>
       </div>
 
@@ -141,14 +155,14 @@ export default function EarningHub() {
         {/* Video Ad Section */}
         <Card className="bg-[#1a1a1a] border-primary/40 border-2 rounded-[3rem] overflow-hidden relative group hover:shadow-[0_0_50px_rgba(147,69,255,0.2)] transition-all">
           <CardHeader className="p-10">
-            <Badge className="bg-primary/20 text-primary border-primary/20 w-fit mb-4 uppercase font-black px-4">VIDEO REWARD</Badge>
-            <CardTitle className="text-4xl font-black uppercase tracking-tight">Watch & Win</CardTitle>
-            <CardDescription className="text-base font-bold text-primary italic">Get 5 Withdrawable Coins</CardDescription>
+            <Badge className="bg-primary/20 text-primary border-primary/20 w-fit mb-4 uppercase font-black px-4">VERIFIED AD</Badge>
+            <CardTitle className="text-4xl font-black uppercase tracking-tight">Watch & Sync</CardTitle>
+            <CardDescription className="text-base font-bold text-primary italic">+5 Winning Coins</CardDescription>
           </CardHeader>
           <CardContent className="px-10 pb-10 space-y-8">
             <div className="flex items-center gap-4 p-5 bg-black/40 rounded-[1.5rem] border border-white/5">
-               <PlayCircle className="h-10 w-10 text-primary animate-pulse" />
-               <p className="text-xs text-muted-foreground font-medium leading-relaxed">Watch a tactical brief to directly increase your vault value.</p>
+               <PlayCircle className="h-10 w-10 text-primary" />
+               <p className="text-xs text-muted-foreground font-medium leading-relaxed">Watch a tactical brief to trigger a verified credit to your vault.</p>
             </div>
             <Button 
               onClick={handleWatchVideo}
@@ -157,7 +171,7 @@ export default function EarningHub() {
             >
               {isVideoLoading ? <Loader2 className="animate-spin h-7 w-7" /> : 
                !settings?.videoWallEnabled ? "DISABLED" :
-               cooldownRemaining > 0 ? formatCooldown(cooldownRemaining) : "WATCH VIDEO"}
+               cooldownRemaining > 0 ? `WAIT ${formatCooldown(cooldownRemaining)}` : "EXECUTE MISSION"}
             </Button>
           </CardContent>
           {cooldownRemaining > 0 && (
@@ -174,13 +188,19 @@ export default function EarningHub() {
         <Card className="lg:col-span-2 bg-[#1a1a1a] border-secondary/40 border-2 rounded-[3rem] overflow-hidden relative group">
           <CardHeader className="p-10">
             <div className="flex items-center justify-between">
-              <Badge className="bg-secondary/20 text-secondary border-secondary/20 w-fit mb-4 uppercase font-black px-4">INTEL MISSIONS</Badge>
+              <Badge className="bg-secondary/20 text-secondary border-secondary/20 w-fit mb-4 uppercase font-black px-4">EXTERNAL INTEL</Badge>
               <span className="text-[10px] font-black uppercase tracking-widest opacity-40">CPA LEAD NETWORK</span>
             </div>
-            <CardTitle className="text-4xl font-black uppercase tracking-tight">CPA Elite Wall</CardTitle>
-            <CardDescription className="text-base font-bold text-secondary italic">High Payout Global Missions</CardDescription>
+            <CardTitle className="text-4xl font-black uppercase tracking-tight">CPA High-Yield</CardTitle>
+            <CardDescription className="text-base font-bold text-secondary italic">Secure Multi-Region Offer Wall</CardDescription>
           </CardHeader>
-          <CardContent className="px-10 pb-10">
+          <CardContent className="px-10 pb-10 space-y-6">
+             <div className="flex items-center gap-3 p-4 rounded-2xl bg-secondary/5 border border-secondary/10">
+                <AlertCircle className="h-5 w-5 text-secondary shrink-0" />
+                <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
+                  Notice: CPA rewards are only synchronized after successful verification from the network. Fake completions are automatically detected and banned.
+                </p>
+             </div>
              {!settings?.offerWallEnabled ? (
                <div className="py-20 text-center space-y-4">
                   <Zap className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />

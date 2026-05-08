@@ -4,10 +4,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Smartphone, ExternalLink, AlertCircle, Coins, Lock, CheckCircle2 } from 'lucide-react';
+import { Loader2, Smartphone, ExternalLink, AlertCircle, Coins, Lock, CheckCircle2, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { AppSettings } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -53,7 +53,7 @@ export default function OfferWall() {
         const data = await response.json();
         const allOffers: CPALeadOffer[] = data.offers || [];
         
-        // Filter for relevant global offers (usually mobile/incentive)
+        // Filter for relevant global offers
         const relevantOffers = allOffers.filter(offer => 
           offer.incentive && offer.incentive.toLowerCase().includes('yes')
         );
@@ -74,16 +74,17 @@ export default function OfferWall() {
     }
   }, [cpaLeadUrl]);
 
-  const handleOfferClick = async (offer: CPALeadOffer) => {
+  const handleOfferClick = (offer: CPALeadOffer) => {
     if (!user) {
       toast({ variant: "destructive", title: "Access Denied", description: "Login to complete missions." });
       return;
     }
 
+    // SCAM PREVENTION: Never award coins on click. Wait for Postback.
     window.open(offer.link, '_blank');
     toast({
       title: "Mission Deployed",
-      description: "Winning balance will sync after network postback.",
+      description: "Winning balance will sync ONLY after successful network verification.",
     });
   };
 
@@ -126,9 +127,11 @@ export default function OfferWall() {
                   </h4>
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 text-[9px] font-black uppercase px-3">
-                      HOT MISSION
+                      PENDING VERIFICATION
                     </Badge>
-                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">{offer.device} Sector</span>
+                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1">
+                      <Clock className="h-2 w-2" /> {offer.device} Sector
+                    </span>
                   </div>
                 </div>
               </div>
