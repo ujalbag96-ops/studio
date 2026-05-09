@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -26,7 +25,6 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-white">
         <FirebaseClientProvider>
-          {/* Notifications globally available */}
           <Toaster />
           <MaintenanceGate>
             <Navbar />
@@ -44,12 +42,26 @@ export default function RootLayout({
 function MaintenanceGate({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const pathname = usePathname();
-  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  
+  const settingsRef = useMemoFirebase(() => 
+    firestore ? doc(firestore, 'settings', 'global') : null, 
+    [firestore]
+  );
   const { data: settings, isLoading } = useDoc<AppSettings>(settingsRef);
 
-  const isMaintenance = settings?.maintenanceMode && !pathname.startsWith('/admin') && pathname !== '/maintenance';
+  // Allow login, signup and admin pages even during maintenance
+  const isExcludedPage = pathname.startsWith('/admin') || 
+                         pathname === '/login' || 
+                         pathname === '/auth' || 
+                         pathname === '/maintenance';
+                         
+  const isMaintenance = settings?.maintenanceMode && !isExcludedPage;
 
-  if (isLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin text-primary" /></div>;
+  if (isLoading) return (
+    <div className="flex items-center justify-center min-h-screen bg-black">
+      <Loader2 className="animate-spin text-primary h-10 w-10" />
+    </div>
+  );
 
   if (isMaintenance) {
     return (
@@ -58,10 +70,10 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
            <ShieldAlert className="h-12 w-12 text-primary" />
         </div>
         <div className="space-y-2">
-           <h1 className="text-5xl font-black uppercase italic tracking-tighter text-white">Maintenance</h1>
-           <p className="text-muted-foreground font-medium text-lg uppercase tracking-widest">App is being updated</p>
+           <h1 className="text-5xl font-black uppercase italic tracking-tighter text-white">App Update</h1>
+           <p className="text-muted-foreground font-medium text-lg uppercase tracking-widest">Maintenance Mode ON</p>
         </div>
-        <p className="text-xs text-muted-foreground max-w-sm font-bold uppercase opacity-50">Please wait while we improve your experience.</p>
+        <p className="text-xs text-muted-foreground max-w-sm font-bold uppercase opacity-50">App is being updated for a better experience. Please check back later.</p>
       </div>
     );
   }

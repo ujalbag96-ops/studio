@@ -1,26 +1,23 @@
-
 'use client';
 
-import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, query, addDoc, increment, where, getDocs } from 'firebase/firestore';
+import { useUser, useCollection, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
+import { collection, doc, updateDoc, setDoc, addDoc, increment, query, where, getDocs } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   Users as UsersIcon, 
   Settings, 
   Loader2,
   Search,
-  LayoutGrid,
   CreditCard,
   Gamepad2,
-  Terminal,
   LogOut,
   Copy,
   Plus,
   ArrowUpRight,
-  ShieldCheck
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,7 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { AppSettings, UserProfile, Tournament, Registration } from '@/app/lib/types';
+import { UserProfile, Tournament } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
@@ -56,8 +53,10 @@ export default function AdminDashboard() {
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
+  const tournamentsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'tournaments') : null, [firestore, isAdminUser]);
   
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
+  const { data: tourData, isLoading: toursLoading } = useCollection<Tournament>(tournamentsQuery);
 
   const handleLogout = async () => {
     if (auth) {
@@ -69,7 +68,7 @@ export default function AdminDashboard() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "UID Copy Ho Gaya!", description: "Ab aap ise use kar sakte hain." });
+    toast({ title: "User ID Copied!", description: "You can now use this ID." });
   };
 
   const executeInjection = async (targetId: string, amount: number) => {
@@ -96,13 +95,52 @@ export default function AdminDashboard() {
       });
 
       toast({ 
-        title: "Paisa Add Ho Gaya!", 
-        description: `User ${targetId} ko ${amount} coins mil gaye hain.` 
+        title: "Coins Added!", 
+        description: `Successfully added ${amount} coins to User ${targetId}.` 
       });
       setQuickUid('');
       setBalanceAdjustment(null);
     } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Paisa add nahi ho saka." });
+      toast({ variant: "destructive", title: "Error", description: "Failed to add coins." });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRefund = async (tournament: Tournament) => {
+    if (!firestore || !isAdminUser || isProcessing) return;
+    if (tournament.isRefunded) return;
+    
+    setIsProcessing(true);
+    try {
+      const regSnap = await getDocs(query(collection(firestore, 'registrations'), where('tournamentId', '==', tournament.id)));
+      
+      for (const regDoc of regSnap.docs) {
+        const regData = regDoc.data();
+        const userRef = doc(firestore, 'users', regData.userId);
+        
+        await setDoc(userRef, {
+          coins: increment(regData.feePaid),
+          depositBalance: increment(regData.feePaid)
+        }, { merge: true });
+
+        await addDoc(collection(firestore, 'users', regData.userId, 'ledger'), {
+          type: 'refund',
+          amount: regData.feePaid,
+          date: new Date().toISOString().split('T')[0],
+          status: 'completed',
+          description: `Refund: ${tournament.name}`
+        });
+      }
+
+      await updateDoc(doc(firestore, 'tournaments', tournament.id), {
+        status: 'cancelled',
+        isRefunded: true
+      });
+
+      toast({ title: "Refund Complete", description: `Refunded ${regSnap.size} participants.` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Refund Failed" });
     } finally {
       setIsProcessing(false);
     }
@@ -116,14 +154,14 @@ export default function AdminDashboard() {
       <aside className="w-72 bg-[#0a0a0f] border-r border-white/5 flex flex-col fixed inset-y-0 z-50">
         <div className="p-8 flex items-center gap-3">
           <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-            <UsersIcon className="h-6 w-6 text-white" />
+            <ShieldCheck className="h-6 w-6 text-white" />
           </div>
           <span className="font-black text-xl italic uppercase">ADMIN <span className="text-primary">PANEL</span></span>
         </div>
         
         <nav className="flex-1 px-4 space-y-2 pt-4">
           <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="Users List" onClick={() => setActiveTab('users')} />
-          <SidebarLink active={activeTab === 'add-money'} icon={<Plus />} label="Add Money (UID)" onClick={() => setActiveTab('add-money')} />
+          <SidebarLink active={activeTab === 'add-money'} icon={<Plus />} label="Add Money (By ID)" onClick={() => setActiveTab('add-money')} />
           <SidebarLink active={activeTab === 'tournaments'} icon={<Gamepad2 />} label="Tournaments" onClick={() => setActiveTab('tournaments')} />
           <SidebarLink active={activeTab === 'settings'} icon={<Settings />} label="Settings" onClick={() => setActiveTab('settings')} />
         </nav>
@@ -139,7 +177,7 @@ export default function AdminDashboard() {
         <header className="flex items-center justify-between">
            <div className="space-y-1">
               <h1 className="text-4xl font-black uppercase italic">Admin <span className="text-primary">Dashboard</span></h1>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Sare users ko manage karein</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Manage all users and transactions</p>
            </div>
            <Badge className="bg-primary/20 text-primary border-none font-bold px-4 py-1.5 text-xs">Admin Mode Active</Badge>
         </header>
@@ -151,7 +189,7 @@ export default function AdminDashboard() {
                 <input 
                   value={searchQuery} 
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Email ya User ID se search karein..." 
+                  placeholder="Search by Email or User ID..." 
                   className="bg-transparent border-none outline-none flex-1 text-sm font-bold"
                 />
              </div>
@@ -160,8 +198,8 @@ export default function AdminDashboard() {
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User Info & ID</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Balances</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User Info</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Live Balances</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-right px-8">Actions</TableHead>
                       </TableRow>
                    </TableHeader>
@@ -174,9 +212,9 @@ export default function AdminDashboard() {
                         ).map(u => (
                         <TableRow key={u.id} className="border-white/5 hover:bg-white/5 transition-all">
                            <TableCell className="px-8 py-6">
-                              <p className="text-sm font-bold">{u.email || 'No Email'}</p>
+                              <p className="text-sm font-bold">{u.email || 'Phone User'}</p>
                               <div className="flex items-center gap-2 mt-2">
-                                <code className="text-[10px] font-mono text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">UID: {u.id}</code>
+                                <code className="text-[10px] font-mono text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">ID: {u.id}</code>
                                 <button onClick={() => copyToClipboard(u.id)} className="text-muted-foreground hover:text-white p-1 rounded-md hover:bg-white/5"><Copy className="h-3 w-3" /></button>
                               </div>
                            </TableCell>
@@ -199,6 +237,28 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {activeTab === 'tournaments' && (
+          <div className="grid gap-6">
+             {tourData?.map(t => (
+               <Card key={t.id} className="bg-[#0a0a0f] border-white/5 p-8 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold uppercase">{t.name}</h3>
+                    <p className="text-xs text-muted-foreground">Status: <span className={cn("font-bold uppercase", t.status === 'active' ? 'text-green-500' : 'text-red-500')}>{t.status}</span></p>
+                  </div>
+                  <div className="flex gap-4">
+                     {t.status !== 'cancelled' ? (
+                       <Button onClick={() => handleRefund(t)} variant="destructive" size="sm" disabled={isProcessing} className="font-black uppercase text-[10px]">
+                          {isProcessing ? <Loader2 className="animate-spin" /> : "CANCEL & REFUND"}
+                       </Button>
+                     ) : (
+                       <Badge className="bg-red-500/20 text-red-500 uppercase">Refunded & Closed</Badge>
+                     )}
+                  </div>
+               </Card>
+             ))}
+          </div>
+        )}
+
         {activeTab === 'add-money' && (
            <Card className="bg-[#0a0a0f] border-primary/20 p-10 rounded-[2.5rem] space-y-8 max-w-xl mx-auto shadow-2xl">
               <div className="flex items-center gap-4">
@@ -206,8 +266,8 @@ export default function AdminDashboard() {
                     <CreditCard className="text-primary h-6 w-6" />
                  </div>
                  <div>
-                    <h3 className="text-2xl font-black uppercase italic">Add Money by UID</h3>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Kahin se bhi ID copy karke yahan paste karein</p>
+                    <h3 className="text-2xl font-black uppercase italic">Add Money by User ID</h3>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Copy User ID from list and paste here</p>
                  </div>
               </div>
 
@@ -252,7 +312,7 @@ export default function AdminDashboard() {
               <VisuallyHidden.Root><DialogTitle>Add Balance to User</DialogTitle></VisuallyHidden.Root>
               <div className="bg-primary/10 p-8 border-b border-white/5">
                 <h3 className="text-xl font-black italic uppercase text-primary">Add Coins</h3>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Wallet Credit Protocol</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Direct Wallet Credit</p>
               </div>
               <div className="p-8 space-y-6">
                  <div className="p-5 bg-white/5 rounded-2xl border border-white/5">

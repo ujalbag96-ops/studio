@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -26,9 +25,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 const COUNTRY_CODES = [
-  { label: "India (+91)", value: "+91", country: "India" },
-  { label: "USA (+1)", value: "+1", country: "USA" },
-  { label: "UK (+44)", value: "+44", country: "UK" }
+  { label: "India (+91)", value: "+91" },
+  { label: "USA (+1)", value: "+1" },
+  { label: "UK (+44)", value: "+44" }
 ];
 
 export default function LoginPage() {
@@ -89,14 +88,14 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Login Successful", description: "Dashboard par bheja ja raha hai..." });
+        toast({ title: "Login Successful", description: "Navigating to Dashboard..." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Registration Successful", description: "Aapka account ban gaya hai!" });
+        toast({ title: "Account Created", description: "Welcome to the Platform!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Error", description: e.message });
+      toast({ variant: "destructive", title: "Auth Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -112,10 +111,10 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Bheja Gaya", description: "Apna SMS check karein." });
+        toast({ title: "OTP Sent", description: "Please check your SMS." });
       } else {
         await confirmationResult.confirm(otp);
-        toast({ title: "Verified", description: "Login ho gaya!" });
+        toast({ title: "Verified", description: "Login successful!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -127,13 +126,13 @@ export default function LoginPage() {
 
   const handleReset = async () => {
      if (!auth || !email) {
-       toast({ variant: "destructive", title: "Input Required", description: "Pehle email enter karein." });
+       toast({ variant: "destructive", title: "Email Required", description: "Enter email to receive reset link." });
        return;
      }
      setIsLoading(true);
      try {
        await sendPasswordResetEmail(auth, email.trim());
-       toast({ title: "Reset Link Bheja Gaya", description: "Apna email check karein." });
+       toast({ title: "Reset Link Sent", description: "Check your inbox." });
        setShowReset(false);
      } catch (e: any) {
        setAuthError(e.message);
@@ -151,14 +150,14 @@ export default function LoginPage() {
         <div className="h-20 w-20 bg-primary/20 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl">
           <Trophy className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Login <span className="text-primary">Karein</span></h1>
-        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Kheliye aur Jeetiye Asli Cash</p>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Welcome <span className="text-primary">Back</span></h1>
+        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Sign in to manage your coins</p>
       </div>
 
       {authError && (
         <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="text-[10px] font-black uppercase">Authentication Error</AlertTitle>
+          <AlertTitle className="text-[10px] font-black uppercase">Auth Error</AlertTitle>
           <AlertDescription className="text-xs font-bold">{authError}</AlertDescription>
         </Alert>
       )}
@@ -176,7 +175,7 @@ export default function LoginPage() {
                <Input 
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
-                placeholder="example@mail.com" 
+                placeholder="name@example.com" 
                 className="h-14 bg-black border-white/10 rounded-xl focus:ring-primary text-sm font-bold" 
                />
             </div>
@@ -186,7 +185,7 @@ export default function LoginPage() {
                 <div className="space-y-2 relative">
                    <div className="flex justify-between items-center">
                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Password</Label>
-                      <button type="button" onClick={() => setShowReset(true)} className="text-[10px] font-black text-primary uppercase hover:underline">Forgot?</button>
+                      <button type="button" onClick={() => setShowReset(true)} className="text-[10px] font-black text-primary uppercase hover:underline">Forgot Password?</button>
                    </div>
                    <div className="relative">
                       <Input 
@@ -220,7 +219,7 @@ export default function LoginPage() {
                     variant="outline" 
                     className="h-14 border-white/10 hover:bg-white/5 font-black uppercase text-[10px] tracking-widest rounded-xl"
                   >
-                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "SIGN UP (NAYA ACCOUNT)"}
+                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "SIGN UP (NEW ACCOUNT)"}
                   </Button>
                 </div>
               </>

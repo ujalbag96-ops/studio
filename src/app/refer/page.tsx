@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { 
   Users, 
   Copy, 
@@ -27,13 +26,16 @@ export default function ReferPage() {
   const { toast } = useToast();
   const [isCopying, setIsCopying] = useState(false);
 
-  const userProfileRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const userProfileRef = useMemoFirebase(() => 
+    (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
+    [firestore, user]
+  );
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
 
   const { data: profile } = useDoc<UserProfile>(userProfileRef);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
-  // Fallback: If profile exists but has no referral code, generate one
+  // Fallback for missing referral code
   useEffect(() => {
     if (profile && !profile.referralCode && userProfileRef) {
       const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -47,27 +49,16 @@ export default function ReferPage() {
 
   const copyToClipboard = async () => {
     if (!profile?.referralCode) {
-      toast({ variant: "destructive", title: "Wait...", description: "Code load ho raha hai." });
+      toast({ variant: "destructive", title: "Please wait", description: "Loading your code..." });
       return;
     }
     
     setIsCopying(true);
     try {
       await navigator.clipboard.writeText(referralLink);
-      toast({ title: "Link Copy Ho Gaya!", description: "Doston ko WhatsApp par bhein." });
+      toast({ title: "Link Copied!", description: "Share it with your friends." });
     } catch (err) {
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea");
-      textArea.value = referralLink;
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        toast({ title: "Link Copy Ho Gaya!" });
-      } catch (e) {
-        toast({ variant: "destructive", title: "Copy Failed", description: "Manually link select karke copy karein." });
-      }
-      document.body.removeChild(textArea);
+      toast({ variant: "destructive", title: "Copy Failed" });
     } finally {
       setTimeout(() => setIsCopying(false), 2000);
     }
@@ -75,7 +66,7 @@ export default function ReferPage() {
 
   const handleShare = () => {
     if (!profile?.referralCode) return;
-    const shareText = `Bhai! Is app se games khel kar coins jeeto. Mera link use karke sign-up karo: ${referralLink}`;
+    const shareText = `Play games and win real cash! Join using my link: ${referralLink}`;
     
     if (navigator.share) {
       navigator.share({
@@ -102,42 +93,42 @@ export default function ReferPage() {
             <Badge className="bg-primary/20 text-primary uppercase font-black px-4 py-1 tracking-widest text-[10px]">REFER & EARN</Badge>
             <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase italic leading-none">
               Invite <br />
-              <span className="text-primary">& Win</span>
+              <span className="text-primary">& Earn</span>
             </h1>
             <p className="text-lg text-muted-foreground font-medium leading-relaxed max-w-md mx-auto lg:mx-0">
-              Apne doston ko invite karein aur har successful sign-up par <span className="text-white font-black">{reward} Coins</span> jeetein!
+              Invite your friends and earn <span className="text-white font-black">{reward} Coins</span> on every successful sign-up!
             </p>
             
             <Card className="bg-white/5 border-white/10 rounded-[2.5rem] p-8 space-y-6 backdrop-blur-3xl shadow-2xl">
               <div className="space-y-2">
-                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Aapka Referral Code</p>
+                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Your Referral Code</p>
                  <div className="flex items-center gap-4">
                     <div className="flex-1 bg-black/60 border border-white/10 h-16 rounded-2xl flex items-center justify-center text-3xl font-black tracking-[0.2em] text-primary uppercase">
-                       {profile?.referralCode || 'LOADING...'}
+                       {profile?.referralCode || '...'}
                     </div>
-                    <Button onClick={copyToClipboard} size="icon" className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 hover:bg-primary/20 hover:border-primary/40 transition-all">
+                    <Button onClick={copyToClipboard} size="icon" className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 hover:bg-primary/20 transition-all">
                        {isCopying ? <CheckCircle2 className="h-6 w-6 text-green-500" /> : <Copy className="h-6 w-6" />}
                     </Button>
                  </div>
               </div>
-              <Button onClick={handleShare} className="w-full h-16 bg-primary hover:bg-primary/90 rounded-2xl font-black text-lg uppercase italic shadow-2xl transition-transform hover:scale-[1.02] active:scale-95">
-                 <Share2 className="h-5 w-5 mr-3" /> SHARE LINK (WHATSAPP)
+              <Button onClick={handleShare} className="w-full h-16 bg-primary hover:bg-primary/90 rounded-2xl font-black text-lg uppercase italic shadow-2xl">
+                 <Share2 className="h-5 w-5 mr-3" /> SHARE ON WHATSAPP
               </Button>
             </Card>
           </div>
 
           <div className="hidden lg:flex flex-col gap-6">
-             <Step icon={<Zap />} num="01" title="Share Link" desc="Apna link doston ko WhatsApp par bhein." />
-             <Step icon={<Users />} num="02" title="Friend Joins" desc="Woh aapke link se sign-up karenge." />
-             <Step icon={<Gift />} num="03" title="Get Coins" desc={`Aapko turant ${reward} coins milenge!`} />
+             <Step icon={<Zap />} num="01" title="Share Link" desc="Send your link to friends." />
+             <Step icon={<Users />} num="02" title="Friend Joins" desc="They sign up using your link." />
+             <Step icon={<Gift />} num="03" title="Get Rewards" desc={`You instantly get ${reward} coins!`} />
           </div>
         </div>
       </section>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-         <StatsCard title="Total Refers" value="0" icon={<Users />} />
+         <StatsCard title="Total Invites" value="0" icon={<Users />} />
          <StatsCard title="Total Earned" value="0 Coins" icon={<Trophy />} />
-         <StatsCard title="Referral Level" value="Basic" icon={<Crown />} />
+         <StatsCard title="Referral Status" value="Active" icon={<Crown />} />
       </div>
     </div>
   );
