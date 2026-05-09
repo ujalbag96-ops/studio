@@ -89,6 +89,7 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
+      toast({ title: "ADMIN SESSION TERMINATED" });
       router.push('/login');
     }
   };
@@ -124,9 +125,12 @@ export default function AdminDashboard() {
       }
 
       await updateDoc(doc(firestore, 'tournaments', t.id), { status: 'cancelled', isRefunded: true });
-      toast({ title: "REFUND PROTOCOL COMPLETE", description: `${refundCount} users synchronized.` });
+      toast({ 
+        title: "ARENA REFUND COMPLETE", 
+        description: `SUCCESSFULLY REVERTED ${refundCount} PARTICIPANT BALANCES.` 
+      });
     } catch (e) {
-      toast({ variant: "destructive", title: "REFUND FAILED" });
+      toast({ variant: "destructive", title: "REFUND PROTOCOL FAILED" });
     } finally {
       setIsProcessing(false);
     }
@@ -153,8 +157,14 @@ export default function AdminDashboard() {
           status: 'completed',
           description: "Administrative Capital Injection"
         });
-        toast({ title: "SYNC SUCCESSFUL" });
+        toast({ 
+          title: "INJECTION PROTOCOL SUCCESSFUL", 
+          description: `CREDITED ${amount} COINS TO WARRIOR: ${targetId}` 
+        });
         setQuickUid('');
+      })
+      .catch(() => {
+        toast({ variant: "destructive", title: "INJECTION SIGNAL FAILED" });
       })
       .finally(() => setIsProcessing(false));
   };
@@ -164,10 +174,13 @@ export default function AdminDashboard() {
     setSavingSection(section);
     setDoc(settingsRef, updates, { merge: true })
       .then(() => {
-        toast({ title: "SYSTEM UPDATED" });
+        toast({ title: "SYSTEM SETTINGS SYNCED", description: `CONFIGURATION UPDATED: ${section.toUpperCase()}` });
         setSavingSection(null);
       })
-      .catch(() => setSavingSection(null));
+      .catch(() => {
+        toast({ variant: "destructive", title: "SYNC ERROR" });
+        setSavingSection(null);
+      });
   };
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;

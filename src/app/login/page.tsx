@@ -85,10 +85,11 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email.trim(), password);
+        toast({ title: "AUTHENTICATED", description: "Identity verified. Entering hub..." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
+        toast({ title: "ENLISTED", description: "Warrior account created successfully." });
       }
-      toast({ title: "AUTHENTICATED" });
     } catch (e: any) {
       setAuthError(e.message);
       setIsLoading(false);
@@ -105,9 +106,10 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP SENT" });
+        toast({ title: "OTP TRANSMITTED", description: "Secure cipher key sent to your mobile device." });
       } else {
         await confirmationResult.confirm(otp);
+        toast({ title: "VERIFIED", description: "Mobile identity confirmed." });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -120,7 +122,7 @@ export default function LoginPage() {
      setIsLoading(true);
      try {
        await sendPasswordResetEmail(auth, email);
-       toast({ title: "RESET KEY SENT" });
+       toast({ title: "CIPHER RESET SENT", description: "Check your email for the reset key." });
        setShowReset(false);
      } catch (e: any) {
        setAuthError(e.message);

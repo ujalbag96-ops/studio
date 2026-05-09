@@ -27,13 +27,14 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-white">
         <FirebaseClientProvider>
+          {/* Toaster placed outside MaintenanceGate to ensure messages always fire */}
+          <Toaster />
           <MaintenanceGate>
             <Navbar />
             <main className="pb-20 md:pb-0 md:pt-16 min-h-screen">
               {children}
             </main>
             <SupportChat />
-            <Toaster />
           </MaintenanceGate>
         </FirebaseClientProvider>
       </body>
