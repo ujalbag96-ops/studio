@@ -20,7 +20,8 @@ import {
   Crown,
   Briefcase,
   ShieldCheck,
-  Wifi
+  Wifi,
+  Copy
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,18 +29,22 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { UserProfile, UserLedgerEntry } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import WalletModal from '@/components/WalletModal';
+import ConnectWalletModal from '@/components/ConnectWalletModal';
+import { useToast } from '@/hooks/use-toast';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
   const { auth } = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
   const [activeNav, setActiveNav] = useState('overview');
+  const [isConnectOpen, setIsConnectOpen] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
@@ -62,6 +67,13 @@ export default function UserDashboard() {
     if (auth) {
       await signOut(auth);
       router.push('/login');
+    }
+  };
+
+  const copyUid = () => {
+    if (user?.uid) {
+      navigator.clipboard.writeText(user.uid);
+      toast({ title: "System ID Copied", description: "Provide this to admin for capital injection." });
     }
   };
 
@@ -88,6 +100,8 @@ export default function UserDashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary selection:text-white">
+      <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
+      
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-10 border-b border-white/5">
           <Link href="/" className="flex items-center gap-4 group">
@@ -122,7 +136,7 @@ export default function UserDashboard() {
 
       <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-12 pb-32">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div className="flex items-center gap-3">
                <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Verified Professional</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-black uppercase tracking-widest">
@@ -130,13 +144,19 @@ export default function UserDashboard() {
                </div>
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Analytical <span className="text-primary">Portfolio</span></h1>
-            <p className="text-muted-foreground font-medium text-lg">System ID: <span className="text-white font-black">{user.email || user.phoneNumber}</span></p>
+            <div className="flex items-center gap-4">
+               <p className="text-muted-foreground font-medium text-sm">Warrior ID: <span className="text-white font-mono text-xs">{user.uid}</span></p>
+               <Button onClick={copyUid} variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5"><Copy className="h-4 w-4" /></Button>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
+            <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 hover:bg-white/10 h-16 px-8 rounded-2xl text-lg font-black italic uppercase">
+              CONNECT WALLET <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
+            </Button>
             <WalletModal>
-              <Button className="bg-white/5 border border-white/10 hover:bg-white/10 h-16 px-8 rounded-2xl text-lg font-black italic uppercase">
-                MANAGE ASSETS <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
+              <Button variant="outline" className="border-primary/20 hover:bg-primary/10 h-16 px-8 rounded-2xl text-lg font-black italic uppercase text-primary">
+                MANAGE ASSETS
               </Button>
             </WalletModal>
           </div>
@@ -244,18 +264,6 @@ export default function UserDashboard() {
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-18 rounded-[1.5rem] font-black uppercase tracking-widest text-lg shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
                   <Link href="/earning-hub">ACCESS MISSIONS</Link>
                </Button>
-            </Card>
-
-            <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-8 shadow-2xl border-l-4 border-l-secondary">
-               <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-                  <ShieldCheck className="h-5 w-5 text-secondary" />
-                  Compliance Policy
-               </h3>
-               <div className="space-y-4 text-xs font-medium text-muted-foreground leading-relaxed">
-                  <p>• Only <span className="text-white">Withdrawable Assets</span> are eligible for extraction.</p>
-                  <p>• Exchange <span className="text-amber-500 font-bold">Incentive Credits</span> with a 1.2% protocol fee.</p>
-                  <p>• Minimum extraction threshold: <span className="text-white">₹110</span>.</p>
-               </div>
             </Card>
           </aside>
         </div>
