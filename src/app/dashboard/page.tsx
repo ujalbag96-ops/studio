@@ -21,7 +21,8 @@ import {
   Briefcase,
   ShieldCheck,
   Wifi,
-  Copy
+  Copy,
+  Coins
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -162,20 +163,13 @@ export default function UserDashboard() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <WalletCard 
-            label="Investment Portfolio" 
-            value={profile?.depositBalance || 0} 
-            icon={<CreditCard />} 
-            description="Allocated capital for participation"
-            color="blue"
-          />
-          <WalletCard 
-            label="Incentive Accruals" 
-            value={profile?.taskBalance || 0} 
-            icon={<Zap />} 
-            description="Yield from analytical tasks"
-            color="amber"
+            label="Total Wallet Assets" 
+            value={profile?.coins || 0} 
+            icon={<Coins />} 
+            description="Combined analytical holdings"
+            color="primary"
           />
           <WalletCard 
             label="Withdrawable Assets" 
@@ -184,6 +178,20 @@ export default function UserDashboard() {
             description="Verified profit distributions"
             color="green"
             isWithdrawable
+          />
+          <WalletCard 
+            label="Investment Portfolio" 
+            value={profile?.depositBalance || 0} 
+            icon={<CreditCard />} 
+            description="Participation capital"
+            color="blue"
+          />
+          <WalletCard 
+            label="Incentive Accruals" 
+            value={profile?.taskBalance || 0} 
+            icon={<Zap />} 
+            description="Yield from missions"
+            color="amber"
           />
         </div>
 
@@ -298,6 +306,7 @@ function SidebarItem({ active, icon, label, onClick, href }: any) {
 
 function WalletCard({ label, value, icon, description, color, isWithdrawable }: any) {
   const colorMap = {
+    primary: "border-primary/20 text-primary bg-primary/5",
     blue: "border-blue-500/20 text-blue-400 bg-blue-500/5",
     amber: "border-amber-500/20 text-amber-500 bg-amber-500/5",
     green: "border-green-500/20 text-green-500 bg-green-500/5"
@@ -318,7 +327,7 @@ function WalletCard({ label, value, icon, description, color, isWithdrawable }: 
         <div>
           <p className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground/60 mb-2">{label}</p>
           <h4 className="text-4xl font-black text-white italic tracking-tighter tabular-nums flex items-baseline gap-2">
-            {(value || 0).toFixed(1)} <span className="text-lg opacity-40 font-bold">🪙</span>
+            {(value || 0).toLocaleString()} <span className="text-lg opacity-40 font-bold">🪙</span>
           </h4>
           <p className="text-[9px] font-bold text-muted-foreground mt-4 uppercase tracking-widest italic">{description}</p>
           {isWithdrawable && (

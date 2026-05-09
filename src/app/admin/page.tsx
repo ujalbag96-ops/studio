@@ -70,6 +70,7 @@ import TransactionReceipt from '@/components/TransactionReceipt';
 import Link from 'next/link';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -84,8 +85,7 @@ export default function AdminDashboard() {
   
   const [activeTab, setActiveTab] = useState<AdminTab>('users');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTx, setSelectedTx] = useState<UserLedgerEntry | null>(null);
-  const [balanceAdjustment, setBalanceAdjustment] = useState<{ user: UserProfile; bucket: 'depositBalance' | 'winningBalance' | 'taskBalance' } | null>(null);
+  const [balanceAdjustment, setBalanceAdjustment] = useState<{ user: UserProfile; bucket: 'depositBalance' | 'winningBalance' | 'taskBalance' | 'coins' } | null>(null);
   const [adjAmount, setAdjAmount] = useState('');
   const [sysConfig, setSysConfig] = useState<Partial<AppSettings>>({});
   const [savingSection, setSavingSection] = useState<string | null>(null);
@@ -216,8 +216,10 @@ export default function AdminDashboard() {
     const bucket = balanceAdjustment.bucket;
     updateObj[bucket] = increment(amount);
     
-    // If updating winning or task, sync total coins too
-    updateObj.coins = increment(amount);
+    // Total coins sync
+    if (bucket !== 'coins') {
+       updateObj.coins = increment(amount);
+    }
     if (bucket === 'winningBalance') updateObj.withdrawableCoins = increment(amount);
 
     const userRef = doc(firestore, 'users', balanceAdjustment.user.id);
@@ -324,7 +326,7 @@ export default function AdminDashboard() {
                       <TableRow className="border-white/5">
                         <TableHead className="text-[9px] font-black uppercase px-8">Warrior ID (UID)</TableHead>
                         <TableHead className="text-[9px] font-black uppercase">Name / Identity</TableHead>
-                        <TableHead className="text-[9px] font-black uppercase">Wallet Matrix</TableHead>
+                        <TableHead className="text-[9px] font-black uppercase">Wallet Matrix (Coins)</TableHead>
                         <TableHead className="text-[9px] font-black uppercase text-right px-8">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -346,10 +348,15 @@ export default function AdminDashboard() {
                              </div>
                           </TableCell>
                           <TableCell>
-                             <div className="flex gap-2">
-                                <Badge variant="outline" className="text-[8px] bg-blue-500/10 border-blue-500/20 text-blue-400">P: {u.depositBalance?.toFixed(1) || '0.0'}</Badge>
-                                <Badge variant="outline" className="text-[8px] bg-green-500/10 border-green-500/20 text-green-400">W: {u.winningBalance?.toFixed(1) || '0.0'}</Badge>
-                                <Badge variant="outline" className="text-[8px] bg-amber-500/10 border-amber-500/20 text-amber-400">I: {u.taskBalance?.toFixed(1) || '0.0'}</Badge>
+                             <div className="flex flex-col gap-1.5">
+                                <div className="flex gap-2">
+                                   <Badge className="text-[8px] bg-primary/20 text-primary font-black border-none">TOTAL: {(u.coins || 0).toLocaleString()} 🪙</Badge>
+                                </div>
+                                <div className="flex gap-2">
+                                   <Badge variant="outline" className="text-[8px] bg-blue-500/10 border-blue-500/20 text-blue-400">P: {u.depositBalance?.toFixed(1) || '0.0'}</Badge>
+                                   <Badge variant="outline" className="text-[8px] bg-green-500/10 border-green-500/20 text-green-400">W: {u.winningBalance?.toFixed(1) || '0.0'}</Badge>
+                                   <Badge variant="outline" className="text-[8px] bg-amber-500/10 border-amber-500/20 text-amber-400">I: {u.taskBalance?.toFixed(1) || '0.0'}</Badge>
+                                </div>
                              </div>
                           </TableCell>
                           <TableCell className="text-right px-8">
@@ -485,6 +492,9 @@ export default function AdminDashboard() {
       {balanceAdjustment && (
         <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
            <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-sm rounded-[2rem]">
+              <VisuallyHidden.Root>
+                 <DialogTitle>Capital Allocation Control</DialogTitle>
+              </VisuallyHidden.Root>
               <DialogHeader>
                  <DialogTitle className="text-lg font-black uppercase italic">Capital Allocation</DialogTitle>
               </DialogHeader>
