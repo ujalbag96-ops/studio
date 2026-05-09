@@ -2,56 +2,35 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, query, collectionGroup, addDoc, orderBy, limit, deleteDoc, increment, where, getDocs, getDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, query, addDoc, increment, where, getDocs } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
-  LayoutDashboard, 
   Users as UsersIcon, 
-  Trophy, 
   Settings, 
-  ShieldCheck, 
-  Plus,
   Loader2,
-  TrendingUp,
-  Power,
-  Coins,
-  Shield,
   Search,
-  Check,
-  Zap,
-  Bell,
-  CreditCard,
   LayoutGrid,
   Briefcase,
-  Smartphone,
-  Copy,
-  AlertTriangle,
   Target,
-  Terminal,
-  Sparkles,
-  RefreshCcw,
-  Ban
+  Terminal
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { AppSettings, UserProfile, UserLedgerEntry, Tournament, Registration } from '@/app/lib/types';
+import { AppSettings, UserProfile, Tournament, Registration } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-type AdminTab = 'users' | 'overview' | 'events' | 'payouts' | 'system';
+type AdminTab = 'users' | 'overview' | 'events' | 'system';
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
@@ -64,11 +43,8 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [balanceAdjustment, setBalanceAdjustment] = useState<{ user: UserProfile; bucket: string } | null>(null);
   const [adjAmount, setAdjAmount] = useState('');
-  const [sysConfig, setSysConfig] = useState<Partial<AppSettings>>({});
-  const [savingSection, setSavingSection] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Quick Injection State
   const [quickUid, setQuickUid] = useState('');
   const [quickAmount, setQuickAmount] = useState('500');
 
@@ -81,10 +57,6 @@ export default function AdminDashboard() {
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
-
-  useEffect(() => { 
-    if (settings) setSysConfig(prev => ({ ...prev, ...settings }));
-  }, [settings]);
 
   const handleLogout = async () => {
     if (auth) {
@@ -137,50 +109,38 @@ export default function AdminDashboard() {
   };
 
   const executeInjection = async (targetId: string, amount: number) => {
-    if (!firestore || !isAdminUser) return;
+    if (!firestore || !isAdminUser || isProcessing) return;
     setIsProcessing(true);
     
-    const userRef = doc(firestore, 'users', targetId);
-    const updates = {
-      winningBalance: increment(amount),
-      withdrawableCoins: increment(amount),
-      coins: increment(amount),
-      id: targetId
-    };
+    try {
+      const userRef = doc(firestore, 'users', targetId);
+      const updates = {
+        winningBalance: increment(amount),
+        withdrawableCoins: increment(amount),
+        coins: increment(amount),
+        id: targetId
+      };
 
-    setDoc(userRef, updates, { merge: true })
-      .then(() => {
-        addDoc(collection(firestore, 'users', targetId, 'ledger'), {
-          type: 'income',
-          amount: amount,
-          date: new Date().toISOString().split('T')[0],
-          status: 'completed',
-          description: "Administrative Capital Injection"
-        });
-        toast({ 
-          title: "INJECTION PROTOCOL SUCCESSFUL", 
-          description: `CREDITED ${amount} COINS TO WARRIOR: ${targetId}` 
-        });
-        setQuickUid('');
-      })
-      .catch(() => {
-        toast({ variant: "destructive", title: "INJECTION SIGNAL FAILED" });
-      })
-      .finally(() => setIsProcessing(false));
-  };
-
-  const saveSettings = (section: string, updates: Partial<AppSettings>) => {
-    if (!settingsRef) return;
-    setSavingSection(section);
-    setDoc(settingsRef, updates, { merge: true })
-      .then(() => {
-        toast({ title: "SYSTEM SETTINGS SYNCED", description: `CONFIGURATION UPDATED: ${section.toUpperCase()}` });
-        setSavingSection(null);
-      })
-      .catch(() => {
-        toast({ variant: "destructive", title: "SYNC ERROR" });
-        setSavingSection(null);
+      await setDoc(userRef, updates, { merge: true });
+      
+      await addDoc(collection(firestore, 'users', targetId, 'ledger'), {
+        type: 'income',
+        amount: amount,
+        date: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        description: "Administrative Capital Injection"
       });
+
+      toast({ 
+        title: "INJECTION PROTOCOL SUCCESSFUL", 
+        description: `CREDITED ${amount} COINS TO WARRIOR: ${targetId}` 
+      });
+      setQuickUid('');
+    } catch (e) {
+      toast({ variant: "destructive", title: "INJECTION SIGNAL FAILED" });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
@@ -211,7 +171,7 @@ export default function AdminDashboard() {
       <main className="flex-1 ml-72 p-10 space-y-10">
         <header className="flex items-center justify-between">
            <h1 className="text-4xl font-black uppercase italic tracking-tighter">Command <span className="text-primary">Center</span></h1>
-           <Badge className="bg-primary/20 text-primary border-none font-black text-[10px] px-4 py-1.5">PROTOCOL 7.4.2 ACTIVE</Badge>
+           <Badge className="bg-primary/20 text-primary border-none font-black text-[10px] px-4 py-1.5">PROTOCOL 7.5 ACTIVE</Badge>
         </header>
 
         {activeTab === 'users' && (
@@ -267,7 +227,7 @@ export default function AdminDashboard() {
              {tournamentsData?.map(t => (
                <Card key={t.id} className="bg-[#0a0a0f] border-white/5 p-6 rounded-[2rem] flex items-center justify-between">
                   <div className="flex items-center gap-6">
-                     <div className="h-16 w-16 rounded-2xl overflow-hidden">
+                     <div className="h-16 w-16 rounded-2xl overflow-hidden bg-white/5">
                         <img src={t.banner} className="h-full w-full object-cover" />
                      </div>
                      <div>
@@ -333,7 +293,9 @@ export default function AdminDashboard() {
                  <Input type="number" value={adjAmount} onChange={e => setAdjAmount(e.target.value)} placeholder="Volume (+/-)" className="h-14 bg-black/40 text-2xl font-black" />
               </div>
               <DialogFooter>
-                 <Button onClick={() => {executeInjection(balanceAdjustment.user.id, Number(adjAmount)); setBalanceAdjustment(null);}} className="w-full h-14 bg-primary font-black uppercase italic">EXECUTE SYNC</Button>
+                 <Button onClick={() => {executeInjection(balanceAdjustment.user.id, Number(adjAmount)); setBalanceAdjustment(null);}} disabled={isProcessing} className="w-full h-14 bg-primary font-black uppercase italic">
+                   {isProcessing ? <Loader2 className="animate-spin" /> : "EXECUTE SYNC"}
+                 </Button>
               </DialogFooter>
            </DialogContent>
         </Dialog>

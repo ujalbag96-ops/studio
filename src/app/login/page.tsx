@@ -11,15 +11,15 @@ import {
   ConfirmationResult,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc, collection, query, where, getDocs, addDoc, increment, onSnapshot } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
-import { Trophy, Loader2, ShieldAlert, Mail, Phone, Lock, Globe, ShieldCheck } from 'lucide-react';
+import { Trophy, Loader2, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -41,7 +41,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [referralCode, setReferralCode] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -92,6 +91,8 @@ export default function LoginPage() {
       }
     } catch (e: any) {
       setAuthError(e.message);
+      toast({ variant: "destructive", title: "AUTH ERROR", description: e.message });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -113,6 +114,8 @@ export default function LoginPage() {
       }
     } catch (e: any) {
       setAuthError(e.message);
+      toast({ variant: "destructive", title: "SMS ERROR", description: e.message });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -126,6 +129,7 @@ export default function LoginPage() {
        setShowReset(false);
      } catch (e: any) {
        setAuthError(e.message);
+       toast({ variant: "destructive", title: "RESET ERROR", description: e.message });
      } finally {
        setIsLoading(false);
      }
@@ -165,18 +169,24 @@ export default function LoginPage() {
                 <div className="space-y-2">
                    <div className="flex justify-between items-center">
                       <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Cipher Key</Label>
-                      <button onClick={() => setShowReset(true)} className="text-[8px] font-black uppercase text-primary">Forgot?</button>
+                      <button type="button" onClick={() => setShowReset(true)} className="text-[8px] font-black uppercase text-primary">Forgot?</button>
                    </div>
                    <Input type="password" value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl" />
                 </div>
                 <div className="flex flex-col gap-3 pt-2">
-                  <Button type="button" onClick={() => handleEmailAuth('login')} disabled={isLoading} className="h-16 bg-primary font-black uppercase italic text-lg shadow-xl shadow-primary/20">AUTHENTICATE</Button>
-                  <Button type="button" onClick={() => handleEmailAuth('signup')} disabled={isLoading} variant="outline" className="h-14 font-black uppercase text-[10px] border-white/10">ENLIST WARRIOR</Button>
+                  <Button type="button" onClick={() => handleEmailAuth('login')} disabled={isLoading} className="h-16 bg-primary font-black uppercase italic text-lg shadow-xl shadow-primary/20">
+                    {isLoading ? <Loader2 className="animate-spin" /> : "AUTHENTICATE"}
+                  </Button>
+                  <Button type="button" onClick={() => handleEmailAuth('signup')} disabled={isLoading} variant="outline" className="h-14 font-black uppercase text-[10px] border-white/10">
+                    {isLoading ? <Loader2 className="animate-spin" /> : "ENLIST WARRIOR"}
+                  </Button>
                 </div>
               </>
             ) : (
               <div className="flex flex-col gap-3 pt-2">
-                <Button type="button" onClick={handleReset} disabled={isLoading} className="h-16 bg-primary font-black uppercase italic">TRANSMIT RESET KEY</Button>
+                <Button type="button" onClick={handleReset} disabled={isLoading} className="h-16 bg-primary font-black uppercase italic">
+                  {isLoading ? <Loader2 className="animate-spin" /> : "TRANSMIT RESET KEY"}
+                </Button>
                 <Button type="button" variant="ghost" onClick={() => setShowReset(false)} className="h-10 text-[9px] font-black uppercase">Return to Terminal</Button>
               </div>
             )}

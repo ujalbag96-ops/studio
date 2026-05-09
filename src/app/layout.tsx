@@ -9,8 +9,7 @@ import Navbar from '@/components/Navbar';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import SupportChat from '@/components/SupportChat';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
 export default function RootLayout({
@@ -27,7 +26,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-white">
         <FirebaseClientProvider>
-          {/* Toaster placed outside MaintenanceGate to ensure messages always fire */}
+          {/* Toaster placed at root level to ensure visibility across all gates */}
           <Toaster />
           <MaintenanceGate>
             <Navbar />
