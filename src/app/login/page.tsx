@@ -12,7 +12,7 @@ import {
   ConfirmationResult,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs, addDoc, increment } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, addDoc, increment, onSnapshot } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,96 +83,95 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && !isUserLoading && firestore && !isRedirecting) {
-      const handleAuthFlow = async () => {
-        setIsRedirecting(true);
-        try {
-          const userDocRef = doc(firestore, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-          
-          if (userDoc.exists() && userDoc.data()?.isBanned) {
-            setAuthError("SECURITY LOCK: This device signature is blacklisted.");
-            setIsRedirecting(false);
-            return;
-          }
-
-          const userEmail = user.email?.toLowerCase().trim();
-          const isAdmin = !!userEmail && userEmail === ADMIN_EMAIL.toLowerCase().trim();
-          
-          if (isAdmin) {
-             await setDoc(userDocRef, { 
-               id: user.uid,
-               isAdmin: true,
-               email: ADMIN_EMAIL,
-               lastActive: new Date().toISOString(),
-               deviceId: getDeviceId(),
-               country: detectedCountry,
-               // Initialize admin with basic fields if missing
-               winningBalance: userDoc.exists() ? (userDoc.data().winningBalance || 0) : 0,
-               depositBalance: userDoc.exists() ? (userDoc.data().depositBalance || 0) : 0,
-               taskBalance: userDoc.exists() ? (userDoc.data().taskBalance || 0) : 0,
-               coins: userDoc.exists() ? (userDoc.data().coins || 0) : 0,
-               withdrawableCoins: userDoc.exists() ? (userDoc.data().withdrawableCoins || 0) : 0,
-             }, { merge: true });
-             router.push('/admin');
-          } else {
-             if (!userDoc.exists()) {
-               let referredById = '';
-               if (referralCode.trim()) {
-                 const refQuery = query(collection(firestore, 'users'), where('referralCode', '==', referralCode.trim()));
-                 const refSnap = await getDocs(refQuery);
-                 if (!refSnap.empty) {
-                   const referrerDoc = refSnap.docs[0];
-                   referredById = referrerDoc.id;
-                   const settingsSnap = await getDoc(doc(firestore, 'settings', 'global'));
-                   const reward = settingsSnap.exists() ? (settingsSnap.data().referralRewardCoins || 10) : 10;
-                   await setDoc(doc(firestore, 'users', referrerDoc.id), {
-                     coins: increment(reward),
-                     winningBalance: increment(reward),
-                     withdrawableCoins: increment(reward)
-                   }, { merge: true });
-                   await addDoc(collection(firestore, 'users', referrerDoc.id, 'ledger'), {
-                     type: 'referral',
-                     amount: reward,
-                     date: new Date().toISOString().split('T')[0],
-                     status: 'completed',
-                     description: `Referral Protocol: Reward for enlisting new warrior.`
-                   });
-                 }
-               }
-
-               await setDoc(userDocRef, {
-                 id: user.uid,
-                 email: user.email || '',
-                 mobile: user.phoneNumber || '',
-                 coins: 0,
-                 winningBalance: 0,
-                 depositBalance: 0,
-                 taskBalance: 0,
-                 withdrawableCoins: 0,
-                 isAdmin: false,
-                 isBanned: false,
-                 isVpnActive: isVpn,
-                 rank: 'Bronze',
-                 xp: 0,
-                 tasksCompletedToday: 0,
-                 deviceId: getDeviceId(),
-                 country: detectedCountry,
-                 referralCode: generateReferralCode(),
-                 referredBy: referredById,
-                 joinedAt: new Date().toISOString()
-               });
-             } else {
-               await setDoc(userDocRef, { lastActive: new Date().toISOString(), isVpnActive: isVpn }, { merge: true });
-             }
-             router.push('/dashboard');
-          }
-        } catch (err) {
+      setIsRedirecting(true);
+      const userDocRef = doc(firestore, 'users', user.uid);
+      
+      const unsubscribe = onSnapshot(userDocRef, async (userSnap) => {
+        if (userSnap.exists() && userSnap.data()?.isBanned) {
+          setAuthError("SECURITY LOCK: This device signature is blacklisted.");
           setIsRedirecting(false);
+          return;
         }
-      };
-      handleAuthFlow();
+
+        const userEmail = user.email?.toLowerCase().trim();
+        const isAdmin = !!userEmail && userEmail === ADMIN_EMAIL.toLowerCase().trim();
+        
+        if (isAdmin) {
+          await setDoc(userDocRef, { 
+            id: user.uid,
+            isAdmin: true,
+            email: ADMIN_EMAIL,
+            lastActive: new Date().toISOString(),
+            deviceId: getDeviceId(),
+            country: detectedCountry,
+            winningBalance: userSnap.exists() ? (userSnap.data().winningBalance || 0) : 0,
+            depositBalance: userSnap.exists() ? (userSnap.data().depositBalance || 0) : 0,
+            taskBalance: userSnap.exists() ? (userSnap.data().taskBalance || 0) : 0,
+            coins: userSnap.exists() ? (userSnap.data().coins || 0) : 0,
+            withdrawableCoins: userSnap.exists() ? (userSnap.data().withdrawableCoins || 0) : 0,
+          }, { merge: true });
+          router.push('/admin');
+          unsubscribe();
+        } else {
+          if (!userSnap.exists()) {
+            let referredById = '';
+            if (referralCode.trim()) {
+              const refQuery = query(collection(firestore, 'users'), where('referralCode', '==', referralCode.trim()));
+              const refSnap = await getDocs(refQuery);
+              if (!refSnap.empty) {
+                const referrerDoc = refSnap.docs[0];
+                referredById = referrerDoc.id;
+                
+                await setDoc(doc(firestore, 'users', referrerDoc.id), {
+                  coins: increment(10),
+                  winningBalance: increment(10),
+                  withdrawableCoins: increment(10)
+                }, { merge: true });
+                
+                await addDoc(collection(firestore, 'users', referrerDoc.id, 'ledger'), {
+                  type: 'referral',
+                  amount: 10,
+                  date: new Date().toISOString().split('T')[0],
+                  status: 'completed',
+                  description: `Referral Protocol: Reward for enlisting new warrior.`
+                });
+              }
+            }
+
+            await setDoc(userDocRef, {
+              id: user.uid,
+              email: user.email || '',
+              mobile: user.phoneNumber || '',
+              coins: 0,
+              winningBalance: 0,
+              depositBalance: 0,
+              taskBalance: 0,
+              withdrawableCoins: 0,
+              isAdmin: false,
+              isBanned: false,
+              isVpnActive: isVpn,
+              rank: 'Bronze',
+              xp: 0,
+              tasksCompletedToday: 0,
+              deviceId: getDeviceId(),
+              country: detectedCountry,
+              referralCode: generateReferralCode(),
+              referredBy: referredById,
+              joinedAt: new Date().toISOString()
+            });
+            router.push('/dashboard');
+            unsubscribe();
+          } else {
+            await setDoc(userDocRef, { lastActive: new Date().toISOString(), isVpnActive: isVpn }, { merge: true });
+            router.push('/dashboard');
+            unsubscribe();
+          }
+        }
+      });
+
+      return () => unsubscribe();
     }
-  }, [user, isUserLoading, router, firestore, isRedirecting, detectedCountry, isVpn]);
+  }, [user, isUserLoading, router, firestore, isRedirecting, detectedCountry, isVpn, referralCode]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
     setIsLoading(true);

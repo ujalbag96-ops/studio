@@ -8,6 +8,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { UserLedgerEntry } from '@/app/lib/types';
 import { 
   CheckCircle2, 
@@ -41,8 +42,10 @@ export default function TransactionReceipt({ transaction, onClose }: Transaction
   return (
     <Dialog open={!!transaction} onOpenChange={onClose}>
       <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-sm rounded-[2.5rem] p-0 overflow-hidden">
+        <VisuallyHidden.Root>
+          <DialogTitle>Transaction Receipt Details</DialogTitle>
+        </VisuallyHidden.Root>
         <div className="relative p-8 space-y-6">
-          {/* Receipt Header Decoration */}
           <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
           
           <div className="relative z-10 flex flex-col items-center text-center space-y-4 pt-4">
@@ -62,7 +65,6 @@ export default function TransactionReceipt({ transaction, onClose }: Transaction
           </div>
 
           <div className="space-y-6 pt-4">
-             {/* Amount Section */}
              <div className="text-center py-6 border-y border-white/5 space-y-1">
                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Amount Transferred</p>
                 <h2 className={cn(
@@ -76,7 +78,6 @@ export default function TransactionReceipt({ transaction, onClose }: Transaction
                 </Badge>
              </div>
 
-             {/* Details Grid */}
              <div className="grid gap-4">
                 <DetailRow label="Status" value={
                   <span className={cn(
@@ -93,7 +94,6 @@ export default function TransactionReceipt({ transaction, onClose }: Transaction
              </div>
           </div>
 
-          {/* Action Footer */}
           <div className="flex gap-3 pt-4">
              <Button variant="outline" className="flex-1 rounded-xl border-white/10 h-12 text-[10px] font-black uppercase tracking-widest hover:bg-white/5">
                 <Download className="h-3 w-3 mr-2" /> Save

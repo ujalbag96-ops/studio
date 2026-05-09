@@ -9,10 +9,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { Button } from '@/components/ui/button';
 import { Wallet, ArrowUpRight, Plus, CreditCard, Trophy, Zap, RefreshCcw, Loader2, Crown, Globe } from 'lucide-react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, increment, addDoc, getDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
 import { UserProfile, AppSettings } from '@/app/lib/types';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -70,7 +71,6 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
     const fee = amount * tierFee;
     const netAmount = amount - fee;
 
-    // RACE CONDITION GUARD: Logical Firestore updates
     const updateData = {
       taskBalance: increment(-amount),
       winningBalance: increment(netAmount),
@@ -118,7 +118,10 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] overflow-hidden p-0">
+      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-md rounded-[2.5rem] overflow-hidden p-0">
+        <VisuallyHidden.Root>
+          <DialogTitle>Analytical Vault Management</DialogTitle>
+        </VisuallyHidden.Root>
         <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
         
         <div className="relative z-10 p-8 space-y-10">
