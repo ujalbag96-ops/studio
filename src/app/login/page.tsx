@@ -58,6 +58,9 @@ export default function LoginPage() {
           router.push('/admin');
         } else {
           if (!snap.exists()) {
+             // Generate a simple 6-char referral code
+             const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+             
              setDoc(userDocRef, {
                 id: user.uid,
                 email: user.email || '',
@@ -67,9 +70,13 @@ export default function LoginPage() {
                 taskBalance: 0,
                 withdrawableCoins: 0,
                 rank: 'Bronze',
+                referralCode: randomCode,
                 joinedAt: new Date().toISOString()
              }, { merge: true }).then(() => {
                toast({ title: "Welcome!", description: "Account created successfully." });
+               router.push('/dashboard');
+             }).catch((e) => {
+               console.error("Initialization error", e);
                router.push('/dashboard');
              });
           } else {
@@ -95,7 +102,7 @@ export default function LoginPage() {
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Auth Error", description: e.message });
+      toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -202,7 +209,7 @@ export default function LoginPage() {
               </>
             ) : (
               <div className="flex flex-col gap-3 pt-2">
-                <Button type="button" onClick={handleReset} disabled={isLoading} className="h-16 bg-primary font-black uppercase">
+                <Button type="button" handleReset={handleReset} disabled={isLoading} className="h-16 bg-primary font-black uppercase">
                   {isLoading ? <Loader2 className="animate-spin" /> : "Send Reset Link"}
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => setShowReset(false)} className="h-10 text-[10px] font-black uppercase">Back to Login</Button>
