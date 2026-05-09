@@ -20,7 +20,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
-import { getCurrencyData } from '@/lib/currency';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -50,7 +49,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   const telegramUrl = settings?.telegramUrl || 'https://t.me/bracketbattles_support';
 
   const handleManualTopup = () => {
-    const message = encodeURIComponent(`Executive Support: Manual Capital Allocation Request. User: ${user?.email || user?.uid}`);
+    const message = encodeURIComponent(`I want to add cash to my account. Email: ${user?.email || user?.uid}`);
     window.open(`${telegramUrl}?text=${message}`, '_blank');
   };
 
@@ -58,11 +57,11 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
     const amount = parseFloat(convertAmount);
     if (!user || !firestore || !userProfileRef || !profile) return;
     if (isNaN(amount) || amount <= 0) {
-      toast({ variant: "destructive", title: "Invalid Analytical Volume" });
+      toast({ variant: "destructive", title: "Invalid Amount" });
       return;
     }
     if (amount > taskBal) {
-      toast({ variant: "destructive", title: "Insufficient Incentive Pool" });
+      toast({ variant: "destructive", title: "Not enough bonus coins" });
       return;
     }
 
@@ -89,7 +88,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
       amount: netAmount,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Protocol Conversion: ${(tierFee * 100).toFixed(1)}% Operational Fee`
+      description: `Converted Bonus to Cash`
     };
 
     addDoc(collection(firestore, 'users', user.uid, 'ledger'), ledgerData).catch(async (err) => {
@@ -100,7 +99,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
       }));
     });
 
-    toast({ title: "Asset Synchronization Complete", description: `${netAmount.toFixed(1)} credits allocated to Withdrawable Assets.` });
+    toast({ title: "Success", description: "Converted to winning balance." });
     setConvertAmount('');
     setIsConverting(false);
   };
@@ -117,58 +116,56 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-md rounded-[2.5rem] overflow-hidden p-0">
+      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-md rounded-2xl overflow-hidden p-0">
         <VisuallyHidden.Root>
-          <DialogTitle>Analytical Vault Management</DialogTitle>
+          <DialogTitle>My Wallet</DialogTitle>
         </VisuallyHidden.Root>
-        <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
         
         <div className="relative z-10 p-8 space-y-10">
           <div className="flex items-center justify-between">
              <div className="flex items-center gap-3">
-               <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/40 rotate-3">
-                 <Wallet className="h-8 w-8 text-white" />
+               <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
+                 <Wallet className="h-6 w-6 text-white" />
                </div>
                <div>
-                 <h2 className="text-2xl font-black uppercase tracking-tighter italic">Analytical Vault</h2>
+                 <h2 className="text-2xl font-black uppercase italic">My Wallet</h2>
                  <div className="flex items-center gap-2">
-                    <Globe className="h-3 w-3 text-green-500" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{profile?.country || 'Global'} Sector Active</span>
+                    <span className="text-[10px] font-bold uppercase text-muted-foreground">Secure Payments</span>
                  </div>
                </div>
              </div>
              <div className="text-right">
-                <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-1">Compliance Tier</p>
-                <div className="flex items-center gap-1.5 text-amber-500 font-black text-sm italic">
+                <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Rank</p>
+                <div className="flex items-center gap-1.5 text-amber-500 font-bold text-sm italic">
                    <Crown className="h-3 w-3" /> {profile?.rank || 'Bronze'}
                 </div>
              </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-             <BalanceRow label="PORTFOLIO" value={depositBal} color="blue" icon={<CreditCard className="h-3 w-3" />} />
-             <BalanceRow label="INCENTIVE" value={taskBal} color="amber" icon={<Zap className="h-3 w-3" />} />
-             <BalanceRow label="WITHDRAWABLE" value={winningBal} color="green" icon={<Trophy className="h-3 w-3" />} />
+             <BalanceRow label="DEPOSIT" value={depositBal} color="blue" icon={<CreditCard className="h-3 w-3" />} />
+             <BalanceRow label="BONUS" value={taskBal} color="amber" icon={<Zap className="h-3 w-3" />} />
+             <BalanceRow label="WINNINGS" value={winningBal} color="green" icon={<Trophy className="h-3 w-3" />} />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-             <Button onClick={handleManualTopup} className="bg-primary hover:bg-primary/90 h-20 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/20 italic">
-                <Plus className="h-4 w-4 mr-2" /> ALLOCATE CAPITAL
+             <Button onClick={handleManualTopup} className="bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase text-xs">
+                <Plus className="h-4 w-4 mr-2" /> Add Cash
              </Button>
-             <Button asChild className="bg-[#121216] border border-white/10 hover:bg-white/5 h-20 rounded-2xl font-black uppercase tracking-widest text-xs italic">
+             <Button asChild className="bg-[#121216] border border-white/10 hover:bg-white/5 h-16 rounded-xl font-black uppercase text-xs">
                 <Link href="/withdraw" className="flex items-center justify-center">
-                   EXTRACT ASSETS <ArrowUpRight className="h-4 w-4 ml-2" />
+                   Withdraw <ArrowUpRight className="h-4 w-4 ml-2" />
                 </Link>
              </Button>
           </div>
 
-          <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 space-y-6">
+          <div className="bg-white/5 border border-white/5 rounded-2xl p-6 space-y-6">
              <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                   <h4 className="text-xs font-black uppercase tracking-widest italic flex items-center gap-2">
-                      <RefreshCcw className="h-4 w-4 text-amber-500" /> Synchronization Protocol
+                   <h4 className="text-xs font-bold uppercase italic flex items-center gap-2">
+                      <RefreshCcw className="h-4 w-4 text-amber-500" /> Convert Bonus
                    </h4>
-                   <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest italic">Consolidate Incentive Pool to withdrawable assets</p>
+                   <p className="text-[10px] text-muted-foreground font-bold uppercase italic">Transfer bonus coins to winnings</p>
                 </div>
                 <Badge className="bg-amber-500 text-black text-[9px] font-black border-none px-3 py-1 uppercase">{(tierFee * 100).toFixed(1)}% FEE</Badge>
              </div>
@@ -177,19 +174,19 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                 <div className="flex-1 relative">
                    <Input 
                     type="number" 
-                    placeholder="Volume..." 
+                    placeholder="Amount..." 
                     value={convertAmount}
                     onChange={(e) => setConvertAmount(e.target.value)}
-                    className="bg-black/40 border-white/10 h-16 rounded-2xl text-lg font-black focus:ring-amber-500 pl-12 text-white"
+                    className="bg-black border-white/10 h-14 rounded-xl text-lg font-black focus:ring-amber-500 pl-10"
                    />
-                   <Zap className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-500 opacity-40" />
+                   <Zap className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-500 opacity-40" />
                 </div>
                 <Button 
                   onClick={handleConvertTasks}
                   disabled={isConverting || !convertAmount}
-                  className="bg-amber-500 hover:bg-amber-600 text-black h-16 px-10 rounded-2xl font-black text-xs uppercase shadow-xl"
+                  className="bg-amber-500 hover:bg-amber-600 text-black h-14 px-8 rounded-xl font-black text-xs uppercase"
                 >
-                  {isConverting ? <Loader2 className="animate-spin h-5 w-5" /> : "SYNCHRONIZE"}
+                  {isConverting ? <Loader2 className="animate-spin h-5 w-5" /> : "Convert"}
                 </Button>
              </div>
           </div>
@@ -207,11 +204,11 @@ function BalanceRow({ label, value, color, icon }: any) {
   };
 
   return (
-    <div className={cn("p-4 rounded-2xl border text-center space-y-1.5 backdrop-blur-3xl", colorMap[color as keyof typeof colorMap])}>
-       <p className="text-[8px] font-black uppercase opacity-60 flex items-center justify-center gap-1.5">
+    <div className={cn("p-4 rounded-xl border text-center space-y-1", colorMap[color as keyof typeof colorMap])}>
+       <p className="text-[8px] font-bold uppercase opacity-60 flex items-center justify-center gap-1">
           {icon} {label}
        </p>
-       <h3 className="text-xl font-black tracking-tighter tabular-nums">{value.toFixed(1)}</h3>
+       <h3 className="text-lg font-black tabular-nums">{value.toFixed(1)}</h3>
     </div>
   );
 }

@@ -26,7 +26,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-white">
         <FirebaseClientProvider>
-          {/* Toaster placed at root level to ensure visibility across all gates */}
+          {/* Notifications globally available */}
           <Toaster />
           <MaintenanceGate>
             <Navbar />
@@ -58,10 +58,10 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
            <ShieldAlert className="h-12 w-12 text-primary" />
         </div>
         <div className="space-y-2">
-           <h1 className="text-5xl font-black uppercase italic tracking-tighter">System Offline</h1>
-           <p className="text-muted-foreground font-medium text-lg uppercase tracking-widest">Scheduled Infrastructure Optimization in Progress</p>
+           <h1 className="text-5xl font-black uppercase italic tracking-tighter text-white">Maintenance</h1>
+           <p className="text-muted-foreground font-medium text-lg uppercase tracking-widest">App is being updated</p>
         </div>
-        <p className="text-xs text-muted-foreground max-w-sm font-bold uppercase opacity-50">Operational services will resume shortly. We appreciate your institutional patience.</p>
+        <p className="text-xs text-muted-foreground max-w-sm font-bold uppercase opacity-50">Please wait while we improve your experience.</p>
       </div>
     );
   }
