@@ -77,7 +77,6 @@ export default function LoginPage() {
   };
 
   const generateReferralCode = () => {
-    // START FROM 74426 as requested
     const suffix = Math.floor(1000 + Math.random() * 9000);
     return `74426${suffix}`;
   };
@@ -106,7 +105,13 @@ export default function LoginPage() {
                email: ADMIN_EMAIL,
                lastActive: new Date().toISOString(),
                deviceId: getDeviceId(),
-               country: detectedCountry
+               country: detectedCountry,
+               // Initialize admin with basic fields if missing
+               winningBalance: userDoc.exists() ? (userDoc.data().winningBalance || 0) : 0,
+               depositBalance: userDoc.exists() ? (userDoc.data().depositBalance || 0) : 0,
+               taskBalance: userDoc.exists() ? (userDoc.data().taskBalance || 0) : 0,
+               coins: userDoc.exists() ? (userDoc.data().coins || 0) : 0,
+               withdrawableCoins: userDoc.exists() ? (userDoc.data().withdrawableCoins || 0) : 0,
              }, { merge: true });
              router.push('/admin');
           } else {
@@ -118,15 +123,13 @@ export default function LoginPage() {
                  if (!refSnap.empty) {
                    const referrerDoc = refSnap.docs[0];
                    referredById = referrerDoc.id;
-
                    const settingsSnap = await getDoc(doc(firestore, 'settings', 'global'));
                    const reward = settingsSnap.exists() ? (settingsSnap.data().referralRewardCoins || 10) : 10;
-
                    await setDoc(doc(firestore, 'users', referrerDoc.id), {
                      coins: increment(reward),
-                     winningBalance: increment(reward)
+                     winningBalance: increment(reward),
+                     withdrawableCoins: increment(reward)
                    }, { merge: true });
-
                    await addDoc(collection(firestore, 'users', referrerDoc.id, 'ledger'), {
                      type: 'referral',
                      amount: reward,
@@ -238,12 +241,6 @@ export default function LoginPage() {
         </div>
         <h1 className="text-3xl font-black uppercase tracking-tighter italic">Arena <span className="text-primary">Access</span></h1>
         <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Enlist to Enter the Combat Sector</p>
-        <div className="flex items-center justify-center gap-2 mt-2">
-           <Badge variant="outline" className="border-white/10 px-4 py-1.5 opacity-60">
-              <Globe className="h-3 w-3 mr-2" /> {detectedCountry} HUB
-           </Badge>
-           {isVpn && <Badge className="bg-red-500/20 text-red-500 border-none">VPN DETECTED</Badge>}
-        </div>
       </div>
 
       {authError && (
@@ -293,7 +290,7 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  <Button onClick={() => handleEmailAuth('login')} disabled={isLoading} className="h-16 font-black rounded-xl bg-primary shadow-xl shadow-primary/20 text-lg uppercase italic italic">AUTHENTICATE</Button>
+                  <Button onClick={() => handleEmailAuth('login')} disabled={isLoading} className="h-16 font-black rounded-xl bg-primary shadow-xl shadow-primary/20 text-lg uppercase italic">AUTHENTICATE</Button>
                   <Button variant="outline" onClick={() => handleEmailAuth('signup')} disabled={isLoading} className="h-14 font-black rounded-xl border-white/10 hover:bg-white/5 uppercase text-[10px] tracking-widest">ENLIST NEW WARRIOR</Button>
                 </>
               )}

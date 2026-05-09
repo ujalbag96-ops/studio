@@ -131,7 +131,6 @@ export default function AdminDashboard() {
     const userRef = doc(firestore, 'users', targetId);
     
     // CRITICAL: Synchronize all balance counters for 100% visibility
-    // Using setDoc with merge: true to ensure real-time connection works even if doc is partially initialized
     const updates = {
       winningBalance: increment(amountValue),
       withdrawableCoins: increment(amountValue),
@@ -143,6 +142,7 @@ export default function AdminDashboard() {
       .then(() => {
         const ledgerRef = collection(firestore, 'users', targetId, 'ledger');
         const ledgerData = {
+          userId: targetId,
           type: 'income',
           amount: amountValue,
           date: new Date().toISOString().split('T')[0],
@@ -211,7 +211,35 @@ export default function AdminDashboard() {
     if (!balanceAdjustment || !firestore || !adjAmount) return;
     const amount = parseFloat(adjAmount);
     if (isNaN(amount)) return;
-    executeInjection(balanceAdjustment.user.id, amount, `Manual Adjustment: ${balanceAdjustment.bucket.toUpperCase()}`);
+    
+    let updateObj: any = {};
+    const bucket = balanceAdjustment.bucket;
+    updateObj[bucket] = increment(amount);
+    
+    // If updating winning or task, sync total coins too
+    updateObj.coins = increment(amount);
+    if (bucket === 'winningBalance') updateObj.withdrawableCoins = increment(amount);
+
+    const userRef = doc(firestore, 'users', balanceAdjustment.user.id);
+    setDoc(userRef, updateObj, { merge: true })
+      .then(() => {
+        addDoc(collection(firestore, 'users', balanceAdjustment.user.id, 'ledger'), {
+          type: 'income',
+          amount: amount,
+          date: new Date().toISOString().split('T')[0],
+          status: 'completed',
+          description: `Admin Manual Adjustment: ${bucket}`
+        });
+        toast({ title: "BALANCE ADJUSTED" });
+      })
+      .catch(e => {
+         errorEmitter.emit('permission-error', new FirestorePermissionError({
+           path: userRef.path,
+           operation: 'update',
+           requestResourceData: updateObj
+         }));
+      });
+      
     setBalanceAdjustment(null);
     setAdjAmount('');
   };
@@ -255,7 +283,6 @@ export default function AdminDashboard() {
           <SidebarLink active={activeTab === 'overview'} icon={<LayoutGrid className="h-4 w-4" />} label="SYSTEM DASHBOARD" onClick={() => setActiveTab('overview')} />
           <SidebarLink active={activeTab === 'events'} icon={<Trophy className="h-4 w-4" />} label="ARENA MANAGEMENT" onClick={() => setActiveTab('events')} />
           <SidebarLink active={activeTab === 'payouts'} icon={<TrendingUp className="h-4 w-4" />} label="PAYMENT GATEWAY" onClick={() => setActiveTab('payouts')} />
-          <SidebarLink active={activeTab === 'security'} icon={<ShieldCheck className="h-4 w-4" />} label="SECURITY CENTER" onClick={() => setActiveTab('security')} />
           <SidebarLink active={activeTab === 'adhub'} icon={<Zap className="h-4 w-4" />} label="AD & REVENUE HUB" onClick={() => setActiveTab('adhub')} />
           <SidebarLink active={activeTab === 'system'} icon={<Settings className="h-4 w-4" />} label="SYSTEM SETTINGS" onClick={() => setActiveTab('system')} />
         </nav>
@@ -282,7 +309,6 @@ export default function AdminDashboard() {
         </header>
 
         <div className="p-10 space-y-10">
-          {/* TAB: USERS */}
           {activeTab === 'users' && (
             <div className="animate-in fade-in duration-500 space-y-10">
                <div className="flex items-center justify-between">
@@ -321,9 +347,9 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell>
                              <div className="flex gap-2">
-                                <Badge variant="outline" className="text-[8px] bg-blue-500/10 border-blue-500/20 text-blue-400">P: {u.depositBalance?.toFixed(1)}</Badge>
-                                <Badge variant="outline" className="text-[8px] bg-green-500/10 border-green-500/20 text-green-400">W: {u.winningBalance?.toFixed(1)}</Badge>
-                                <Badge variant="outline" className="text-[8px] bg-amber-500/10 border-amber-500/20 text-amber-400">I: {u.taskBalance?.toFixed(1)}</Badge>
+                                <Badge variant="outline" className="text-[8px] bg-blue-500/10 border-blue-500/20 text-blue-400">P: {u.depositBalance?.toFixed(1) || '0.0'}</Badge>
+                                <Badge variant="outline" className="text-[8px] bg-green-500/10 border-green-500/20 text-green-400">W: {u.winningBalance?.toFixed(1) || '0.0'}</Badge>
+                                <Badge variant="outline" className="text-[8px] bg-amber-500/10 border-amber-500/20 text-amber-400">I: {u.taskBalance?.toFixed(1) || '0.0'}</Badge>
                              </div>
                           </TableCell>
                           <TableCell className="text-right px-8">
@@ -337,7 +363,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* TAB: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-10 animate-in fade-in duration-500">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -409,7 +434,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* TAB: AD HUB */}
           {activeTab === 'adhub' && (
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-right-5 duration-500">
                 <ConfigCard title="CPA Lead Integration" description="Manage tactical analytical missions." icon={<Globe />} lastUpdated={sysConfig.lastUpdated}>
@@ -458,7 +482,6 @@ export default function AdminDashboard() {
         </div>
       </main>
 
-      {/* MODAL: BALANCE ADJUSTMENT */}
       {balanceAdjustment && (
         <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
            <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-sm rounded-[2rem]">
