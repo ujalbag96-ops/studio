@@ -49,44 +49,38 @@ export default function LoginPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showReset, setShowReset] = useState(false);
 
+  // Real-time redirect logic
   useEffect(() => {
     if (user && !isUserLoading && firestore) {
+      const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      if (isAdmin) {
+        router.push('/admin');
+        return;
+      }
+
       const userDocRef = doc(firestore, 'users', user.uid);
       const unsubscribe = onSnapshot(userDocRef, (snap) => {
-        const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-        if (isAdmin) {
-          router.push('/admin');
+        if (!snap.exists()) {
+          const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+          setDoc(userDocRef, {
+            id: user.uid,
+            email: user.email || '',
+            coins: 0,
+            winningBalance: 0,
+            depositBalance: 0,
+            taskBalance: 0,
+            withdrawableCoins: 0,
+            rank: 'Bronze',
+            referralCode: randomCode,
+            joinedAt: new Date().toISOString()
+          }, { merge: true });
         } else {
-          if (!snap.exists()) {
-             // Generate a simple 6-char referral code
-             const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-             
-             setDoc(userDocRef, {
-                id: user.uid,
-                email: user.email || '',
-                coins: 0,
-                winningBalance: 0,
-                depositBalance: 0,
-                taskBalance: 0,
-                withdrawableCoins: 0,
-                rank: 'Bronze',
-                referralCode: randomCode,
-                joinedAt: new Date().toISOString()
-             }, { merge: true }).then(() => {
-               toast({ title: "Welcome!", description: "Account created successfully." });
-               router.push('/dashboard');
-             }).catch((e) => {
-               console.error("Initialization error", e);
-               router.push('/dashboard');
-             });
-          } else {
-            router.push('/dashboard');
-          }
+          router.push('/dashboard');
         }
       });
       return () => unsubscribe();
     }
-  }, [user, isUserLoading, firestore, router, toast]);
+  }, [user, isUserLoading, firestore, router]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
     if (!auth) return;
@@ -95,10 +89,10 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Success", description: "Logged in successfully." });
+        toast({ title: "Login Successful", description: "Dashboard par bheja ja raha hai..." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Success", description: "Registered successfully." });
+        toast({ title: "Registration Successful", description: "Aapka account ban gaya hai!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -118,10 +112,10 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Sent", description: "Verification code sent to your phone." });
+        toast({ title: "OTP Bheja Gaya", description: "Apna SMS check karein." });
       } else {
         await confirmationResult.confirm(otp);
-        toast({ title: "Verified", description: "Logged in successfully." });
+        toast({ title: "Verified", description: "Login ho gaya!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -132,11 +126,14 @@ export default function LoginPage() {
   };
 
   const handleReset = async () => {
-     if (!auth || !email) return;
+     if (!auth || !email) {
+       toast({ variant: "destructive", title: "Input Required", description: "Pehle email enter karein." });
+       return;
+     }
      setIsLoading(true);
      try {
-       await sendPasswordResetEmail(auth, email);
-       toast({ title: "Reset Link Sent", description: "Check your email for password reset link." });
+       await sendPasswordResetEmail(auth, email.trim());
+       toast({ title: "Reset Link Bheja Gaya", description: "Apna email check karein." });
        setShowReset(false);
      } catch (e: any) {
        setAuthError(e.message);
@@ -146,102 +143,151 @@ export default function LoginPage() {
      }
   };
 
-  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin text-primary" /></div>;
+  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin text-primary h-12 w-12" /></div>;
 
   return (
-    <div className="max-w-md mx-auto p-4 pt-12 space-y-8">
+    <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-500">
       <div className="text-center space-y-3">
-        <Trophy className="h-16 w-16 text-primary mx-auto" />
-        <h1 className="text-3xl font-black uppercase italic">Game <span className="text-primary">Login</span></h1>
+        <div className="h-20 w-20 bg-primary/20 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl">
+          <Trophy className="h-10 w-10 text-primary" />
+        </div>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Login <span className="text-primary">Karein</span></h1>
+        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Kheliye aur Jeetiye Asli Cash</p>
       </div>
 
       {authError && (
-        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-xl">
+        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="text-[10px] font-black uppercase">Error</AlertTitle>
+          <AlertTitle className="text-[10px] font-black uppercase">Authentication Error</AlertTitle>
           <AlertDescription className="text-xs font-bold">{authError}</AlertDescription>
         </Alert>
       )}
 
       <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid grid-cols-2 h-12 bg-muted/20 p-1 rounded-xl">
-          <TabsTrigger value="email" className="font-bold text-[10px] uppercase">Email</TabsTrigger>
-          <TabsTrigger value="phone" className="font-bold text-[10px] uppercase">Phone</TabsTrigger>
+        <TabsList className="grid grid-cols-2 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
+          <TabsTrigger value="email" className="font-black text-[10px] uppercase data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">EMAIL</TabsTrigger>
+          <TabsTrigger value="phone" className="font-black text-[10px] uppercase data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">MOBILE</TabsTrigger>
         </TabsList>
 
         <TabsContent value="email" className="mt-6 space-y-4">
-          <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] p-8 space-y-5">
+          <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
             <div className="space-y-2">
-               <Label className="text-xs font-bold text-muted-foreground ml-1">Email Address</Label>
-               <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="example@mail.com" className="h-14 bg-black border-white/10 rounded-xl" />
+               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Email Address</Label>
+               <Input 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                placeholder="example@mail.com" 
+                className="h-14 bg-black border-white/10 rounded-xl focus:ring-primary text-sm font-bold" 
+               />
             </div>
+            
             {!showReset ? (
               <>
                 <div className="space-y-2 relative">
                    <div className="flex justify-between items-center">
-                      <Label className="text-xs font-bold text-muted-foreground ml-1">Password</Label>
-                      <button type="button" onClick={() => setShowReset(true)} className="text-[10px] font-bold text-primary">Forgot?</button>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Password</Label>
+                      <button type="button" onClick={() => setShowReset(true)} className="text-[10px] font-black text-primary uppercase hover:underline">Forgot?</button>
                    </div>
                    <div className="relative">
                       <Input 
                         type={showPassword ? "text" : "password"} 
                         value={password} 
                         onChange={e => setPassword(e.target.value)} 
-                        className="h-14 bg-black border-white/10 rounded-xl pr-12" 
+                        className="h-14 bg-black border-white/10 rounded-xl pr-12 text-sm font-bold" 
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
                       >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
                    </div>
                 </div>
-                <div className="flex flex-col gap-3 pt-2">
-                  <Button type="button" onClick={() => handleEmailAuth('login')} disabled={isLoading} className="h-16 bg-primary font-black uppercase text-lg">
-                    {isLoading ? <Loader2 className="animate-spin" /> : "Login"}
+                <div className="flex flex-col gap-3 pt-4">
+                  <Button 
+                    type="button" 
+                    onClick={() => handleEmailAuth('login')} 
+                    disabled={isLoading} 
+                    className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "LOGIN"}
                   </Button>
-                  <Button type="button" onClick={() => handleEmailAuth('signup')} disabled={isLoading} variant="outline" className="h-14 font-black uppercase text-xs">
-                    {isLoading ? <Loader2 className="animate-spin" /> : "Sign Up"}
+                  <Button 
+                    type="button" 
+                    onClick={() => handleEmailAuth('signup')} 
+                    disabled={isLoading} 
+                    variant="outline" 
+                    className="h-14 border-white/10 hover:bg-white/5 font-black uppercase text-[10px] tracking-widest rounded-xl"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "SIGN UP (NAYA ACCOUNT)"}
                   </Button>
                 </div>
               </>
             ) : (
-              <div className="flex flex-col gap-3 pt-2">
-                <Button type="button" handleReset={handleReset} disabled={isLoading} className="h-16 bg-primary font-black uppercase">
-                  {isLoading ? <Loader2 className="animate-spin" /> : "Send Reset Link"}
+              <div className="flex flex-col gap-3 pt-4">
+                <Button 
+                  type="button" 
+                  onClick={handleReset} 
+                  disabled={isLoading} 
+                  className="h-16 bg-primary font-black uppercase text-sm italic"
+                >
+                  {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "SEND RESET LINK"}
                 </Button>
-                <Button type="button" variant="ghost" onClick={() => setShowReset(false)} className="h-10 text-[10px] font-black uppercase">Back to Login</Button>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={() => setShowReset(false)} 
+                  className="h-12 text-[10px] font-black uppercase text-muted-foreground"
+                >
+                  BACK TO LOGIN
+                </Button>
               </div>
             )}
           </Card>
         </TabsContent>
 
         <TabsContent value="phone" className="mt-6">
-           <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] p-8 space-y-4">
+           <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
               <div id="recaptcha-container"></div>
               {!confirmationResult ? (
                 <div className="space-y-4">
                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground">Mobile Number</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Mobile Number</Label>
                       <div className="flex gap-2">
                          <Select value={countryCode} onValueChange={setCountryCode}>
-                            <SelectTrigger className="w-24 bg-black border-white/10 h-14"><SelectValue /></SelectTrigger>
-                            <SelectContent className="bg-black border-white/10">{COUNTRY_CODES.map(c => <SelectItem key={c.value} value={c.value}>{c.value}</SelectItem>)}</SelectContent>
+                            <SelectTrigger className="w-24 bg-black border-white/10 h-14 font-bold"><SelectValue /></SelectTrigger>
+                            <SelectContent className="bg-[#121216] border-white/10 text-white">
+                              {COUNTRY_CODES.map(c => <SelectItem key={c.value} value={c.value}>{c.value}</SelectItem>)}
+                            </SelectContent>
                          </Select>
-                         <Input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} placeholder="Phone Number" className="flex-1 h-14 bg-black border-white/10" />
+                         <Input 
+                          value={phoneNumber} 
+                          onChange={e => setPhoneNumber(e.target.value)} 
+                          placeholder="9876543210" 
+                          className="flex-1 h-14 bg-black border-white/10 font-bold text-sm" 
+                         />
                       </div>
                    </div>
                 </div>
               ) : (
                 <div className="space-y-2">
-                   <Label className="text-xs font-bold text-muted-foreground">Enter OTP</Label>
-                   <Input value={otp} onChange={e => setOtp(e.target.value)} className="h-16 bg-black border-white/10 text-center text-3xl font-black tracking-widest" />
+                   <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Enter 6-Digit OTP</Label>
+                   <Input 
+                    value={otp} 
+                    onChange={e => setOtp(e.target.value)} 
+                    maxLength={6}
+                    className="h-16 bg-black border-white/10 text-center text-3xl font-black tracking-[0.5em] focus:ring-primary" 
+                   />
                 </div>
               )}
-              <Button type="button" onClick={handlePhoneFlow} disabled={isLoading} className="w-full h-16 bg-primary font-black uppercase text-lg">
-                {isLoading ? <Loader2 className="animate-spin" /> : (!confirmationResult ? "Get OTP" : "Verify & Login")}
+              <Button 
+                type="button" 
+                onClick={handlePhoneFlow} 
+                disabled={isLoading} 
+                className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20"
+              >
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "GET OTP" : "VERIFY & LOGIN")}
               </Button>
            </Card>
         </TabsContent>

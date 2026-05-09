@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc, useAuth } from '@/firebase';
@@ -14,7 +15,9 @@ import {
   Terminal,
   LogOut,
   Copy,
-  Plus
+  Plus,
+  ArrowUpRight,
+  ShieldCheck
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -53,10 +56,8 @@ export default function AdminDashboard() {
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
-  const tournamentsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'tournaments') : null, [firestore, isAdminUser]);
   
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
-  const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
 
   const handleLogout = async () => {
     if (auth) {
@@ -68,7 +69,7 @@ export default function AdminDashboard() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "Copied!", description: "User ID copied to clipboard." });
+    toast({ title: "UID Copy Ho Gaya!", description: "Ab aap ise use kar sakte hain." });
   };
 
   const executeInjection = async (targetId: string, amount: number) => {
@@ -95,13 +96,13 @@ export default function AdminDashboard() {
       });
 
       toast({ 
-        title: "Money Added Successfully!", 
-        description: `Added ${amount} coins to User: ${targetId}` 
+        title: "Paisa Add Ho Gaya!", 
+        description: `User ${targetId} ko ${amount} coins mil gaye hain.` 
       });
       setQuickUid('');
       setBalanceAdjustment(null);
     } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to add money." });
+      toast({ variant: "destructive", title: "Error", description: "Paisa add nahi ho saka." });
     } finally {
       setIsProcessing(false);
     }
@@ -136,7 +137,10 @@ export default function AdminDashboard() {
 
       <main className="flex-1 ml-72 p-10 space-y-10">
         <header className="flex items-center justify-between">
-           <h1 className="text-4xl font-black uppercase italic">Admin <span className="text-primary">Dashboard</span></h1>
+           <div className="space-y-1">
+              <h1 className="text-4xl font-black uppercase italic">Admin <span className="text-primary">Dashboard</span></h1>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Sare users ko manage karein</p>
+           </div>
            <Badge className="bg-primary/20 text-primary border-none font-bold px-4 py-1.5 text-xs">Admin Mode Active</Badge>
         </header>
 
@@ -147,18 +151,18 @@ export default function AdminDashboard() {
                 <input 
                   value={searchQuery} 
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search by Email or Mobile..." 
+                  placeholder="Email ya User ID se search karein..." 
                   className="bg-transparent border-none outline-none flex-1 text-sm font-bold"
                 />
              </div>
 
-             <Card className="bg-[#0a0a0f] border-white/5 overflow-hidden rounded-2xl">
+             <Card className="bg-[#0a0a0f] border-white/5 overflow-hidden rounded-2xl shadow-2xl">
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase">User Info & ID</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-center">Balances</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-right">Actions</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User Info & ID</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Balances</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-right px-8">Actions</TableHead>
                       </TableRow>
                    </TableHeader>
                    <TableBody>
@@ -166,26 +170,25 @@ export default function AdminDashboard() {
                         <TableRow><TableCell colSpan={3} className="py-20 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow>
                       ) : usersData?.filter(u => 
                           u.email?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          u.mobile?.includes(searchQuery) ||
                           u.id?.includes(searchQuery)
                         ).map(u => (
-                        <TableRow key={u.id} className="border-white/5 hover:bg-white/5">
-                           <TableCell>
-                              <p className="text-sm font-bold">{u.email || u.mobile || 'No Contact'}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <code className="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded">ID: {u.id}</code>
-                                <button onClick={() => copyToClipboard(u.id)} className="text-muted-foreground hover:text-white"><Copy className="h-3 w-3" /></button>
+                        <TableRow key={u.id} className="border-white/5 hover:bg-white/5 transition-all">
+                           <TableCell className="px-8 py-6">
+                              <p className="text-sm font-bold">{u.email || 'No Email'}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <code className="text-[10px] font-mono text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">UID: {u.id}</code>
+                                <button onClick={() => copyToClipboard(u.id)} className="text-muted-foreground hover:text-white p-1 rounded-md hover:bg-white/5"><Copy className="h-3 w-3" /></button>
                               </div>
                            </TableCell>
                            <TableCell className="text-center">
-                              <div className="flex flex-col items-center gap-1">
-                                 <Badge variant="outline" className="text-[10px] border-primary/20 text-primary w-24 justify-center">Total: {u.coins || 0} 🪙</Badge>
-                                 <Badge variant="outline" className="text-[10px] border-green-500/20 text-green-500 w-24 justify-center">Win: {u.winningBalance || 0}</Badge>
+                              <div className="flex flex-col items-center gap-2">
+                                 <Badge variant="outline" className="text-[10px] border-primary/20 text-primary w-28 justify-center bg-primary/5 py-1">Total: {u.coins || 0} 🪙</Badge>
+                                 <Badge variant="outline" className="text-[10px] border-green-500/20 text-green-500 w-28 justify-center bg-green-500/5 py-1">Win: {u.winningBalance || 0}</Badge>
                               </div>
                            </TableCell>
-                           <TableCell className="text-right">
-                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u })} className="h-9 text-[10px] font-black bg-primary">
-                                <Plus className="h-3 w-3 mr-1" /> Add Money
+                           <TableCell className="text-right px-8">
+                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u })} className="h-10 text-[10px] font-black bg-primary hover:bg-primary/90 rounded-xl px-6">
+                                <Plus className="h-3 w-3 mr-2" /> ADD MONEY
                               </Button>
                            </TableCell>
                         </TableRow>
@@ -197,21 +200,44 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'add-money' && (
-           <Card className="bg-[#0a0a0f] border-primary/20 p-10 rounded-[2rem] space-y-6 max-w-xl mx-auto shadow-2xl">
-              <h3 className="text-2xl font-black uppercase italic flex items-center gap-3 text-primary"><CreditCard /> Add Money by UID</h3>
-              <div className="space-y-4">
+           <Card className="bg-[#0a0a0f] border-primary/20 p-10 rounded-[2.5rem] space-y-8 max-w-xl mx-auto shadow-2xl">
+              <div className="flex items-center gap-4">
+                 <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                    <CreditCard className="text-primary h-6 w-6" />
+                 </div>
+                 <div>
+                    <h3 className="text-2xl font-black uppercase italic">Add Money by UID</h3>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Kahin se bhi ID copy karke yahan paste karein</p>
+                 </div>
+              </div>
+
+              <div className="space-y-6">
                  <div className="space-y-2">
-                    <Label className="text-xs font-bold text-muted-foreground ml-1">Paste User ID (UID)</Label>
-                    <Input value={quickUid} onChange={e => setQuickUid(e.target.value)} placeholder="Enter or paste UID here..." className="h-14 bg-white/5 border-white/10 font-mono text-sm" />
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Paste User ID (UID)</Label>
+                    <Input 
+                      value={quickUid} 
+                      onChange={e => setQuickUid(e.target.value)} 
+                      placeholder="e.g. 5hz9N..." 
+                      className="h-16 bg-white/5 border-white/10 font-mono text-sm tracking-widest focus:ring-primary rounded-2xl" 
+                    />
                  </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                       <Label className="text-xs font-bold text-muted-foreground ml-1">Amount to Add</Label>
-                       <Input type="number" value={quickAmount} onChange={e => setQuickAmount(e.target.value)} className="h-14 bg-white/5 border-white/10 text-2xl font-black" />
+                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Amount to Add</Label>
+                       <Input 
+                        type="number" 
+                        value={quickAmount} 
+                        onChange={e => setQuickAmount(e.target.value)} 
+                        className="h-16 bg-white/5 border-white/10 text-3xl font-black text-primary focus:ring-primary rounded-2xl" 
+                       />
                     </div>
                     <div className="flex items-end">
-                       <Button onClick={() => executeInjection(quickUid.trim(), Number(quickAmount))} disabled={isProcessing || !quickUid} className="w-full h-14 bg-primary font-black uppercase italic">
-                          {isProcessing ? <Loader2 className="animate-spin" /> : "Add Money"}
+                       <Button 
+                        onClick={() => executeInjection(quickUid.trim(), Number(quickAmount))} 
+                        disabled={isProcessing || !quickUid} 
+                        className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase italic text-lg rounded-2xl shadow-xl shadow-primary/20"
+                       >
+                          {isProcessing ? <Loader2 className="animate-spin" /> : "ADD MONEY"}
                        </Button>
                     </div>
                  </div>
@@ -222,24 +248,38 @@ export default function AdminDashboard() {
 
       {balanceAdjustment && (
         <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
-           <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-sm rounded-[2rem]">
+           <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-sm rounded-[2.5rem] shadow-2xl p-0 overflow-hidden">
               <VisuallyHidden.Root><DialogTitle>Add Balance to User</DialogTitle></VisuallyHidden.Root>
-              <DialogHeader><DialogTitle className="text-xl font-black italic uppercase text-primary">Add Money</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-4">
-                 <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Target User</p>
-                    <p className="text-xs font-bold truncate">{balanceAdjustment.user.email || balanceAdjustment.user.id}</p>
+              <div className="bg-primary/10 p-8 border-b border-white/5">
+                <h3 className="text-xl font-black italic uppercase text-primary">Add Coins</h3>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Wallet Credit Protocol</p>
+              </div>
+              <div className="p-8 space-y-6">
+                 <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
+                    <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">Target Account</p>
+                    <p className="text-xs font-bold truncate text-white">{balanceAdjustment.user.email || balanceAdjustment.user.id}</p>
                  </div>
                  <div className="space-y-2">
-                    <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Enter Amount</Label>
-                    <Input type="number" value={adjAmount} onChange={e => setAdjAmount(e.target.value)} placeholder="Amount..." className="h-14 bg-black/40 text-2xl font-black" />
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Enter Amount</Label>
+                    <div className="relative">
+                       <Input 
+                        type="number" 
+                        value={adjAmount} 
+                        onChange={e => setAdjAmount(e.target.value)} 
+                        placeholder="0" 
+                        className="h-16 bg-black/40 border-white/10 rounded-2xl text-4xl font-black text-primary pl-10 focus:ring-primary" 
+                       />
+                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black opacity-20">🪙</span>
+                    </div>
                  </div>
-              </div>
-              <DialogFooter>
-                 <Button onClick={() => executeInjection(balanceAdjustment.user.id, Number(adjAmount))} disabled={isProcessing} className="w-full h-16 bg-primary font-black uppercase italic text-lg">
-                   {isProcessing ? <Loader2 className="animate-spin" /> : "Confirm & Add"}
+                 <Button 
+                  onClick={() => executeInjection(balanceAdjustment.user.id, Number(adjAmount))} 
+                  disabled={isProcessing} 
+                  className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase italic text-xl shadow-2xl shadow-primary/20 rounded-2xl"
+                 >
+                   {isProcessing ? <Loader2 className="animate-spin" /> : "CONFIRM & ADD"}
                  </Button>
-              </DialogFooter>
+              </div>
            </DialogContent>
         </Dialog>
       )}
@@ -250,10 +290,10 @@ export default function AdminDashboard() {
 function SidebarLink({ active, icon, label, onClick }: any) {
   return (
     <button onClick={onClick} className={cn(
-      "w-full flex items-center gap-4 px-6 py-4 rounded-xl transition-all text-xs font-bold uppercase",
-      active ? "bg-primary text-white italic" : "text-muted-foreground hover:bg-white/5 hover:text-white"
+      "w-full flex items-center gap-4 px-6 py-4 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest",
+      active ? "bg-primary text-white italic shadow-lg shadow-primary/10" : "text-muted-foreground hover:bg-white/5 hover:text-white"
     )}>
-      {icon}
+      <span className={cn("h-4 w-4 transition-transform", active && "scale-110")}>{icon}</span>
       <span>{label}</span>
     </button>
   );
