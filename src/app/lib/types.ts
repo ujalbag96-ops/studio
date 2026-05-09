@@ -35,6 +35,7 @@ export interface Tournament {
   banner: string;
   participantsCount?: number;
   maxParticipants?: number;
+  isRefunded?: boolean;
   roomCredentials?: {
     roomId?: string;
     roomPassword?: string;
@@ -49,6 +50,7 @@ export interface Registration {
   tournamentId: string;
   gameId: string;
   joinedAt: string;
+  feePaid: number;
 }
 
 export interface SupportMessage {
@@ -123,7 +125,7 @@ export interface AppSettings {
   adMobInterstitialId?: string;
   adMobRewardedId?: string;
   adMobEnabled?: boolean;
-  // Payment Gateway (Razorpay/UPI/etc)
+  // Payment Gateway
   paymentGatewayKey?: string;
   paymentGatewaySecret?: string;
   paymentGatewayEnabled?: boolean;

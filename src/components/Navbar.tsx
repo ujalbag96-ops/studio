@@ -22,28 +22,25 @@ export default function Navbar() {
   const { toast } = useToast();
 
   const handleLogout = async () => {
-    if (auth) {
-      try {
-        await signOut(auth);
-        toast({ title: "Session Terminated" });
-        router.push('/login');
-      } catch (error: any) {
-        toast({ variant: "destructive", title: "Error" });
-      }
+    if (!auth) return;
+    try {
+      await signOut(auth);
+      toast({ title: "SESSION TERMINATED" });
+      router.push('/login');
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "TERMINATION FAILED" });
     }
   };
 
-  const isAdmin = user && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
+  const isAdmin = user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-[100] bg-[#0a0a0f] border-b border-white/5 h-16 hidden md:block">
         <div className="max-w-7xl mx-auto h-full px-8 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 rotate-3 transition-transform">
-              <Briefcase className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl font-black italic text-white uppercase tracking-tighter leading-none">PLATFORM<span className="text-primary">CORE</span></span>
+          <Link href="/" className="flex items-center gap-3">
+            <Briefcase className="h-7 w-7 text-primary shadow-2xl" />
+            <span className="text-xl font-black italic text-white uppercase tracking-tighter">PLATFORM<span className="text-primary">CORE</span></span>
           </Link>
 
           <div className="flex items-center gap-8">
@@ -51,7 +48,7 @@ export default function Navbar() {
             <NavLink href="/dashboard" label="EXECUTIVE HUB" active={pathname === '/dashboard'} />
             <NavLink href="/inbox" label="SYSTEM INBOX" active={pathname === '/inbox'} />
             <NavLink href="/refer" label="AFFILIATE" active={pathname === '/refer'} />
-            {isAdmin && <Link href="/admin" className="text-[10px] font-black uppercase text-accent italic flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" /> ADMINISTRATION</Link>}
+            {isAdmin && <Link href="/admin" className="text-[10px] font-black uppercase text-accent italic flex items-center gap-1.5"><Shield className="h-3 w-3" /> ADMINISTRATION</Link>}
           </div>
 
           <div className="flex items-center gap-6">
@@ -61,7 +58,7 @@ export default function Navbar() {
                 <UserMenu user={user} isAdmin={isAdmin} onLogout={handleLogout} />
               </>
             ) : (
-              <Button asChild className="bg-primary text-white font-black rounded-xl px-8 h-10 shadow-xl shadow-primary/20 uppercase italic text-[11px] tracking-widest">
+              <Button asChild className="bg-primary font-black rounded-xl px-8 h-10 shadow-xl shadow-primary/20 uppercase italic text-[11px] tracking-widest">
                 <Link href="/login">AUTHENTICATE</Link>
               </Button>
             )}
@@ -71,9 +68,7 @@ export default function Navbar() {
 
       <div className="md:hidden fixed top-0 left-0 right-0 z-[100] h-16 bg-[#0a0a0f] border-b border-white/5 flex items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-            <Briefcase className="h-5 w-5 text-white" />
-          </div>
+          <Briefcase className="h-6 w-6 text-primary" />
           <span className="text-lg font-black italic uppercase">CORE</span>
         </Link>
         <div className="flex items-center gap-3">
@@ -102,32 +97,25 @@ function NavLink({ href, label, active }: any) {
 }
 
 function UserMenu({ user, isAdmin, onLogout }: any) {
-  if (!user) return null;
+  // Safety check for user identity during SSR/Hydration
+  const initial = user?.email?.[0] || user?.uid?.[0] || 'U';
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-9 w-9 rounded-lg p-0 border border-white/10 bg-white/5 overflow-hidden">
-          <div className="h-full w-full flex items-center justify-center text-primary font-black uppercase text-xs">{user.email?.[0] || 'U'}</div>
+        <Button variant="ghost" className="h-9 w-9 rounded-lg border border-white/10 bg-white/5 font-black uppercase text-xs text-primary">
+          {initial}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-[#121216] border-white/10 text-white p-2 rounded-2xl w-56 shadow-2xl">
-        <DropdownMenuLabel className="p-4">
-          <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-1">Identity Profile</p>
-          <p className="text-xs font-black truncate">{user.email || user.phoneNumber}</p>
-        </DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="bg-[#121216] border-white/10 text-white rounded-2xl w-56 shadow-2xl">
+        <DropdownMenuLabel className="p-4 text-[8px] font-black uppercase tracking-widest text-muted-foreground">Identity Profile</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-white/5" />
-        <DropdownMenuItem asChild className="rounded-xl h-11 focus:bg-white/5 cursor-pointer">
-          <Link href="/dashboard" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] tracking-widest"><User className="h-4 w-4" /> Portfolio Hub</Link>
-        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="focus:bg-white/5 h-11"><Link href="/dashboard" className="w-full flex items-center gap-3 font-bold uppercase text-[10px]"><User className="h-4 w-4" /> Portfolio Hub</Link></DropdownMenuItem>
         {isAdmin && (
-          <DropdownMenuItem asChild className="rounded-xl h-11 focus:bg-primary/20 cursor-pointer">
-            <Link href="/admin" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] tracking-widest text-primary italic"><Shield className="h-4 w-4" /> Executive Suite</Link>
-          </DropdownMenuItem>
+          <DropdownMenuItem asChild className="focus:bg-primary/20 h-11"><Link href="/admin" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] text-primary italic"><Shield className="h-4 w-4" /> Executive Suite</Link></DropdownMenuItem>
         )}
         <DropdownMenuSeparator className="bg-white/5" />
-        <DropdownMenuItem onSelect={onLogout} className="rounded-xl h-11 text-destructive font-bold uppercase text-[10px] tracking-widest cursor-pointer px-4">
-          <LogOut className="h-4 w-4 mr-3" /> Terminate Session
-        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onLogout} className="h-11 text-red-500 font-bold uppercase text-[10px] cursor-pointer px-4"><LogOut className="h-4 w-4 mr-3" /> Terminate Session</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -135,9 +123,9 @@ function UserMenu({ user, isAdmin, onLogout }: any) {
 
 function MobileNavItem({ active, icon, label, href }: any) {
   return (
-    <Link href={href} className={cn("flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all", active ? "text-primary scale-110" : "text-muted-foreground opacity-60")}>
-      <span className={cn("h-5 w-5", active && "animate-pulse")}>{icon}</span>
-      <span className="text-[8px] font-black uppercase tracking-widest">{label}</span>
+    <Link href={href} className={cn("flex flex-col items-center gap-1 px-4 py-2 transition-all", active ? "text-primary" : "text-muted-foreground opacity-60")}>
+      <span className="h-5 w-5">{icon}</span>
+      <span className="text-[8px] font-black uppercase">{label}</span>
     </Link>
   );
 }
