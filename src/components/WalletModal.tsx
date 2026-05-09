@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -99,7 +98,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
       }));
     });
 
-    toast({ title: "Success", description: "Converted to winning balance." });
+    toast({ title: "Success", description: "Successfully converted to winning balance." });
     setConvertAmount('');
     setIsConverting(false);
   };

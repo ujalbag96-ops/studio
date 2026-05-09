@@ -49,16 +49,16 @@ export default function ReferPage() {
 
   const copyToClipboard = async () => {
     if (!profile?.referralCode) {
-      toast({ variant: "destructive", title: "Please wait", description: "Loading your code..." });
+      toast({ variant: "destructive", title: "Please wait", description: "Loading your unique referral code..." });
       return;
     }
     
     setIsCopying(true);
     try {
       await navigator.clipboard.writeText(referralLink);
-      toast({ title: "Link Copied!", description: "Share it with your friends." });
+      toast({ title: "Link Copied!", description: "Share it with your friends to earn rewards." });
     } catch (err) {
-      toast({ variant: "destructive", title: "Copy Failed" });
+      toast({ variant: "destructive", title: "Copy Failed", description: "Please copy the link manually." });
     } finally {
       setTimeout(() => setIsCopying(false), 2000);
     }
@@ -118,9 +118,9 @@ export default function ReferPage() {
           </div>
 
           <div className="hidden lg:flex flex-col gap-6">
-             <Step icon={<Zap />} num="01" title="Share Link" desc="Send your link to friends." />
-             <Step icon={<Users />} num="02" title="Friend Joins" desc="They sign up using your link." />
-             <Step icon={<Gift />} num="03" title="Get Rewards" desc={`You instantly get ${reward} coins!`} />
+             <Step icon={<Zap />} num="01" title="Share Link" desc="Send your referral link to friends." />
+             <Step icon={<Users />} num="02" title="Friend Joins" desc="Your friend signs up using your link." />
+             <Step icon={<Gift />} num="03" title="Get Rewards" desc={`You instantly receive ${reward} coins!`} />
           </div>
         </div>
       </section>
@@ -128,7 +128,7 @@ export default function ReferPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
          <StatsCard title="Total Invites" value="0" icon={<Users />} />
          <StatsCard title="Total Earned" value="0 Coins" icon={<Trophy />} />
-         <StatsCard title="Referral Status" value="Active" icon={<Crown />} />
+         <StatsCard title="Status" value="Active" icon={<Crown />} />
       </div>
     </div>
   );

@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -68,7 +69,7 @@ export default function AdminDashboard() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "User ID Copied!", description: "You can now use this ID." });
+    toast({ title: "User ID Copied!", description: "You can now use this ID for injections." });
   };
 
   const executeInjection = async (targetId: string, amount: number) => {
@@ -113,17 +114,20 @@ export default function AdminDashboard() {
     
     setIsProcessing(true);
     try {
+      // Find all registrations for this tournament
       const regSnap = await getDocs(query(collection(firestore, 'registrations'), where('tournamentId', '==', tournament.id)));
       
       for (const regDoc of regSnap.docs) {
         const regData = regDoc.data();
         const userRef = doc(firestore, 'users', regData.userId);
         
+        // Return fee to user's deposit balance
         await setDoc(userRef, {
           coins: increment(regData.feePaid),
           depositBalance: increment(regData.feePaid)
         }, { merge: true });
 
+        // Add ledger entry for refund
         await addDoc(collection(firestore, 'users', regData.userId, 'ledger'), {
           type: 'refund',
           amount: regData.feePaid,
@@ -133,14 +137,15 @@ export default function AdminDashboard() {
         });
       }
 
+      // Mark tournament as cancelled and refunded
       await updateDoc(doc(firestore, 'tournaments', tournament.id), {
         status: 'cancelled',
         isRefunded: true
       });
 
-      toast({ title: "Refund Complete", description: `Refunded ${regSnap.size} participants.` });
+      toast({ title: "Refund Complete", description: `Successfully refunded ${regSnap.size} participants.` });
     } catch (e) {
-      toast({ variant: "destructive", title: "Refund Failed" });
+      toast({ variant: "destructive", title: "Refund Failed", description: "Could not complete the refund protocol." });
     } finally {
       setIsProcessing(false);
     }
@@ -167,9 +172,9 @@ export default function AdminDashboard() {
         </nav>
 
         <div className="p-6 border-t border-white/5">
-          <Button onClick={handleLogout} variant="ghost" className="w-full text-red-500 font-bold uppercase text-xs">
-            <LogOut className="mr-2 h-4 w-4" /> Logout
-          </Button>
+          <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-red-500 hover:bg-red-500/10 transition-all font-black uppercase text-xs">
+            <LogOut className="h-4 w-4" /> Logout
+          </button>
         </div>
       </aside>
 

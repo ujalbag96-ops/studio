@@ -48,7 +48,7 @@ export default function LoginPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showReset, setShowReset] = useState(false);
 
-  // Real-time redirect logic
+  // Real-time reactive redirect
   useEffect(() => {
     if (user && !isUserLoading && firestore) {
       const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -60,6 +60,7 @@ export default function LoginPage() {
       const userDocRef = doc(firestore, 'users', user.uid);
       const unsubscribe = onSnapshot(userDocRef, (snap) => {
         if (!snap.exists()) {
+          // Initialize profile if it doesn't exist
           const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
           setDoc(userDocRef, {
             id: user.uid,
@@ -111,14 +112,14 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Sent", description: "Please check your SMS." });
+        toast({ title: "OTP Sent", description: "Please check your SMS messages." });
       } else {
         await confirmationResult.confirm(otp);
-        toast({ title: "Verified", description: "Login successful!" });
+        toast({ title: "Verified", description: "Phone login successful!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Error", description: e.message });
+      toast({ variant: "destructive", title: "Phone Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -126,13 +127,13 @@ export default function LoginPage() {
 
   const handleReset = async () => {
      if (!auth || !email) {
-       toast({ variant: "destructive", title: "Email Required", description: "Enter email to receive reset link." });
+       toast({ variant: "destructive", title: "Email Required", description: "Please enter your email to receive a reset link." });
        return;
      }
      setIsLoading(true);
      try {
        await sendPasswordResetEmail(auth, email.trim());
-       toast({ title: "Reset Link Sent", description: "Check your inbox." });
+       toast({ title: "Reset Link Sent", description: "Check your inbox for password reset instructions." });
        setShowReset(false);
      } catch (e: any) {
        setAuthError(e.message);
@@ -151,7 +152,7 @@ export default function LoginPage() {
           <Trophy className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter">Welcome <span className="text-primary">Back</span></h1>
-        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Sign in to manage your coins</p>
+        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Sign in to manage your balance</p>
       </div>
 
       {authError && (

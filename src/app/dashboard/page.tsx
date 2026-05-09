@@ -46,6 +46,7 @@ export default function UserDashboard() {
   const [activeNav, setActiveNav] = useState('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
 
+  // Using useDoc which internally uses onSnapshot for 101% Real-time sync
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
     [firestore, user]
@@ -74,7 +75,7 @@ export default function UserDashboard() {
   const copyUid = () => {
     if (user?.uid) {
       navigator.clipboard.writeText(user.uid);
-      toast({ title: "User ID Copied!", description: "Share this ID with Admin to add coins." });
+      toast({ title: "User ID Copied!", description: "Share this ID with Admin to add coins manually." });
     }
   };
 
@@ -82,7 +83,7 @@ export default function UserDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Opening Your Account...</p>
+        <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Opening Your Wallet...</p>
       </div>
     );
   }
@@ -91,7 +92,7 @@ export default function UserDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center gap-6 bg-[#050508]">
         <Shield className="h-20 w-20 text-muted-foreground opacity-20" />
-        <h2 className="text-3xl font-black uppercase text-white">Login Required</h2>
+        <h2 className="text-3xl font-black uppercase text-white">Please Login</h2>
         <Button asChild size="lg" className="rounded-xl font-black px-12 h-14 bg-primary shadow-xl">
           <Link href="/login">Go to Login</Link>
         </Button>
@@ -103,6 +104,7 @@ export default function UserDashboard() {
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary selection:text-white">
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
       
+      {/* Sidebar for Desktop */}
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-10 border-b border-white/5">
           <Link href="/" className="flex items-center gap-4 group">
@@ -123,8 +125,8 @@ export default function UserDashboard() {
           </div>
           
           <div className="pt-8 border-t border-white/5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Level Status</p>
-            <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'STANDARD'} Level`} href="/levels" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Account Status</p>
+            <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'BRONZE'} Level`} href="/levels" />
           </div>
         </nav>
 
@@ -135,21 +137,22 @@ export default function UserDashboard() {
         </div>
       </aside>
 
+      {/* Main Content Sector */}
       <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-10 pb-32">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Player</Badge>
+               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-bold uppercase">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Connected
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Sync Active
                </div>
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Dashboard</span></h1>
             
-            {/* User ID Section - Highly Visible */}
+            {/* User ID Section */}
             <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">My User ID (Share with Admin)</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">User ID (Share for adding coins)</p>
                   <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
                </div>
                <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 bg-white/5 hover:bg-primary/20 hover:text-primary">
@@ -160,7 +163,7 @@ export default function UserDashboard() {
 
           <div className="flex items-center gap-4">
             <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 hover:bg-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase">
-              Add Money <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
+              Add Cash <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
             </Button>
             <WalletModal>
               <Button variant="outline" className="border-primary/20 hover:bg-primary/10 h-16 px-8 rounded-xl text-lg font-black uppercase text-primary">
@@ -170,26 +173,27 @@ export default function UserDashboard() {
           </div>
         </header>
 
+        {/* Balance Grid - WinZO/MPL Style */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <WalletCard 
             label="Total Balance" 
             value={profile?.coins || 0} 
             icon={<Coins />} 
-            description="All coins combined"
+            description="Combined wallet value"
             color="primary"
           />
           <WalletCard 
             label="Winning Cash" 
             value={profile?.winningBalance || 0} 
             icon={<Trophy />} 
-            description="Ready to withdraw"
+            description="Eligible for withdrawal"
             color="green"
           />
           <WalletCard 
             label="Deposit Cash" 
             value={profile?.depositBalance || 0} 
             icon={<CreditCard />} 
-            description="Added via Payments"
+            description="Added via gateway"
             color="blue"
           />
           <WalletCard 
@@ -201,6 +205,7 @@ export default function UserDashboard() {
           />
         </div>
 
+        {/* Activity Feed */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           <div className="xl:col-span-2 space-y-8">
             <div className="flex items-center justify-between px-2">
@@ -269,8 +274,8 @@ export default function UserDashboard() {
                   <Zap className="h-10 w-10 text-primary animate-pulse" />
                </div>
                <div className="space-y-4 relative z-10">
-                  <h3 className="text-3xl font-black uppercase italic">Free Coins</h3>
-                  <p className="text-sm text-muted-foreground font-medium">Watch videos and complete tasks to earn coins for free.</p>
+                  <h3 className="text-3xl font-black uppercase italic">Free Income</h3>
+                  <p className="text-sm text-muted-foreground font-medium">Watch videos and complete simple tasks to earn coins for free.</p>
                </div>
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
                   <Link href="/earning-hub">Earn Now</Link>
