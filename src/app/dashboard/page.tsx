@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -67,7 +66,7 @@ export default function UserDashboard() {
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
-      toast({ title: "Logged Out" });
+      toast({ title: "Logged Out Successfully" });
       router.push('/login');
     }
   };
@@ -75,7 +74,7 @@ export default function UserDashboard() {
   const copyUid = () => {
     if (user?.uid) {
       navigator.clipboard.writeText(user.uid);
-      toast({ title: "User ID Copied", description: "Share this ID for balance updates." });
+      toast({ title: "User ID Copied!", description: "Share this ID with Admin to add coins." });
     }
   };
 
@@ -83,7 +82,7 @@ export default function UserDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-xs font-bold uppercase text-muted-foreground">Loading Your Account...</p>
+        <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Opening Your Account...</p>
       </div>
     );
   }
@@ -116,15 +115,15 @@ export default function UserDashboard() {
 
         <nav className="flex-1 p-8 space-y-2">
           <div className="pb-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Menu</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Main Menu</p>
             <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Dashboard" onClick={() => setActiveNav('overview')} />
-            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="Earn Coins" href="/earning-hub" />
+            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="Earn Free Coins" href="/earning-hub" />
             <SidebarItem active={activeNav === 'ledger'} icon={<History />} label="Transactions" href="/ledger" />
-            <SidebarItem active={activeNav === 'finance'} icon={<Wallet />} label="Withdraw" href="/withdraw" />
+            <SidebarItem active={activeNav === 'finance'} icon={<Wallet />} label="Withdraw Cash" href="/withdraw" />
           </div>
           
           <div className="pt-8 border-t border-white/5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Status</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Level Status</p>
             <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'STANDARD'} Level`} href="/levels" />
           </div>
         </nav>
@@ -136,20 +135,27 @@ export default function UserDashboard() {
         </div>
       </aside>
 
-      <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-12 pb-32">
+      <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-10 pb-32">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
+               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Player</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-bold uppercase">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Connected
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Connected
                </div>
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Dashboard</span></h1>
-            <div className="flex items-center gap-4">
-               <p className="text-muted-foreground font-medium text-sm">User ID: <span className="text-white font-mono text-xs">{user.uid}</span></p>
-               <Button onClick={copyUid} variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5"><Copy className="h-4 w-4" /></Button>
-            </div>
+            
+            {/* User ID Section - Highly Visible */}
+            <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
+               <div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">My User ID (Share with Admin)</p>
+                  <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
+               </div>
+               <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 bg-white/5 hover:bg-primary/20 hover:text-primary">
+                  <Copy className="h-4 w-4" />
+               </Button>
+            </Card>
           </div>
 
           <div className="flex items-center gap-4">
@@ -178,13 +184,12 @@ export default function UserDashboard() {
             icon={<Trophy />} 
             description="Ready to withdraw"
             color="green"
-            isWithdrawable
           />
           <WalletCard 
             label="Deposit Cash" 
             value={profile?.depositBalance || 0} 
             icon={<CreditCard />} 
-            description="Money added by you"
+            description="Added via Payments"
             color="blue"
           />
           <WalletCard 
@@ -201,10 +206,10 @@ export default function UserDashboard() {
             <div className="flex items-center justify-between px-2">
                <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic">
                  <History className="h-6 w-6 text-primary" />
-                 Recent Transactions
+                 Recent Activity
                </h3>
                <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary font-bold uppercase text-xs h-10 px-6 rounded-xl border border-white/5">
-                  <Link href="/ledger">See All <ChevronRight className="h-4 w-4 ml-2" /></Link>
+                  <Link href="/ledger">Full History <ChevronRight className="h-4 w-4 ml-2" /></Link>
                </Button>
             </div>
             
@@ -251,7 +256,7 @@ export default function UserDashboard() {
                 ) : (
                   <div className="p-32 text-center space-y-4">
                      <History className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
-                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No transactions yet.</p>
+                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No records found.</p>
                   </div>
                 )}
               </CardContent>
@@ -264,11 +269,11 @@ export default function UserDashboard() {
                   <Zap className="h-10 w-10 text-primary animate-pulse" />
                </div>
                <div className="space-y-4 relative z-10">
-                  <h3 className="text-3xl font-black uppercase italic">Earn Coins</h3>
-                  <p className="text-sm text-muted-foreground font-medium">Watch videos and complete simple tasks to earn free coins.</p>
+                  <h3 className="text-3xl font-black uppercase italic">Free Coins</h3>
+                  <p className="text-sm text-muted-foreground font-medium">Watch videos and complete tasks to earn coins for free.</p>
                </div>
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
-                  <Link href="/earning-hub">Go to Tasks</Link>
+                  <Link href="/earning-hub">Earn Now</Link>
                </Button>
             </Card>
           </aside>
@@ -302,7 +307,7 @@ function SidebarItem({ active, icon, label, onClick, href }: any) {
   );
 }
 
-function WalletCard({ label, value, icon, description, color, isWithdrawable }: any) {
+function WalletCard({ label, value, icon, description, color }: any) {
   const colorMap = {
     primary: "border-primary/20 text-primary bg-primary/5",
     blue: "border-blue-500/20 text-blue-400 bg-blue-500/5",
