@@ -17,10 +17,6 @@ import {
   Download, 
   Share2, 
   Shield, 
-  Trophy,
-  Wallet,
-  ArrowUpRight,
-  TrendingUp,
   Globe
 } from 'lucide-react';
 import { Button } from './ui/button';

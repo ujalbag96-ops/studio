@@ -45,7 +45,6 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   const winningBal = profile?.winningBalance || 0;
   const taskBal = profile?.taskBalance || 0;
   
-  const currencyData = getCurrencyData(profile?.country);
   const baseFee = settings?.conversionFeePercent || 0.012; 
   const tierFee = profile?.rank === 'Gold' ? 0.005 : profile?.rank === 'Silver' ? 0.008 : baseFee;
   const telegramUrl = settings?.telegramUrl || 'https://t.me/bracketbattles_support';
