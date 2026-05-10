@@ -17,9 +17,7 @@ import {
   LogOut,
   CreditCard,
   Crown,
-  Briefcase,
   ShieldCheck,
-  Wifi,
   Copy,
   Coins
 } from 'lucide-react';
@@ -46,7 +44,7 @@ export default function UserDashboard() {
   const [activeNav, setActiveNav] = useState('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
 
-  // Using useDoc which internally uses onSnapshot for 101% Real-time sync
+  // Using useDoc with real-time onSnapshot synchronization
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
     [firestore, user]
@@ -75,7 +73,7 @@ export default function UserDashboard() {
   const copyUid = () => {
     if (user?.uid) {
       navigator.clipboard.writeText(user.uid);
-      toast({ title: "User ID Copied!", description: "Share this ID with Admin to add coins manually." });
+      toast({ title: "User ID Copied!", description: "Share this ID to add coins manually." });
     }
   };
 
@@ -144,7 +142,7 @@ export default function UserDashboard() {
             <div className="flex items-center gap-3">
                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-bold uppercase">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Sync Active
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Real-time Sync Active
                </div>
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Dashboard</span></h1>
@@ -152,7 +150,7 @@ export default function UserDashboard() {
             {/* User ID Section */}
             <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">User ID (Share for adding coins)</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">My User ID</p>
                   <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
                </div>
                <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 bg-white/5 hover:bg-primary/20 hover:text-primary">
@@ -167,16 +165,16 @@ export default function UserDashboard() {
             </Button>
             <WalletModal>
               <Button variant="outline" className="border-primary/20 hover:bg-primary/10 h-16 px-8 rounded-xl text-lg font-black uppercase text-primary">
-                My Wallet
+                Wallet Details
               </Button>
             </WalletModal>
           </div>
         </header>
 
-        {/* Balance Grid - WinZO/MPL Style */}
+        {/* Balance Grid - WinZO Style */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <WalletCard 
-            label="Total Balance" 
+            label="Total Assets" 
             value={profile?.coins || 0} 
             icon={<Coins />} 
             description="Combined wallet value"
@@ -186,7 +184,7 @@ export default function UserDashboard() {
             label="Winning Cash" 
             value={profile?.winningBalance || 0} 
             icon={<Trophy />} 
-            description="Eligible for withdrawal"
+            description="Withdrawable amount"
             color="green"
           />
           <WalletCard 
@@ -211,7 +209,7 @@ export default function UserDashboard() {
             <div className="flex items-center justify-between px-2">
                <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic">
                  <History className="h-6 w-6 text-primary" />
-                 Recent Activity
+                 Recent Transactions
                </h3>
                <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary font-bold uppercase text-xs h-10 px-6 rounded-xl border border-white/5">
                   <Link href="/ledger">Full History <ChevronRight className="h-4 w-4 ml-2" /></Link>
@@ -275,7 +273,7 @@ export default function UserDashboard() {
                </div>
                <div className="space-y-4 relative z-10">
                   <h3 className="text-3xl font-black uppercase italic">Free Income</h3>
-                  <p className="text-sm text-muted-foreground font-medium">Watch videos and complete simple tasks to earn coins for free.</p>
+                  <p className="text-sm text-muted-foreground font-medium">Complete simple tasks to earn coins for free.</p>
                </div>
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
                   <Link href="/earning-hub">Earn Now</Link>

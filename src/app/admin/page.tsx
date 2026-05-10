@@ -15,7 +15,8 @@ import {
   Plus,
   ArrowUpRight,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Coins
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,7 +70,7 @@ export default function AdminDashboard() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "User ID Copied!", description: "You can now use this ID for injections." });
+    toast({ title: "User ID Copied!" });
   };
 
   const executeInjection = async (targetId: string, amount: number) => {
@@ -96,13 +97,13 @@ export default function AdminDashboard() {
       });
 
       toast({ 
-        title: "Coins Added!", 
-        description: `Successfully added ${amount} coins to User ${targetId}.` 
+        title: "Success", 
+        description: `Successfully added ${amount} to User ${targetId}.` 
       });
       setQuickUid('');
       setBalanceAdjustment(null);
-    } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to add coins." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
       setIsProcessing(false);
     }
@@ -114,20 +115,17 @@ export default function AdminDashboard() {
     
     setIsProcessing(true);
     try {
-      // Find all registrations for this tournament
       const regSnap = await getDocs(query(collection(firestore, 'registrations'), where('tournamentId', '==', tournament.id)));
       
       for (const regDoc of regSnap.docs) {
         const regData = regDoc.data();
         const userRef = doc(firestore, 'users', regData.userId);
         
-        // Return fee to user's deposit balance
         await setDoc(userRef, {
           coins: increment(regData.feePaid),
           depositBalance: increment(regData.feePaid)
         }, { merge: true });
 
-        // Add ledger entry for refund
         await addDoc(collection(firestore, 'users', regData.userId, 'ledger'), {
           type: 'refund',
           amount: regData.feePaid,
@@ -137,15 +135,14 @@ export default function AdminDashboard() {
         });
       }
 
-      // Mark tournament as cancelled and refunded
       await updateDoc(doc(firestore, 'tournaments', tournament.id), {
         status: 'cancelled',
         isRefunded: true
       });
 
-      toast({ title: "Refund Complete", description: `Successfully refunded ${regSnap.size} participants.` });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Refund Failed", description: "Could not complete the refund protocol." });
+      toast({ title: "Refund Complete", description: `Refunded ${regSnap.size} participants.` });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Refund Failed", description: e.message });
     } finally {
       setIsProcessing(false);
     }
@@ -182,7 +179,7 @@ export default function AdminDashboard() {
         <header className="flex items-center justify-between">
            <div className="space-y-1">
               <h1 className="text-4xl font-black uppercase italic">Admin <span className="text-primary">Dashboard</span></h1>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Manage all users and transactions</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Manage users and account balances</p>
            </div>
            <Badge className="bg-primary/20 text-primary border-none font-bold px-4 py-1.5 text-xs">Admin Mode Active</Badge>
         </header>
@@ -203,8 +200,8 @@ export default function AdminDashboard() {
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User Info</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Live Balances</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User Information</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Balances</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-right px-8">Actions</TableHead>
                       </TableRow>
                    </TableHeader>
@@ -272,7 +269,7 @@ export default function AdminDashboard() {
                  </div>
                  <div>
                     <h3 className="text-2xl font-black uppercase italic">Add Money by User ID</h3>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Copy User ID from list and paste here</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Enter User ID and Amount</p>
                  </div>
               </div>
 

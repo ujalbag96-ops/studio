@@ -48,7 +48,7 @@ export default function LoginPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showReset, setShowReset] = useState(false);
 
-  // Real-time reactive redirect
+  // Real-time reactive redirect to dashboard or admin
   useEffect(() => {
     if (user && !isUserLoading && firestore) {
       const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -60,7 +60,7 @@ export default function LoginPage() {
       const userDocRef = doc(firestore, 'users', user.uid);
       const unsubscribe = onSnapshot(userDocRef, (snap) => {
         if (!snap.exists()) {
-          // Initialize profile if it doesn't exist
+          // New account? Set default balances
           const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
           setDoc(userDocRef, {
             id: user.uid,
@@ -89,14 +89,14 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Login Successful", description: "Navigating to Dashboard..." });
+        toast({ title: "Welcome!", description: "Logging into your account..." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Account Created", description: "Welcome to the Platform!" });
+        toast({ title: "Account Created", description: "Account setup successful!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Auth Error", description: e.message });
+      toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -112,10 +112,10 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Sent", description: "Please check your SMS messages." });
+        toast({ title: "OTP Sent", description: "Check your messages." });
       } else {
         await confirmationResult.confirm(otp);
-        toast({ title: "Verified", description: "Phone login successful!" });
+        toast({ title: "Verified", description: "Login successful!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -126,39 +126,44 @@ export default function LoginPage() {
   };
 
   const handleReset = async () => {
-     if (!auth || !email) {
-       toast({ variant: "destructive", title: "Email Required", description: "Please enter your email to receive a reset link." });
-       return;
-     }
-     setIsLoading(true);
-     try {
-       await sendPasswordResetEmail(auth, email.trim());
-       toast({ title: "Reset Link Sent", description: "Check your inbox for password reset instructions." });
-       setShowReset(false);
-     } catch (e: any) {
-       setAuthError(e.message);
-       toast({ variant: "destructive", title: "Error", description: e.message });
-     } finally {
-       setIsLoading(false);
-     }
+    if (!auth || !email) {
+      toast({ variant: "destructive", title: "Email Required", description: "Please enter your email first." });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      toast({ title: "Link Sent", description: "Check your inbox to reset password." });
+      setShowReset(false);
+    } catch (e: any) {
+      setAuthError(e.message);
+      toast({ variant: "destructive", title: "Error", description: e.message });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin text-primary h-12 w-12" /></div>;
+  if (isUserLoading) return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4">
+      <Loader2 className="animate-spin text-primary h-12 w-12" />
+      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Initializing Account...</p>
+    </div>
+  );
 
   return (
     <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-500">
       <div className="text-center space-y-3">
-        <div className="h-20 w-20 bg-primary/20 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl">
+        <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <Trophy className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Welcome <span className="text-primary">Back</span></h1>
-        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Sign in to manage your balance</p>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter">My <span className="text-primary">Login</span></h1>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to access your wallet</p>
       </div>
 
       {authError && (
         <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="text-[10px] font-black uppercase">Auth Error</AlertTitle>
+          <AlertTitle className="text-[10px] font-black uppercase">Authentication Error</AlertTitle>
           <AlertDescription className="text-xs font-bold">{authError}</AlertDescription>
         </Alert>
       )}
@@ -166,7 +171,7 @@ export default function LoginPage() {
       <Tabs defaultValue="email" className="w-full">
         <TabsList className="grid grid-cols-2 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
           <TabsTrigger value="email" className="font-black text-[10px] uppercase data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">EMAIL</TabsTrigger>
-          <TabsTrigger value="phone" className="font-black text-[10px] uppercase data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">MOBILE</TabsTrigger>
+          <TabsTrigger value="phone" className="font-black text-[10px] uppercase data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">PHONE</TabsTrigger>
         </TabsList>
 
         <TabsContent value="email" className="mt-6 space-y-4">
@@ -220,7 +225,7 @@ export default function LoginPage() {
                     variant="outline" 
                     className="h-14 border-white/10 hover:bg-white/5 font-black uppercase text-[10px] tracking-widest rounded-xl"
                   >
-                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "SIGN UP (NEW ACCOUNT)"}
+                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "CREATE NEW ACCOUNT"}
                   </Button>
                 </div>
               </>
@@ -253,7 +258,7 @@ export default function LoginPage() {
               {!confirmationResult ? (
                 <div className="space-y-4">
                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Mobile Number</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Phone Number</Label>
                       <div className="flex gap-2">
                          <Select value={countryCode} onValueChange={setCountryCode}>
                             <SelectTrigger className="w-24 bg-black border-white/10 h-14 font-bold"><SelectValue /></SelectTrigger>
@@ -272,7 +277,7 @@ export default function LoginPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                   <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Enter 6-Digit OTP</Label>
+                   <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Enter OTP Code</Label>
                    <Input 
                     value={otp} 
                     onChange={e => setOtp(e.target.value)} 
@@ -287,7 +292,7 @@ export default function LoginPage() {
                 disabled={isLoading} 
                 className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20"
               >
-                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "GET OTP" : "VERIFY & LOGIN")}
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "SEND OTP" : "VERIFY CODE")}
               </Button>
            </Card>
         </TabsContent>
