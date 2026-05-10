@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, addDoc, increment, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, addDoc, increment } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   Users as UsersIcon, 
@@ -15,7 +15,6 @@ import {
   Copy,
   Plus,
   ShieldCheck,
-  Coins,
   Globe
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -24,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -58,7 +57,6 @@ export default function AdminDashboard() {
   const tournamentsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'tournaments') : null, [firestore, isAdminUser]);
   
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
-  const { data: tourData, isLoading: toursLoading } = useCollection<Tournament>(tournamentsQuery);
 
   const handleLogout = async () => {
     if (auth) {
@@ -70,10 +68,10 @@ export default function AdminDashboard() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "ID Copied!" });
+    toast({ title: "Copied to clipboard!" });
   };
 
-  const executeInjection = async (targetId: string, amount: number) => {
+  const executeAddMoney = async (targetId: string, amount: number) => {
     if (!firestore || !isAdminUser || isProcessing) return;
     setIsProcessing(true);
     
@@ -83,7 +81,6 @@ export default function AdminDashboard() {
         winningBalance: increment(amount),
         withdrawableCoins: increment(amount),
         coins: increment(amount),
-        id: targetId
       };
 
       await setDoc(userRef, updates, { merge: true });
@@ -93,12 +90,12 @@ export default function AdminDashboard() {
         amount: amount,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: "Admin Added Cash"
+        description: "Added by Admin"
       });
 
       toast({ 
         title: "SUCCESS", 
-        description: `Added ${amount} coins to ${targetId.substring(0,5)}...` 
+        description: `Added ${amount} coins to User: ${targetId.substring(0,8)}...` 
       });
       setQuickUid('');
       setBalanceAdjustment(null);
@@ -112,8 +109,14 @@ export default function AdminDashboard() {
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black">ACCESS DENIED</div>;
 
+  const filteredUsers = usersData?.filter(u => 
+    u.email?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    u.id?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
   return (
     <div className="flex min-h-screen bg-[#050508] text-white">
+      {/* Sidebar */}
       <aside className="w-72 bg-[#0a0a0f] border-r border-white/5 flex flex-col fixed inset-y-0 z-50">
         <div className="p-8 flex items-center gap-3">
           <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
@@ -136,6 +139,7 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
+      {/* Main Content */}
       <main className="flex-1 ml-72 p-10 space-y-10">
         <header className="flex items-center justify-between">
            <div className="space-y-1">
@@ -152,7 +156,7 @@ export default function AdminDashboard() {
                 <input 
                   value={searchQuery} 
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search by Email or User ID..." 
+                  placeholder="Search by Email or User ID (UID)..." 
                   className="bg-transparent border-none outline-none flex-1 text-sm font-bold"
                 />
              </div>
@@ -161,7 +165,7 @@ export default function AdminDashboard() {
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User & Device Info</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User Information</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Balances</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-right px-8">Actions</TableHead>
                       </TableRow>
@@ -169,15 +173,12 @@ export default function AdminDashboard() {
                    <TableBody>
                       {usersLoading ? (
                         <TableRow><TableCell colSpan={3} className="py-20 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow>
-                      ) : usersData?.filter(u => 
-                          u.email?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          u.id?.includes(searchQuery)
-                        ).map(u => (
+                      ) : filteredUsers.length > 0 ? filteredUsers.map(u => (
                         <TableRow key={u.id} className="border-white/5 hover:bg-white/5 transition-all">
                            <TableCell className="px-8 py-6">
                               <p className="text-sm font-bold">{u.email || 'Phone User'}</p>
                               <div className="flex items-center gap-2 mt-2">
-                                <code className="text-[10px] font-mono text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">ID: {u.id}</code>
+                                <code className="text-[10px] font-mono text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">User ID: {u.id}</code>
                                 <button onClick={() => copyToClipboard(u.id)} className="text-muted-foreground hover:text-white p-1 rounded-md hover:bg-white/5"><Copy className="h-3 w-3" /></button>
                               </div>
                               <div className="flex items-center gap-2 mt-1 text-[9px] text-muted-foreground font-bold uppercase">
@@ -186,8 +187,8 @@ export default function AdminDashboard() {
                            </TableCell>
                            <TableCell className="text-center">
                               <div className="flex flex-col items-center gap-2">
-                                 <Badge variant="outline" className="text-[10px] border-primary/20 text-primary w-28 justify-center bg-primary/5 py-1">Total: {u.coins || 0} 🪙</Badge>
-                                 <Badge variant="outline" className="text-[10px] border-green-500/20 text-green-500 w-28 justify-center bg-green-500/5 py-1">Win: {u.winningBalance || 0}</Badge>
+                                 <Badge variant="outline" className="text-[10px] border-primary/20 text-primary w-32 justify-center bg-primary/5 py-1">Wallet: {u.coins || 0} 🪙</Badge>
+                                 <Badge variant="outline" className="text-[10px] border-green-500/20 text-green-500 w-32 justify-center bg-green-500/5 py-1">Win: {u.winningBalance || 0}</Badge>
                               </div>
                            </TableCell>
                            <TableCell className="text-right px-8">
@@ -196,7 +197,9 @@ export default function AdminDashboard() {
                               </Button>
                            </TableCell>
                         </TableRow>
-                      ))}
+                      )) : (
+                        <TableRow><TableCell colSpan={3} className="py-20 text-center text-muted-foreground font-bold uppercase text-xs">No users found.</TableCell></TableRow>
+                      )}
                    </TableBody>
                 </Table>
              </Card>
@@ -210,8 +213,8 @@ export default function AdminDashboard() {
                     <CreditCard className="text-primary h-6 w-6" />
                  </div>
                  <div>
-                    <h3 className="text-2xl font-black uppercase italic">Quick Add Cash</h3>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Enter User ID and Amount</p>
+                    <h3 className="text-2xl font-black uppercase italic">Add Money (Direct)</h3>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Enter User ID and Amount to credit</p>
                  </div>
               </div>
 
@@ -237,11 +240,11 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex items-end">
                        <Button 
-                        onClick={() => executeInjection(quickUid.trim(), Number(quickAmount))} 
+                        onClick={() => executeAddMoney(quickUid.trim(), Number(quickAmount))} 
                         disabled={isProcessing || !quickUid} 
                         className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase italic text-lg rounded-2xl shadow-xl shadow-primary/20"
                        >
-                          {isProcessing ? <Loader2 className="animate-spin" /> : "ADD MONEY"}
+                          {isProcessing ? <Loader2 className="animate-spin" /> : "CREDIT COINS"}
                        </Button>
                     </div>
                  </div>
@@ -255,8 +258,8 @@ export default function AdminDashboard() {
            <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-sm rounded-[2.5rem] shadow-2xl p-0 overflow-hidden">
               <VisuallyHidden.Root><DialogTitle>Add Coins to User</DialogTitle></VisuallyHidden.Root>
               <div className="bg-primary/10 p-8 border-b border-white/5">
-                <h3 className="text-xl font-black italic uppercase text-primary">Add Coins</h3>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Direct Wallet Credit</p>
+                <h3 className="text-xl font-black italic uppercase text-primary">Add Money</h3>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Direct account top-up</p>
               </div>
               <div className="p-8 space-y-6">
                  <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
@@ -277,7 +280,7 @@ export default function AdminDashboard() {
                     </div>
                  </div>
                  <Button 
-                  onClick={() => executeInjection(balanceAdjustment.user.id, Number(adjAmount))} 
+                  onClick={() => executeAddMoney(balanceAdjustment.user.id, Number(adjAmount))} 
                   disabled={isProcessing} 
                   className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase italic text-xl shadow-2xl shadow-primary/20 rounded-2xl"
                  >

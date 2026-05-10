@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
-import { Trophy, Loader2, AlertCircle, Eye, EyeOff, Smartphone } from 'lucide-react';
+import { Trophy, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -50,52 +50,46 @@ export default function LoginPage() {
   const [showReset, setShowReset] = useState(false);
 
   useEffect(() => {
-    async function initUser() {
-      if (user && !isUserLoading && firestore) {
-        const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-        
-        // Fetch IP address for security
-        let currentIp = 'Unknown';
-        try {
-          const res = await fetch('https://api.ipify.org?format=json');
-          const data = await res.json();
-          currentIp = data.ip;
-        } catch (e) {
-          console.error("IP Fetch Failed", e);
-        }
+    if (!user || isUserLoading || !firestore) return;
 
-        if (isAdmin) {
-          router.push('/admin');
-          return;
-        }
-
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const unsubscribe = onSnapshot(userDocRef, (snap) => {
-          if (!snap.exists()) {
-            const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            setDoc(userDocRef, {
-              id: user.uid,
-              email: user.email || '',
-              lastIp: currentIp,
-              coins: 0,
-              winningBalance: 0,
-              depositBalance: 0,
-              taskBalance: 0,
-              withdrawableCoins: 0,
-              rank: 'Bronze',
-              referralCode: randomCode,
-              joinedAt: new Date().toISOString()
-            }, { merge: true });
-          } else {
-            // Update last IP on every login
-            setDoc(userDocRef, { lastIp: currentIp }, { merge: true });
-            router.push('/dashboard');
-          }
-        });
-        return () => unsubscribe();
-      }
+    const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    if (isAdmin) {
+      router.push('/admin');
+      return;
     }
-    initUser();
+
+    const userDocRef = doc(firestore, 'users', user.uid);
+    const unsubscribe = onSnapshot(userDocRef, async (snap) => {
+      let currentIp = 'Unknown';
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        currentIp = data.ip;
+      } catch (e) {}
+
+      if (!snap.exists()) {
+        const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        await setDoc(userDocRef, {
+          id: user.uid,
+          email: user.email || '',
+          lastIp: currentIp,
+          coins: 0,
+          winningBalance: 0,
+          depositBalance: 0,
+          taskBalance: 0,
+          withdrawableCoins: 0,
+          rank: 'Bronze',
+          referralCode: randomCode,
+          joinedAt: new Date().toISOString()
+        }, { merge: true });
+      } else {
+        // Just update IP and move on
+        await setDoc(userDocRef, { lastIp: currentIp }, { merge: true });
+        router.push('/dashboard');
+      }
+    });
+
+    return () => unsubscribe();
   }, [user, isUserLoading, firestore, router]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
@@ -105,14 +99,14 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Welcome!", description: "Opening your game account..." });
+        toast({ title: "Welcome Back", description: "Opening your dashboard..." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Account Created", description: "You are now registered!" });
+        toast({ title: "Account Created", description: "Welcome to the app!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Error", description: e.message });
+      toast({ variant: "destructive", title: "Auth Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -129,10 +123,10 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Sent", description: "Check your messages for code." });
+        toast({ title: "OTP Sent", description: "Please check your SMS." });
       } else {
         await confirmationResult.confirm(otp);
-        toast({ title: "Verified", description: "Login successful!" });
+        toast({ title: "Success", description: "Phone verified successfully." });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -144,17 +138,16 @@ export default function LoginPage() {
 
   const handleReset = async () => {
     if (!auth || !email) {
-      toast({ variant: "destructive", title: "Email Required", description: "Please enter your email." });
+      toast({ variant: "destructive", title: "Email Required", description: "Enter email for reset link." });
       return;
     }
     setIsLoading(true);
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      toast({ title: "Link Sent", description: "Check inbox to reset password." });
+      toast({ title: "Email Sent", description: "Check inbox for password reset link." });
       setShowReset(false);
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -163,7 +156,7 @@ export default function LoginPage() {
   if (isUserLoading) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4">
       <Loader2 className="animate-spin text-primary h-12 w-12" />
-      <p className="text-xs font-bold uppercase text-muted-foreground tracking-[0.2em]">Loading Account...</p>
+      <p className="text-xs font-black uppercase text-muted-foreground tracking-widest">Starting System...</p>
     </div>
   );
 
@@ -173,22 +166,22 @@ export default function LoginPage() {
         <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <Trophy className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Games <span className="text-primary">Login</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to play and win</p>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter">App <span className="text-primary">Login</span></h1>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to start winning</p>
       </div>
 
       {authError && (
         <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="text-[10px] font-black uppercase">Auth Error</AlertTitle>
+          <AlertTitle className="text-[10px] font-black uppercase">Authentication Error</AlertTitle>
           <AlertDescription className="text-xs font-bold">{authError}</AlertDescription>
         </Alert>
       )}
 
       <Tabs defaultValue="email" className="w-full">
         <TabsList className="grid grid-cols-2 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
-          <TabsTrigger value="email" className="font-black text-[10px] uppercase data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">EMAIL</TabsTrigger>
-          <TabsTrigger value="phone" className="font-black text-[10px] uppercase data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">PHONE</TabsTrigger>
+          <TabsTrigger value="email" className="font-black text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">EMAIL</TabsTrigger>
+          <TabsTrigger value="phone" className="font-black text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">PHONE</TabsTrigger>
         </TabsList>
 
         <TabsContent value="email" className="mt-6 space-y-4">
@@ -198,7 +191,7 @@ export default function LoginPage() {
                <Input 
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
-                placeholder="name@example.com" 
+                placeholder="example@mail.com" 
                 className="h-14 bg-black border-white/10 rounded-xl focus:ring-primary text-sm font-bold" 
                />
             </div>
@@ -242,7 +235,7 @@ export default function LoginPage() {
                     variant="outline" 
                     className="h-14 border-white/10 hover:bg-white/5 font-black uppercase text-[10px] tracking-widest rounded-xl"
                   >
-                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "SIGN UP NEW ACCOUNT"}
+                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "CREATE NEW ACCOUNT"}
                   </Button>
                 </div>
               </>
@@ -262,7 +255,7 @@ export default function LoginPage() {
                   onClick={() => setShowReset(false)} 
                   className="h-12 text-[10px] font-black uppercase text-muted-foreground"
                 >
-                  BACK TO LOGIN
+                  GO BACK
                 </Button>
               </div>
             )}
@@ -275,7 +268,7 @@ export default function LoginPage() {
               {!confirmationResult ? (
                 <div className="space-y-4">
                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Phone Number</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Mobile Number</Label>
                       <div className="flex gap-2">
                          <Select value={countryCode} onValueChange={setCountryCode}>
                             <SelectTrigger className="w-24 bg-black border-white/10 h-14 font-bold"><SelectValue /></SelectTrigger>
@@ -294,7 +287,7 @@ export default function LoginPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                   <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Enter OTP Code</Label>
+                   <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Enter OTP</Label>
                    <Input 
                     value={otp} 
                     onChange={e => setOtp(e.target.value)} 
@@ -309,7 +302,7 @@ export default function LoginPage() {
                 disabled={isLoading} 
                 className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20"
               >
-                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "SEND OTP" : "VERIFY OTP")}
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "SEND CODE" : "VERIFY OTP")}
               </Button>
            </Card>
         </TabsContent>
