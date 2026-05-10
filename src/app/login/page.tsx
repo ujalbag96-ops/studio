@@ -48,7 +48,6 @@ export default function LoginPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showReset, setShowReset] = useState(false);
 
-  // Real-time reactive redirect to dashboard or admin
   useEffect(() => {
     if (user && !isUserLoading && firestore) {
       const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -60,7 +59,6 @@ export default function LoginPage() {
       const userDocRef = doc(firestore, 'users', user.uid);
       const unsubscribe = onSnapshot(userDocRef, (snap) => {
         if (!snap.exists()) {
-          // New account? Set default balances
           const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
           setDoc(userDocRef, {
             id: user.uid,
@@ -92,7 +90,7 @@ export default function LoginPage() {
         toast({ title: "Welcome!", description: "Logging into your account..." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Account Created", description: "Account setup successful!" });
+        toast({ title: "Account Created", description: "Your account is ready!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -112,7 +110,7 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Sent", description: "Check your messages." });
+        toast({ title: "OTP Sent", description: "Please check your messages." });
       } else {
         await confirmationResult.confirm(otp);
         toast({ title: "Verified", description: "Login successful!" });
@@ -127,7 +125,7 @@ export default function LoginPage() {
 
   const handleReset = async () => {
     if (!auth || !email) {
-      toast({ variant: "destructive", title: "Email Required", description: "Please enter your email first." });
+      toast({ variant: "destructive", title: "Email Required", description: "Enter your email first." });
       return;
     }
     setIsLoading(true);
@@ -146,7 +144,7 @@ export default function LoginPage() {
   if (isUserLoading) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4">
       <Loader2 className="animate-spin text-primary h-12 w-12" />
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Initializing Account...</p>
+      <p className="text-xs font-bold uppercase text-muted-foreground">Loading Account...</p>
     </div>
   );
 
@@ -156,14 +154,14 @@ export default function LoginPage() {
         <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <Trophy className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter">My <span className="text-primary">Login</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to access your wallet</p>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Account <span className="text-primary">Login</span></h1>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to your game wallet</p>
       </div>
 
       {authError && (
         <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="text-[10px] font-black uppercase">Authentication Error</AlertTitle>
+          <AlertTitle className="text-[10px] font-black uppercase">Login Error</AlertTitle>
           <AlertDescription className="text-xs font-bold">{authError}</AlertDescription>
         </Alert>
       )}
@@ -191,7 +189,7 @@ export default function LoginPage() {
                 <div className="space-y-2 relative">
                    <div className="flex justify-between items-center">
                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Password</Label>
-                      <button type="button" onClick={() => setShowReset(true)} className="text-[10px] font-black text-primary uppercase hover:underline">Forgot Password?</button>
+                      <button type="button" onClick={() => setShowReset(true)} className="text-[10px] font-black text-primary uppercase hover:underline">Forgot?</button>
                    </div>
                    <div className="relative">
                       <Input 

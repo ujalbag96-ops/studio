@@ -44,7 +44,6 @@ export default function UserDashboard() {
   const [activeNav, setActiveNav] = useState('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
 
-  // Using useDoc with real-time onSnapshot synchronization
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
     [firestore, user]
@@ -73,7 +72,7 @@ export default function UserDashboard() {
   const copyUid = () => {
     if (user?.uid) {
       navigator.clipboard.writeText(user.uid);
-      toast({ title: "User ID Copied!", description: "Share this ID to add coins manually." });
+      toast({ title: "User ID Copied!" });
     }
   };
 
@@ -81,7 +80,7 @@ export default function UserDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Opening Your Wallet...</p>
+        <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Opening Wallet...</p>
       </div>
     );
   }
@@ -102,14 +101,13 @@ export default function UserDashboard() {
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary selection:text-white">
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
       
-      {/* Sidebar for Desktop */}
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-10 border-b border-white/5">
           <Link href="/" className="flex items-center gap-4 group">
             <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center shadow-xl">
               <Activity className="h-6 w-6 text-white" />
             </div>
-            <span className="font-black uppercase tracking-tighter text-2xl italic">My <span className="text-primary">Profile</span></span>
+            <span className="font-black uppercase tracking-tighter text-2xl italic">My <span className="text-primary">Dashboard</span></span>
           </Link>
         </div>
 
@@ -135,7 +133,6 @@ export default function UserDashboard() {
         </div>
       </aside>
 
-      {/* Main Content Sector */}
       <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-10 pb-32">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-4">
@@ -147,7 +144,6 @@ export default function UserDashboard() {
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Dashboard</span></h1>
             
-            {/* User ID Section */}
             <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
                <div>
                   <p className="text-[10px] font-bold text-muted-foreground uppercase">My User ID</p>
@@ -171,31 +167,30 @@ export default function UserDashboard() {
           </div>
         </header>
 
-        {/* Balance Grid - WinZO Style */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <WalletCard 
-            label="Total Assets" 
+            label="Total Balance" 
             value={profile?.coins || 0} 
             icon={<Coins />} 
-            description="Combined wallet value"
+            description="All coins combined"
             color="primary"
           />
           <WalletCard 
-            label="Winning Cash" 
+            label="Winning Balance" 
             value={profile?.winningBalance || 0} 
             icon={<Trophy />} 
-            description="Withdrawable amount"
+            description="Withdrawable cash"
             color="green"
           />
           <WalletCard 
-            label="Deposit Cash" 
+            label="Deposit Balance" 
             value={profile?.depositBalance || 0} 
             icon={<CreditCard />} 
-            description="Added via gateway"
+            description="Added for games"
             color="blue"
           />
           <WalletCard 
-            label="Bonus Coins" 
+            label="Bonus Balance" 
             value={profile?.taskBalance || 0} 
             icon={<Zap />} 
             description="Earned from tasks"
@@ -203,7 +198,6 @@ export default function UserDashboard() {
           />
         </div>
 
-        {/* Activity Feed */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           <div className="xl:col-span-2 space-y-8">
             <div className="flex items-center justify-between px-2">
@@ -272,7 +266,7 @@ export default function UserDashboard() {
                   <Zap className="h-10 w-10 text-primary animate-pulse" />
                </div>
                <div className="space-y-4 relative z-10">
-                  <h3 className="text-3xl font-black uppercase italic">Free Income</h3>
+                  <h3 className="text-3xl font-black uppercase italic">Free Coins</h3>
                   <p className="text-sm text-muted-foreground font-medium">Complete simple tasks to earn coins for free.</p>
                </div>
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">

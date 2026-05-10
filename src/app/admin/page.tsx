@@ -13,9 +13,7 @@ import {
   LogOut,
   Copy,
   Plus,
-  ArrowUpRight,
   ShieldCheck,
-  AlertCircle,
   Coins
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -98,7 +96,7 @@ export default function AdminDashboard() {
 
       toast({ 
         title: "Success", 
-        description: `Successfully added ${amount} to User ${targetId}.` 
+        description: `Added ${amount} coins to user account.` 
       });
       setQuickUid('');
       setBalanceAdjustment(null);
@@ -140,7 +138,7 @@ export default function AdminDashboard() {
         isRefunded: true
       });
 
-      toast({ title: "Refund Complete", description: `Refunded ${regSnap.size} participants.` });
+      toast({ title: "Refund Complete", description: `Refunded ${regSnap.size} players.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Refund Failed", description: e.message });
     } finally {
@@ -200,7 +198,7 @@ export default function AdminDashboard() {
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User Information</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User Info</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Balances</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-right px-8">Actions</TableHead>
                       </TableRow>
@@ -311,7 +309,7 @@ export default function AdminDashboard() {
       {balanceAdjustment && (
         <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
            <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-sm rounded-[2.5rem] shadow-2xl p-0 overflow-hidden">
-              <VisuallyHidden.Root><DialogTitle>Add Balance to User</DialogTitle></VisuallyHidden.Root>
+              <VisuallyHidden.Root><DialogTitle>Add Coins to User</DialogTitle></VisuallyHidden.Root>
               <div className="bg-primary/10 p-8 border-b border-white/5">
                 <h3 className="text-xl font-black italic uppercase text-primary">Add Coins</h3>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Direct Wallet Credit</p>
