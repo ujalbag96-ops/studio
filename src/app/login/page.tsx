@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -18,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
-import { Trophy, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Trophy, Loader2, AlertCircle, Eye, EyeOff, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -49,35 +50,52 @@ export default function LoginPage() {
   const [showReset, setShowReset] = useState(false);
 
   useEffect(() => {
-    if (user && !isUserLoading && firestore) {
-      const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-      if (isAdmin) {
-        router.push('/admin');
-        return;
-      }
-
-      const userDocRef = doc(firestore, 'users', user.uid);
-      const unsubscribe = onSnapshot(userDocRef, (snap) => {
-        if (!snap.exists()) {
-          const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-          setDoc(userDocRef, {
-            id: user.uid,
-            email: user.email || '',
-            coins: 0,
-            winningBalance: 0,
-            depositBalance: 0,
-            taskBalance: 0,
-            withdrawableCoins: 0,
-            rank: 'Bronze',
-            referralCode: randomCode,
-            joinedAt: new Date().toISOString()
-          }, { merge: true });
-        } else {
-          router.push('/dashboard');
+    async function initUser() {
+      if (user && !isUserLoading && firestore) {
+        const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+        
+        // Fetch IP address for security
+        let currentIp = 'Unknown';
+        try {
+          const res = await fetch('https://api.ipify.org?format=json');
+          const data = await res.json();
+          currentIp = data.ip;
+        } catch (e) {
+          console.error("IP Fetch Failed", e);
         }
-      });
-      return () => unsubscribe();
+
+        if (isAdmin) {
+          router.push('/admin');
+          return;
+        }
+
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const unsubscribe = onSnapshot(userDocRef, (snap) => {
+          if (!snap.exists()) {
+            const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            setDoc(userDocRef, {
+              id: user.uid,
+              email: user.email || '',
+              lastIp: currentIp,
+              coins: 0,
+              winningBalance: 0,
+              depositBalance: 0,
+              taskBalance: 0,
+              withdrawableCoins: 0,
+              rank: 'Bronze',
+              referralCode: randomCode,
+              joinedAt: new Date().toISOString()
+            }, { merge: true });
+          } else {
+            // Update last IP on every login
+            setDoc(userDocRef, { lastIp: currentIp }, { merge: true });
+            router.push('/dashboard');
+          }
+        });
+        return () => unsubscribe();
+      }
     }
+    initUser();
   }, [user, isUserLoading, firestore, router]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
@@ -87,10 +105,10 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Welcome!", description: "Logging into your account..." });
+        toast({ title: "Welcome!", description: "Opening your game account..." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Account Created", description: "Your account is ready!" });
+        toast({ title: "Account Created", description: "You are now registered!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -103,6 +121,7 @@ export default function LoginPage() {
   const handlePhoneFlow = async () => {
     if (!auth) return;
     setIsLoading(true);
+    setAuthError(null);
     try {
       if (!confirmationResult) {
         if (!(window as any).recaptchaVerifier) {
@@ -110,7 +129,7 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Sent", description: "Please check your messages." });
+        toast({ title: "OTP Sent", description: "Check your messages for code." });
       } else {
         await confirmationResult.confirm(otp);
         toast({ title: "Verified", description: "Login successful!" });
@@ -125,13 +144,13 @@ export default function LoginPage() {
 
   const handleReset = async () => {
     if (!auth || !email) {
-      toast({ variant: "destructive", title: "Email Required", description: "Enter your email first." });
+      toast({ variant: "destructive", title: "Email Required", description: "Please enter your email." });
       return;
     }
     setIsLoading(true);
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      toast({ title: "Link Sent", description: "Check your inbox to reset password." });
+      toast({ title: "Link Sent", description: "Check inbox to reset password." });
       setShowReset(false);
     } catch (e: any) {
       setAuthError(e.message);
@@ -144,7 +163,7 @@ export default function LoginPage() {
   if (isUserLoading) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4">
       <Loader2 className="animate-spin text-primary h-12 w-12" />
-      <p className="text-xs font-bold uppercase text-muted-foreground">Loading Account...</p>
+      <p className="text-xs font-bold uppercase text-muted-foreground tracking-[0.2em]">Loading Account...</p>
     </div>
   );
 
@@ -154,14 +173,14 @@ export default function LoginPage() {
         <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <Trophy className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Account <span className="text-primary">Login</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to your game wallet</p>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Games <span className="text-primary">Login</span></h1>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to play and win</p>
       </div>
 
       {authError && (
         <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="text-[10px] font-black uppercase">Login Error</AlertTitle>
+          <AlertTitle className="text-[10px] font-black uppercase">Auth Error</AlertTitle>
           <AlertDescription className="text-xs font-bold">{authError}</AlertDescription>
         </Alert>
       )}
@@ -175,7 +194,7 @@ export default function LoginPage() {
         <TabsContent value="email" className="mt-6 space-y-4">
           <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
             <div className="space-y-2">
-               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Email Address</Label>
+               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Email ID</Label>
                <Input 
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
@@ -223,7 +242,7 @@ export default function LoginPage() {
                     variant="outline" 
                     className="h-14 border-white/10 hover:bg-white/5 font-black uppercase text-[10px] tracking-widest rounded-xl"
                   >
-                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "CREATE NEW ACCOUNT"}
+                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "SIGN UP NEW ACCOUNT"}
                   </Button>
                 </div>
               </>
@@ -290,7 +309,7 @@ export default function LoginPage() {
                 disabled={isLoading} 
                 className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20"
               >
-                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "SEND OTP" : "VERIFY CODE")}
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "SEND OTP" : "VERIFY OTP")}
               </Button>
            </Card>
         </TabsContent>

@@ -89,6 +89,7 @@ export interface UserProfile {
   email?: string;
   mobile?: string;
   deviceId?: string;
+  lastIp?: string;
   country?: string;
   countryCode?: string;
   depositBalance: number;
@@ -113,24 +114,20 @@ export interface UserProfile {
 export interface AppSettings {
   id: string;
   maintenanceMode: boolean;
-  // CPA & Offers
   cpaLeadUrl: string;
   cpaLeadApiKey?: string;
   offerWallEnabled?: boolean;
   videoWallEnabled?: boolean;
   videoWallUrl?: string;
-  // AdMob Infrastructure
   adMobAppId?: string;
   adMobBannerId?: string;
   adMobInterstitialId?: string;
   adMobRewardedId?: string;
   adMobEnabled?: boolean;
-  // Payment Gateway
   paymentGatewayKey?: string;
   paymentGatewaySecret?: string;
   paymentGatewayEnabled?: boolean;
   autoWithdrawalThreshold?: number;
-  // Global Economics
   coinValuePerDollar?: number;
   adminProfitPercentage?: number;
   referralRewardCoins?: number;

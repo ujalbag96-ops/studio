@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
@@ -14,7 +15,8 @@ import {
   Copy,
   Plus,
   ShieldCheck,
-  Coins
+  Coins,
+  Globe
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,11 +46,11 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<AdminTab>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [balanceAdjustment, setBalanceAdjustment] = useState<{ user: UserProfile } | null>(null);
-  const [adjAmount, setAdjAmount] = useState('500');
+  const [adjAmount, setAdjAmount] = useState('100');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [quickUid, setQuickUid] = useState('');
-  const [quickAmount, setQuickAmount] = useState('500');
+  const [quickAmount, setQuickAmount] = useState('100');
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -68,7 +70,7 @@ export default function AdminDashboard() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "User ID Copied!" });
+    toast({ title: "ID Copied!" });
   };
 
   const executeInjection = async (targetId: string, amount: number) => {
@@ -95,52 +97,13 @@ export default function AdminDashboard() {
       });
 
       toast({ 
-        title: "Success", 
-        description: `Added ${amount} coins to user account.` 
+        title: "SUCCESS", 
+        description: `Added ${amount} coins to ${targetId.substring(0,5)}...` 
       });
       setQuickUid('');
       setBalanceAdjustment(null);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleRefund = async (tournament: Tournament) => {
-    if (!firestore || !isAdminUser || isProcessing) return;
-    if (tournament.isRefunded) return;
-    
-    setIsProcessing(true);
-    try {
-      const regSnap = await getDocs(query(collection(firestore, 'registrations'), where('tournamentId', '==', tournament.id)));
-      
-      for (const regDoc of regSnap.docs) {
-        const regData = regDoc.data();
-        const userRef = doc(firestore, 'users', regData.userId);
-        
-        await setDoc(userRef, {
-          coins: increment(regData.feePaid),
-          depositBalance: increment(regData.feePaid)
-        }, { merge: true });
-
-        await addDoc(collection(firestore, 'users', regData.userId, 'ledger'), {
-          type: 'refund',
-          amount: regData.feePaid,
-          date: new Date().toISOString().split('T')[0],
-          status: 'completed',
-          description: `Refund: ${tournament.name}`
-        });
-      }
-
-      await updateDoc(doc(firestore, 'tournaments', tournament.id), {
-        status: 'cancelled',
-        isRefunded: true
-      });
-
-      toast({ title: "Refund Complete", description: `Refunded ${regSnap.size} players.` });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Refund Failed", description: e.message });
     } finally {
       setIsProcessing(false);
     }
@@ -198,7 +161,7 @@ export default function AdminDashboard() {
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User Info</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User & Device Info</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Balances</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-right px-8">Actions</TableHead>
                       </TableRow>
@@ -216,6 +179,9 @@ export default function AdminDashboard() {
                               <div className="flex items-center gap-2 mt-2">
                                 <code className="text-[10px] font-mono text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">ID: {u.id}</code>
                                 <button onClick={() => copyToClipboard(u.id)} className="text-muted-foreground hover:text-white p-1 rounded-md hover:bg-white/5"><Copy className="h-3 w-3" /></button>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 text-[9px] text-muted-foreground font-bold uppercase">
+                                <Globe className="h-3 w-3" /> Last IP: <span className="text-white">{u.lastIp || 'N/A'}</span>
                               </div>
                            </TableCell>
                            <TableCell className="text-center">
@@ -237,28 +203,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'tournaments' && (
-          <div className="grid gap-6">
-             {tourData?.map(t => (
-               <Card key={t.id} className="bg-[#0a0a0f] border-white/5 p-8 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold uppercase">{t.name}</h3>
-                    <p className="text-xs text-muted-foreground">Status: <span className={cn("font-bold uppercase", t.status === 'active' ? 'text-green-500' : 'text-red-500')}>{t.status}</span></p>
-                  </div>
-                  <div className="flex gap-4">
-                     {t.status !== 'cancelled' ? (
-                       <Button onClick={() => handleRefund(t)} variant="destructive" size="sm" disabled={isProcessing} className="font-black uppercase text-[10px]">
-                          {isProcessing ? <Loader2 className="animate-spin" /> : "CANCEL & REFUND"}
-                       </Button>
-                     ) : (
-                       <Badge className="bg-red-500/20 text-red-500 uppercase">Refunded & Closed</Badge>
-                     )}
-                  </div>
-               </Card>
-             ))}
-          </div>
-        )}
-
         {activeTab === 'add-money' && (
            <Card className="bg-[#0a0a0f] border-primary/20 p-10 rounded-[2.5rem] space-y-8 max-w-xl mx-auto shadow-2xl">
               <div className="flex items-center gap-4">
@@ -266,7 +210,7 @@ export default function AdminDashboard() {
                     <CreditCard className="text-primary h-6 w-6" />
                  </div>
                  <div>
-                    <h3 className="text-2xl font-black uppercase italic">Add Money by User ID</h3>
+                    <h3 className="text-2xl font-black uppercase italic">Quick Add Cash</h3>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Enter User ID and Amount</p>
                  </div>
               </div>
