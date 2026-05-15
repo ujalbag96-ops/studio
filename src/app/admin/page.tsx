@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, addDoc, increment } from 'firebase/firestore';
+import { collection, doc, setDoc, addDoc, increment } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   Users as UsersIcon, 
@@ -18,7 +18,8 @@ import {
   Globe,
   RefreshCcw,
   Wallet,
-  UserCheck
+  UserCheck,
+  Smartphone
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,7 +73,7 @@ export default function AdminDashboard() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "User ID Copied!" });
+    toast({ title: "Copied to Clipboard!" });
   };
 
   const executeAddMoney = async (targetId: string, amount: number) => {
@@ -99,7 +100,7 @@ export default function AdminDashboard() {
       });
 
       toast({ 
-        title: "SUCCESS: MONEY ADDED", 
+        title: "SUCCESS", 
         description: `Added ${amount} coins to User: ${targetId.substring(0,8)}` 
       });
       setQuickUid('');
@@ -149,8 +150,8 @@ export default function AdminDashboard() {
       <main className="flex-1 ml-72 p-10 space-y-10">
         <header className="flex items-center justify-between">
            <div className="space-y-1">
-              <h1 className="text-4xl font-black uppercase italic text-white">Admin <span className="text-primary">Dashboard</span></h1>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Manage users, balances, and game records</p>
+              <h1 className="text-4xl font-black uppercase italic text-white">Admin <span className="text-primary">Hub</span></h1>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Search users and manage balances</p>
            </div>
            <Badge className="bg-primary/20 text-primary border-none font-bold px-4 py-1.5 text-xs">ADMIN MODE ACTIVE</Badge>
         </header>
@@ -188,7 +189,7 @@ export default function AdminDashboard() {
                                 <button onClick={() => copyToClipboard(u.id)} className="text-muted-foreground hover:text-white p-1 rounded-md hover:bg-white/5"><Copy className="h-3 w-3" /></button>
                               </div>
                               <div className="flex items-center gap-2 mt-2 text-[9px] text-muted-foreground font-bold uppercase">
-                                <Globe className="h-3 w-3" /> Last Login IP: <span className="text-white">{u.lastIp || 'Unknown'}</span>
+                                <Smartphone className="h-3 w-3" /> Last IP: <span className="text-white">{u.lastIp || 'Unknown'}</span>
                               </div>
                            </TableCell>
                            <TableCell className="text-center">
@@ -219,8 +220,8 @@ export default function AdminDashboard() {
                     <CreditCard className="text-primary h-6 w-6" />
                  </div>
                  <div>
-                    <h3 className="text-2xl font-black uppercase italic text-white">Direct Money Credit</h3>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Enter User ID and coin amount to credit</p>
+                    <h3 className="text-2xl font-black uppercase italic text-white">Direct Wallet Credit</h3>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Enter User ID and amount to credit</p>
                  </div>
               </div>
 
@@ -261,8 +262,8 @@ export default function AdminDashboard() {
         {activeTab === 'tournaments' && (
            <div className="grid gap-6">
               <div className="flex items-center justify-between">
-                 <h2 className="text-2xl font-black uppercase italic text-white">Game Management</h2>
-                 <Button className="bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase h-10 px-6 rounded-xl">Create New Tournament</Button>
+                 <h2 className="text-2xl font-black uppercase italic text-white">Tournaments Admin</h2>
+                 <Button className="bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase h-10 px-6 rounded-xl">Create New</Button>
               </div>
               <div className="grid md:grid-cols-2 gap-6">
                  {tournamentsData?.map(t => (
@@ -281,7 +282,7 @@ export default function AdminDashboard() {
                           <Button disabled={isProcessing} variant="destructive" size="sm" className="flex-1 font-black text-[10px] h-10 rounded-lg uppercase">
                              <RefreshCcw className="h-3 w-3 mr-2" /> Cancel & Refund
                           </Button>
-                          <Button variant="outline" size="sm" className="flex-1 font-black text-[10px] h-10 rounded-lg border-white/10 text-white uppercase">Edit Details</Button>
+                          <Button variant="outline" size="sm" className="flex-1 font-black text-[10px] h-10 rounded-lg border-white/10 text-white uppercase">Edit</Button>
                        </div>
                     </Card>
                  ))}
@@ -296,11 +297,11 @@ export default function AdminDashboard() {
               <VisuallyHidden.Root><DialogTitle>Add Coins to Wallet</DialogTitle></VisuallyHidden.Root>
               <div className="bg-primary/10 p-8 border-b border-white/5">
                 <h3 className="text-xl font-black italic uppercase text-primary">Add Money</h3>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Add coins directly to user balance</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Directly credit user balance</p>
               </div>
               <div className="p-8 space-y-6">
                  <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
-                    <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">Account Target</p>
+                    <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">Target Account</p>
                     <p className="text-xs font-bold truncate text-white">{balanceAdjustment.user.email || balanceAdjustment.user.id}</p>
                  </div>
                  <div className="space-y-2">
@@ -321,7 +322,7 @@ export default function AdminDashboard() {
                   disabled={isProcessing} 
                   className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase italic text-xl shadow-2xl shadow-primary/20 rounded-2xl text-white"
                  >
-                   {isProcessing ? <Loader2 className="animate-spin" /> : "Confirm & Credit"}
+                   {isProcessing ? <Loader2 className="animate-spin" /> : "Confirm Credit"}
                  </Button>
               </div>
            </DialogContent>

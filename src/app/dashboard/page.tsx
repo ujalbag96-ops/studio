@@ -64,7 +64,7 @@ export default function UserDashboard() {
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
-      toast({ title: "Logged Out Successfully" });
+      toast({ title: "Logout Successful" });
       router.push('/login');
     }
   };
@@ -89,7 +89,7 @@ export default function UserDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center gap-6 bg-[#050508]">
         <Shield className="h-20 w-20 text-muted-foreground opacity-20" />
-        <h2 className="text-3xl font-black uppercase text-white">Access Denied</h2>
+        <h2 className="text-3xl font-black uppercase text-white">Login Required</h2>
         <Button asChild size="lg" className="rounded-xl font-black px-12 h-14 bg-primary shadow-xl text-white uppercase">
           <Link href="/login">Please Login</Link>
         </Button>
@@ -107,28 +107,28 @@ export default function UserDashboard() {
             <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center shadow-xl">
               <Activity className="h-6 w-6 text-white" />
             </div>
-            <span className="font-black uppercase tracking-tighter text-2xl italic">My <span className="text-primary">Wallet</span></span>
+            <span className="font-black uppercase tracking-tighter text-2xl italic">MY <span className="text-primary">WALLET</span></span>
           </Link>
         </div>
 
         <nav className="flex-1 p-8 space-y-2">
           <div className="pb-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Navigation</p>
-            <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="My Dashboard" onClick={() => setActiveNav('overview')} />
-            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="Earn Free Coins" href="/earning-hub" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Menu</p>
+            <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Dashboard" onClick={() => setActiveNav('overview')} />
+            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="Earn Coins" href="/earning-hub" />
             <SidebarItem active={activeNav === 'ledger'} icon={<History />} label="Transactions" href="/ledger" />
-            <SidebarItem active={activeNav === 'finance'} icon={<Wallet />} label="Withdraw Cash" href="/withdraw" />
+            <SidebarItem active={activeNav === 'finance'} icon={<Wallet />} label="Withdraw" href="/withdraw" />
           </div>
           
           <div className="pt-8 border-t border-white/5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Profile Rank</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">My Rank</p>
             <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'BRONZE'} TIER`} href="/levels" />
           </div>
         </nav>
 
         <div className="p-8 border-t border-white/5">
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all font-black uppercase text-xs">
-            <LogOut className="h-5 w-5" /> Logout Account
+            <LogOut className="h-5 w-5" /> Logout
           </button>
         </div>
       </aside>
@@ -146,7 +146,7 @@ export default function UserDashboard() {
             
             <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">My User ID (UID)</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">User ID (UID)</p>
                   <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
                </div>
                <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 bg-white/5 hover:bg-primary/20 hover:text-primary">
@@ -176,7 +176,7 @@ export default function UserDashboard() {
             color="primary"
           />
           <WalletCard 
-            label="Winning Cash" 
+            label="Winning Balance" 
             value={profile?.winningBalance || 0} 
             icon={<Trophy />} 
             description="Available to withdraw"
@@ -253,7 +253,7 @@ export default function UserDashboard() {
                 ) : (
                   <div className="p-32 text-center space-y-4">
                      <History className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
-                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No transactions found yet.</p>
+                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No history found.</p>
                   </div>
                 )}
               </CardContent>
@@ -267,7 +267,7 @@ export default function UserDashboard() {
                </div>
                <div className="space-y-4 relative z-10">
                   <h3 className="text-3xl font-black uppercase italic text-white">Free Cash</h3>
-                  <p className="text-sm text-muted-foreground font-medium">Complete tasks to earn real cash for free.</p>
+                  <p className="text-sm text-muted-foreground font-medium">Earn coins for free by watching videos.</p>
                </div>
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105 text-white">
                   <Link href="/earning-hub">Earn Now</Link>

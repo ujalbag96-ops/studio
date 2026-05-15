@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
-import { Wallet, Loader2, AlertCircle, Eye, EyeOff, UserPlus, LogIn } from 'lucide-react';
+import { Wallet, Loader2, AlertCircle, Eye, EyeOff, UserPlus, LogIn, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -86,7 +86,7 @@ export default function LoginPage() {
             joinedAt: new Date().toISOString()
           }, { merge: true });
         } else {
-          await setDoc(userDocRef, { lastIp: currentIp }, { merge: true });
+          await setDoc(userDocRef, { lastIp: currentIp, lastActive: new Date().toISOString() }, { merge: true });
         }
         router.push('/dashboard');
       } catch (err) {
@@ -104,14 +104,14 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Welcome Back", description: "Taking you to your dashboard..." });
+        toast({ title: "Welcome Back", description: "Login successful." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Account Created", description: "Setting up your account..." });
+        toast({ title: "Account Created", description: "Setting up your profile..." });
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Auth Error", description: e.message });
+      toast({ variant: "destructive", title: "Authentication Failed", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -128,14 +128,14 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Sent", description: "Please check your SMS." });
+        toast({ title: "OTP Sent", description: "Please check your SMS messages." });
       } else {
         await confirmationResult.confirm(otp);
-        toast({ title: "Success", description: "Login successful." });
+        toast({ title: "Success", description: "Phone verification complete." });
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Phone Error", description: e.message });
+      toast({ variant: "destructive", title: "SMS Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -143,13 +143,13 @@ export default function LoginPage() {
 
   const handleReset = async () => {
     if (!auth || !email) {
-      toast({ variant: "destructive", title: "Email Needed", description: "Enter your email to reset password." });
+      toast({ variant: "destructive", title: "Email Required", description: "Enter your email to reset password." });
       return;
     }
     setIsLoading(true);
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      toast({ title: "Email Sent", description: "Check your inbox for the reset link." });
+      toast({ title: "Reset Link Sent", description: "Check your inbox for the link." });
       setShowReset(false);
     } catch (e: any) {
       setAuthError(e.message);
@@ -169,16 +169,16 @@ export default function LoginPage() {
     <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-700">
       <div className="text-center space-y-3">
         <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
-          <Wallet className="h-10 w-10 text-primary" />
+          <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">Account <span className="text-primary">Login</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to start earning coins</p>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">Login / <span className="text-primary">Register</span></h1>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to manage your coins and profile</p>
       </div>
 
       {authError && (
         <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Login Failed</AlertTitle>
+          <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Error</AlertTitle>
           <AlertDescription className="text-xs font-bold">{authError}</AlertDescription>
         </Alert>
       )}
@@ -231,7 +231,7 @@ export default function LoginPage() {
                     disabled={isLoading} 
                     className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl text-white"
                   >
-                    {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : <><LogIn className="h-5 w-5 mr-2" /> Login</>}
+                    {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : <><LogIn className="h-5 w-5 mr-2" /> Login Now</>}
                   </Button>
                   <Button 
                     type="button" 
@@ -240,7 +240,7 @@ export default function LoginPage() {
                     variant="outline" 
                     className="h-14 border-white/10 hover:bg-white/5 font-black uppercase text-[10px] tracking-widest rounded-xl text-white"
                   >
-                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <><UserPlus className="h-4 w-4 mr-2" /> Create New Account</>}
+                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <><UserPlus className="h-4 w-4 mr-2" /> Create Account</>}
                   </Button>
                 </div>
               </>
@@ -307,7 +307,7 @@ export default function LoginPage() {
                 disabled={isLoading} 
                 className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl text-white"
               >
-                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "Send OTP" : "Verify & Login")}
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "Send SMS Code" : "Verify & Continue")}
               </Button>
            </Card>
         </TabsContent>
