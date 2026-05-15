@@ -18,7 +18,6 @@ import {
   LogOut,
   CreditCard,
   Crown,
-  ShieldCheck,
   Copy,
   Coins
 } from 'lucide-react';
@@ -81,7 +80,7 @@ export default function UserDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Opening Wallet...</p>
+        <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest italic">Loading Dashboard...</p>
       </div>
     );
   }
@@ -91,8 +90,8 @@ export default function UserDashboard() {
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center gap-6 bg-[#050508]">
         <Shield className="h-20 w-20 text-muted-foreground opacity-20" />
         <h2 className="text-3xl font-black uppercase text-white">Access Denied</h2>
-        <Button asChild size="lg" className="rounded-xl font-black px-12 h-14 bg-primary shadow-xl text-white">
-          <Link href="/login">LOGIN TO DASHBOARD</Link>
+        <Button asChild size="lg" className="rounded-xl font-black px-12 h-14 bg-primary shadow-xl text-white uppercase">
+          <Link href="/login">Please Login</Link>
         </Button>
       </div>
     );
@@ -108,22 +107,22 @@ export default function UserDashboard() {
             <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center shadow-xl">
               <Activity className="h-6 w-6 text-white" />
             </div>
-            <span className="font-black uppercase tracking-tighter text-2xl italic">My <span className="text-primary">Dashboard</span></span>
+            <span className="font-black uppercase tracking-tighter text-2xl italic">My <span className="text-primary">Wallet</span></span>
           </Link>
         </div>
 
         <nav className="flex-1 p-8 space-y-2">
           <div className="pb-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Main Navigation</p>
-            <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Dashboard" onClick={() => setActiveNav('overview')} />
-            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="Earn Free Cash" href="/earning-hub" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Navigation</p>
+            <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="My Dashboard" onClick={() => setActiveNav('overview')} />
+            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="Earn Free Coins" href="/earning-hub" />
             <SidebarItem active={activeNav === 'ledger'} icon={<History />} label="Transactions" href="/ledger" />
             <SidebarItem active={activeNav === 'finance'} icon={<Wallet />} label="Withdraw Cash" href="/withdraw" />
           </div>
           
           <div className="pt-8 border-t border-white/5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Account Status</p>
-            <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'BRONZE'} LEVEL`} href="/levels" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Profile Rank</p>
+            <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'BRONZE'} TIER`} href="/levels" />
           </div>
         </nav>
 
@@ -138,12 +137,12 @@ export default function UserDashboard() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">VERIFIED ACCOUNT</Badge>
+               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-bold uppercase">
                   <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Balance Sync
                </div>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Wallet</span></h1>
+            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Dashboard</span></h1>
             
             <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
                <div>
@@ -158,11 +157,11 @@ export default function UserDashboard() {
 
           <div className="flex items-center gap-4">
             <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 hover:bg-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase text-white">
-              Add Cash <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
+              Add Money <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
             </Button>
             <WalletModal>
               <Button variant="outline" className="border-primary/20 hover:bg-primary/10 h-16 px-8 rounded-xl text-lg font-black uppercase text-primary">
-                Wallet Details
+                View Wallet
               </Button>
             </WalletModal>
           </div>
@@ -177,21 +176,21 @@ export default function UserDashboard() {
             color="primary"
           />
           <WalletCard 
-            label="Winning Balance" 
+            label="Winning Cash" 
             value={profile?.winningBalance || 0} 
             icon={<Trophy />} 
-            description="Available for withdrawal"
+            description="Available to withdraw"
             color="green"
           />
           <WalletCard 
-            label="Deposit Balance" 
+            label="Deposit Cash" 
             value={profile?.depositBalance || 0} 
             icon={<CreditCard />} 
-            description="Added for matches"
+            description="For entry fees"
             color="blue"
           />
           <WalletCard 
-            label="Bonus Cash" 
+            label="Bonus Coins" 
             value={profile?.taskBalance || 0} 
             icon={<Zap />} 
             description="Earned from tasks"
@@ -204,7 +203,7 @@ export default function UserDashboard() {
             <div className="flex items-center justify-between px-2">
                <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic text-white">
                  <History className="h-6 w-6 text-primary" />
-                 Recent Activity
+                 Recent History
                </h3>
                <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary font-bold uppercase text-xs h-10 px-6 rounded-xl border border-white/5">
                   <Link href="/ledger">Full History <ChevronRight className="h-4 w-4 ml-2" /></Link>
@@ -226,7 +225,7 @@ export default function UserDashboard() {
                              activity.type === 'withdrawal' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
                            )}>
                              {activity.type === 'income' ? <TrendingUp className="h-5 w-5" /> : 
-                              activity.type === 'withdrawal' ? <ArrowUpRight className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
+                              activity.type === 'withdrawal' ? <ArrowUpRight className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
                            </div>
                            <div className="space-y-1">
                              <p className="text-sm font-bold uppercase text-white group-hover:text-primary transition-colors">{activity.description || activity.type}</p>
@@ -254,7 +253,7 @@ export default function UserDashboard() {
                 ) : (
                   <div className="p-32 text-center space-y-4">
                      <History className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
-                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No records found yet.</p>
+                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No transactions found yet.</p>
                   </div>
                 )}
               </CardContent>
@@ -268,7 +267,7 @@ export default function UserDashboard() {
                </div>
                <div className="space-y-4 relative z-10">
                   <h3 className="text-3xl font-black uppercase italic text-white">Free Cash</h3>
-                  <p className="text-sm text-muted-foreground font-medium">Complete simple missions to earn coins for free.</p>
+                  <p className="text-sm text-muted-foreground font-medium">Complete tasks to earn real cash for free.</p>
                </div>
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105 text-white">
                   <Link href="/earning-hub">Earn Now</Link>

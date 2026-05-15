@@ -17,8 +17,8 @@ import {
   ShieldCheck,
   Globe,
   RefreshCcw,
-  AlertTriangle,
-  Wallet
+  Wallet,
+  UserCheck
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -95,12 +95,12 @@ export default function AdminDashboard() {
         amount: amount,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: "Direct Credit by Admin"
+        description: "Direct Deposit by Admin"
       });
 
       toast({ 
-        title: "COINS ADDED", 
-        description: `Successfully added ${amount} coins to User: ${targetId.substring(0,8)}...` 
+        title: "SUCCESS: MONEY ADDED", 
+        description: `Added ${amount} coins to User: ${targetId.substring(0,8)}` 
       });
       setQuickUid('');
       setBalanceAdjustment(null);
@@ -112,7 +112,7 @@ export default function AdminDashboard() {
   };
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
-  if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black">ACCESS DENIED</div>;
+  if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black">ACCESS DENIED: ADMIN ONLY</div>;
 
   const filteredUsers = usersData?.filter(u => 
     u.email?.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -132,10 +132,10 @@ export default function AdminDashboard() {
         </div>
         
         <nav className="flex-1 px-4 space-y-2 pt-4">
-          <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="Users Directory" onClick={() => setActiveTab('users')} />
-          <SidebarLink active={activeTab === 'add-money'} icon={<Plus />} label="Quick Add Coins" onClick={() => setActiveTab('add-money')} />
-          <SidebarLink active={activeTab === 'tournaments'} icon={<Gamepad2 />} label="Game Management" onClick={() => setActiveTab('tournaments')} />
-          <SidebarLink active={activeTab === 'settings'} icon={<Settings />} label="System Settings" onClick={() => setActiveTab('settings')} />
+          <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="Users List" onClick={() => setActiveTab('users')} />
+          <SidebarLink active={activeTab === 'add-money'} icon={<Plus />} label="Add Money" onClick={() => setActiveTab('add-money')} />
+          <SidebarLink active={activeTab === 'tournaments'} icon={<Gamepad2 />} label="Games Admin" onClick={() => setActiveTab('tournaments')} />
+          <SidebarLink active={activeTab === 'settings'} icon={<Settings />} label="Settings" onClick={() => setActiveTab('settings')} />
         </nav>
 
         <div className="p-6 border-t border-white/5">
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
         <header className="flex items-center justify-between">
            <div className="space-y-1">
               <h1 className="text-4xl font-black uppercase italic text-white">Admin <span className="text-primary">Dashboard</span></h1>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Control users, balances, and game sectors</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Manage users, balances, and game records</p>
            </div>
            <Badge className="bg-primary/20 text-primary border-none font-bold px-4 py-1.5 text-xs">ADMIN MODE ACTIVE</Badge>
         </header>
@@ -171,9 +171,9 @@ export default function AdminDashboard() {
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User Information</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Wallet Status</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-right px-8">Actions</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User Info & ID</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Wallet Balance</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-right px-8">Quick Actions</TableHead>
                       </TableRow>
                    </TableHeader>
                    <TableBody>
@@ -184,27 +184,27 @@ export default function AdminDashboard() {
                            <TableCell className="px-8 py-6">
                               <p className="text-sm font-bold text-white">{u.email || 'Phone User'}</p>
                               <div className="flex items-center gap-2 mt-2">
-                                <code className="text-[10px] font-mono text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">UID: {u.id}</code>
+                                <code className="text-[10px] font-mono text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">User ID: {u.id}</code>
                                 <button onClick={() => copyToClipboard(u.id)} className="text-muted-foreground hover:text-white p-1 rounded-md hover:bg-white/5"><Copy className="h-3 w-3" /></button>
                               </div>
                               <div className="flex items-center gap-2 mt-2 text-[9px] text-muted-foreground font-bold uppercase">
-                                <Globe className="h-3 w-3" /> Last IP: <span className="text-white">{u.lastIp || 'N/A'}</span>
+                                <Globe className="h-3 w-3" /> Last Login IP: <span className="text-white">{u.lastIp || 'Unknown'}</span>
                               </div>
                            </TableCell>
                            <TableCell className="text-center">
                               <div className="flex flex-col items-center gap-2">
-                                 <Badge variant="outline" className="text-[10px] border-primary/20 text-primary w-36 justify-center bg-primary/5 py-1">Total: {u.coins?.toLocaleString() || 0} 🪙</Badge>
-                                 <Badge variant="outline" className="text-[10px] border-green-500/20 text-green-500 w-36 justify-center bg-green-500/5 py-1">Winnings: {u.winningBalance?.toLocaleString() || 0}</Badge>
+                                 <Badge variant="outline" className="text-[10px] border-primary/20 text-primary w-36 justify-center bg-primary/5 py-1 font-black">Total: {u.coins?.toLocaleString() || 0} 🪙</Badge>
+                                 <Badge variant="outline" className="text-[10px] border-green-500/20 text-green-500 w-36 justify-center bg-green-500/5 py-1 font-black">Win: {u.winningBalance?.toLocaleString() || 0}</Badge>
                               </div>
                            </TableCell>
                            <TableCell className="text-right px-8">
-                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u })} className="h-10 text-[10px] font-black bg-primary hover:bg-primary/90 rounded-xl px-6 text-white">
-                                <Plus className="h-3 w-3 mr-2" /> ADD MONEY
+                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u })} className="h-10 text-[10px] font-black bg-primary hover:bg-primary/90 rounded-xl px-6 text-white uppercase">
+                                <Plus className="h-3 w-3 mr-2" /> Add Money
                               </Button>
                            </TableCell>
                         </TableRow>
                       )) : (
-                        <TableRow><TableCell colSpan={3} className="py-20 text-center text-muted-foreground font-bold uppercase text-xs">No users found in directory.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={3} className="py-20 text-center text-muted-foreground font-bold uppercase text-xs">No users found.</TableCell></TableRow>
                       )}
                    </TableBody>
                 </Table>
@@ -219,8 +219,8 @@ export default function AdminDashboard() {
                     <CreditCard className="text-primary h-6 w-6" />
                  </div>
                  <div>
-                    <h3 className="text-2xl font-black uppercase italic text-white">Direct Cash Credit</h3>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Enter User ID and coin amount</p>
+                    <h3 className="text-2xl font-black uppercase italic text-white">Direct Money Credit</h3>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Enter User ID and coin amount to credit</p>
                  </div>
               </div>
 
@@ -236,7 +236,7 @@ export default function AdminDashboard() {
                  </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Amount to Add</Label>
+                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Coins Amount</Label>
                        <Input 
                         type="number" 
                         value={quickAmount} 
@@ -261,8 +261,8 @@ export default function AdminDashboard() {
         {activeTab === 'tournaments' && (
            <div className="grid gap-6">
               <div className="flex items-center justify-between">
-                 <h2 className="text-2xl font-black uppercase italic text-white">Arena Management</h2>
-                 <Button className="bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase h-10 px-6 rounded-xl">Create Tournament</Button>
+                 <h2 className="text-2xl font-black uppercase italic text-white">Game Management</h2>
+                 <Button className="bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase h-10 px-6 rounded-xl">Create New Tournament</Button>
               </div>
               <div className="grid md:grid-cols-2 gap-6">
                  {tournamentsData?.map(t => (
@@ -270,7 +270,7 @@ export default function AdminDashboard() {
                        <div className="flex justify-between items-start">
                           <div>
                              <h4 className="text-lg font-black uppercase text-white">{t.name}</h4>
-                             <Badge variant="outline" className="text-[9px] uppercase border-white/10 mt-1 text-muted-foreground">{t.gameType}</Badge>
+                             <Badge variant="outline" className="text-[9px] uppercase border-white/10 mt-1 text-muted-foreground font-bold">{t.gameType}</Badge>
                           </div>
                           <Badge className={cn(
                              "uppercase font-black text-[9px] px-3",
@@ -278,10 +278,10 @@ export default function AdminDashboard() {
                           )}>{t.status}</Badge>
                        </div>
                        <div className="pt-4 border-t border-white/5 flex gap-3">
-                          <Button disabled={isProcessing} variant="destructive" size="sm" className="flex-1 font-black text-[10px] h-10 rounded-lg">
-                             <RefreshCcw className="h-3 w-3 mr-2" /> CANCEL & REFUND
+                          <Button disabled={isProcessing} variant="destructive" size="sm" className="flex-1 font-black text-[10px] h-10 rounded-lg uppercase">
+                             <RefreshCcw className="h-3 w-3 mr-2" /> Cancel & Refund
                           </Button>
-                          <Button variant="outline" size="sm" className="flex-1 font-black text-[10px] h-10 rounded-lg border-white/10 text-white">EDIT SECTOR</Button>
+                          <Button variant="outline" size="sm" className="flex-1 font-black text-[10px] h-10 rounded-lg border-white/10 text-white uppercase">Edit Details</Button>
                        </div>
                     </Card>
                  ))}
@@ -296,15 +296,15 @@ export default function AdminDashboard() {
               <VisuallyHidden.Root><DialogTitle>Add Coins to Wallet</DialogTitle></VisuallyHidden.Root>
               <div className="bg-primary/10 p-8 border-b border-white/5">
                 <h3 className="text-xl font-black italic uppercase text-primary">Add Money</h3>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Direct wallet adjustment</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Add coins directly to user balance</p>
               </div>
               <div className="p-8 space-y-6">
                  <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
-                    <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">Target Account</p>
+                    <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">Account Target</p>
                     <p className="text-xs font-bold truncate text-white">{balanceAdjustment.user.email || balanceAdjustment.user.id}</p>
                  </div>
                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Enter Coin Amount</Label>
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Coins Amount</Label>
                     <div className="relative">
                        <Input 
                         type="number" 
@@ -321,7 +321,7 @@ export default function AdminDashboard() {
                   disabled={isProcessing} 
                   className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase italic text-xl shadow-2xl shadow-primary/20 rounded-2xl text-white"
                  >
-                   {isProcessing ? <Loader2 className="animate-spin" /> : "CONFIRM & ADD"}
+                   {isProcessing ? <Loader2 className="animate-spin" /> : "Confirm & Credit"}
                  </Button>
               </div>
            </DialogContent>

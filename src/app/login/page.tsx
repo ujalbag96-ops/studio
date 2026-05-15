@@ -11,7 +11,7 @@ import {
   ConfirmationResult,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
-import { Trophy, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Wallet, Loader2, AlertCircle, Eye, EyeOff, UserPlus, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -49,46 +49,53 @@ export default function LoginPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showReset, setShowReset] = useState(false);
 
+  // Profile initialization and redirection
   useEffect(() => {
-    if (!user || isUserLoading || !firestore) return;
+    async function initUser() {
+      if (!user || isUserLoading || !firestore) return;
 
-    const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-    if (isAdmin) {
-      router.push('/admin');
-      return;
+      const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      if (isAdmin) {
+        router.push('/admin');
+        return;
+      }
+
+      try {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const snap = await getDoc(userDocRef);
+        
+        let currentIp = 'Unknown';
+        try {
+          const res = await fetch('https://api.ipify.org?format=json');
+          const data = await res.json();
+          currentIp = data.ip;
+        } catch (e) {}
+
+        if (!snap.exists()) {
+          const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+          await setDoc(userDocRef, {
+            id: user.uid,
+            email: user.email || '',
+            lastIp: currentIp,
+            coins: 0,
+            winningBalance: 0,
+            depositBalance: 0,
+            taskBalance: 0,
+            withdrawableCoins: 0,
+            rank: 'Bronze',
+            referralCode: randomCode,
+            joinedAt: new Date().toISOString()
+          }, { merge: true });
+        } else {
+          await setDoc(userDocRef, { lastIp: currentIp }, { merge: true });
+        }
+        router.push('/dashboard');
+      } catch (err) {
+        console.error("Profile check failed", err);
+      }
     }
 
-    const userDocRef = doc(firestore, 'users', user.uid);
-    const unsubscribe = onSnapshot(userDocRef, async (snap) => {
-      let currentIp = 'Unknown';
-      try {
-        const res = await fetch('https://api.ipify.org?format=json');
-        const data = await res.json();
-        currentIp = data.ip;
-      } catch (e) {}
-
-      if (!snap.exists()) {
-        const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        await setDoc(userDocRef, {
-          id: user.uid,
-          email: user.email || '',
-          lastIp: currentIp,
-          coins: 0,
-          winningBalance: 0,
-          depositBalance: 0,
-          taskBalance: 0,
-          withdrawableCoins: 0,
-          rank: 'Bronze',
-          referralCode: randomCode,
-          joinedAt: new Date().toISOString()
-        }, { merge: true });
-      } else {
-        await setDoc(userDocRef, { lastIp: currentIp }, { merge: true });
-        router.push('/dashboard');
-      }
-    });
-
-    return () => unsubscribe();
+    initUser();
   }, [user, isUserLoading, firestore, router]);
 
   const handleEmailAuth = async (mode: 'login' | 'signup') => {
@@ -98,14 +105,14 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Welcome Back", description: "Opening your wallet..." });
+        toast({ title: "Welcome Back", description: "Taking you to your dashboard..." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Account Created", description: "Welcome to the App!" });
+        toast({ title: "Account Created", description: "Setting up your wallet..." });
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Error", description: e.message });
+      toast({ variant: "destructive", title: "Auth Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -122,14 +129,14 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Sent", description: "Check your SMS." });
+        toast({ title: "OTP Sent", description: "Please check your SMS." });
       } else {
         await confirmationResult.confirm(otp);
         toast({ title: "Success", description: "Login successful." });
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Error", description: e.message });
+      toast({ variant: "destructive", title: "Phone Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -137,13 +144,13 @@ export default function LoginPage() {
 
   const handleReset = async () => {
     if (!auth || !email) {
-      toast({ variant: "destructive", title: "Email Required" });
+      toast({ variant: "destructive", title: "Email Needed", description: "Enter your email to reset password." });
       return;
     }
     setIsLoading(true);
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      toast({ title: "Email Sent", description: "Check your inbox for reset link." });
+      toast({ title: "Email Sent", description: "Check your inbox for the reset link." });
       setShowReset(false);
     } catch (e: any) {
       setAuthError(e.message);
@@ -155,18 +162,18 @@ export default function LoginPage() {
   if (isUserLoading) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4">
       <Loader2 className="animate-spin text-primary h-12 w-12" />
-      <p className="text-xs font-black uppercase text-muted-foreground tracking-widest">Opening App...</p>
+      <p className="text-xs font-black uppercase text-muted-foreground tracking-widest italic">Starting Application...</p>
     </div>
   );
 
   return (
-    <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-700">
       <div className="text-center space-y-3">
         <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
-          <Trophy className="h-10 w-10 text-primary" />
+          <Wallet className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">App <span className="text-primary">Login</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to start winning cash</p>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to start earning coins</p>
       </div>
 
       {authError && (
@@ -179,8 +186,8 @@ export default function LoginPage() {
 
       <Tabs defaultValue="email" className="w-full">
         <TabsList className="grid grid-cols-2 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
-          <TabsTrigger value="email" className="font-black text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">EMAIL</TabsTrigger>
-          <TabsTrigger value="phone" className="font-black text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">PHONE</TabsTrigger>
+          <TabsTrigger value="email" className="font-black text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl uppercase">Email</TabsTrigger>
+          <TabsTrigger value="phone" className="font-black text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl uppercase">Phone</TabsTrigger>
         </TabsList>
 
         <TabsContent value="email" className="mt-6 space-y-4">
@@ -225,7 +232,7 @@ export default function LoginPage() {
                     disabled={isLoading} 
                     className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl text-white"
                   >
-                    {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "LOGIN"}
+                    {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : <><LogIn className="h-5 w-5 mr-2" /> Login</>}
                   </Button>
                   <Button 
                     type="button" 
@@ -234,7 +241,7 @@ export default function LoginPage() {
                     variant="outline" 
                     className="h-14 border-white/10 hover:bg-white/5 font-black uppercase text-[10px] tracking-widest rounded-xl text-white"
                   >
-                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "CREATE NEW ACCOUNT"}
+                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <><UserPlus className="h-4 w-4 mr-2" /> Register New Account</>}
                   </Button>
                 </div>
               </>
@@ -244,9 +251,9 @@ export default function LoginPage() {
                   type="button" 
                   onClick={handleReset} 
                   disabled={isLoading} 
-                  className="h-16 bg-primary font-black uppercase text-sm italic rounded-2xl text-white"
+                  className="h-16 bg-primary font-black uppercase text-sm italic rounded-2xl text-white shadow-xl"
                 >
-                  {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "SEND RESET LINK"}
+                  {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "Send Reset Link"}
                 </Button>
                 <Button 
                   type="button" 
@@ -254,7 +261,7 @@ export default function LoginPage() {
                   onClick={() => setShowReset(false)} 
                   className="h-12 text-[10px] font-black uppercase text-muted-foreground"
                 >
-                  GO BACK
+                  Go Back
                 </Button>
               </div>
             )}
@@ -286,7 +293,7 @@ export default function LoginPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                   <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Enter OTP</Label>
+                   <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Enter 6-Digit OTP</Label>
                    <Input 
                     value={otp} 
                     onChange={e => setOtp(e.target.value)} 
@@ -301,7 +308,7 @@ export default function LoginPage() {
                 disabled={isLoading} 
                 className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl text-white"
               >
-                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "SEND OTP" : "VERIFY OTP")}
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "Send OTP" : "Verify & Login")}
               </Button>
            </Card>
         </TabsContent>
@@ -309,3 +316,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
