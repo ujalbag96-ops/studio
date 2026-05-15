@@ -49,7 +49,6 @@ export default function LoginPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showReset, setShowReset] = useState(false);
 
-  // Profile initialization and redirection
   useEffect(() => {
     async function initUser() {
       if (!user || isUserLoading || !firestore) return;
@@ -108,7 +107,7 @@ export default function LoginPage() {
         toast({ title: "Welcome Back", description: "Taking you to your dashboard..." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Account Created", description: "Setting up your wallet..." });
+        toast({ title: "Account Created", description: "Setting up your account..." });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -172,7 +171,7 @@ export default function LoginPage() {
         <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <Wallet className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">App <span className="text-primary">Login</span></h1>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">Account <span className="text-primary">Login</span></h1>
         <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to start earning coins</p>
       </div>
 
@@ -207,7 +206,7 @@ export default function LoginPage() {
                 <div className="space-y-2 relative">
                    <div className="flex justify-between items-center">
                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Password</Label>
-                      <button type="button" onClick={() => setShowReset(true)} className="text-[10px] font-black text-primary uppercase hover:underline">Forgot?</button>
+                      <button type="button" onClick={() => setShowReset(true)} className="text-[10px] font-black text-primary uppercase hover:underline">Forgot Password?</button>
                    </div>
                    <div className="relative">
                       <Input 
@@ -241,7 +240,7 @@ export default function LoginPage() {
                     variant="outline" 
                     className="h-14 border-white/10 hover:bg-white/5 font-black uppercase text-[10px] tracking-widest rounded-xl text-white"
                   >
-                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <><UserPlus className="h-4 w-4 mr-2" /> Register New Account</>}
+                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <><UserPlus className="h-4 w-4 mr-2" /> Create New Account</>}
                   </Button>
                 </div>
               </>
@@ -316,4 +315,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

@@ -26,7 +26,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-white">
         <FirebaseClientProvider>
-          <Toaster /> {/* Toaster at top level for constant visibility */}
+          <Toaster />
           <MaintenanceGate>
             <Navbar />
             <main className="pb-20 md:pb-0 md:pt-16 min-h-screen">
@@ -50,7 +50,6 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
   );
   const { data: settings, isLoading } = useDoc<AppSettings>(settingsRef);
 
-  // Critical: Allow login and admin pages even during maintenance
   const isExcludedPage = pathname.startsWith('/admin') || 
                          pathname === '/login' || 
                          pathname === '/auth' || 
@@ -60,7 +59,10 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-screen bg-black">
-      <Loader2 className="animate-spin text-primary h-10 w-10" />
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="animate-spin text-primary h-12 w-12" />
+        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest italic">Starting...</p>
+      </div>
     </div>
   );
 
