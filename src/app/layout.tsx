@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -25,7 +26,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-white">
         <FirebaseClientProvider>
-          <Toaster /> {/* Toaster moved outside gate for constant visibility */}
+          <Toaster /> {/* Toaster at top level for constant visibility */}
           <MaintenanceGate>
             <Navbar />
             <main className="pb-20 md:pb-0 md:pt-16 min-h-screen">
@@ -70,10 +71,10 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
            <ShieldAlert className="h-12 w-12 text-primary" />
         </div>
         <div className="space-y-2">
-           <h1 className="text-5xl font-black uppercase italic tracking-tighter text-white">App Update</h1>
-           <p className="text-muted-foreground font-medium text-lg uppercase tracking-widest">Maintenance Mode ON</p>
+           <h1 className="text-5xl font-black uppercase italic tracking-tighter text-white">System Update</h1>
+           <p className="text-muted-foreground font-medium text-lg uppercase tracking-widest">Maintenance Mode Active</p>
         </div>
-        <p className="text-xs text-muted-foreground max-w-sm font-bold uppercase opacity-50">The app is being updated for a better experience. Please check back soon.</p>
+        <p className="text-xs text-muted-foreground max-w-sm font-bold uppercase opacity-50">The app is being optimized for a better experience. Please check back later.</p>
       </div>
     );
   }

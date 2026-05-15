@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -49,16 +50,16 @@ export default function ReferPage() {
 
   const copyToClipboard = async () => {
     if (!profile?.referralCode) {
-      toast({ variant: "destructive", title: "Please wait", description: "Loading your unique referral code..." });
+      toast({ variant: "destructive", title: "Please wait", description: "Loading referral code..." });
       return;
     }
     
     setIsCopying(true);
     try {
       await navigator.clipboard.writeText(referralLink);
-      toast({ title: "Link Copied!", description: "Share it with your friends to earn rewards." });
+      toast({ title: "Link Copied!", description: "Share with friends to earn rewards." });
     } catch (err) {
-      toast({ variant: "destructive", title: "Copy Failed", description: "Please copy the link manually." });
+      toast({ variant: "destructive", title: "Copy Failed", description: "Please copy link manually." });
     } finally {
       setTimeout(() => setIsCopying(false), 2000);
     }
@@ -91,12 +92,12 @@ export default function ReferPage() {
         <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8 text-center lg:text-left">
             <Badge className="bg-primary/20 text-primary uppercase font-black px-4 py-1 tracking-widest text-[10px]">REFER & EARN</Badge>
-            <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase italic leading-none">
+            <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase italic leading-none text-white">
               Invite <br />
               <span className="text-primary">& Earn</span>
             </h1>
             <p className="text-lg text-muted-foreground font-medium leading-relaxed max-w-md mx-auto lg:mx-0">
-              Invite your friends and earn <span className="text-white font-black">{reward} Coins</span> on every successful sign-up!
+              Invite your friends and earn <span className="text-white font-black">{reward} Coins</span> on every sign-up!
             </p>
             
             <Card className="bg-white/5 border-white/10 rounded-[2.5rem] p-8 space-y-6 backdrop-blur-3xl shadow-2xl">
@@ -106,12 +107,12 @@ export default function ReferPage() {
                     <div className="flex-1 bg-black/60 border border-white/10 h-16 rounded-2xl flex items-center justify-center text-3xl font-black tracking-[0.2em] text-primary uppercase">
                        {profile?.referralCode || '...'}
                     </div>
-                    <Button onClick={copyToClipboard} size="icon" className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 hover:bg-primary/20 transition-all">
+                    <Button onClick={copyToClipboard} size="icon" className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 hover:bg-primary/20 transition-all text-white">
                        {isCopying ? <CheckCircle2 className="h-6 w-6 text-green-500" /> : <Copy className="h-6 w-6" />}
                     </Button>
                  </div>
               </div>
-              <Button onClick={handleShare} className="w-full h-16 bg-primary hover:bg-primary/90 rounded-2xl font-black text-lg uppercase italic shadow-2xl">
+              <Button onClick={handleShare} className="w-full h-16 bg-primary hover:bg-primary/90 rounded-2xl font-black text-lg uppercase italic shadow-2xl text-white">
                  <Share2 className="h-5 w-5 mr-3" /> SHARE ON WHATSAPP
               </Button>
             </Card>
@@ -128,7 +129,7 @@ export default function ReferPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
          <StatsCard title="Total Invites" value="0" icon={<Users />} />
          <StatsCard title="Total Earned" value="0 Coins" icon={<Trophy />} />
-         <StatsCard title="Status" value="Active" icon={<Crown />} />
+         <StatsCard title="Account Status" value="Active" icon={<Crown />} />
       </div>
     </div>
   );
@@ -143,7 +144,7 @@ function Step({ icon, num, title, desc }: any) {
        <div className="space-y-1">
           <div className="flex items-center gap-2">
              <span className="text-[10px] font-black text-primary italic">{num}</span>
-             <h4 className="text-xl font-black uppercase italic">{title}</h4>
+             <h4 className="text-xl font-black uppercase italic text-white">{title}</h4>
           </div>
           <p className="text-xs text-muted-foreground font-medium">{desc}</p>
        </div>
@@ -156,7 +157,7 @@ function StatsCard({ title, value, icon }: any) {
     <Card className="bg-[#1a1a1a] border-white/5 rounded-[2.5rem] p-10 flex items-center justify-between group hover:border-primary/20 transition-all shadow-xl">
        <div className="space-y-1">
           <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{title}</p>
-          <h4 className="text-3xl font-black italic">{value}</h4>
+          <h4 className="text-3xl font-black italic text-white">{value}</h4>
        </div>
        <div className="h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-all">
           {icon}

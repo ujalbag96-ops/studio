@@ -90,9 +90,9 @@ export default function UserDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center gap-6 bg-[#050508]">
         <Shield className="h-20 w-20 text-muted-foreground opacity-20" />
-        <h2 className="text-3xl font-black uppercase text-white">Please Login</h2>
-        <Button asChild size="lg" className="rounded-xl font-black px-12 h-14 bg-primary shadow-xl">
-          <Link href="/login">Go to Login</Link>
+        <h2 className="text-3xl font-black uppercase text-white">Access Denied</h2>
+        <Button asChild size="lg" className="rounded-xl font-black px-12 h-14 bg-primary shadow-xl text-white">
+          <Link href="/login">LOGIN TO DASHBOARD</Link>
         </Button>
       </div>
     );
@@ -114,22 +114,22 @@ export default function UserDashboard() {
 
         <nav className="flex-1 p-8 space-y-2">
           <div className="pb-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Main Menu</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Main Navigation</p>
             <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Dashboard" onClick={() => setActiveNav('overview')} />
-            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="Earn Free Coins" href="/earning-hub" />
+            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="Earn Free Cash" href="/earning-hub" />
             <SidebarItem active={activeNav === 'ledger'} icon={<History />} label="Transactions" href="/ledger" />
             <SidebarItem active={activeNav === 'finance'} icon={<Wallet />} label="Withdraw Cash" href="/withdraw" />
           </div>
           
           <div className="pt-8 border-t border-white/5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Account Status</p>
-            <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'BRONZE'} Level`} href="/levels" />
+            <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'BRONZE'} LEVEL`} href="/levels" />
           </div>
         </nav>
 
         <div className="p-8 border-t border-white/5">
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all font-black uppercase text-xs">
-            <LogOut className="h-5 w-5" /> Logout
+            <LogOut className="h-5 w-5" /> Logout Account
           </button>
         </div>
       </aside>
@@ -138,16 +138,16 @@ export default function UserDashboard() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
+               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">VERIFIED ACCOUNT</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-bold uppercase">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Real-time Sync Active
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Balance Sync
                </div>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Dashboard</span></h1>
+            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Wallet</span></h1>
             
             <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">My User ID</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">My User ID (UID)</p>
                   <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
                </div>
                <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 bg-white/5 hover:bg-primary/20 hover:text-primary">
@@ -157,7 +157,7 @@ export default function UserDashboard() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 hover:bg-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase">
+            <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 hover:bg-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase text-white">
               Add Cash <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
             </Button>
             <WalletModal>
@@ -173,25 +173,25 @@ export default function UserDashboard() {
             label="Total Balance" 
             value={profile?.coins || 0} 
             icon={<Coins />} 
-            description="All coins combined"
+            description="Combined assets"
             color="primary"
           />
           <WalletCard 
             label="Winning Balance" 
             value={profile?.winningBalance || 0} 
             icon={<Trophy />} 
-            description="Withdrawable cash"
+            description="Available for withdrawal"
             color="green"
           />
           <WalletCard 
             label="Deposit Balance" 
             value={profile?.depositBalance || 0} 
             icon={<CreditCard />} 
-            description="Added for games"
+            description="Added for matches"
             color="blue"
           />
           <WalletCard 
-            label="Bonus Balance" 
+            label="Bonus Cash" 
             value={profile?.taskBalance || 0} 
             icon={<Zap />} 
             description="Earned from tasks"
@@ -202,9 +202,9 @@ export default function UserDashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           <div className="xl:col-span-2 space-y-8">
             <div className="flex items-center justify-between px-2">
-               <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic">
+               <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic text-white">
                  <History className="h-6 w-6 text-primary" />
-                 Recent Transactions
+                 Recent Activity
                </h3>
                <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary font-bold uppercase text-xs h-10 px-6 rounded-xl border border-white/5">
                   <Link href="/ledger">Full History <ChevronRight className="h-4 w-4 ml-2" /></Link>
@@ -254,7 +254,7 @@ export default function UserDashboard() {
                 ) : (
                   <div className="p-32 text-center space-y-4">
                      <History className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
-                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No records found.</p>
+                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No records found yet.</p>
                   </div>
                 )}
               </CardContent>
@@ -267,10 +267,10 @@ export default function UserDashboard() {
                   <Zap className="h-10 w-10 text-primary animate-pulse" />
                </div>
                <div className="space-y-4 relative z-10">
-                  <h3 className="text-3xl font-black uppercase italic">Free Coins</h3>
-                  <p className="text-sm text-muted-foreground font-medium">Complete simple tasks to earn coins for free.</p>
+                  <h3 className="text-3xl font-black uppercase italic text-white">Free Cash</h3>
+                  <p className="text-sm text-muted-foreground font-medium">Complete simple missions to earn coins for free.</p>
                </div>
-               <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
+               <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105 text-white">
                   <Link href="/earning-hub">Earn Now</Link>
                </Button>
             </Card>

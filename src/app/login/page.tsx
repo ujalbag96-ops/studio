@@ -98,7 +98,7 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Welcome Back", description: "Opening dashboard..." });
+        toast({ title: "Welcome Back", description: "Opening your wallet..." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
         toast({ title: "Account Created", description: "Welcome to the App!" });
@@ -122,7 +122,7 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Sent", description: "Check your messages." });
+        toast({ title: "OTP Sent", description: "Check your SMS." });
       } else {
         await confirmationResult.confirm(otp);
         toast({ title: "Success", description: "Login successful." });
@@ -165,8 +165,8 @@ export default function LoginPage() {
         <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <Trophy className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter">App <span className="text-primary">Login</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to start winning</p>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">App <span className="text-primary">Login</span></h1>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to start winning cash</p>
       </div>
 
       {authError && (
@@ -190,8 +190,8 @@ export default function LoginPage() {
                <Input 
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
-                placeholder="example@mail.com" 
-                className="h-14 bg-black border-white/10 rounded-xl focus:ring-primary text-sm font-bold" 
+                placeholder="name@example.com" 
+                className="h-14 bg-black border-white/10 rounded-xl focus:ring-primary text-sm font-bold text-white" 
                />
             </div>
             
@@ -207,7 +207,7 @@ export default function LoginPage() {
                         type={showPassword ? "text" : "password"} 
                         value={password} 
                         onChange={e => setPassword(e.target.value)} 
-                        className="h-14 bg-black border-white/10 rounded-xl pr-12 text-sm font-bold" 
+                        className="h-14 bg-black border-white/10 rounded-xl pr-12 text-sm font-bold text-white" 
                       />
                       <button 
                         type="button" 
@@ -223,7 +223,7 @@ export default function LoginPage() {
                     type="button" 
                     onClick={() => handleEmailAuth('login')} 
                     disabled={isLoading} 
-                    className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl"
+                    className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl text-white"
                   >
                     {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "LOGIN"}
                   </Button>
@@ -232,7 +232,7 @@ export default function LoginPage() {
                     onClick={() => handleEmailAuth('signup')} 
                     disabled={isLoading} 
                     variant="outline" 
-                    className="h-14 border-white/10 hover:bg-white/5 font-black uppercase text-[10px] tracking-widest rounded-xl"
+                    className="h-14 border-white/10 hover:bg-white/5 font-black uppercase text-[10px] tracking-widest rounded-xl text-white"
                   >
                     {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "CREATE NEW ACCOUNT"}
                   </Button>
@@ -244,7 +244,7 @@ export default function LoginPage() {
                   type="button" 
                   onClick={handleReset} 
                   disabled={isLoading} 
-                  className="h-16 bg-primary font-black uppercase text-sm italic rounded-2xl"
+                  className="h-16 bg-primary font-black uppercase text-sm italic rounded-2xl text-white"
                 >
                   {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "SEND RESET LINK"}
                 </Button>
@@ -270,7 +270,7 @@ export default function LoginPage() {
                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Mobile Number</Label>
                       <div className="flex gap-2">
                          <Select value={countryCode} onValueChange={setCountryCode}>
-                            <SelectTrigger className="w-24 bg-black border-white/10 h-14 font-bold"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="w-24 bg-black border-white/10 h-14 font-bold text-white"><SelectValue /></SelectTrigger>
                             <SelectContent className="bg-[#121216] border-white/10 text-white">
                               {COUNTRY_CODES.map(c => <SelectItem key={c.value} value={c.value}>{c.value}</SelectItem>)}
                             </SelectContent>
@@ -279,7 +279,7 @@ export default function LoginPage() {
                           value={phoneNumber} 
                           onChange={e => setPhoneNumber(e.target.value)} 
                           placeholder="9876543210" 
-                          className="flex-1 h-14 bg-black border-white/10 font-bold text-sm" 
+                          className="flex-1 h-14 bg-black border-white/10 font-bold text-sm text-white" 
                          />
                       </div>
                    </div>
@@ -291,7 +291,7 @@ export default function LoginPage() {
                     value={otp} 
                     onChange={e => setOtp(e.target.value)} 
                     maxLength={6}
-                    className="h-16 bg-black border-white/10 text-center text-3xl font-black tracking-[0.5em] focus:ring-primary rounded-xl" 
+                    className="h-16 bg-black border-white/10 text-center text-3xl font-black tracking-[0.5em] focus:ring-primary rounded-xl text-white" 
                    />
                 </div>
               )}
@@ -299,9 +299,9 @@ export default function LoginPage() {
                 type="button" 
                 onClick={handlePhoneFlow} 
                 disabled={isLoading} 
-                className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl"
+                className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl text-white"
               >
-                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "SEND CODE" : "VERIFY OTP")}
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "SEND OTP" : "VERIFY OTP")}
               </Button>
            </Card>
         </TabsContent>
