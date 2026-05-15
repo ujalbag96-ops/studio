@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
-import { Wallet, Loader2, AlertCircle, Eye, EyeOff, UserPlus, LogIn, ShieldCheck } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff, UserPlus, LogIn, ShieldCheck, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -86,7 +85,10 @@ export default function LoginPage() {
             joinedAt: new Date().toISOString()
           }, { merge: true });
         } else {
-          await setDoc(userDocRef, { lastIp: currentIp, lastActive: new Date().toISOString() }, { merge: true });
+          await setDoc(userDocRef, { 
+            lastIp: currentIp, 
+            lastActive: new Date().toISOString() 
+          }, { merge: true });
         }
         router.push('/dashboard');
       } catch (err) {
@@ -128,28 +130,24 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Sent", description: "Please check your SMS messages." });
+        toast({ title: "OTP Sent", description: "Check your messages." });
       } else {
         await confirmationResult.confirm(otp);
         toast({ title: "Success", description: "Phone verification complete." });
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "SMS Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleReset = async () => {
-    if (!auth || !email) {
-      toast({ variant: "destructive", title: "Email Required", description: "Enter your email to reset password." });
-      return;
-    }
+    if (!auth || !email) return;
     setIsLoading(true);
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      toast({ title: "Reset Link Sent", description: "Check your inbox for the link." });
+      toast({ title: "Reset Link Sent", description: "Check your inbox." });
       setShowReset(false);
     } catch (e: any) {
       setAuthError(e.message);
@@ -158,12 +156,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isUserLoading) return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4">
-      <Loader2 className="animate-spin text-primary h-12 w-12" />
-      <p className="text-xs font-black uppercase text-muted-foreground tracking-widest italic">Starting Application...</p>
-    </div>
-  );
+  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin text-primary h-12 w-12" /></div>;
 
   return (
     <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-700">
@@ -172,21 +165,20 @@ export default function LoginPage() {
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">Login / <span className="text-primary">Register</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to manage your coins and profile</p>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to manage your balance</p>
       </div>
 
       {authError && (
-        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
+        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 rounded-2xl">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Error</AlertTitle>
-          <AlertDescription className="text-xs font-bold">{authError}</AlertDescription>
+          <AlertDescription className="text-xs font-bold uppercase">{authError}</AlertDescription>
         </Alert>
       )}
 
       <Tabs defaultValue="email" className="w-full">
         <TabsList className="grid grid-cols-2 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
-          <TabsTrigger value="email" className="font-black text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl uppercase">Email</TabsTrigger>
-          <TabsTrigger value="phone" className="font-black text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl uppercase">Phone</TabsTrigger>
+          <TabsTrigger value="email" className="font-black text-[10px] data-[state=active]:bg-primary rounded-xl uppercase">Email</TabsTrigger>
+          <TabsTrigger value="phone" className="font-black text-[10px] data-[state=active]:bg-primary rounded-xl uppercase">Phone</TabsTrigger>
         </TabsList>
 
         <TabsContent value="email" className="mt-6 space-y-4">
@@ -197,7 +189,7 @@ export default function LoginPage() {
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
                 placeholder="name@example.com" 
-                className="h-14 bg-black border-white/10 rounded-xl focus:ring-primary text-sm font-bold text-white" 
+                className="h-14 bg-black border-white/10 rounded-xl text-white font-bold" 
                />
             </div>
             
@@ -206,19 +198,19 @@ export default function LoginPage() {
                 <div className="space-y-2 relative">
                    <div className="flex justify-between items-center">
                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Password</Label>
-                      <button type="button" onClick={() => setShowReset(true)} className="text-[10px] font-black text-primary uppercase hover:underline">Forgot Password?</button>
+                      <button type="button" onClick={() => setShowReset(true)} className="text-[10px] font-black text-primary uppercase hover:underline">Forgot?</button>
                    </div>
                    <div className="relative">
                       <Input 
                         type={showPassword ? "text" : "password"} 
                         value={password} 
                         onChange={e => setPassword(e.target.value)} 
-                        className="h-14 bg-black border-white/10 rounded-xl pr-12 text-sm font-bold text-white" 
+                        className="h-14 bg-black border-white/10 rounded-xl pr-12 text-white" 
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
                       >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
@@ -229,18 +221,18 @@ export default function LoginPage() {
                     type="button" 
                     onClick={() => handleEmailAuth('login')} 
                     disabled={isLoading} 
-                    className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl text-white"
+                    className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl"
                   >
-                    {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : <><LogIn className="h-5 w-5 mr-2" /> Login Now</>}
+                    {isLoading ? <Loader2 className="animate-spin" /> : <><LogIn className="mr-2" /> Login Now</>}
                   </Button>
                   <Button 
                     type="button" 
                     onClick={() => handleEmailAuth('signup')} 
                     disabled={isLoading} 
                     variant="outline" 
-                    className="h-14 border-white/10 hover:bg-white/5 font-black uppercase text-[10px] tracking-widest rounded-xl text-white"
+                    className="h-14 border-white/10 font-black uppercase text-[10px] rounded-xl"
                   >
-                    {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <><UserPlus className="h-4 w-4 mr-2" /> Create Account</>}
+                    {isLoading ? <Loader2 className="animate-spin" /> : <><UserPlus className="mr-2" /> Create Account</>}
                   </Button>
                 </div>
               </>
@@ -250,18 +242,11 @@ export default function LoginPage() {
                   type="button" 
                   onClick={handleReset} 
                   disabled={isLoading} 
-                  className="h-16 bg-primary font-black uppercase text-sm italic rounded-2xl text-white shadow-xl"
+                  className="h-16 bg-primary font-black uppercase italic rounded-2xl"
                 >
-                  {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "Send Reset Link"}
+                  {isLoading ? <Loader2 className="animate-spin" /> : "Send Reset Link"}
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  onClick={() => setShowReset(false)} 
-                  className="h-12 text-[10px] font-black uppercase text-muted-foreground"
-                >
-                  Go Back
-                </Button>
+                <Button variant="ghost" onClick={() => setShowReset(false)} className="text-[10px] font-black uppercase">Go Back</Button>
               </div>
             )}
           </Card>
@@ -276,38 +261,23 @@ export default function LoginPage() {
                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Mobile Number</Label>
                       <div className="flex gap-2">
                          <Select value={countryCode} onValueChange={setCountryCode}>
-                            <SelectTrigger className="w-24 bg-black border-white/10 h-14 font-bold text-white"><SelectValue /></SelectTrigger>
-                            <SelectContent className="bg-[#121216] border-white/10 text-white">
+                            <SelectTrigger className="w-24 bg-black border-white/10 h-14 font-bold"><SelectValue /></SelectTrigger>
+                            <SelectContent className="bg-[#121216] border-white/10">
                               {COUNTRY_CODES.map(c => <SelectItem key={c.value} value={c.value}>{c.value}</SelectItem>)}
                             </SelectContent>
                          </Select>
-                         <Input 
-                          value={phoneNumber} 
-                          onChange={e => setPhoneNumber(e.target.value)} 
-                          placeholder="9876543210" 
-                          className="flex-1 h-14 bg-black border-white/10 font-bold text-sm text-white" 
-                         />
+                         <Input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} placeholder="9876543210" className="flex-1 h-14 bg-black border-white/10 font-bold" />
                       </div>
                    </div>
                 </div>
               ) : (
                 <div className="space-y-2">
                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Enter 6-Digit OTP</Label>
-                   <Input 
-                    value={otp} 
-                    onChange={e => setOtp(e.target.value)} 
-                    maxLength={6}
-                    className="h-16 bg-black border-white/10 text-center text-3xl font-black tracking-[0.5em] focus:ring-primary rounded-xl text-white" 
-                   />
+                   <Input value={otp} onChange={e => setOtp(e.target.value)} maxLength={6} className="h-16 bg-black border-white/10 text-center text-3xl font-black tracking-[0.5em] rounded-xl" />
                 </div>
               )}
-              <Button 
-                type="button" 
-                onClick={handlePhoneFlow} 
-                disabled={isLoading} 
-                className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl text-white"
-              >
-                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "Send SMS Code" : "Verify & Continue")}
+              <Button onClick={handlePhoneFlow} disabled={isLoading} className="w-full h-16 bg-primary font-black uppercase text-lg italic rounded-2xl">
+                {isLoading ? <Loader2 className="animate-spin" /> : (!confirmationResult ? "Send SMS Code" : "Verify & Continue")}
               </Button>
            </Card>
         </TabsContent>

@@ -1,8 +1,8 @@
-
 'use client';
 
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
 import { collection, doc, query, limit, orderBy } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 import { 
   LayoutDashboard,
   Wallet, 
@@ -28,8 +28,6 @@ import Link from 'next/link';
 import { UserProfile, UserLedgerEntry } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { useAuth } from '@/firebase';
-import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import WalletModal from '@/components/WalletModal';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
@@ -76,21 +74,14 @@ export default function UserDashboard() {
     }
   };
 
-  if (isUserLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] gap-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-xs font-bold uppercase text-muted-foreground tracking-widest italic">Loading Dashboard...</p>
-      </div>
-    );
-  }
+  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center gap-6 bg-[#050508]">
         <Shield className="h-20 w-20 text-muted-foreground opacity-20" />
         <h2 className="text-3xl font-black uppercase text-white">Login Required</h2>
-        <Button asChild size="lg" className="rounded-xl font-black px-12 h-14 bg-primary shadow-xl text-white uppercase">
+        <Button asChild size="lg" className="rounded-xl font-black px-12 h-14 bg-primary shadow-xl text-white uppercase italic">
           <Link href="/login">Please Login</Link>
         </Button>
       </div>
@@ -98,7 +89,7 @@ export default function UserDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary selection:text-white">
+    <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary">
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
       
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
@@ -113,21 +104,21 @@ export default function UserDashboard() {
 
         <nav className="flex-1 p-8 space-y-2">
           <div className="pb-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Menu</p>
-            <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Dashboard" onClick={() => setActiveNav('overview')} />
-            <SidebarItem active={activeNav === 'activity'} icon={<Zap />} label="Earn Coins" href="/earning-hub" />
-            <SidebarItem active={activeNav === 'ledger'} icon={<History />} label="Transactions" href="/ledger" />
-            <SidebarItem active={activeNav === 'finance'} icon={<Wallet />} label="Withdraw" href="/withdraw" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Main Menu</p>
+            <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="My Dashboard" onClick={() => setActiveNav('overview')} />
+            <SidebarItem active={false} icon={<Zap />} label="Earn Coins" href="/earning-hub" />
+            <SidebarItem active={false} icon={<History />} label="My Transactions" href="/ledger" />
+            <SidebarItem active={false} icon={<Wallet />} label="Withdraw Cash" href="/withdraw" />
           </div>
           
           <div className="pt-8 border-t border-white/5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">My Rank</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Account Status</p>
             <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'BRONZE'} TIER`} href="/levels" />
           </div>
         </nav>
 
         <div className="p-8 border-t border-white/5">
-          <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all font-black uppercase text-xs">
+          <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all font-black uppercase text-xs italic">
             <LogOut className="h-5 w-5" /> Logout
           </button>
         </div>
@@ -139,28 +130,28 @@ export default function UserDashboard() {
             <div className="flex items-center gap-3">
                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-bold uppercase">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Balance Sync
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Balance
                </div>
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Dashboard</span></h1>
             
             <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">User ID (UID)</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">My User ID (UID)</p>
                   <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
                </div>
-               <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 bg-white/5 hover:bg-primary/20 hover:text-primary">
+               <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 bg-white/5 hover:bg-primary/20">
                   <Copy className="h-4 w-4" />
                </Button>
             </Card>
           </div>
 
           <div className="flex items-center gap-4">
-            <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 hover:bg-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase text-white">
+            <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase italic">
               Add Money <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
             </Button>
             <WalletModal>
-              <Button variant="outline" className="border-primary/20 hover:bg-primary/10 h-16 px-8 rounded-xl text-lg font-black uppercase text-primary">
+              <Button variant="outline" className="border-primary/20 h-16 px-8 rounded-xl text-lg font-black uppercase italic text-primary">
                 View Wallet
               </Button>
             </WalletModal>
@@ -168,42 +159,17 @@ export default function UserDashboard() {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <WalletCard 
-            label="Total Balance" 
-            value={profile?.coins || 0} 
-            icon={<Coins />} 
-            description="Combined assets"
-            color="primary"
-          />
-          <WalletCard 
-            label="Winning Balance" 
-            value={profile?.winningBalance || 0} 
-            icon={<Trophy />} 
-            description="Available to withdraw"
-            color="green"
-          />
-          <WalletCard 
-            label="Deposit Cash" 
-            value={profile?.depositBalance || 0} 
-            icon={<CreditCard />} 
-            description="For entry fees"
-            color="blue"
-          />
-          <WalletCard 
-            label="Bonus Coins" 
-            value={profile?.taskBalance || 0} 
-            icon={<Zap />} 
-            description="Earned from tasks"
-            color="amber"
-          />
+          <WalletCard label="Total Balance" value={profile?.coins || 0} icon={<Coins />} description="Combined wallet value" color="primary" />
+          <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} description="Withdraw anytime" color="green" />
+          <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} description="For entry fees" color="blue" />
+          <WalletCard label="Bonus Coins" value={profile?.taskBalance || 0} icon={<Zap />} description="Earned from tasks" color="amber" />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           <div className="xl:col-span-2 space-y-8">
             <div className="flex items-center justify-between px-2">
-               <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic text-white">
-                 <History className="h-6 w-6 text-primary" />
-                 Recent History
+               <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic">
+                 <History className="h-6 w-6 text-primary" /> Recent History
                </h3>
                <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary font-bold uppercase text-xs h-10 px-6 rounded-xl border border-white/5">
                   <Link href="/ledger">Full History <ChevronRight className="h-4 w-4 ml-2" /></Link>
@@ -220,7 +186,7 @@ export default function UserDashboard() {
                       <div key={activity.id} className="p-8 flex items-center justify-between hover:bg-white/5 transition-all group">
                         <div className="flex items-center gap-6">
                            <div className={cn(
-                             "h-12 w-12 rounded-xl flex items-center justify-center border transition-all group-hover:scale-110 shadow-lg",
+                             "h-12 w-12 rounded-xl flex items-center justify-center border transition-all",
                              activity.type === 'income' ? "bg-green-500/10 text-green-500 border-green-500/20" : 
                              activity.type === 'withdrawal' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
                            )}>
@@ -266,10 +232,10 @@ export default function UserDashboard() {
                   <Zap className="h-10 w-10 text-primary animate-pulse" />
                </div>
                <div className="space-y-4 relative z-10">
-                  <h3 className="text-3xl font-black uppercase italic text-white">Free Cash</h3>
-                  <p className="text-sm text-muted-foreground font-medium">Earn coins for free by watching videos.</p>
+                  <h3 className="text-3xl font-black uppercase italic">Free Coins</h3>
+                  <p className="text-sm text-muted-foreground font-medium">Earn extra cash by watching ads.</p>
                </div>
-               <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105 text-white">
+               <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
                   <Link href="/earning-hub">Earn Now</Link>
                </Button>
             </Card>
@@ -291,14 +257,14 @@ function SidebarItem({ active, icon, label, onClick, href }: any) {
 
   if (href) {
     return (
-      <Link href={href} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all relative", active ? "bg-primary text-white" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
+      <Link href={href} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all relative", active ? "bg-primary text-white shadow-lg shadow-primary/10" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
         {content}
       </Link>
     );
   }
 
   return (
-    <button onClick={onClick} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all relative", active ? "bg-primary text-white" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
+    <button onClick={onClick} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all relative", active ? "bg-primary text-white shadow-lg shadow-primary/10" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
       {content}
     </button>
   );
