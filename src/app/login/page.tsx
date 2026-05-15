@@ -83,7 +83,6 @@ export default function LoginPage() {
           joinedAt: new Date().toISOString()
         }, { merge: true });
       } else {
-        // Just update IP and move on
         await setDoc(userDocRef, { lastIp: currentIp }, { merge: true });
         router.push('/dashboard');
       }
@@ -99,14 +98,14 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Welcome Back", description: "Opening your dashboard..." });
+        toast({ title: "Welcome Back", description: "Opening dashboard..." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Account Created", description: "Welcome to the app!" });
+        toast({ title: "Account Created", description: "Welcome to the App!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Auth Error", description: e.message });
+      toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -123,14 +122,14 @@ export default function LoginPage() {
         }
         const result = await signInWithPhoneNumber(auth, `${countryCode}${phoneNumber}`, (window as any).recaptchaVerifier);
         setConfirmationResult(result);
-        toast({ title: "OTP Sent", description: "Please check your SMS." });
+        toast({ title: "OTP Sent", description: "Check your messages." });
       } else {
         await confirmationResult.confirm(otp);
-        toast({ title: "Success", description: "Phone verified successfully." });
+        toast({ title: "Success", description: "Login successful." });
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Phone Error", description: e.message });
+      toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -138,13 +137,13 @@ export default function LoginPage() {
 
   const handleReset = async () => {
     if (!auth || !email) {
-      toast({ variant: "destructive", title: "Email Required", description: "Enter email for reset link." });
+      toast({ variant: "destructive", title: "Email Required" });
       return;
     }
     setIsLoading(true);
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      toast({ title: "Email Sent", description: "Check inbox for password reset link." });
+      toast({ title: "Email Sent", description: "Check your inbox for reset link." });
       setShowReset(false);
     } catch (e: any) {
       setAuthError(e.message);
@@ -156,7 +155,7 @@ export default function LoginPage() {
   if (isUserLoading) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4">
       <Loader2 className="animate-spin text-primary h-12 w-12" />
-      <p className="text-xs font-black uppercase text-muted-foreground tracking-widest">Starting System...</p>
+      <p className="text-xs font-black uppercase text-muted-foreground tracking-widest">Opening App...</p>
     </div>
   );
 
@@ -173,7 +172,7 @@ export default function LoginPage() {
       {authError && (
         <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive rounded-2xl">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="text-[10px] font-black uppercase">Authentication Error</AlertTitle>
+          <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Login Failed</AlertTitle>
           <AlertDescription className="text-xs font-bold">{authError}</AlertDescription>
         </Alert>
       )}
@@ -224,7 +223,7 @@ export default function LoginPage() {
                     type="button" 
                     onClick={() => handleEmailAuth('login')} 
                     disabled={isLoading} 
-                    className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20"
+                    className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl"
                   >
                     {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "LOGIN"}
                   </Button>
@@ -245,7 +244,7 @@ export default function LoginPage() {
                   type="button" 
                   onClick={handleReset} 
                   disabled={isLoading} 
-                  className="h-16 bg-primary font-black uppercase text-sm italic"
+                  className="h-16 bg-primary font-black uppercase text-sm italic rounded-2xl"
                 >
                   {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "SEND RESET LINK"}
                 </Button>
@@ -292,7 +291,7 @@ export default function LoginPage() {
                     value={otp} 
                     onChange={e => setOtp(e.target.value)} 
                     maxLength={6}
-                    className="h-16 bg-black border-white/10 text-center text-3xl font-black tracking-[0.5em] focus:ring-primary" 
+                    className="h-16 bg-black border-white/10 text-center text-3xl font-black tracking-[0.5em] focus:ring-primary rounded-xl" 
                    />
                 </div>
               )}
@@ -300,7 +299,7 @@ export default function LoginPage() {
                 type="button" 
                 onClick={handlePhoneFlow} 
                 disabled={isLoading} 
-                className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20"
+                className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic shadow-xl shadow-primary/20 rounded-2xl"
               >
                 {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (!confirmationResult ? "SEND CODE" : "VERIFY OTP")}
               </Button>
