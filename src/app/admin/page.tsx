@@ -8,15 +8,13 @@ import {
   Settings, 
   Loader2,
   Search,
-  CreditCard,
   Gamepad2,
   LogOut,
   Copy,
   Plus,
   ShieldCheck,
   Smartphone,
-  RefreshCcw,
-  Wallet
+  RefreshCcw
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,7 +32,7 @@ import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-type AdminTab = 'users' | 'add-money' | 'tournaments' | 'settings';
+type AdminTab = 'users' | 'tournaments' | 'settings';
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
@@ -86,6 +84,7 @@ export default function AdminDashboard() {
       await setDoc(userRef, updates, { merge: true });
       
       await addDoc(collection(firestore, 'users', targetId, 'ledger'), {
+        userId: targetId,
         type: 'income',
         amount: amount,
         date: new Date().toISOString().split('T')[0],
@@ -113,7 +112,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white">
-      {/* Sidebar */}
       <aside className="w-72 bg-[#0a0a0f] border-r border-white/5 flex flex-col fixed inset-y-0 z-50">
         <div className="p-8 flex items-center gap-3">
           <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
@@ -135,7 +133,6 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 ml-72 p-10 space-y-10">
         <header className="flex items-center justify-between">
            <div className="space-y-1">

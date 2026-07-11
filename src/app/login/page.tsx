@@ -18,9 +18,9 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
-import { Loader2, AlertCircle, Eye, EyeOff, UserPlus, LogIn, ShieldCheck, Smartphone } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff, UserPlus, LogIn, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -113,7 +113,7 @@ export default function LoginPage() {
       }
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Authentication Failed", description: e.message });
+      toast({ variant: "destructive", title: "Auth Failed", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -133,7 +133,7 @@ export default function LoginPage() {
         toast({ title: "OTP Sent", description: "Check your messages." });
       } else {
         await confirmationResult.confirm(otp);
-        toast({ title: "Success", description: "Phone verification complete." });
+        toast({ title: "Success", description: "Verification complete." });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -165,7 +165,7 @@ export default function LoginPage() {
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">Login / <span className="text-primary">Register</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to manage your balance</p>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to manage your wallet</p>
       </div>
 
       {authError && (
@@ -223,7 +223,7 @@ export default function LoginPage() {
                     disabled={isLoading} 
                     className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl"
                   >
-                    {isLoading ? <Loader2 className="animate-spin" /> : <><LogIn className="mr-2" /> Login Now</>}
+                    {isLoading ? <Loader2 className="animate-spin" /> : <><LogIn className="mr-2 h-5 w-5" /> Login Now</>}
                   </Button>
                   <Button 
                     type="button" 
@@ -232,7 +232,7 @@ export default function LoginPage() {
                     variant="outline" 
                     className="h-14 border-white/10 font-black uppercase text-[10px] rounded-xl"
                   >
-                    {isLoading ? <Loader2 className="animate-spin" /> : <><UserPlus className="mr-2" /> Create Account</>}
+                    {isLoading ? <Loader2 className="animate-spin" /> : <><UserPlus className="mr-2 h-4 w-4" /> Create Account</>}
                   </Button>
                 </div>
               </>
