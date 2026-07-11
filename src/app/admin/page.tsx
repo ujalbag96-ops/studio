@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
@@ -89,13 +90,13 @@ export default function AdminDashboard() {
         amount: amount,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: "Admin Deposit"
+        description: "Admin Instant Credit"
       });
 
-      toast({ title: "SUCCESS", description: `Added ${amount} coins to User: ${targetId.substring(0,6)}` });
+      toast({ title: "CREDITED", description: `Added ${amount} coins to User: ${targetId.substring(0,6)}` });
       setBalanceAdjustment(null);
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Error", description: e.message });
+      toast({ variant: "destructive", title: "Credit Failed", description: e.message });
     } finally {
       setIsProcessing(false);
     }
@@ -117,13 +118,13 @@ export default function AdminDashboard() {
           <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
             <ShieldCheck className="h-6 w-6 text-white" />
           </div>
-          <span className="font-black text-xl italic uppercase">ADMIN <span className="text-primary">PANEL</span></span>
+          <span className="font-black text-xl italic uppercase">ADMIN <span className="text-primary">HUB</span></span>
         </div>
         
         <nav className="flex-1 px-4 space-y-2 pt-4">
-          <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="Users List" onClick={() => setActiveTab('users')} />
-          <SidebarLink active={activeTab === 'tournaments'} icon={<Gamepad2 />} label="Games Admin" onClick={() => setActiveTab('tournaments')} />
-          <SidebarLink active={activeTab === 'settings'} icon={<Settings />} label="Settings" onClick={() => setActiveTab('settings')} />
+          <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="Users Directory" onClick={() => setActiveTab('users')} />
+          <SidebarLink active={activeTab === 'tournaments'} icon={<Gamepad2 />} label="Games Hub" onClick={() => setActiveTab('tournaments')} />
+          <SidebarLink active={activeTab === 'settings'} icon={<Settings />} label="Global Settings" onClick={() => setActiveTab('settings')} />
         </nav>
 
         <div className="p-6 border-t border-white/5">
@@ -136,10 +137,10 @@ export default function AdminDashboard() {
       <main className="flex-1 ml-72 p-10 space-y-10">
         <header className="flex items-center justify-between">
            <div className="space-y-1">
-              <h1 className="text-4xl font-black uppercase italic text-white">Admin <span className="text-primary">Hub</span></h1>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Search users and manage balances</p>
+              <h1 className="text-4xl font-black uppercase italic text-white">Admin <span className="text-primary">Control</span></h1>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Search users and credit wallet balances</p>
            </div>
-           <Badge className="bg-primary/20 text-primary border-none font-bold px-4 py-1.5 text-xs uppercase">Admin Mode Active</Badge>
+           <Badge className="bg-primary/20 text-primary border-none font-bold px-4 py-1.5 text-xs uppercase">Industrial Admin Active</Badge>
         </header>
 
         {activeTab === 'users' && (
@@ -158,9 +159,9 @@ export default function AdminDashboard() {
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User & User ID</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Balances</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-right px-8">Actions</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest px-8">User & ID Info</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Live Balances</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-right px-8">Quick Actions</TableHead>
                       </TableRow>
                    </TableHeader>
                    <TableBody>
@@ -175,23 +176,23 @@ export default function AdminDashboard() {
                                 <button onClick={() => copyToClipboard(u.id)} className="text-muted-foreground hover:text-white p-1 rounded-md hover:bg-white/5"><Copy className="h-3 w-3" /></button>
                               </div>
                               <div className="flex items-center gap-2 mt-2 text-[9px] text-muted-foreground font-bold uppercase">
-                                <Smartphone className="h-3 w-3" /> IP: <span className="text-white">{u.lastIp || 'Unknown'}</span>
+                                <Smartphone className="h-3 w-3" /> LAST IP: <span className="text-white">{u.lastIp || 'Unknown'}</span>
                               </div>
                            </TableCell>
                            <TableCell className="text-center">
                               <div className="flex flex-col items-center gap-2">
-                                 <Badge variant="outline" className="text-[10px] border-primary/20 text-primary w-32 justify-center bg-primary/5 py-1 font-black">Total: {u.coins?.toLocaleString() || 0}</Badge>
-                                 <Badge variant="outline" className="text-[10px] border-green-500/20 text-green-500 w-32 justify-center bg-green-500/5 py-1 font-black">Win: {u.winningBalance?.toLocaleString() || 0}</Badge>
+                                 <Badge variant="outline" className="text-[10px] border-primary/20 text-primary w-32 justify-center bg-primary/5 py-1 font-black">TOTAL: {u.coins?.toLocaleString() || 0}</Badge>
+                                 <Badge variant="outline" className="text-[10px] border-green-500/20 text-green-500 w-32 justify-center bg-green-500/5 py-1 font-black">WINNING: {u.winningBalance?.toLocaleString() || 0}</Badge>
                               </div>
                            </TableCell>
                            <TableCell className="text-right px-8">
                               <Button size="sm" onClick={() => setBalanceAdjustment({ user: u })} className="h-10 text-[10px] font-black bg-primary hover:bg-primary/90 rounded-xl px-6 text-white uppercase italic">
-                                <Plus className="h-3 w-3 mr-2" /> Add Money
+                                <Plus className="h-3 w-3 mr-2" /> ADD MONEY
                               </Button>
                            </TableCell>
                         </TableRow>
                       )) : (
-                        <TableRow><TableCell colSpan={3} className="py-20 text-center text-muted-foreground font-bold uppercase text-xs">No users found.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={3} className="py-20 text-center text-muted-foreground font-bold uppercase text-xs">No matching users found.</TableCell></TableRow>
                       )}
                    </TableBody>
                 </Table>
@@ -202,7 +203,7 @@ export default function AdminDashboard() {
         {activeTab === 'tournaments' && (
            <div className="grid gap-6">
               <div className="flex items-center justify-between">
-                 <h2 className="text-2xl font-black uppercase italic text-white">Tournaments Admin</h2>
+                 <h2 className="text-2xl font-black uppercase italic text-white">Tournaments Control</h2>
                  <Button className="bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase h-10 px-6 rounded-xl italic">Create New</Button>
               </div>
               <div className="grid md:grid-cols-2 gap-6">
@@ -237,11 +238,11 @@ export default function AdminDashboard() {
               <VisuallyHidden.Root><DialogTitle>Add Money</DialogTitle></VisuallyHidden.Root>
               <div className="bg-primary/10 p-8 border-b border-white/5">
                 <h3 className="text-xl font-black italic uppercase text-primary">Add Cash</h3>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Direct wallet credit</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Direct wallet credit for user</p>
               </div>
               <div className="p-8 space-y-6">
                  <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
-                    <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">Target Account</p>
+                    <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">Target User</p>
                     <p className="text-xs font-bold truncate text-white">{balanceAdjustment.user.email || balanceAdjustment.user.id}</p>
                  </div>
                  <div className="space-y-2">
@@ -262,7 +263,7 @@ export default function AdminDashboard() {
                   disabled={isProcessing} 
                   className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase italic text-xl shadow-2xl rounded-2xl text-white"
                  >
-                   {isProcessing ? <Loader2 className="animate-spin" /> : "Confirm Deposit"}
+                   {isProcessing ? <Loader2 className="animate-spin" /> : "Confirm Credit"}
                  </Button>
               </div>
            </DialogContent>

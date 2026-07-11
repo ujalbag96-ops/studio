@@ -112,7 +112,7 @@ export default function LoginPage() {
         toast({ title: "Welcome Back", description: "Login successful." });
       } else {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Account Created", description: "Setting up your profile..." });
+        toast({ title: "Account Created", description: "Welcome to the platform!" });
       }
     } catch (e: any) {
       setAuthError(e.message);
@@ -132,7 +132,7 @@ export default function LoginPage() {
       toast({ title: "Google Auth", description: "Login successful." });
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Google Auth Failed", description: e.message });
+      toast({ variant: "destructive", title: "Google Login Failed", description: e.message });
     } finally {
       setIsLoading(false);
     }
@@ -184,7 +184,7 @@ export default function LoginPage() {
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">Login / <span className="text-primary">Register</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to manage your wallet</p>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to manage your account</p>
       </div>
 
       {authError && (
@@ -251,7 +251,7 @@ export default function LoginPage() {
                     variant="outline" 
                     className="h-14 border-white/10 font-black uppercase text-[10px] rounded-xl"
                   >
-                    {isLoading ? <Loader2 className="animate-spin" /> : <><UserPlus className="mr-2 h-4 w-4" /> Create Account</>}
+                    {isLoading ? <Loader2 className="animate-spin" /> : <><UserPlus className="mr-2 h-4 w-4" /> Create New Account</>}
                   </Button>
                 </div>
               </>

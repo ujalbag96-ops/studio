@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
@@ -119,7 +120,7 @@ export default function UserDashboard() {
 
         <div className="p-8 border-t border-white/5">
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all font-black uppercase text-xs italic">
-            <LogOut className="h-5 w-5" /> Logout
+            <LogOut className="h-5 w-5" /> Logout Account
           </button>
         </div>
       </aside>
@@ -130,14 +131,14 @@ export default function UserDashboard() {
             <div className="flex items-center gap-3">
                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
                <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-bold uppercase">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Balance
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live System Status
                </div>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Dashboard</span></h1>
+            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Portfolio</span></h1>
             
             <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">My User ID (UID)</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">User ID (UID)</p>
                   <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
                </div>
                <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 bg-white/5 hover:bg-primary/20">
@@ -148,7 +149,7 @@ export default function UserDashboard() {
 
           <div className="flex items-center gap-4">
             <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase italic">
-              Add Money <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
+              Add Cash <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
             </Button>
             <WalletModal>
               <Button variant="outline" className="border-primary/20 h-16 px-8 rounded-xl text-lg font-black uppercase italic text-primary">
@@ -161,7 +162,7 @@ export default function UserDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <WalletCard label="Total Balance" value={profile?.coins || 0} icon={<Coins />} description="Combined wallet value" color="primary" />
           <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} description="Withdraw anytime" color="green" />
-          <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} description="For entry fees" color="blue" />
+          <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} description="For game entries" color="blue" />
           <WalletCard label="Bonus Coins" value={profile?.taskBalance || 0} icon={<Zap />} description="Earned from tasks" color="amber" />
         </div>
 
@@ -169,10 +170,10 @@ export default function UserDashboard() {
           <div className="xl:col-span-2 space-y-8">
             <div className="flex items-center justify-between px-2">
                <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic">
-                 <History className="h-6 w-6 text-primary" /> Recent History
+                 <History className="h-6 w-6 text-primary" /> Activity History
                </h3>
                <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary font-bold uppercase text-xs h-10 px-6 rounded-xl border border-white/5">
-                  <Link href="/ledger">Full History <ChevronRight className="h-4 w-4 ml-2" /></Link>
+                  <Link href="/ledger">View Full Ledger <ChevronRight className="h-4 w-4 ml-2" /></Link>
                </Button>
             </div>
             
@@ -219,7 +220,7 @@ export default function UserDashboard() {
                 ) : (
                   <div className="p-32 text-center space-y-4">
                      <History className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
-                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No history found.</p>
+                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No recent activity found.</p>
                   </div>
                 )}
               </CardContent>
@@ -233,10 +234,10 @@ export default function UserDashboard() {
                </div>
                <div className="space-y-4 relative z-10">
                   <h3 className="text-3xl font-black uppercase italic">Free Coins</h3>
-                  <p className="text-sm text-muted-foreground font-medium">Earn extra cash by watching ads.</p>
+                  <p className="text-sm text-muted-foreground font-medium">Earn extra winnings by watching ads.</p>
                </div>
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
-                  <Link href="/earning-hub">Earn Now</Link>
+                  <Link href="/earning-hub">Earn Winnings</Link>
                </Button>
             </Card>
           </aside>
