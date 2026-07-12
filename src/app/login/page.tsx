@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, AlertCircle, Eye, EyeOff, ShieldCheck, ShieldAlert, Globe } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldAlert, Globe, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -24,7 +24,7 @@ const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function LoginPage() {
   const { user, isUserLoading } = useUser();
-  const auth = useAuth(); // Standardized Hook Usage
+  const auth = useAuth(); // Standardized Hook Usage (Returns Auth instance directly)
   const firestore = useFirestore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -37,9 +37,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Master Redirection Logic
   useEffect(() => {
     if (user && !isUserLoading) {
-      // Master Admin Routing Logic
       const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       router.push(isAdmin ? '/admin' : '/dashboard');
     }
@@ -49,15 +49,10 @@ export default function LoginPage() {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
-      
       const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
       clearTimeout(timeoutId);
-      
       const data = await res.json();
-      return {
-        ip: data.ip || '127.0.0.1',
-        country: data.country_name || 'Global'
-      };
+      return { ip: data.ip || '127.0.0.1', country: data.country_name || 'Global' };
     } catch (e) {
       return { ip: '127.0.0.1', country: 'Global' };
     }
@@ -65,22 +60,18 @@ export default function LoginPage() {
 
   const syncUserProfile = async (firebaseUser: any) => {
     if (!firestore) return;
-    
     try {
       const intel = await getIpIntelligence();
       const userDocRef = doc(firestore, 'users', firebaseUser.uid);
       const snap = await getDoc(userDocRef);
 
-      if (!snap.exists() && authMode === 'signup') {
+      if (!snap.exists()) {
+        // Anti-Abuse: Multi-Account Block
         const abuseQuery = query(collection(firestore, 'users'), where('lastIp', '==', intel.ip), limit(1));
         const abuseSnap = await getDocs(abuseQuery);
         
-        if (!abuseSnap.empty) {
-          toast({ 
-            variant: "destructive", 
-            title: "SECURITY VIOLATION", 
-            description: "Multiple accounts detected on this terminal." 
-          });
+        if (!abuseSnap.empty && authMode === 'signup') {
+          toast({ variant: "destructive", title: "SECURITY VIOLATION", description: "Multiple accounts detected on this terminal." });
           throw new Error("DEVICE_ID_CONFLICT");
         }
 
@@ -143,43 +134,22 @@ export default function LoginPage() {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) {
-      toast({ variant: "destructive", title: "System Error", description: "Auth Protocol Offline." });
-      return;
-    }
-    
+    if (!auth) return;
     setIsLoading(true);
     setAuthError(null);
-    
     try {
-      const sanitizedEmail = email.trim();
-      const sanitizedPassword = password;
-
-      if (!sanitizedEmail || !sanitizedPassword) {
-        throw new Error("Credentials required.");
-      }
-
       let userCredential;
       if (authMode === 'login') {
-        userCredential = await signInWithEmailAndPassword(auth, sanitizedEmail, sanitizedPassword);
+        userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       } else {
-        userCredential = await createUserWithEmailAndPassword(auth, sanitizedEmail, sanitizedPassword);
+        userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       }
-      
       await syncUserProfile(userCredential.user);
-      
-      const isAdmin = userCredential.user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-      router.push(isAdmin ? '/admin' : '/dashboard');
-      
     } catch (e: any) {
       let msg = e.message;
-      if (e.code === 'auth/email-already-in-use') msg = "Already registered.";
-      if (e.code === 'auth/invalid-email') msg = "Invalid email terminal.";
-      if (e.code === 'auth/weak-password') msg = "Pass must be 6+ characters.";
-      if (e.code === 'auth/wrong-password') msg = "Invalid pass. Access denied.";
-      if (e.code === 'auth/user-not-found') msg = "Warrior not found.";
-      if (e.message === "DEVICE_ID_CONFLICT") msg = "Multiple account block active.";
-      
+      if (e.code === 'auth/email-already-in-use') msg = "Warrior already enlisted. Try Login.";
+      if (e.code === 'auth/wrong-password') msg = "Incorrect Access Pass.";
+      if (e.code === 'auth/user-not-found') msg = "No warrior found with this terminal.";
       setAuthError(msg);
       toast({ variant: "destructive", title: "Access Denied", description: msg });
       setIsLoading(false);
@@ -193,11 +163,9 @@ export default function LoginPage() {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       await syncUserProfile(result.user);
-      const isAdmin = result.user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-      router.push(isAdmin ? '/admin' : '/dashboard');
     } catch (e: any) {
       if (e.code !== 'auth/popup-closed-by-user') {
-        toast({ variant: "destructive", title: "Access Blocked", description: e.message });
+        toast({ variant: "destructive", title: "Google Auth Failed", description: e.message });
       }
       setIsLoading(false);
     }
@@ -214,7 +182,7 @@ export default function LoginPage() {
         <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">
           {authMode === 'login' ? 'Warrior' : 'Enlist'} <span className="text-primary">WinZO</span>
         </h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Industrial Security Layer Active</p>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Industrial Identity Protection Active</p>
       </div>
 
       {authError && (
@@ -235,45 +203,20 @@ export default function LoginPage() {
             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
               <div className="space-y-2">
                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Email Terminal</Label>
-                 <Input 
-                  required
-                  type="email"
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  placeholder="warrior@arena.com" 
-                  className="h-14 bg-black border-white/10 rounded-xl text-white font-bold focus:ring-primary" 
-                 />
+                 <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="warrior@arena.com" className="h-14 bg-black border-white/10 rounded-xl font-bold" />
               </div>
-              
-              <div className="space-y-2 relative">
+              <div className="space-y-2">
                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Secret Access Pass</Label>
                  <div className="relative">
-                    <Input 
-                      required
-                      type={showPassword ? "text" : "password"} 
-                      value={password} 
-                      onChange={e => setPassword(e.target.value)} 
-                      className="h-14 bg-black border-white/10 rounded-xl pr-12 text-white focus:ring-primary font-mono" 
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
-                    >
+                    <Input required type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl pr-12 font-mono" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white">
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                  </div>
               </div>
-
-              <div className="flex flex-col gap-3 pt-4">
-                <Button 
-                  type="submit" 
-                  disabled={isLoading} 
-                  className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3"
-                >
-                  {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (authMode === 'login' ? 'INITIATE LOGIN' : 'CREATE ACCOUNT')}
-                </Button>
-              </div>
+              <Button type="submit" disabled={isLoading} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl transition-all active:scale-95">
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (authMode === 'login' ? 'INITIATE LOGIN' : 'CREATE ACCOUNT')}
+              </Button>
             </Card>
           </form>
         </TabsContent>
@@ -281,15 +224,10 @@ export default function LoginPage() {
 
       <div className="relative py-4">
         <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5"></span></div>
-        <div className="relative flex justify-center text-[8px] font-bold uppercase"><span className="bg-background px-4 text-muted-foreground">Encrypted Authentication</span></div>
+        <div className="relative flex justify-center text-[8px] font-bold uppercase"><span className="bg-background px-4 text-muted-foreground">Connect via Cloud Signal</span></div>
       </div>
 
-      <Button 
-        onClick={handleGoogleAuth} 
-        disabled={isLoading}
-        variant="outline"
-        className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 rounded-2xl font-black uppercase text-xs flex items-center justify-center gap-3 transition-all"
-      >
+      <Button onClick={handleGoogleAuth} disabled={isLoading} variant="outline" className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-3 transition-all hover:scale-[1.02]">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="h-5 w-5" alt="Google" />
         One-Tap Google Access
       </Button>
