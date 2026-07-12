@@ -22,7 +22,9 @@ import {
   Trophy,
   Trash2,
   Table as TableIcon,
-  Flag
+  Flag,
+  Radio,
+  Zap
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,10 +33,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { UserProfile, PredictionPoll, CricketMatch } from '@/app/lib/types';
+import { UserProfile, PredictionPoll, CricketMatch, ESportsMatch, ESportsPoll } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
@@ -53,24 +56,24 @@ export default function AdminDashboard() {
   const [adjAmount, setAdjAmount] = useState('100');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Poll/Cricket Form State
+  // E-Sports Form State
+  const [esMatchTitle, setEsMatchTitle] = useState('');
+  const [esGame, setEsGame] = useState('BGMI');
+  const [esTeamA, setEsMatchTeamA] = useState('');
+  const [esTeamB, setEsMatchTeamB] = useState('');
+
+  // Poll State
+  const [selectedMatchId, setSelectedMatchId] = useState('');
   const [pollQuestion, setPollQuestion] = useState('');
-  const [pollEntryFee, setPollEntryFee] = useState('10');
-  
-  // Cricket Form
-  const [matchTeamA, setMatchTeamA] = useState('');
-  const [matchTeamB, setMatchTeamB] = useState('');
-  const [matchTime, setMatchTime] = useState('');
+  const [pollFee, setPollFee] = useState('10');
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
-  const pollsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'polls') : null, [firestore, isAdminUser]);
-  const cricketQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'cricket_matches') : null, [firestore, isAdminUser]);
+  const esportsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'esports_matches'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
-  const { data: polls } = useCollection<PredictionPoll>(pollsQuery);
-  const { data: matches } = useCollection<CricketMatch>(cricketQuery);
+  const { data: esMatches } = useCollection<ESportsMatch>(esportsQuery);
 
   const handleLogout = async () => {
     if (auth) {
@@ -79,53 +82,47 @@ export default function AdminDashboard() {
     }
   };
 
-  const executeAdjustment = async (targetId: string, amount: number, mode: 'add' | 'deduct') => {
-    if (!firestore || !isAdminUser || isProcessing) return;
+  const createESportsMatch = async () => {
+    if (!firestore || !esMatchTitle || !esTeamA) return;
     setIsProcessing(true);
-    const finalAmount = mode === 'add' ? amount : -amount;
     try {
-      const userRef = doc(firestore, 'users', targetId);
-      await setDoc(userRef, {
-        winningBalance: increment(finalAmount),
-        coins: increment(finalAmount),
-        lastUpdated: new Date().toISOString()
-      }, { merge: true });
-      
-      await addDoc(collection(firestore, 'users', targetId, 'ledger'), {
-        userId: targetId,
-        type: mode === 'add' ? 'income' : 'withdrawal',
-        amount: Math.abs(finalAmount),
-        date: new Date().toISOString().split('T')[0],
-        status: 'completed',
-        description: `Admin ${mode === 'add' ? 'Credit' : 'Debit'} Adjustment`
+      await addDoc(collection(firestore, 'esports_matches'), {
+        title: esMatchTitle,
+        game: esGame,
+        teamA: esTeamA,
+        teamB: esTeamB,
+        status: 'live',
+        timestamp: new Date().toISOString()
       });
-      toast({ title: mode === 'add' ? "CREDITED" : "DEDUCTED", description: `${amount} coins processed.` });
-      setBalanceAdjustment(null);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Action Failed" });
+      setEsMatchTitle('');
+      setEsMatchTeamA('');
+      setEsMatchTeamB('');
+      toast({ title: "E-SPORTS SIGNAL DEPLOYED" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "DEPLOYMENT FAILED" });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const createCricketMatch = async () => {
-    if (!firestore || !matchTeamA || !matchTeamB) return;
+  const createLivePoll = async () => {
+    if (!firestore || !selectedMatchId || !pollQuestion) return;
     setIsProcessing(true);
     try {
-      await addDoc(collection(firestore, 'cricket_matches'), {
-        teamA: matchTeamA,
-        teamB: matchTeamB,
-        startTime: matchTime,
-        status: 'upcoming',
-        series: 'IPL T20 2024',
-        teamALogo: 'https://placehold.co/100x100/orange/white?text=' + matchTeamA.substring(0,2),
-        teamBLogo: 'https://placehold.co/100x100/blue/white?text=' + matchTeamB.substring(0,2),
+      await addDoc(collection(firestore, 'esports_polls'), {
+        matchId: selectedMatchId,
+        question: pollQuestion,
+        optionA: 'YES',
+        optionB: 'NO',
+        entryFee: Number(pollFee),
+        totalPool: 0,
+        status: 'open',
+        timestamp: new Date().toISOString()
       });
-      setMatchTeamA('');
-      setMatchTeamB('');
-      toast({ title: "CRICKET MATCH DEPLOYED" });
+      setPollQuestion('');
+      toast({ title: "LIVE POLL DEPLOYED" });
     } catch (e) {
-      toast({ variant: "destructive", title: "FAILED TO DEPLOY" });
+      toast({ variant: "destructive", title: "POLL FAILED" });
     } finally {
       setIsProcessing(false);
     }
@@ -150,8 +147,8 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 px-4 space-y-2 pt-4">
           <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="Users List" onClick={() => setActiveTab('users')} />
+          <SidebarLink active={activeTab === 'esports'} icon={<Radio />} label="E-Sports Control" onClick={() => setActiveTab('esports')} />
           <SidebarLink active={activeTab === 'cricket'} icon={<Flag />} label="Cricket Arena" onClick={() => setActiveTab('cricket')} />
-          <SidebarLink active={activeTab === 'polls'} icon={<Target />} label="Poll Wars" onClick={() => setActiveTab('polls')} />
         </nav>
         <div className="p-6 border-t border-white/5">
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-red-500 hover:bg-red-500/10 transition-all font-black uppercase text-xs">
@@ -209,48 +206,69 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'cricket' && (
-          <div className="space-y-8">
+        {activeTab === 'esports' && (
+          <div className="grid lg:grid-cols-2 gap-10">
             <Card className="bg-[#0a0a0f] border-primary/20 rounded-2xl p-8 space-y-6">
-               <h3 className="text-xl font-black uppercase italic text-primary flex items-center gap-2"><Flag className="h-5 w-5" /> Launch Cricket Match</h3>
-               <div className="grid md:grid-cols-3 gap-6">
+               <h3 className="text-xl font-black uppercase italic text-primary flex items-center gap-2"><Radio className="h-5 w-5" /> Deploy E-Sports Match</h3>
+               <div className="space-y-4">
                   <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase">Team A</Label>
-                     <Input value={matchTeamA} onChange={e => setMatchTeamA(e.target.value)} placeholder="e.g. India" className="bg-black border-white/10" />
+                     <Label className="text-[10px] font-black uppercase">Match Title</Label>
+                     <Input value={esMatchTitle} onChange={e => setEsMatchTitle(e.target.value)} placeholder="e.g. BGMI Pro Scrims Finals" className="bg-black border-white/10" />
                   </div>
-                  <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase">Team B</Label>
-                     <Input value={matchTeamB} onChange={e => setMatchTeamB(e.target.value)} placeholder="e.g. Pakistan" className="bg-black border-white/10" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                       <Label className="text-[10px] font-black uppercase">Game Sector</Label>
+                       <Select value={esGame} onValueChange={setEsGame}>
+                          <SelectTrigger className="bg-black border-white/10 h-12">
+                             <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#121216] border-white/10 text-white">
+                             <SelectItem value="BGMI">BGMI</SelectItem>
+                             <SelectItem value="Free Fire">FREE FIRE</SelectItem>
+                             <SelectItem value="Valorant">VALORANT</SelectItem>
+                          </SelectContent>
+                       </Select>
+                    </div>
+                    <div className="space-y-2">
+                       <Label className="text-[10px] font-black uppercase">Team A</Label>
+                       <Input value={esTeamA} onChange={e => setEsMatchTeamA(e.target.value)} placeholder="Team Alpha" className="bg-black border-white/10" />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase">Start Date/Time</Label>
-                     <Input type="datetime-local" value={matchTime} onChange={e => setMatchTime(e.target.value)} className="bg-black border-white/10" />
-                  </div>
+                  <Button onClick={createESportsMatch} disabled={isProcessing} className="w-full bg-primary font-black uppercase h-14 rounded-xl">
+                    {isProcessing ? <Loader2 className="animate-spin" /> : "LAUNCH LIVE FEED"}
+                  </Button>
                </div>
-               <Button onClick={createCricketMatch} disabled={isProcessing} className="w-full bg-primary font-black uppercase italic h-14 rounded-xl">
-                  {isProcessing ? <Loader2 className="animate-spin" /> : "DEPLOY CRICKET SIGNAL"}
-               </Button>
             </Card>
 
-            <div className="grid gap-4">
-               <h3 className="text-lg font-black uppercase italic">Live Deployments</h3>
-               {matches?.map(m => (
-                 <Card key={m.id} className="bg-white/5 border-white/10 p-6 flex items-center justify-between rounded-xl">
-                    <div className="flex items-center gap-6">
-                       <div className="text-center">
-                          <p className="font-black text-xl">{m.teamA}</p>
-                          <span className="text-[8px] text-muted-foreground uppercase">WARRIORS</span>
-                       </div>
-                       <div className="font-black text-primary italic">VS</div>
-                       <div className="text-center">
-                          <p className="font-black text-xl">{m.teamB}</p>
-                          <span className="text-[8px] text-muted-foreground uppercase">WARRIORS</span>
-                       </div>
-                    </div>
-                    <Badge className="bg-green-500/10 text-green-500 border-none px-4">{m.status}</Badge>
-                 </Card>
-               ))}
-            </div>
+            <Card className="bg-[#0a0a0f] border-amber-500/20 rounded-2xl p-8 space-y-6">
+               <h3 className="text-xl font-black uppercase italic text-amber-500 flex items-center gap-2"><Zap className="h-5 w-5" /> Deploy Live Poll</h3>
+               <div className="space-y-4">
+                  <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase">Select Active Match</Label>
+                     <Select value={selectedMatchId} onValueChange={setSelectedMatchId}>
+                        <SelectTrigger className="bg-black border-white/10 h-12">
+                           <SelectValue placeholder="Select Match" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#121216] border-white/10 text-white">
+                           {esMatches?.map(m => (
+                             <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
+                           ))}
+                        </SelectContent>
+                     </Select>
+                  </div>
+                  <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase">Poll Question</Label>
+                     <Input value={pollQuestion} onChange={e => setPollQuestion(e.target.value)} placeholder="e.g. Will Team A wipe the next squad?" className="bg-black border-white/10" />
+                  </div>
+                  <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase">Entry Fee (Coins)</Label>
+                     <Input type="number" value={pollFee} onChange={e => setPollFee(e.target.value)} className="bg-black border-white/10" />
+                  </div>
+                  <Button onClick={createLivePoll} disabled={isProcessing || !selectedMatchId} className="w-full bg-amber-500 text-black font-black uppercase h-14 rounded-xl">
+                    {isProcessing ? <Loader2 className="animate-spin" /> : "PUSH LIVE POLL"}
+                  </Button>
+               </div>
+            </Card>
           </div>
         )}
       </main>

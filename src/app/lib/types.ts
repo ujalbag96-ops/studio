@@ -35,12 +35,34 @@ export interface UserProfile {
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake' | 'esports_stake';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';
   description?: string;
   currencySymbol?: string;
+}
+
+export interface ESportsMatch {
+  id: string;
+  title: string;
+  game: 'BGMI' | 'Free Fire' | 'Valorant' | 'Other';
+  streamUrl?: string;
+  teamA: string;
+  teamB: string;
+  status: 'live' | 'upcoming' | 'completed';
+  timestamp: string;
+}
+
+export interface ESportsPoll {
+  id: string;
+  matchId: string;
+  question: string;
+  optionA: string;
+  optionB: string;
+  entryFee: number;
+  totalPool: number;
+  status: 'open' | 'closed';
 }
 
 export interface ShopItem {
@@ -96,25 +118,6 @@ export interface CricketMatch {
     overs?: string;
     target?: string;
   };
-}
-
-export interface CricketPool {
-  id: string;
-  matchId: string;
-  question: string;
-  entryFee: number;
-  totalPool: number;
-  status: 'open' | 'closed';
-  type: 'winner' | 'runs' | 'wickets';
-}
-
-export interface Registration {
-  id: string;
-  userId: string;
-  tournamentId: string;
-  gameId: string;
-  joinedAt: string;
-  feePaid: number;
 }
 
 export interface AppSettings {
