@@ -21,6 +21,7 @@ export interface UserProfile {
   referredByL1?: string; // Level 1 Referrer UID
   referredByL2?: string; // Level 2 Referrer UID
   lastIp?: string;
+  country?: string;
   rank: UserRank;
   isAdmin?: boolean;
   isBanned?: boolean;
@@ -92,6 +93,7 @@ export interface Tournament {
     roomId?: string;
     roomPassword?: string;
   };
+  mockJoins?: number;
 }
 
 export interface PredictionPoll {
@@ -136,6 +138,9 @@ export interface AppSettings {
   withdrawalFeePercent: number;
   conversionFeePercent: number;
   telegramUrl: string;
+  heroBannerUrl?: string;
+  bannerAdId?: string;
+  videoAdId?: string;
 }
 
 export interface SystemNotification {

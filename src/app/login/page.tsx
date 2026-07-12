@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, AlertCircle, Eye, EyeOff, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff, ShieldCheck, ShieldAlert, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -44,13 +44,17 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const getIp = async () => {
+  const getIpIntelligence = async () => {
     try {
-      const res = await fetch('https://api.ipify.org?format=json');
+      // High-performance IP Intelligence Lookup
+      const res = await fetch('https://ipapi.co/json/');
       const data = await res.json();
-      return data.ip;
+      return {
+        ip: data.ip || '127.0.0.1',
+        country: data.country_name || 'Global'
+      };
     } catch (e) {
-      return '127.0.0.1';
+      return { ip: '127.0.0.1', country: 'Global' };
     }
   };
 
@@ -58,21 +62,20 @@ export default function LoginPage() {
     if (!firestore) return;
     
     try {
-      const currentIp = await getIp();
+      const intel = await getIpIntelligence();
       const userDocRef = doc(firestore, 'users', firebaseUser.uid);
       const snap = await getDoc(userDocRef);
 
       // PRODUCTION DEVICE IDENTIFICATION: STRICT Anti-Multi-Account Policy
       if (!snap.exists() && authMode === 'signup') {
-        const abuseQuery = query(collection(firestore, 'users'), where('lastIp', '==', currentIp), limit(1));
+        const abuseQuery = query(collection(firestore, 'users'), where('lastIp', '==', intel.ip), limit(1));
         const abuseSnap = await getDocs(abuseQuery);
         
         if (!abuseSnap.empty) {
-          // STRICT LOCK: Prevent signup if another user already registered from this device/IP
           toast({ 
             variant: "destructive", 
             title: "SECURITY VIOLATION", 
-            description: "Multiple accounts detected on this device. Enrollment blocked." 
+            description: "Multiple accounts detected on this terminal. Signal blocked." 
           });
           throw new Error("DEVICE_ID_CONFLICT");
         }
@@ -96,7 +99,8 @@ export default function LoginPage() {
         await setDoc(userDocRef, {
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
-          lastIp: currentIp,
+          lastIp: intel.ip,
+          country: intel.country,
           depositBalance: 0,
           winningBalance: 0,
           bonusBalance: refCode ? 10 : 0,
@@ -122,7 +126,8 @@ export default function LoginPage() {
         }
       } else {
         await setDoc(userDocRef, { 
-          lastIp: currentIp, 
+          lastIp: intel.ip, 
+          country: intel.country,
           lastActive: new Date().toISOString() 
         }, { merge: true });
       }
