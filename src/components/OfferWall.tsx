@@ -1,58 +1,53 @@
 
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Smartphone, Globe, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
-import { AppSettings } from '@/app/lib/types';
+import { useFirestore, useMemoFirebase, useUser, useCollection } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 export default function OfferWall() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
-  const tasksQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cpa_tasks') : null, [firestore]);
+  const missionsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cpa_missions') : null, [firestore]);
+  const { data: missions, isLoading } = useCollection<any>(missionsQuery);
 
-  const { data: settings } = useDoc<AppSettings>(settingsRef);
-  const { data: tasks, isLoading: tasksLoading } = useCollection<any>(tasksQuery);
-
-  if (tasksLoading) return (
-    <div className="flex flex-col items-center py-20 gap-4">
-      <Loader2 className="animate-spin text-primary h-10 w-10" />
-      <p className="text-[10px] font-black uppercase text-muted-foreground italic">Fetching Mission Intelligence...</p>
+  if (isLoading) return (
+    <div className="flex flex-col items-center py-32 gap-6">
+      <Loader2 className="animate-spin text-primary h-12 w-12" />
+      <p className="text-[10px] font-black uppercase text-muted-foreground italic tracking-[0.4em]">Synchronizing Active Missions...</p>
     </div>
   );
 
   return (
-    <div className="space-y-6">
-      {tasks && tasks.length > 0 ? (
-        tasks.map((task) => (
-          <Card key={task.id} className="bg-white/5 border-white/5 hover:border-primary/40 transition-all rounded-2xl overflow-hidden group">
-            <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-5 min-w-0">
-                <div className="h-14 w-14 bg-primary/10 rounded-xl flex items-center justify-center shrink-0 border border-primary/20">
-                  <Smartphone className="text-primary h-6 w-6" />
+    <div className="space-y-8">
+      {missions && missions.length > 0 ? (
+        missions.map((task) => (
+          <Card key={task.id} className="bg-white/5 border-white/5 hover:border-primary/40 transition-all rounded-[2rem] overflow-hidden group shadow-2xl">
+            <CardContent className="p-8 flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="flex items-center gap-6 min-w-0">
+                <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0 border border-primary/20 group-hover:scale-105 transition-transform">
+                  <Smartphone className="text-primary h-8 w-8" />
                 </div>
                 <div className="truncate">
-                  <h4 className="text-lg font-black uppercase italic truncate text-white">{task.appName}</h4>
-                  <div className="flex items-center gap-3 mt-1">
-                    <Badge className="bg-secondary/20 text-secondary border-none text-[8px] font-black px-2 py-0.5 uppercase italic">Verified</Badge>
-                    <span className="text-[9px] font-black text-muted-foreground uppercase"><Globe className="h-2 w-2 inline mr-1" /> Mobile Install</span>
+                  <h4 className="text-2xl font-black uppercase italic truncate text-white tracking-tighter">{task.appName}</h4>
+                  <div className="flex items-center gap-4 mt-2">
+                    <Badge className="bg-secondary/20 text-secondary border-none text-[9px] font-black px-4 py-1 uppercase italic">Verified Mission</Badge>
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest"><Globe className="h-3 w-3 inline mr-1" /> Multi-Platform</span>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
+              <div className="flex items-center gap-10 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-white/5 pt-6 md:pt-0">
                 <div className="text-right">
-                   <p className="text-[8px] font-black uppercase text-muted-foreground mb-0.5">Reward</p>
-                   <p className="text-2xl font-black italic text-white">{task.reward} 🪙</p>
+                   <p className="text-[9px] font-black uppercase text-muted-foreground mb-1 italic">Mission Dividend</p>
+                   <p className="text-4xl font-black italic text-white tabular-nums">{task.reward} <span className="text-lg text-primary opacity-40">🪙</span></p>
                 </div>
                 <Button 
-                  onClick={() => window.open(`${task.link}&subid=${user?.uid}`, '_blank')} 
-                  className="h-12 rounded-xl bg-primary hover:bg-primary/90 px-8 font-black uppercase italic shadow-xl transition-all"
+                  onClick={() => window.open(`${task.link}&uid=${user?.uid}`, '_blank')} 
+                  className="h-16 rounded-2xl bg-primary hover:bg-primary/90 px-10 font-black uppercase italic text-sm shadow-xl shadow-primary/20 transition-all active:scale-95"
                 >
                   START MISSION
                 </Button>
@@ -61,18 +56,18 @@ export default function OfferWall() {
           </Card>
         ))
       ) : (
-        <div className="py-24 text-center space-y-4 border-2 border-dashed border-white/5 rounded-[3rem]">
-           <ShieldAlert className="h-12 w-12 text-muted-foreground opacity-10 mx-auto" />
-           <p className="text-muted-foreground italic font-black uppercase text-[10px] tracking-widest">No Active Missions Found</p>
+        <div className="py-40 text-center space-y-6 border-2 border-dashed border-white/10 rounded-[3rem]">
+           <ShieldAlert className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
+           <p className="text-muted-foreground italic font-black uppercase text-[12px] tracking-[0.4em]">Zero Active Deployments Detected</p>
         </div>
       )}
 
-      <div className="p-6 bg-blue-500/5 border border-blue-500/20 rounded-2xl flex items-start gap-4">
-         <CheckCircle2 className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+      <div className="p-8 bg-blue-500/5 border border-blue-500/20 rounded-[2rem] flex items-start gap-6 animate-in slide-in-from-bottom-4 duration-1000">
+         <CheckCircle2 className="h-7 w-7 text-blue-400 shrink-0 mt-1" />
          <div>
-            <p className="text-[10px] font-black uppercase text-blue-400 italic">Analytical Process</p>
-            <p className="text-xs text-muted-foreground font-medium mt-1 leading-relaxed">
-               Missions take 5-15 minutes to reflect in your wallet after completion. VPN usage will result in immediate disqualification.
+            <p className="text-xs font-black uppercase text-blue-400 italic tracking-widest">Audit Protocol</p>
+            <p className="text-sm text-muted-foreground font-medium mt-2 leading-relaxed opacity-60 uppercase text-[10px]">
+               Missions undergo automated 3rd party verification. Rewards reflect in wallet after data synchronization (5-15 Minutes). Industrial VPN detection active.
             </p>
          </div>
       </div>

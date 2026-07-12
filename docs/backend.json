@@ -21,8 +21,8 @@
         "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] }
       }
     },
-    "CPATask": {
-      "title": "CPATask",
+    "CPAMission": {
+      "title": "CPAMission",
       "description": "CPA mission details for users.",
       "type": "object",
       "properties": {
@@ -33,8 +33,8 @@
         "category": { "type": "string" }
       }
     },
-    "WithdrawalRequest": {
-      "title": "WithdrawalRequest",
+    "PayoutRequest": {
+      "title": "PayoutRequest",
       "description": "User withdrawal applications.",
       "type": "object",
       "properties": {
@@ -57,29 +57,17 @@
       "schema": "UserProfile",
       "description": "Master user profiles"
     },
-    "/users/{userId}/ledger/{id}": {
-      "schema": "object",
-      "description": "Financial transaction history"
-    },
-    "/withdrawals/{id}": {
-      "schema": "WithdrawalRequest",
+    "/payouts/{id}": {
+      "schema": "PayoutRequest",
       "description": "Global payout queue"
     },
-    "/cpa_tasks/{id}": {
-      "schema": "CPATask",
+    "/cpa_missions/{id}": {
+      "schema": "CPAMission",
       "description": "Active missions for users"
     },
-    "/cricket_matches/{id}": {
+    "/app_settings/global_config": {
       "schema": "object",
-      "description": "Live cricket signal data"
-    },
-    "/polls/{id}": {
-      "schema": "object",
-      "description": "Prediction polls"
-    },
-    "/settings/global": {
-      "schema": "object",
-      "description": "Global system configuration"
+      "description": "Global system configuration for Ads and APIs"
     }
   }
 }
