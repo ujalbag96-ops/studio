@@ -45,15 +45,23 @@ export default function LoginPage() {
   }, [user, isUserLoading, router]);
 
   const getIpIntelligence = async () => {
+    console.log('Initiating IP Intelligence Lookup...');
     try {
-      // High-performance IP Intelligence Lookup
-      const res = await fetch('https://ipapi.co/json/');
+      // High-performance IP Intelligence Lookup with 3s timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
+      const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       const data = await res.json();
+      console.log('IP Intel Captured:', data.ip, data.country_name);
       return {
         ip: data.ip || '127.0.0.1',
         country: data.country_name || 'Global'
       };
     } catch (e) {
+      console.warn('IP Intel Signal Jammed, using fallback protocol.');
       return { ip: '127.0.0.1', country: 'Global' };
     }
   };
@@ -68,10 +76,12 @@ export default function LoginPage() {
 
       // PRODUCTION DEVICE IDENTIFICATION: STRICT Anti-Multi-Account Policy
       if (!snap.exists() && authMode === 'signup') {
+        console.log('New User Detected. Running Fraud Prevention Checks...');
         const abuseQuery = query(collection(firestore, 'users'), where('lastIp', '==', intel.ip), limit(1));
         const abuseSnap = await getDocs(abuseQuery);
         
         if (!abuseSnap.empty) {
+          console.error('Security Violation: Multi-account detected on IP', intel.ip);
           toast({ 
             variant: "destructive", 
             title: "SECURITY VIOLATION", 
@@ -131,35 +141,62 @@ export default function LoginPage() {
           lastActive: new Date().toISOString() 
         }, { merge: true });
       }
+      console.log('Industrial Profile Synchronization Complete.');
     } catch (err: any) {
       if (err.message === "DEVICE_ID_CONFLICT") throw err;
       console.error("Industrial Profile sync failed", err);
+      // We still proceed if it's a non-critical sync error to avoid locking the user out
     }
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth) {
+      console.error('Firebase Auth instance not initialized.');
+      toast({ variant: "destructive", title: "System Error", description: "Auth Protocol Offline. Please refresh." });
+      return;
+    }
     
+    console.log(`Initiating ${authMode} process for: ${email}`);
     setIsLoading(true);
     setAuthError(null);
     
     try {
+      const sanitizedEmail = email.trim();
+      const sanitizedPassword = password;
+
+      if (!sanitizedEmail || !sanitizedPassword) {
+        throw new Error("Credentials required.");
+      }
+
       let userCredential;
       if (authMode === 'login') {
-        userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        userCredential = await signInWithEmailAndPassword(auth, sanitizedEmail, sanitizedPassword);
+        console.log('Login Successful.');
       } else {
-        userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        userCredential = await createUserWithEmailAndPassword(auth, sanitizedEmail, sanitizedPassword);
+        console.log('Account Created Successfully.');
       }
       
       await syncUserProfile(userCredential.user);
+      
       const isAdmin = userCredential.user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      console.log(`Redirecting to ${isAdmin ? 'Admin' : 'Dashboard'}...`);
       router.push(isAdmin ? '/admin' : '/dashboard');
       
     } catch (e: any) {
-      const msg = e.message === "DEVICE_ID_CONFLICT" ? "Multiple account detection blocked this registration." : e.message;
+      console.error('Authentication Exception:', e.code, e.message);
+      let msg = e.message;
+      
+      if (e.code === 'auth/email-already-in-use') msg = "This email is already registered in the Arena.";
+      if (e.code === 'auth/invalid-email') msg = "The email terminal address is invalid.";
+      if (e.code === 'auth/weak-password') msg = "The access pass must be at least 6 characters.";
+      if (e.code === 'auth/wrong-password') msg = "Invalid access pass. Terminal rejected.";
+      if (e.code === 'auth/user-not-found') msg = "Warrior not found in database.";
+      if (e.message === "DEVICE_ID_CONFLICT") msg = "Multiple account detection blocked this registration.";
+      
       setAuthError(msg);
-      toast({ variant: "destructive", title: "Authentication Denied", description: msg });
+      toast({ variant: "destructive", title: "Access Denied", description: msg });
       setIsLoading(false);
     }
   };
@@ -250,7 +287,7 @@ export default function LoginPage() {
                 <Button 
                   type="submit" 
                   disabled={isLoading} 
-                  className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl transition-all active:scale-95"
+                  className="h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3"
                 >
                   {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (authMode === 'login' ? 'INITIATE LOGIN' : 'CREATE ACCOUNT')}
                 </Button>
