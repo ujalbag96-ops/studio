@@ -9,14 +9,14 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldCheck, ShieldAlert, Globe, Eye, EyeOff } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -24,7 +24,7 @@ const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function LoginPage() {
   const { user, isUserLoading } = useUser();
-  const auth = useAuth(); // Standardized Hook Usage (Returns Auth instance directly)
+  const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -37,7 +37,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Master Redirection Logic
   useEffect(() => {
     if (user && !isUserLoading) {
       const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -66,30 +65,15 @@ export default function LoginPage() {
       const snap = await getDoc(userDocRef);
 
       if (!snap.exists()) {
-        // Anti-Abuse: Multi-Account Block
         const abuseQuery = query(collection(firestore, 'users'), where('lastIp', '==', intel.ip), limit(1));
         const abuseSnap = await getDocs(abuseQuery);
         
         if (!abuseSnap.empty && authMode === 'signup') {
-          toast({ variant: "destructive", title: "SECURITY VIOLATION", description: "Multiple accounts detected on this terminal." });
+          toast({ variant: "destructive", title: "SECURITY VIOLATION", description: "Multi-account detected on this terminal." });
           throw new Error("DEVICE_ID_CONFLICT");
         }
 
-        const refCode = searchParams.get('ref');
         const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        
-        let l1ReferrerUid = '';
-        let l2ReferrerUid = '';
-
-        if (refCode) {
-          const refQuery = query(collection(firestore, 'users'), where('referralCode', '==', refCode));
-          const refSnap = await getDocs(refQuery);
-          if (!refSnap.empty) {
-            const l1Doc = refSnap.docs[0];
-            l1ReferrerUid = l1Doc.id;
-            l2ReferrerUid = l1Doc.data().referredByL1 || '';
-          }
-        }
         
         await setDoc(userDocRef, {
           id: firebaseUser.uid,
@@ -98,37 +82,24 @@ export default function LoginPage() {
           country: intel.country,
           depositBalance: 0,
           winningBalance: 0,
-          bonusBalance: refCode ? 10 : 0,
-          coins: refCode ? 10 : 0,
+          bonusBalance: 0,
+          taskBalance: 0,
+          coins: 0,
           rank: 'Bronze',
           referralCode: randomCode,
-          referredBy: refCode || null,
-          referredByL1: l1ReferrerUid,
-          referredByL2: l2ReferrerUid,
           isAccountActivated: false,
           tasksCompletedCount: 0,
           joinedAt: new Date().toISOString()
         }, { merge: true });
-
-        if (refCode) {
-          await addDoc(collection(firestore, 'users', firebaseUser.uid, 'ledger'), {
-            type: 'referral',
-            amount: 10,
-            date: new Date().toISOString().split('T')[0],
-            status: 'completed',
-            description: "Referral Welcome Reward"
-          });
-        }
       } else {
         await setDoc(userDocRef, { 
           lastIp: intel.ip, 
-          country: intel.country,
           lastActive: new Date().toISOString() 
         }, { merge: true });
       }
     } catch (err: any) {
       if (err.message === "DEVICE_ID_CONFLICT") throw err;
-      console.error("Profile sync error", err);
+      console.error("Profile sync failure", err);
     }
   };
 
@@ -149,7 +120,6 @@ export default function LoginPage() {
       let msg = e.message;
       if (e.code === 'auth/email-already-in-use') msg = "Warrior already enlisted. Try Login.";
       if (e.code === 'auth/wrong-password') msg = "Incorrect Access Pass.";
-      if (e.code === 'auth/user-not-found') msg = "No warrior found with this terminal.";
       setAuthError(msg);
       toast({ variant: "destructive", title: "Access Denied", description: msg });
       setIsLoading(false);
@@ -176,7 +146,7 @@ export default function LoginPage() {
   return (
     <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-700">
       <div className="text-center space-y-3">
-        <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
+        <div className="h-20 w-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">
@@ -203,10 +173,10 @@ export default function LoginPage() {
             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
               <div className="space-y-2">
                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Email Terminal</Label>
-                 <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="warrior@arena.com" className="h-14 bg-black border-white/10 rounded-xl font-bold" />
+                 <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl font-bold" />
               </div>
               <div className="space-y-2">
-                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Secret Access Pass</Label>
+                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Access Pass</Label>
                  <div className="relative">
                     <Input required type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl pr-12 font-mono" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white">
@@ -214,7 +184,7 @@ export default function LoginPage() {
                     </button>
                  </div>
               </div>
-              <Button type="submit" disabled={isLoading} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl transition-all active:scale-95">
+              <Button type="submit" disabled={isLoading} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl shadow-xl">
                 {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (authMode === 'login' ? 'INITIATE LOGIN' : 'CREATE ACCOUNT')}
               </Button>
             </Card>
@@ -222,12 +192,7 @@ export default function LoginPage() {
         </TabsContent>
       </Tabs>
 
-      <div className="relative py-4">
-        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5"></span></div>
-        <div className="relative flex justify-center text-[8px] font-bold uppercase"><span className="bg-background px-4 text-muted-foreground">Connect via Cloud Signal</span></div>
-      </div>
-
-      <Button onClick={handleGoogleAuth} disabled={isLoading} variant="outline" className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-3 transition-all hover:scale-[1.02]">
+      <Button onClick={handleGoogleAuth} disabled={isLoading} variant="outline" className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-3">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="h-5 w-5" alt="Google" />
         One-Tap Google Access
       </Button>
