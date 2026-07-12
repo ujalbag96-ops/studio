@@ -2,15 +2,16 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, increment, collection, addDoc, query, where } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, addDoc, query, where, orderBy } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Timer, Zap, Globe, Target, ShieldCheck, Loader2, Info } from 'lucide-react';
+import { Trophy, Timer, Zap, Globe, Target, ShieldCheck, Loader2, Info, Activity } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { UserProfile, PredictionPoll } from '../lib/types';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 export default function PredictionsPage() {
   const { user } = useUser();
@@ -18,7 +19,10 @@ export default function PredictionsPage() {
   const { toast } = useToast();
   const [isVoting, setIsVoting] = useState<string | null>(null);
 
-  const pollsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'polls') : null, [firestore]);
+  const pollsQuery = useMemoFirebase(() => 
+    firestore ? query(collection(firestore, 'polls'), orderBy('timestamp', 'desc')) : null, 
+    [firestore]
+  );
   const { data: polls, isLoading: pollsLoading } = useCollection<PredictionPoll>(pollsQuery);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
@@ -31,7 +35,7 @@ export default function PredictionsPage() {
     }
 
     if (profile.coins < fee) {
-      toast({ variant: "destructive", title: "Insufficient Assets", description: "Top up your wallet to participate." });
+      toast({ variant: "destructive", title: "Insufficient Assets", description: "Complete missions or add cash to play." });
       return;
     }
 
@@ -56,6 +60,9 @@ export default function PredictionsPage() {
       });
 
       toast({ title: "PREDICTION LOCKED", description: "Your vote has been registered in the arena pool." });
+      
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+      audio.play().catch(() => {});
     } catch (e) {
       toast({ variant: "destructive", title: "Sync Error" });
     } finally {
@@ -63,70 +70,138 @@ export default function PredictionsPage() {
     }
   };
 
+  const cricketPolls = polls?.filter(p => p.category.toLowerCase().includes('cricket')) || [];
+  const otherPolls = polls?.filter(p => !p.category.toLowerCase().includes('cricket')) || [];
+
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-10 space-y-12 pb-32">
-      <div className="space-y-4 pt-10 text-center">
+    <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
+      <div className="space-y-4 pt-10 text-center md:text-left">
          <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-primary/10 border border-primary/20 shadow-xl">
             <Target className="h-4 w-4 text-primary animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Predict & Win Hub</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Live Event Predictions</span>
          </div>
-         <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter">Poll <span className="text-primary">Wars</span></h1>
-         <p className="text-muted-foreground font-medium max-w-xl mx-auto">Analyze the event, place your stake, and claim the prize pool dividend.</p>
+         <h1 className="text-6xl md:text-8xl font-black uppercase italic tracking-tighter text-white">Poll <span className="text-primary">Wars</span></h1>
+         <p className="text-muted-foreground font-medium text-lg max-w-2xl leading-relaxed">
+            Analyze current match dynamics, place your stakes, and win a share of the total arena prize pool.
+         </p>
       </div>
 
-      <div className="grid gap-8">
-         {pollsLoading ? (
-           <div className="flex justify-center py-20"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
-         ) : polls && polls.length > 0 ? polls.map((poll) => (
-           <Card key={poll.id} className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden group hover:border-primary/30 transition-all shadow-2xl">
-              <CardContent className="p-0">
-                 <div className="p-8 md:p-12 flex flex-col md:flex-row justify-between items-center gap-10">
-                    <div className="space-y-6 flex-1 text-center md:text-left">
-                       <div className="flex items-center justify-center md:justify-start gap-4">
-                          <Badge className="bg-primary/20 text-primary border-none uppercase font-black text-[8px] tracking-widest px-3 py-1">{poll.category}</Badge>
-                          <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
-                             <Timer className="h-3 w-3" /> {poll.expiry}
-                          </div>
-                       </div>
-                       <h3 className="text-2xl md:text-4xl font-black uppercase italic leading-tight">{poll.question}</h3>
-                       <div className="flex items-center justify-center md:justify-start gap-6">
-                          <div>
-                             <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Prize Pool</p>
-                             <p className="text-2xl font-black text-accent italic">{poll.totalPool.toLocaleString()} 🪙</p>
-                          </div>
-                          <div className="w-px h-10 bg-white/5" />
-                          <div>
-                             <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Entry Fee</p>
-                             <p className="text-2xl font-black text-white italic">{poll.entryFee} 🪙</p>
-                          </div>
-                       </div>
-                    </div>
+      {pollsLoading ? (
+        <div className="flex flex-col items-center justify-center py-32 gap-4">
+           <Loader2 className="animate-spin h-10 w-10 text-primary" />
+           <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">Interfearing Signals...</p>
+        </div>
+      ) : (
+        <>
+          {cricketPolls.length > 0 && (
+            <div className="space-y-8">
+               <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                     <Activity className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <h2 className="text-2xl font-black uppercase italic italic tracking-tighter">Live Cricket <span className="text-blue-500">Events</span></h2>
+               </div>
+               <div className="grid gap-6">
+                  {cricketPolls.map((poll) => (
+                    <PollCard key={poll.id} poll={poll} onVote={handleVote} isVoting={isVoting === poll.id} variant="blue" />
+                  ))}
+               </div>
+            </div>
+          )}
 
-                    <div className="flex flex-col gap-4 w-full md:w-64">
-                       <Button onClick={() => handleVote(poll.id, poll.entryFee, 'YES')} disabled={!!isVoting} className="h-16 bg-primary hover:bg-primary/90 rounded-2xl font-black text-xl uppercase italic shadow-2xl transition-all">
-                          {isVoting === poll.id ? <Loader2 className="animate-spin" /> : "VOTE YES"}
-                       </Button>
-                       <Button onClick={() => handleVote(poll.id, poll.entryFee, 'NO')} disabled={!!isVoting} variant="outline" className="h-16 border-white/10 hover:bg-white/5 rounded-2xl font-black text-xl uppercase italic">
-                          VOTE NO
-                       </Button>
-                    </div>
-                 </div>
-                 <div className="bg-white/5 p-4 text-center border-t border-white/5 flex items-center justify-center gap-2">
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                    <p className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.3em]">Winning pool is distributed among correct predictors minus 10% platform fee.</p>
-                 </div>
-              </CardContent>
-           </Card>
-         )) : (
-           <div className="py-24 text-center border-2 border-dashed border-white/5 rounded-[3rem] space-y-4">
-              <Target className="h-12 w-12 text-muted-foreground opacity-10 mx-auto" />
-              <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">No active polls in this sector.</p>
-              <Button asChild variant="link" className="text-primary font-black uppercase text-xs">
-                 <Link href="/">Back to Tournaments</Link>
-              </Button>
-           </div>
-         )}
-      </div>
+          {otherPolls.length > 0 && (
+            <div className="space-y-8 pt-10">
+               <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                     <Zap className="h-5 w-5 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-black uppercase italic italic tracking-tighter">General <span className="text-primary">Predictions</span></h2>
+               </div>
+               <div className="grid gap-6">
+                  {otherPolls.map((poll) => (
+                    <PollCard key={poll.id} poll={poll} onVote={handleVote} isVoting={isVoting === poll.id} />
+                  ))}
+               </div>
+            </div>
+          )}
+
+          {(!polls || polls.length === 0) && (
+            <div className="py-40 text-center border-2 border-dashed border-white/5 rounded-[3rem] space-y-6">
+               <Target className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
+               <div className="space-y-2">
+                  <p className="text-lg font-black uppercase text-white italic">Sector Silence</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">No active signals detected. Check back during live match hours.</p>
+               </div>
+               <Button asChild variant="outline" className="h-12 px-8 rounded-xl border-white/10 text-[10px] font-black uppercase tracking-widest italic">
+                  <Link href="/">Back to Tournaments</Link>
+               </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
+  );
+}
+
+function PollCard({ poll, onVote, isVoting, variant = "primary" }: any) {
+  const isBlue = variant === "blue";
+  
+  return (
+    <Card className={cn(
+      "bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden group hover:shadow-2xl transition-all border-2",
+      isBlue ? "hover:border-blue-500/20" : "hover:border-primary/20"
+    )}>
+       <CardContent className="p-0">
+          <div className="p-8 md:p-12 flex flex-col md:flex-row justify-between items-center gap-10">
+             <div className="space-y-6 flex-1 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-4">
+                   <Badge className={cn("border-none uppercase font-black text-[8px] tracking-widest px-3 py-1", isBlue ? "bg-blue-500/20 text-blue-500" : "bg-primary/20 text-primary")}>
+                     {poll.category}
+                   </Badge>
+                   <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
+                      <Timer className="h-3 w-3" /> {poll.expiry}
+                   </div>
+                </div>
+                <h3 className="text-2xl md:text-4xl font-black uppercase italic leading-tight tracking-tighter text-white">{poll.question}</h3>
+                <div className="flex items-center justify-center md:justify-start gap-10">
+                   <div>
+                      <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Prize Pool</p>
+                      <p className={cn("text-3xl font-black italic tabular-nums", isBlue ? "text-blue-400" : "text-amber-500")}>{poll.totalPool.toLocaleString()} 🪙</p>
+                   </div>
+                   <div className="w-px h-12 bg-white/10" />
+                   <div>
+                      <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Entry Fee</p>
+                      <p className="text-3xl font-black text-white italic tabular-nums">{poll.entryFee} 🪙</p>
+                   </div>
+                </div>
+             </div>
+
+             <div className="flex flex-col gap-4 w-full md:w-72">
+                <Button 
+                  onClick={() => onVote(poll.id, poll.entryFee, 'YES')} 
+                  disabled={isVoting} 
+                  className={cn(
+                    "h-16 rounded-2xl font-black text-xl uppercase italic shadow-2xl transition-all hover:scale-[1.02] active:scale-95",
+                    isBlue ? "bg-blue-600 hover:bg-blue-500" : "bg-primary hover:bg-primary/90"
+                  )}
+                >
+                   {isVoting ? <Loader2 className="animate-spin" /> : "VOTE YES"}
+                </Button>
+                <Button 
+                  onClick={() => onVote(poll.id, poll.entryFee, 'NO')} 
+                  disabled={isVoting} 
+                  variant="outline" 
+                  className="h-16 border-white/10 hover:bg-white/5 rounded-2xl font-black text-xl uppercase italic transition-all hover:scale-[1.02] active:scale-95"
+                >
+                   VOTE NO
+                </Button>
+             </div>
+          </div>
+          <div className="bg-white/5 p-4 text-center border-t border-white/5 flex items-center justify-center gap-3">
+             <ShieldCheck className="h-3 w-3 text-muted-foreground" />
+             <p className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.3em] italic">Winning distributed among correct predictors minus 10% operational fee.</p>
+          </div>
+       </CardContent>
+    </Card>
   );
 }
