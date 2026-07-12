@@ -42,6 +42,7 @@ import WalletModal from '@/components/WalletModal';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
 import { useToast } from '@/hooks/use-toast';
 import OfferWall from '@/components/OfferWall';
+import LiveCricketWidget from '@/components/LiveCricketWidget';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -151,36 +152,8 @@ export default function UserDashboard() {
               <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} color="amber" />
             </div>
 
-            {/* Live Cricket Score Widget Placeholder */}
-            <Card className="bg-gradient-to-r from-blue-900/40 to-black border-blue-500/20 rounded-[2.5rem] p-8 md:p-12 overflow-hidden relative group">
-               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:rotate-12 transition-transform duration-1000">
-                  <Flag className="h-48 w-48 text-blue-400" />
-               </div>
-               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
-                  <div className="space-y-6">
-                     <div className="flex items-center gap-3">
-                        <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 italic">Live Cricket Score Feed</span>
-                     </div>
-                     <div className="flex items-center gap-10">
-                        <div className="text-center space-y-2">
-                           <div className="h-16 w-16 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center font-black text-2xl">IND</div>
-                           <p className="text-xs font-black">184/4</p>
-                        </div>
-                        <div className="font-black text-muted-foreground italic">VS</div>
-                        <div className="text-center space-y-2">
-                           <div className="h-16 w-16 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center font-black text-2xl">AUS</div>
-                           <p className="text-xs font-black">72/1 (8.2)</p>
-                        </div>
-                     </div>
-                  </div>
-                  <div className="w-full md:w-auto">
-                     <Button asChild className="w-full md:w-64 h-20 bg-blue-600 hover:bg-blue-500 rounded-2xl font-black uppercase italic text-lg shadow-2xl">
-                        <Link href="/cricket">BET ON MATCH</Link>
-                     </Button>
-                  </div>
-               </div>
-            </Card>
+            {/* Live Cricket Score Widget */}
+            <LiveCricketWidget />
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
               <div className="xl:col-span-2 space-y-8">
@@ -216,6 +189,35 @@ export default function UserDashboard() {
               </div>
             </div>
           </>
+        )}
+
+        {activeNav === 'offers' && (
+           <div className="space-y-10">
+              <div className="space-y-4">
+                 <h1 className="text-5xl font-black uppercase italic italic tracking-tighter">CPA <span className="text-primary">Missions</span></h1>
+                 <p className="text-muted-foreground max-w-xl">Fulfill strategic goals to earn bonus coins directly in your wallet.</p>
+              </div>
+              <OfferWall />
+           </div>
+        )}
+
+        {activeNav === 'video' && (
+           <div className="space-y-10">
+              <div className="space-y-4">
+                 <h1 className="text-5xl font-black uppercase italic italic tracking-tighter">Watch <span className="text-primary">& Earn</span></h1>
+                 <p className="text-muted-foreground max-w-xl">Analyze sponsored video signals to claim instant rewards.</p>
+              </div>
+              <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-12 text-center space-y-8">
+                 <div className="h-24 w-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto border border-primary/20">
+                    <Video className="h-12 w-12 text-primary" />
+                 </div>
+                 <h3 className="text-3xl font-black uppercase italic">Deployment Area</h3>
+                 <p className="text-muted-foreground text-sm font-bold uppercase">Earn 2 Bonus Coins per signal watched.</p>
+                 <Button className="h-20 px-12 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+                    INITIATE SIGNAL
+                 </Button>
+              </Card>
+           </div>
         )}
       </main>
     </div>

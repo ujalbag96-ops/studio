@@ -118,6 +118,7 @@ export interface CricketMatch {
     overs?: string;
     target?: string;
   };
+  winner?: string;
 }
 
 export interface AppSettings {
@@ -149,4 +150,13 @@ export interface SupportMessage {
   isFlagged?: boolean;
   status: 'open' | 'resolved';
   timestamp: string;
+}
+
+export interface Registration {
+  id: string;
+  userId: string;
+  tournamentId: string;
+  gameId: string;
+  joinedAt: string;
+  feePaid: number;
 }
