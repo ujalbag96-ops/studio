@@ -18,8 +18,8 @@ export interface UserProfile {
   coins: number;
   referralCode: string;
   referredBy?: string;
-  referredByL1?: string; // Level 1 Referrer UID
-  referredByL2?: string; // Level 2 Referrer UID
+  referredByL1?: string;
+  referredByL2?: string;
   lastIp?: string;
   country?: string;
   rank: UserRank;
@@ -33,7 +33,7 @@ export interface UserProfile {
   videosWatchedToday?: number;
   lastVideoWatchDate?: string;
   isVpnActive?: boolean;
-  isAccountActivated?: boolean; // Gateway State
+  isAccountActivated?: boolean;
   tasksCompletedCount?: number;
 }
 
@@ -46,88 +46,8 @@ export interface UserLedgerEntry {
   status: 'pending' | 'completed' | 'failed';
   description?: string;
   currencySymbol?: string;
-}
-
-export interface ESportsMatch {
-  id: string;
-  title: string;
-  game: 'BGMI' | 'Free Fire' | 'Valorant' | 'Other';
-  streamUrl?: string;
-  teamA: string;
-  teamB: string;
-  status: 'live' | 'upcoming' | 'completed';
-  timestamp: string;
-}
-
-export interface ESportsPoll {
-  id: string;
-  matchId: string;
-  question: string;
-  optionA: string;
-  optionB: string;
-  entryFee: number;
-  totalPool: number;
-  status: 'open' | 'closed';
-}
-
-export interface ShopItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  category: 'Voucher' | 'Redeem Code' | 'Game Credit';
-}
-
-export interface Tournament {
-  id: string;
-  name: string;
-  gameType: GameType;
-  bracketType: string;
-  entryFee: number;
-  prizePool: string;
-  status: TournamentStatus;
-  startDate: string;
-  banner: string;
-  streamUrl?: string; // Added real stream support
-  roomCredentials?: {
-    roomId?: string;
-    roomPassword?: string;
-  };
-  mockJoins?: number;
-}
-
-export interface PredictionPoll {
-  id: string;
-  question: string;
-  category: string;
-  optionA: string;
-  optionB: string;
-  entryFee: number;
-  totalPool: number;
-  status: 'active' | 'closed';
-  expiry: string;
-  winner?: 'A' | 'B';
-  timestamp: string;
-}
-
-export interface CricketMatch {
-  id: string;
-  teamA: string;
-  teamB: string;
-  teamALogo: string;
-  teamBLogo: string;
-  startTime: string;
-  status: 'upcoming' | 'live' | 'completed';
-  series: string;
-  liveScore?: {
-    runsA?: string;
-    runsB?: string;
-    overs?: string;
-    target?: string;
-    lastBalls?: string[];
-  };
-  winner?: string;
+  utrId?: string;
+  isAutoVerified?: boolean;
 }
 
 export interface AppSettings {
@@ -143,35 +63,17 @@ export interface AppSettings {
   telegramUrl: string;
   heroBannerUrl?: string;
   cricketApiKey?: string;
-  
-  // Deposit Settings
   adminUpiId?: string;
   depositTelegramUrl?: string;
   automaticGatewayEnabled?: boolean;
-
-  // Ad Management Config
   adMobAppId?: string;
   adMobBannerId?: string;
   adMobInterstitialId?: string;
   appLovinSdkKey?: string;
   appLovinZoneId?: string;
-  
-  // Earning Banners (Added for user earning via clicks)
   earningBannerUrl?: string;
   earningBannerLink?: string;
   earningBannerReward?: number;
-  
-  // Legacy / Direct
-  bannerAdId?: string;
-  videoAdId?: string;
-}
-
-export interface SystemNotification {
-  id: string;
-  title: string;
-  body: string;
-  timestamp: string;
-  imageUrl?: string;
 }
 
 export interface SupportMessage {
@@ -182,13 +84,4 @@ export interface SupportMessage {
   isFlagged?: boolean;
   status: 'open' | 'resolved';
   timestamp: string;
-}
-
-export interface Registration {
-  id: string;
-  userId: string;
-  tournamentId: string;
-  gameId: string;
-  joinedAt: string;
-  feePaid: number;
 }

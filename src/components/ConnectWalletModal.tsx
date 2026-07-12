@@ -23,14 +23,16 @@ import {
   CheckCircle2,
   Send,
   ArrowLeft,
-  Smartphone
+  Smartphone,
+  Fingerprint
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
-import { AppSettings, UserProfile } from '@/app/lib/types';
+import { doc } from 'firebase/firestore';
+import { AppSettings } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 interface ConnectWalletModalProps {
   isOpen: boolean;
@@ -44,12 +46,13 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
 
   const [step, setStep] = useState<'selection' | 'automatic' | 'manual' | 'processing'>('selection');
   const [amount, setAmount] = useState('100');
+  const [utrId, setUtrId] = useState('');
   const [method, setMethod] = useState('');
   const [isCopying, setIsCopying] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
-  const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
 
   const handleCopyUPI = async () => {
     if (!settings?.adminUpiId) return;
@@ -59,46 +62,49 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
     setTimeout(() => setIsCopying(false), 2000);
   };
 
-  const handleManualVerification = () => {
-    const telegram = settings?.depositTelegramUrl || "https://t.me/bracketbattles_support";
-    const text = encodeURIComponent(`HI ADMIN, I have sent ₹${amount} for my wallet.\n\nUser ID: ${user?.uid}\nEmail: ${user?.email}\n\nPlease verify and add coins.`);
-    window.open(`${telegram}?text=${text}`, '_blank');
-    onOpenChange(false);
-  };
+  const handleSubmitUTR = async () => {
+    if (!user || isVerifying) return;
+    if (utrId.length !== 12) {
+      toast({ variant: "destructive", title: "Invalid UTR", description: "UTR ID must be 12 digits." });
+      return;
+    }
 
-  const handleAutomaticPay = async () => {
-    if (!user || !firestore || !userRef) return;
-    const val = parseFloat(amount);
-    if (isNaN(val) || val <= 0) return;
-
+    setIsVerifying(true);
     setStep('processing');
-    
-    // Industrial Simulation of Payment Gateway Response
-    setTimeout(async () => {
-      try {
-        const coinAmount = val * 10; // 1 INR = 10 Coins
-        
-        await updateDoc(userRef, {
-          depositBalance: increment(coinAmount),
-          coins: increment(coinAmount)
-        });
 
-        await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
-          type: 'deposit',
-          amount: coinAmount,
-          date: new Date().toISOString().split('T')[0],
-          status: 'completed',
-          description: `Automatic Instant Deposit: ₹${val}`
-        });
+    try {
+      const response = await fetch('/api/submit-deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          userEmail: user.email,
+          utrId,
+          amount: parseFloat(amount)
+        })
+      });
 
-        toast({ title: "DEPOSIT SUCCESSFUL", description: `${coinAmount} Coins added to your wallet.` });
+      const result = await response.json();
+
+      if (result.autoVerified) {
+        toast({ title: "AUTO-VERIFIED", description: "Coins credited instantly!" });
         onOpenChange(false);
         setStep('selection');
-      } catch (e) {
-        toast({ variant: "destructive", title: "Sync Failed" });
-        setStep('automatic');
+      } else {
+        toast({ 
+          title: "SUBMITTED", 
+          description: "Signal not found. Admin will verify manually (5-15 mins)." 
+        });
+        onOpenChange(false);
+        setStep('selection');
       }
-    }, 3000);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Engine Error", description: "Verification attempt failed." });
+      setStep('manual');
+    } finally {
+      setIsVerifying(false);
+      setUtrId('');
+    }
   };
 
   return (
@@ -149,7 +155,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                      </div>
                      <div className="text-left">
                         <p className="text-lg font-black uppercase italic">Manual</p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Direct UPI + WhatsApp/TG</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">UTR Verification Bot</p>
                      </div>
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
@@ -172,7 +178,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                    <MethodButton icon={<Smartphone />} label="UPI" active={method === 'upi'} onClick={() => setMethod('upi')} />
                    <MethodButton icon={<CreditCard />} label="Cards" active={method === 'card'} onClick={() => setMethod('card')} />
                 </div>
-                <Button onClick={handleAutomaticPay} disabled={!amount || !method} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+                <Button onClick={() => setStep('processing')} disabled={!amount || !method} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
                    PROCEED TO PAY
                 </Button>
              </div>
@@ -192,22 +198,40 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                    </div>
                 </Card>
 
-                <div className="space-y-3">
-                   <Label className="text-[10px] font-black uppercase text-muted-foreground">Deposited Amount (₹)</Label>
-                   <Input 
-                    type="number" 
-                    value={amount} 
-                    onChange={e => setAmount(e.target.value)} 
-                    className="h-14 bg-black border-white/10 rounded-xl text-xl font-black text-white"
-                   />
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                      <Label className="text-[9px] font-black uppercase text-muted-foreground">Amount (₹)</Label>
+                      <Input 
+                        type="number" 
+                        value={amount} 
+                        onChange={e => setAmount(e.target.value)} 
+                        className="h-12 bg-black border-white/10 rounded-xl font-black text-white"
+                      />
+                   </div>
+                   <div className="space-y-2">
+                      <Label className="text-[9px] font-black uppercase text-muted-foreground">UTR ID (12 Digits)</Label>
+                      <Input 
+                        placeholder="012345678912" 
+                        maxLength={12}
+                        value={utrId} 
+                        onChange={e => setUtrId(e.target.value)} 
+                        className="h-12 bg-black border-white/10 rounded-xl font-mono text-xs text-primary"
+                      />
+                   </div>
                 </div>
 
-                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center">
-                   <p className="text-[10px] font-bold text-amber-500 uppercase leading-relaxed">Send payment first, then click below to share screenshot/UID for approval.</p>
+                <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl text-center">
+                   <p className="text-[8px] font-bold text-amber-500 uppercase leading-relaxed">
+                     UTR matching engine is active. Correct UTR ID leads to instant automated credit.
+                   </p>
                 </div>
 
-                <Button onClick={handleManualVerification} className="w-full h-16 bg-green-600 hover:bg-green-500 font-black uppercase italic text-lg rounded-2xl shadow-xl flex items-center justify-center gap-3">
-                   <Send className="h-5 w-5" /> VERIFY ON TELEGRAM
+                <Button 
+                  onClick={handleSubmitUTR} 
+                  disabled={!amount || utrId.length !== 12 || isVerifying}
+                  className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase italic text-lg rounded-2xl shadow-xl flex items-center justify-center gap-3"
+                >
+                   {isVerifying ? <Loader2 className="animate-spin h-5 w-5" /> : <><Fingerprint className="h-5 w-5" /> VERIFY TRANSACTION</>}
                 </Button>
              </div>
           )}
@@ -223,7 +247,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                 </div>
                 <div>
                    <h3 className="text-2xl font-black uppercase italic">Processing...</h3>
-                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] mt-2">Waiting for Gateway Confirmation</p>
+                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] mt-2">Connecting to Verification Node</p>
                 </div>
                 <p className="text-[9px] text-muted-foreground uppercase opacity-40">Please do not close this window</p>
              </div>

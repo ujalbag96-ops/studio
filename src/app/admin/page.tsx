@@ -28,7 +28,9 @@ import {
   ExternalLink,
   CreditCard,
   Image as ImageIcon,
-  Video
+  Video,
+  Fingerprint,
+  CheckCircle2
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -233,9 +235,15 @@ export default function AdminDashboard() {
 
         {activeTab === 'withdrawals' && (
           <div className="space-y-8 animate-in fade-in duration-500">
-             <div className="flex items-center gap-4">
-                <Wallet className="text-primary h-6 w-6" />
-                <h2 className="text-2xl font-black uppercase italic">Withdrawal Queue</h2>
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Wallet className="text-primary h-6 w-6" />
+                  <h2 className="text-2xl font-black uppercase italic">Withdrawal Queue</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                   <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                   <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">UTR Match Engine Live</span>
+                </div>
              </div>
              <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
                 <Table>
@@ -252,7 +260,14 @@ export default function AdminDashboard() {
                       ) : payoutsData?.map((p: any) => (
                         <TableRow key={p.id} className="border-white/5 hover:bg-white/5 transition-all">
                            <TableCell className="py-8 px-10">
-                              <p className="text-sm font-black text-white">{p.userEmail || p.userId}</p>
+                              <div className="flex items-center gap-3">
+                                 <p className="text-sm font-black text-white">{p.userEmail || p.userId}</p>
+                                 {p.isAutoVerified && (
+                                   <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase px-2 py-0.5 flex items-center gap-1">
+                                      <CheckCircle2 className="h-2 w-2" /> Auto-Verified
+                                   </Badge>
+                                 )}
+                              </div>
                               <div className="flex items-center gap-3 mt-2">
                                  <Badge variant="outline" className="text-[9px] font-black uppercase border-white/10 text-primary bg-primary/5">{p.method}</Badge>
                                  <p className="text-[10px] text-muted-foreground font-bold font-mono">{p.destination}</p>
