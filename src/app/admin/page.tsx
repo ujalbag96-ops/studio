@@ -61,7 +61,7 @@ interface CPATask {
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
-  const { auth } = useAuth();
+  const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -353,11 +353,28 @@ export default function AdminDashboard() {
              </Card>
           </div>
         )}
-
-        {/* ... Rest of Tabs Content (Tournaments, Tasks, Settings) remains unchanged ... */}
       </main>
 
-      {/* ... Balance Adjustment Dialog remains unchanged ... */}
+      <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
+        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase italic">Adjust Capital: {balanceAdjustment?.user.email}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 pt-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground">Volume Amount</Label>
+              <Input type="number" value={adjAmount} onChange={e => setAdjAmount(e.target.value)} className="bg-black border-white/10 h-14 text-xl font-black" />
+            </div>
+            <Button 
+              onClick={() => balanceAdjustment && executeAdjustment(balanceAdjustment.user.id, parseFloat(adjAmount), balanceAdjustment.mode)}
+              disabled={isProcessing}
+              className={cn("w-full h-14 font-black uppercase text-lg italic", balanceAdjustment?.mode === 'add' ? "bg-green-600" : "bg-red-600")}
+            >
+              {isProcessing ? <Loader2 className="animate-spin h-6 w-6" /> : `CONFIRM ${balanceAdjustment?.mode.toUpperCase()}`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

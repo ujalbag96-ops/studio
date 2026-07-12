@@ -16,7 +16,7 @@ const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function Navbar() {
   const { user } = useUser();
-  const { auth } = useAuth();
+  const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();

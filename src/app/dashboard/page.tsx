@@ -49,7 +49,7 @@ import ViralLeaderboard from '@/components/ViralLeaderboard';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
-  const { auth } = useAuth();
+  const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -157,7 +157,6 @@ export default function UserDashboard() {
               </div>
             </header>
 
-            {/* Activation Gateway Challenge */}
             <ActivationGateway 
               tasksCompleted={tasksCompleted} 
               isActivated={isActivated} 
@@ -169,7 +168,6 @@ export default function UserDashboard() {
               <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} color="amber" />
             </div>
 
-            {/* Live Cricket Score Widget */}
             <LiveCricketWidget />
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
@@ -218,7 +216,7 @@ export default function UserDashboard() {
         {activeNav === 'offers' && (
            <div className="space-y-10">
               <div className="space-y-4">
-                 <h1 className="text-5xl font-black uppercase italic italic tracking-tighter">CPA <span className="text-primary">Missions</span></h1>
+                 <h1 className="text-5xl font-black uppercase italic tracking-tighter">CPA <span className="text-primary">Missions</span></h1>
                  <p className="text-muted-foreground max-w-xl">Fulfill strategic goals to earn bonus coins directly in your wallet.</p>
               </div>
               <OfferWall />
@@ -228,7 +226,7 @@ export default function UserDashboard() {
         {activeNav === 'video' && (
            <div className="space-y-10">
               <div className="space-y-4">
-                 <h1 className="text-5xl font-black uppercase italic italic tracking-tighter">Watch <span className="text-primary">& Earn</span></h1>
+                 <h1 className="text-5xl font-black uppercase italic tracking-tighter">Watch <span className="text-primary">& Earn</span></h1>
                  <p className="text-muted-foreground max-w-xl">Analyze sponsored video signals to claim instant rewards.</p>
               </div>
               <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-12 text-center space-y-8">

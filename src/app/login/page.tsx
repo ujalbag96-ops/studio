@@ -24,7 +24,7 @@ const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function LoginPage() {
   const { user, isUserLoading } = useUser();
-  const { auth } = useAuth();
+  const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -47,7 +47,6 @@ export default function LoginPage() {
   const getIpIntelligence = async () => {
     console.log('Initiating IP Intelligence Lookup...');
     try {
-      // High-performance IP Intelligence Lookup with 3s timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
       
@@ -74,7 +73,6 @@ export default function LoginPage() {
       const userDocRef = doc(firestore, 'users', firebaseUser.uid);
       const snap = await getDoc(userDocRef);
 
-      // PRODUCTION DEVICE IDENTIFICATION: STRICT Anti-Multi-Account Policy
       if (!snap.exists() && authMode === 'signup') {
         console.log('New User Detected. Running Fraud Prevention Checks...');
         const abuseQuery = query(collection(firestore, 'users'), where('lastIp', '==', intel.ip), limit(1));
@@ -141,23 +139,19 @@ export default function LoginPage() {
           lastActive: new Date().toISOString() 
         }, { merge: true });
       }
-      console.log('Industrial Profile Synchronization Complete.');
     } catch (err: any) {
       if (err.message === "DEVICE_ID_CONFLICT") throw err;
       console.error("Industrial Profile sync failed", err);
-      // We still proceed if it's a non-critical sync error to avoid locking the user out
     }
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) {
-      console.error('Firebase Auth instance not initialized.');
       toast({ variant: "destructive", title: "System Error", description: "Auth Protocol Offline. Please refresh." });
       return;
     }
     
-    console.log(`Initiating ${authMode} process for: ${email}`);
     setIsLoading(true);
     setAuthError(null);
     
@@ -172,16 +166,13 @@ export default function LoginPage() {
       let userCredential;
       if (authMode === 'login') {
         userCredential = await signInWithEmailAndPassword(auth, sanitizedEmail, sanitizedPassword);
-        console.log('Login Successful.');
       } else {
         userCredential = await createUserWithEmailAndPassword(auth, sanitizedEmail, sanitizedPassword);
-        console.log('Account Created Successfully.');
       }
       
       await syncUserProfile(userCredential.user);
       
       const isAdmin = userCredential.user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-      console.log(`Redirecting to ${isAdmin ? 'Admin' : 'Dashboard'}...`);
       router.push(isAdmin ? '/admin' : '/dashboard');
       
     } catch (e: any) {
@@ -262,9 +253,7 @@ export default function LoginPage() {
               </div>
               
               <div className="space-y-2 relative">
-                 <div className="flex justify-between items-center">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Secret Access Pass</Label>
-                 </div>
+                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Secret Access Pass</Label>
                  <div className="relative">
                     <Input 
                       required
