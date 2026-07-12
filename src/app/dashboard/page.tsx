@@ -21,7 +21,9 @@ import {
   Crown,
   Copy,
   Coins,
-  Gift
+  Gift,
+  Target,
+  Smartphone
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +36,7 @@ import { useRouter } from 'next/navigation';
 import WalletModal from '@/components/WalletModal';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
 import { useToast } from '@/hooks/use-toast';
+import OfferWall from '@/components/OfferWall';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -41,7 +44,7 @@ export default function UserDashboard() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const [activeNav, setActiveNav] = useState('overview');
+  const [activeNav, setActiveNav] = useState<'overview' | 'offers'>('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
@@ -104,8 +107,9 @@ export default function UserDashboard() {
         </div>
 
         <nav className="flex-1 p-8 space-y-2">
-          <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Dashboard" onClick={() => setActiveNav('overview')} />
-          <SidebarItem active={false} icon={<Zap />} label="Earn Coins" href="/earning-hub" />
+          <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Portfolio" onClick={() => setActiveNav('overview')} />
+          <SidebarItem active={activeNav === 'offers'} icon={<Zap />} label="CPA Missions" onClick={() => setActiveNav('offers')} />
+          <SidebarItem active={false} icon={<Trophy />} label="My Matches" href="/" />
           <SidebarItem active={false} icon={<Gift />} label="Refer & Earn" href="/refer" />
           <SidebarItem active={false} icon={<History />} label="Ledger" href="/ledger" />
           <SidebarItem active={false} icon={<Wallet />} label="Withdraw" href="/withdraw" />
@@ -113,112 +117,132 @@ export default function UserDashboard() {
 
         <div className="p-8 border-t border-white/5">
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all font-black uppercase text-xs italic">
-            <LogOut className="h-5 w-5" /> Logout
+            <LogOut className="h-5 w-5" /> Logout Account
           </button>
         </div>
       </aside>
 
       <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-10 pb-32">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
+        {activeNav === 'overview' ? (
+          <>
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                   <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
+                </div>
+                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Portfolio</span></h1>
+                
+                <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
+                   <div>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">User ID (UID)</p>
+                      <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
+                   </div>
+                   <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 bg-white/5 hover:bg-primary/20">
+                      <Copy className="h-4 w-4" />
+                   </Button>
+                </Card>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase italic">
+                  Add Cash <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
+                </Button>
+                <WalletModal>
+                  <Button variant="outline" className="border-primary/20 h-16 px-8 rounded-xl text-lg font-black uppercase italic text-primary">
+                    View Wallet
+                  </Button>
+                </WalletModal>
+              </div>
+            </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} description="Ready for withdrawal" color="green" />
+              <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} description="For match entries" color="blue" />
+              <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} description="From referrals/CPA" color="amber" />
             </div>
-            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Portfolio</span></h1>
-            
-            <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
-               <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">User ID (UID)</p>
-                  <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
-               </div>
-               <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 bg-white/5 hover:bg-primary/20">
-                  <Copy className="h-4 w-4" />
-               </Button>
-            </Card>
-          </div>
 
-          <div className="flex items-center gap-4">
-            <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase italic">
-              Add Cash <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
-            </Button>
-            <WalletModal>
-              <Button variant="outline" className="border-primary/20 h-16 px-8 rounded-xl text-lg font-black uppercase italic text-primary">
-                View Wallet
-              </Button>
-            </WalletModal>
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} description="Ready for withdrawal" color="green" />
-          <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} description="For match entries" color="blue" />
-          <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} description="From referrals/tasks" color="amber" />
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
-          <div className="xl:col-span-2 space-y-8">
-            <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic">
-              <History className="h-6 w-6 text-primary" /> Recent Transactions
-            </h3>
-            <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
-              <CardContent className="p-0">
-                {isActivityLoading ? (
-                  <div className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
-                ) : recentActivity && recentActivity.length > 0 ? (
-                  <div className="divide-y divide-white/5">
-                    {recentActivity.map((activity) => (
-                      <div key={activity.id} className="p-8 flex items-center justify-between hover:bg-white/5 transition-all group">
-                        <div className="flex items-center gap-6">
-                           <div className={cn(
-                             "h-12 w-12 rounded-xl flex items-center justify-center border transition-all",
-                             activity.type === 'income' ? "bg-green-500/10 text-green-500 border-green-500/20" : 
-                             activity.type === 'withdrawal' || activity.type === 'entry_fee' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
-                           )}>
-                             {activity.type === 'income' ? <TrendingUp className="h-5 w-5" /> : 
-                              activity.type === 'withdrawal' ? <ArrowUpRight className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
-                           </div>
-                           <div className="space-y-1">
-                             <p className="text-sm font-bold uppercase text-white group-hover:text-primary transition-colors">{activity.description || activity.type}</p>
-                             <p className="text-[10px] text-muted-foreground font-bold uppercase">{activity.date}</p>
-                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={cn(
-                            "text-xl font-black",
-                            activity.type === 'withdrawal' || activity.type === 'entry_fee' ? "text-red-400" : "text-green-400"
-                          )}>
-                            {activity.type === 'withdrawal' || activity.type === 'entry_fee' ? '-' : '+'}
-                            {activity.amount.toFixed(1)} 🪙
-                          </p>
-                        </div>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
+              <div className="xl:col-span-2 space-y-8">
+                <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic">
+                  <History className="h-6 w-6 text-primary" /> Recent Activity
+                </h3>
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
+                  <CardContent className="p-0">
+                    {isActivityLoading ? (
+                      <div className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
+                    ) : recentActivity && recentActivity.length > 0 ? (
+                      <div className="divide-y divide-white/5">
+                        {recentActivity.map((activity) => (
+                          <div key={activity.id} className="p-8 flex items-center justify-between hover:bg-white/5 transition-all group">
+                            <div className="flex items-center gap-6">
+                               <div className={cn(
+                                 "h-12 w-12 rounded-xl flex items-center justify-center border transition-all",
+                                 activity.type === 'income' || activity.type === 'referral' ? "bg-green-500/10 text-green-500 border-green-500/20" : 
+                                 activity.type === 'withdrawal' || activity.type === 'entry_fee' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
+                               )}>
+                                 {activity.type === 'income' || activity.type === 'referral' ? <TrendingUp className="h-5 w-5" /> : 
+                                  activity.type === 'withdrawal' ? <ArrowUpRight className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
+                               </div>
+                               <div className="space-y-1">
+                                 <p className="text-sm font-bold uppercase text-white group-hover:text-primary transition-colors">{activity.description || activity.type}</p>
+                                 <p className="text-[10px] text-muted-foreground font-bold uppercase">{activity.date}</p>
+                               </div>
+                            </div>
+                            <div className="text-right">
+                              <p className={cn(
+                                "text-xl font-black",
+                                activity.type === 'withdrawal' || activity.type === 'entry_fee' ? "text-red-400" : "text-green-400"
+                              )}>
+                                {activity.type === 'withdrawal' || activity.type === 'entry_fee' ? '-' : '+'}
+                                {activity.amount.toFixed(1)} 🪙
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-32 text-center space-y-4">
-                     <History className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
-                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No recent activity.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                    ) : (
+                      <div className="p-32 text-center space-y-4">
+                         <History className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
+                         <p className="text-sm text-muted-foreground italic font-bold uppercase">No recent activity.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
 
-          <aside className="space-y-10">
-            <Card className="bg-gradient-to-br from-[#1a1a24] to-[#0a0a0f] border-primary/20 border-2 rounded-[2rem] p-10 text-center space-y-10 shadow-2xl relative overflow-hidden group">
-               <div className="mx-auto h-20 w-20 rounded-[1.5rem] bg-primary/10 flex items-center justify-center border border-primary/20">
-                  <Zap className="h-10 w-10 text-primary animate-pulse" />
-               </div>
-               <div className="space-y-4 relative z-10">
-                  <h3 className="text-3xl font-black uppercase italic">Bonus Hub</h3>
-                  <p className="text-sm text-muted-foreground font-medium">Earn extra credits for match entries.</p>
-               </div>
-               <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
-                  <Link href="/earning-hub">Earn Now</Link>
-               </Button>
-            </Card>
-          </aside>
-        </div>
+              <aside className="space-y-10">
+                <Card className="bg-gradient-to-br from-[#1a1a24] to-[#0a0a0f] border-primary/20 border-2 rounded-[2rem] p-10 text-center space-y-10 shadow-2xl relative overflow-hidden group">
+                   <div className="mx-auto h-20 w-20 rounded-[1.5rem] bg-primary/10 flex items-center justify-center border border-primary/20">
+                      <Zap className="h-10 w-10 text-primary animate-pulse" />
+                   </div>
+                   <div className="space-y-4 relative z-10">
+                      <h3 className="text-3xl font-black uppercase italic">Earn Free Cash</h3>
+                      <p className="text-sm text-muted-foreground font-medium">Complete CPA missions to scale your bonus balance.</p>
+                   </div>
+                   <Button onClick={() => setActiveNav('offers')} className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
+                      START EARNING
+                   </Button>
+                </Card>
+              </aside>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <header className="space-y-4">
+                <div className="flex items-center gap-3">
+                   <Badge className="bg-amber-500/20 text-amber-500 border-none uppercase font-black px-4 py-1 text-[10px]">Strategic Missions</Badge>
+                </div>
+                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">CPA <span className="text-amber-500">Missions</span></h1>
+                <p className="text-muted-foreground font-medium text-lg max-w-2xl leading-relaxed">
+                   Complete localized tasks from our corporate sponsors to earn immediate <span className="text-amber-500 font-bold">Bonus Coins</span>. These coins can be used for any tournament entry.
+                </p>
+             </header>
+
+             <Card className="bg-[#0a0a0f] border-white/5 border rounded-[3rem] overflow-hidden p-8 md:p-12 shadow-2xl">
+                <OfferWall />
+             </Card>
+          </div>
+        )}
       </main>
     </div>
   );
