@@ -62,14 +62,19 @@ export default function LoginPage() {
       const userDocRef = doc(firestore, 'users', firebaseUser.uid);
       const snap = await getDoc(userDocRef);
 
-      // PRODUCTION DEVICE IDENTIFICATION: Prevent Multi-Account Abuse
+      // PRODUCTION DEVICE IDENTIFICATION: STRICT Anti-Multi-Account Policy
       if (!snap.exists() && authMode === 'signup') {
         const abuseQuery = query(collection(firestore, 'users'), where('lastIp', '==', currentIp), limit(1));
         const abuseSnap = await getDocs(abuseQuery);
         
         if (!abuseSnap.empty) {
-          // Soft Lock: Log as a violation but allow access (or block if strict)
-          console.warn("Potential Multi-Account Signal Detected from IP:", currentIp);
+          // STRICT LOCK: Prevent signup if another user already registered from this device/IP
+          toast({ 
+            variant: "destructive", 
+            title: "SECURITY VIOLATION", 
+            description: "Multiple accounts detected on this device. Enrollment blocked." 
+          });
+          throw new Error("DEVICE_ID_CONFLICT");
         }
 
         const refCode = searchParams.get('ref');
@@ -121,7 +126,8 @@ export default function LoginPage() {
           lastActive: new Date().toISOString() 
         }, { merge: true });
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err.message === "DEVICE_ID_CONFLICT") throw err;
       console.error("Industrial Profile sync failed", err);
     }
   };
@@ -146,8 +152,9 @@ export default function LoginPage() {
       router.push(isAdmin ? '/admin' : '/dashboard');
       
     } catch (e: any) {
-      setAuthError(e.message);
-      toast({ variant: "destructive", title: "Authentication Denied", description: e.message });
+      const msg = e.message === "DEVICE_ID_CONFLICT" ? "Multiple account detection blocked this registration." : e.message;
+      setAuthError(msg);
+      toast({ variant: "destructive", title: "Authentication Denied", description: msg });
       setIsLoading(false);
     }
   };
@@ -163,7 +170,8 @@ export default function LoginPage() {
       router.push(isAdmin ? '/admin' : '/dashboard');
     } catch (e: any) {
       if (e.code !== 'auth/popup-closed-by-user') {
-        toast({ variant: "destructive", title: "Access Blocked", description: e.message });
+        const msg = e.message === "DEVICE_ID_CONFLICT" ? "Multiple account detection blocked this registration." : e.message;
+        toast({ variant: "destructive", title: "Access Blocked", description: msg });
       }
       setIsLoading(false);
     }
@@ -264,4 +272,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

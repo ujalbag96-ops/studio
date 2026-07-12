@@ -48,7 +48,7 @@ export default function EarningHub() {
       const lastWatchTime = localStorage.getItem('last_video_watch_time');
       if (lastWatchTime) {
         const elapsed = Date.now() - parseInt(lastWatchTime);
-        const cooldownMs = 5 * 60 * 1000; // 5 minute cooldown
+        const cooldownMs = 3 * 60 * 1000; // 3 minute industrial cooldown
         if (elapsed < cooldownMs) {
           setCooldownRemaining(Math.ceil((cooldownMs - elapsed) / 1000));
         } else {
@@ -83,13 +83,14 @@ export default function EarningHub() {
     setIsVideoLoading(true);
     
     try {
-      // Simulate verified content interaction
+      // Professional Ad Playback Simulation (Wait 6s)
       await new Promise(resolve => setTimeout(resolve, 6000));
 
       const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
       const currentTasks = (profile.tasksCompletedCount || 0) + 1;
-      const isActivated = currentTasks >= 2 || profile.depositBalance > 0;
+      const activationGoal = 10;
+      const isActivated = currentTasks >= activationGoal || profile.depositBalance > 0;
 
       const updateData: any = { 
         taskBalance: increment(5),
@@ -124,7 +125,7 @@ export default function EarningHub() {
       });
 
       localStorage.setItem('last_video_watch_time', Date.now().toString());
-      setCooldownRemaining(300);
+      setCooldownRemaining(180); // 3 minutes
       
       toast({ 
         title: "Incentive Credited", 
@@ -214,7 +215,7 @@ export default function EarningHub() {
                   </p>
                   <div className="flex items-center gap-3">
                      <Clock className="h-4 w-4 text-muted-foreground" />
-                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Standard Processing Interval</span>
+                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Ad Protocol Cooldown Active</span>
                   </div>
                </div>
                <Button 
@@ -225,7 +226,7 @@ export default function EarningHub() {
                 {isVideoLoading ? <Loader2 className="animate-spin h-8 w-8" /> : 
                  profile?.isVpnActive ? "SECURE LOCK" :
                  !settings?.videoWallEnabled ? "HUB OFFLINE" :
-                 cooldownRemaining > 0 ? `INTERVAL ${formatCooldown(cooldownRemaining)}` : "EXECUTE TASK"}
+                 cooldownRemaining > 0 ? `LOCKED ${formatCooldown(cooldownRemaining)}` : "EXECUTE TASK"}
                </Button>
             </div>
           </CardContent>

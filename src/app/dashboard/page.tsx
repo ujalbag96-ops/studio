@@ -28,7 +28,8 @@ import {
   Video,
   AlertCircle,
   ShoppingBag,
-  Flag
+  Flag,
+  Lock
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,6 +91,10 @@ export default function UserDashboard() {
 
   if (!user) return <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
+  const tasksRequired = 10;
+  const tasksCompleted = profile?.tasksCompletedCount || 0;
+  const isActivated = !!profile?.isAccountActivated;
+
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary">
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
@@ -137,8 +142,12 @@ export default function UserDashboard() {
                 </Card>
               </div>
               <div className="flex items-center gap-4">
-                <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase italic">
-                  Add Cash <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
+                <Button 
+                  onClick={() => isActivated ? setIsConnectOpen(true) : toast({ variant: "destructive", title: "Activation Required", description: "Complete missions to unlock deposits." })} 
+                  className="bg-white/5 border border-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase italic"
+                >
+                  {isActivated ? "Add Cash" : <span className="flex items-center gap-2"><Lock className="h-5 w-5" /> Add Cash</span>} 
+                  <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
                 </Button>
                 <WalletModal>
                   <Button variant="outline" className="border-primary/20 h-16 px-8 rounded-xl text-lg font-black uppercase italic text-primary">
@@ -150,8 +159,8 @@ export default function UserDashboard() {
 
             {/* Activation Gateway Challenge */}
             <ActivationGateway 
-              tasksCompleted={profile?.tasksCompletedCount || 0} 
-              isActivated={!!profile?.isAccountActivated} 
+              tasksCompleted={tasksCompleted} 
+              isActivated={isActivated} 
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -228,8 +237,8 @@ export default function UserDashboard() {
                  </div>
                  <h3 className="text-3xl font-black uppercase italic">Deployment Area</h3>
                  <p className="text-muted-foreground text-sm font-bold uppercase">Earn 2 Bonus Coins per signal watched.</p>
-                 <Button className="h-20 px-12 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
-                    INITIATE SIGNAL
+                 <Button asChild className="h-20 px-12 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+                    <Link href="/earning-hub">GO TO HUB</Link>
                  </Button>
               </Card>
            </div>

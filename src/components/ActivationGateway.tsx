@@ -14,9 +14,22 @@ interface ActivationGatewayProps {
 }
 
 export default function ActivationGateway({ tasksCompleted, isActivated }: ActivationGatewayProps) {
-  if (isActivated) return null;
+  if (isActivated) return (
+    <Card className="bg-green-500/5 border-green-500/20 border-2 rounded-[2rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl animate-in slide-in-from-top-4 duration-700">
+       <div className="relative z-10 flex items-center gap-6">
+          <div className="h-14 w-14 rounded-2xl bg-green-500/10 flex items-center justify-center border border-green-500/20">
+             <CheckCircle2 className="h-8 w-8 text-green-500" />
+          </div>
+          <div>
+             <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Account Activated</h3>
+             <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Full platform features & instant withdrawals unlocked.</p>
+          </div>
+       </div>
+    </Card>
+  );
 
-  const progress = (tasksCompleted / 2) * 100;
+  const activationGoal = 10;
+  const progress = Math.min((tasksCompleted / activationGoal) * 100, 100);
 
   return (
     <Card className="bg-red-500/5 border-red-500/20 border-2 rounded-[2rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl animate-in slide-in-from-top-4 duration-700">
@@ -34,21 +47,21 @@ export default function ActivationGateway({ tasksCompleted, isActivated }: Activ
              </div>
              
              <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-lg">
-                Unlock full platform features and instant withdrawals. Either complete <span className="text-white font-bold">2 CPA App Tasks</span> or make your first wallet deposit.
+                Unlock full platform features and instant withdrawals. Either complete <span className="text-white font-bold">{activationGoal} CPA App Tasks</span> or make your first wallet deposit.
              </p>
 
              <div className="space-y-3">
                 <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
                    <span className="text-muted-foreground">Verification Progress</span>
-                   <span className="text-red-400">{tasksCompleted}/2 Tasks</span>
+                   <span className="text-red-400">Missions: {tasksCompleted}/{activationGoal}</span>
                 </div>
-                <Progress value={progress} className="h-2 bg-white/5" />
+                <Progress value={progress} className="h-3 bg-white/5" />
              </div>
           </div>
 
           <div className="w-full md:w-auto flex flex-col gap-3">
              <Button asChild className="h-16 px-10 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-red-600/20 transition-all hover:scale-105">
-                <Link href="/earning-hub">COMPLETE TASKS <Zap className="ml-2 h-5 w-5 fill-white" /></Link>
+                <Link href="/earning-hub">COMPLETE MISSIONS <Zap className="ml-2 h-5 w-5 fill-white" /></Link>
              </Button>
              <p className="text-[9px] font-bold text-muted-foreground text-center uppercase tracking-widest italic">Free Alternative to Cash Deposit</p>
           </div>
