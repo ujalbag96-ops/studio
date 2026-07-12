@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useAuth, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, addDoc, increment, query, orderBy, where, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, addDoc, increment, query, orderBy, where, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   Users as UsersIcon, 
@@ -24,7 +24,14 @@ import {
   AlertCircle,
   Video,
   Globe,
-  Monitor
+  Monitor,
+  Trash2,
+  Edit,
+  Eye,
+  Ban,
+  Star,
+  Image as ImageIcon,
+  Smartphone
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,11 +45,18 @@ import { Switch } from '@/components/ui/switch';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { UserProfile, WithdrawalRequest, ESportsMatch, AppSettings } from '@/app/lib/types';
+import { UserProfile, WithdrawalRequest, Tournament, AppSettings } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
+
+interface CPATask {
+  id: string;
+  appName: string;
+  link: string;
+  reward: number;
+}
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
@@ -51,7 +65,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'users' | 'withdrawals' | 'esports' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'withdrawals' | 'tournaments' | 'tasks' | 'settings'>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [balanceAdjustment, setBalanceAdjustment] = useState<{ user: UserProfile, mode: 'add' | 'deduct' } | null>(null);
   const [adjAmount, setAdjAmount] = useState('100');
@@ -62,12 +76,14 @@ export default function AdminDashboard() {
   // Queries
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
   const withdrawalsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'withdrawals'), where('status', '==', 'pending'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
-  const esportsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'esports_matches'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
+  const tournamentsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'tournaments') : null, [firestore, isAdminUser]);
+  const tasksQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'cpa_tasks') : null, [firestore, isAdminUser]);
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
   
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
   const { data: withdrawalsData, isLoading: withdrawalsLoading } = useCollection<WithdrawalRequest>(withdrawalsQuery);
-  const { data: esMatches } = useCollection<ESportsMatch>(esportsQuery);
+  const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
+  const { data: tasksData } = useCollection<CPATask>(tasksQuery);
   const { data: globalSettings } = useDoc<AppSettings>(settingsRef);
 
   const handleLogout = async () => {
@@ -77,13 +93,24 @@ export default function AdminDashboard() {
     }
   };
 
-  const updateGlobalSetting = async (field: keyof AppSettings, value: any) => {
+  const updateGlobalSetting = async (field: string, value: any) => {
     if (!settingsRef) return;
     try {
       await setDoc(settingsRef, { [field]: value }, { merge: true });
-      toast({ title: "SYSTEM UPDATED", description: `${field} synchronized.` });
+      toast({ title: "SYSTEM SYNCED", description: `${field} updated live.` });
     } catch (e) {
       toast({ variant: "destructive", title: "UPDATE FAILED" });
+    }
+  };
+
+  const toggleUserField = async (uid: string, field: keyof UserProfile, currentVal: any) => {
+    if (!firestore) return;
+    try {
+      const userRef = doc(firestore, 'users', uid);
+      await updateDoc(userRef, { [field]: !currentVal });
+      toast({ title: "USER MODIFIED", description: `${field} status changed.` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "ACTION REJECTED" });
     }
   };
 
@@ -95,8 +122,8 @@ export default function AdminDashboard() {
       const userRef = doc(firestore, 'users', uid);
       
       await updateDoc(userRef, {
-        depositBalance: increment(finalAmount),
-        coins: increment(finalAmount)
+        coins: increment(finalAmount),
+        depositBalance: increment(finalAmount)
       });
 
       await addDoc(collection(firestore, 'users', uid, 'ledger'), {
@@ -107,12 +134,32 @@ export default function AdminDashboard() {
         description: `Admin Manual Adjustment: ${mode.toUpperCase()}`
       });
 
-      toast({ title: `SUCCESS: ${mode.toUpperCase()} ${amount} COINS` });
+      toast({ title: `CREDITED: ${mode.toUpperCase()} ${amount} COINS` });
       setBalanceAdjustment(null);
     } catch (e) {
-      toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
+      toast({ variant: "destructive", title: "SYNC ERROR" });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const updateTournamentStatus = async (tid: string, status: string) => {
+    if (!firestore) return;
+    try {
+      await updateDoc(doc(firestore, 'tournaments', tid), { status });
+      toast({ title: "BRACKET UPDATED", description: `Status: ${status}` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "ERROR" });
+    }
+  };
+
+  const updateMockJoins = async (tid: string, count: string) => {
+    if (!firestore) return;
+    try {
+      await updateDoc(doc(firestore, 'tournaments', tid), { mockJoins: parseInt(count) || 0 });
+      toast({ title: "SIMULATION UPDATED", description: `Mock Joins: ${count}` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "ERROR" });
     }
   };
 
@@ -122,16 +169,35 @@ export default function AdminDashboard() {
     try {
       const withdrawalRef = doc(firestore, 'withdrawals', id);
       await updateDoc(withdrawalRef, { status, processedAt: new Date().toISOString() });
-      toast({ title: `WITHDRAWAL ${status.toUpperCase()}` });
+      toast({ title: `PAYOUT ${status.toUpperCase()}` });
     } catch (e) {
-      toast({ variant: "destructive", title: "ACTION FAILED" });
+      toast({ variant: "destructive", title: "PROTOCOL FAILED" });
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const addTask = async (e: any) => {
+    e.preventDefault();
+    if (!firestore) return;
+    const form = e.target;
+    const taskData = {
+      appName: form.appName.value,
+      link: form.link.value,
+      reward: parseInt(form.reward.value),
+      timestamp: new Date().toISOString()
+    };
+    try {
+      await addDoc(collection(firestore, 'cpa_tasks'), taskData);
+      toast({ title: "TASK DEPLOYED" });
+      form.reset();
+    } catch (e) {
+      toast({ variant: "destructive", title: "DEPLOYMENT FAILED" });
+    }
+  };
+
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
-  if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black">ACCESS DENIED</div>;
+  if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black">ACCESS DENIED: ADMIN PROTOCOL ONLY</div>;
 
   const filteredUsers = usersData?.filter(u => 
     u.email?.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -148,26 +214,27 @@ export default function AdminDashboard() {
           <span className="font-black text-xl italic uppercase">ADMIN <span className="text-primary">HUB</span></span>
         </div>
         <nav className="flex-1 px-4 space-y-2 pt-4">
-          <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="User Registry" onClick={() => setActiveTab('users')} />
-          <SidebarLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Queue" onClick={() => setActiveTab('withdrawals')} />
-          <SidebarLink active={activeTab === 'esports'} icon={<Radio />} label="E-Sports Control" onClick={() => setActiveTab('esports')} />
-          <SidebarLink active={activeTab === 'settings'} icon={<Settings />} label="System Protocol" onClick={() => setActiveTab('settings')} />
+          <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="User Manager" onClick={() => setActiveTab('users')} />
+          <SidebarLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Ledger" onClick={() => setActiveTab('withdrawals')} />
+          <SidebarLink active={activeTab === 'tournaments'} icon={<Target />} label="Brackets Control" onClick={() => setActiveTab('tournaments')} />
+          <SidebarLink active={activeTab === 'tasks'} icon={<Smartphone />} label="CPA Task Manager" onClick={() => setActiveTab('tasks')} />
+          <SidebarLink active={activeTab === 'settings'} icon={<Settings />} label="Media & Ads" onClick={() => setActiveTab('settings')} />
         </nav>
         <div className="p-6 border-t border-white/5">
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-red-500 hover:bg-red-500/10 transition-all font-black uppercase text-xs">
-            <LogOut className="h-4 w-4" /> Logout Admin
+            <LogOut className="h-4 w-4" /> Terminate Session
           </button>
         </div>
       </aside>
 
       <main className="flex-1 ml-72 p-10 space-y-10 pb-32">
         <header className="flex items-center justify-between">
-           <h1 className="text-4xl font-black uppercase italic tracking-tighter">Command <span className="text-primary">Center</span></h1>
+           <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">Command <span className="text-primary">Center</span></h1>
            <div className="flex items-center gap-4">
               {globalSettings?.maintenanceMode && (
                 <Badge className="bg-red-600 text-white animate-pulse border-none px-4 py-1.5 font-black uppercase">MAINTENANCE ACTIVE</Badge>
               )}
-              <Badge className="bg-primary/20 text-primary border-none font-bold px-4 py-1.5 text-xs uppercase">Authorized Session</Badge>
+              <Badge className="bg-primary/20 text-primary border-none font-bold px-4 py-1.5 text-xs uppercase">Authorized: {user?.email}</Badge>
            </div>
         </header>
 
@@ -175,37 +242,49 @@ export default function AdminDashboard() {
           <div className="space-y-6">
              <div className="flex items-center bg-white/5 border border-white/10 rounded-xl px-4 h-14">
                 <Search className="h-5 w-5 text-muted-foreground mr-3" />
-                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Identify User by Email or UID..." className="bg-transparent border-none outline-none flex-1 text-sm font-bold text-white" />
+                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search by UID or Email..." className="bg-transparent border-none outline-none flex-1 text-sm font-bold text-white" />
              </div>
              <Card className="bg-[#0a0a0f] border-white/5 overflow-hidden rounded-2xl">
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
                         <TableHead className="text-[10px] font-black uppercase px-8">Identity</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-center">Balances (DEP / WIN)</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-center">Status (VIP / BAN)</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-center">Balances</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-right px-8">Actions</TableHead>
                       </TableRow>
                    </TableHeader>
                    <TableBody>
                       {usersLoading ? (
-                        <TableRow><TableCell colSpan={3} className="py-20 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="py-20 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow>
                       ) : filteredUsers.map(u => (
                         <TableRow key={u.id} className="border-white/5 hover:bg-white/5 transition-all">
                            <TableCell className="px-8 py-6">
-                              <p className="text-sm font-bold text-white">{u.email || 'Anonymous'}</p>
+                              <p className="text-sm font-black text-white">{u.email || 'Warrior'}</p>
                               <code className="text-[9px] font-mono text-primary/60">UID: {u.id}</code>
-                              <div className="text-[9px] text-muted-foreground font-bold mt-1 uppercase">IP: {u.lastIp || 'STATIONARY'}</div>
+                              <div className="text-[9px] text-muted-foreground font-bold mt-1 uppercase">IP: {u.lastIp || 'GLOBAL'}</div>
                            </TableCell>
                            <TableCell className="text-center">
-                              <div className="flex items-center justify-center gap-3">
-                                 <span className="text-blue-400 font-black tabular-nums">{u.depositBalance?.toFixed(0)}</span>
-                                 <span className="opacity-20">/</span>
-                                 <span className="text-green-500 font-black tabular-nums">{u.winningBalance?.toFixed(0)}</span>
+                              <div className="flex items-center justify-center gap-4">
+                                 <button onClick={() => toggleUserField(u.id, 'isAdmin', u.isAdmin)} className={cn("flex flex-col items-center gap-1", u.isAdmin ? "text-amber-500" : "text-muted-foreground/30")}>
+                                    <Star className="h-4 w-4" />
+                                    <span className="text-[7px] font-black uppercase">VIP1</span>
+                                 </button>
+                                 <button onClick={() => toggleUserField(u.id, 'isBanned', u.isBanned)} className={cn("flex flex-col items-center gap-1", u.isBanned ? "text-red-500" : "text-muted-foreground/30")}>
+                                    <Ban className="h-4 w-4" />
+                                    <span className="text-[7px] font-black uppercase">BAN</span>
+                                 </button>
+                              </div>
+                           </TableCell>
+                           <TableCell className="text-center">
+                              <div className="flex flex-col">
+                                 <span className="text-blue-400 font-black tabular-nums text-sm">{u.depositBalance?.toFixed(0)} DEP</span>
+                                 <span className="text-green-500 font-black tabular-nums text-[10px]">{u.winningBalance?.toFixed(0)} WIN</span>
                               </div>
                            </TableCell>
                            <TableCell className="text-right px-8 space-x-2">
-                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u, mode: 'add' })} className="h-8 text-[9px] font-black bg-green-600 rounded-lg px-3 uppercase">Add</Button>
-                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u, mode: 'deduct' })} className="h-8 text-[9px] font-black bg-red-600 rounded-lg px-3 uppercase">Deduct</Button>
+                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u, mode: 'add' })} className="h-8 text-[9px] font-black bg-green-600 rounded-lg uppercase">Add</Button>
+                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u, mode: 'deduct' })} className="h-8 text-[9px] font-black bg-red-600 rounded-lg uppercase">Deduct</Button>
                            </TableCell>
                         </TableRow>
                       ))}
@@ -223,9 +302,9 @@ export default function AdminDashboard() {
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
                         <TableHead className="text-[10px] font-black uppercase px-8">Warrior ID</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase">Gateway / Destination</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase">UPI / Destination</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-center">Amount</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-right px-8">Protocol</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-right px-8">Actions</TableHead>
                       </TableRow>
                    </TableHeader>
                    <TableBody>
@@ -241,22 +320,109 @@ export default function AdminDashboard() {
                               <p className="text-xs font-black text-white">{w.method}</p>
                               <p className="text-[10px] font-bold text-muted-foreground uppercase">{w.destination}</p>
                            </TableCell>
-                           <TableCell className="text-center">
-                              <span className="text-lg font-black text-green-500 tabular-nums">₹{w.amount}</span>
-                           </TableCell>
+                           <TableCell className="text-center font-black text-green-500 tabular-nums">₹{w.amount}</TableCell>
                            <TableCell className="text-right px-8 space-x-2">
-                              <Button onClick={() => handleWithdrawalAction(w.id, 'approved', w.userId, w.amount)} disabled={isProcessing} className="bg-green-600 h-10 px-6 font-black uppercase text-[10px] rounded-xl">APPROVE</Button>
-                              <Button variant="destructive" onClick={() => handleWithdrawalAction(w.id, 'rejected', w.userId, w.amount)} disabled={isProcessing} className="h-10 px-6 font-black uppercase text-[10px] rounded-xl">REJECT</Button>
+                              <Button onClick={() => handleWithdrawalAction(w.id, 'approved', w.userId, w.amount)} className="bg-green-600 h-9 font-black uppercase text-[9px] rounded-lg">MARK PAID</Button>
+                              <Button variant="destructive" onClick={() => handleWithdrawalAction(w.id, 'rejected', w.userId, w.amount)} className="h-9 font-black uppercase text-[9px] rounded-lg">DECLINE</Button>
                            </TableCell>
                         </TableRow>
                       )) : (
-                        <TableRow>
-                          <TableCell colSpan={4} className="py-32 text-center">
-                            <CheckCircle2 className="h-10 w-10 text-muted-foreground opacity-20 mx-auto mb-4" />
-                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em]">Payout Queue Clear</p>
-                          </TableCell>
-                        </TableRow>
+                        <TableRow><TableCell colSpan={4} className="py-32 text-center text-muted-foreground uppercase font-black text-xs">Ledger Clear</TableCell></TableRow>
                       )}
+                   </TableBody>
+                </Table>
+             </Card>
+          </div>
+        )}
+
+        {activeTab === 'tournaments' && (
+          <div className="space-y-6">
+             <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-black uppercase italic flex items-center gap-3"><Target className="text-primary" /> Active Brackets</h2>
+                <Button className="bg-primary h-12 px-8 font-black uppercase text-xs rounded-xl italic">
+                   <Plus className="h-4 w-4 mr-2" /> Launch Bracket
+                </Button>
+             </div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {tournamentsData?.map(t => (
+                  <Card key={t.id} className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] space-y-6">
+                     <div className="flex justify-between items-start">
+                        <div>
+                           <Badge className="bg-primary/20 text-primary border-none uppercase text-[8px] font-black px-3 py-1">{t.gameType}</Badge>
+                           <h3 className="text-xl font-black uppercase italic mt-2">{t.name}</h3>
+                        </div>
+                        <Select defaultValue={t.status} onValueChange={(val) => updateTournamentStatus(t.id, val)}>
+                           <SelectTrigger className="w-32 bg-black border-white/10 h-10 rounded-lg text-[9px] font-black">
+                              <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent className="bg-black border-white/10 text-white">
+                              <SelectItem value="upcoming">UPCOMING</SelectItem>
+                              <SelectItem value="active">LIVE</SelectItem>
+                              <SelectItem value="completed">CLOSED</SelectItem>
+                           </SelectContent>
+                        </Select>
+                     </div>
+                     <div className="space-y-4">
+                        <Label className="text-[9px] font-black uppercase text-muted-foreground">Simulation: Mock Joins Count</Label>
+                        <div className="flex gap-2">
+                           <Input 
+                              type="number" 
+                              defaultValue={t.mockJoins || 0} 
+                              onBlur={(e) => updateMockJoins(t.id, e.target.value)}
+                              className="bg-black border-white/10 h-12 rounded-xl text-xs font-black"
+                           />
+                           <Button variant="outline" className="h-12 w-12 rounded-xl border-white/10"><Edit className="h-4 w-4" /></Button>
+                        </div>
+                     </div>
+                  </Card>
+                ))}
+             </div>
+          </div>
+        )}
+
+        {activeTab === 'tasks' && (
+          <div className="space-y-8">
+             <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[3rem] space-y-6 shadow-2xl">
+                <h3 className="text-xl font-black uppercase italic text-primary">Deploy CPA Task</h3>
+                <form onSubmit={addTask} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                   <div className="space-y-2">
+                      <Label className="text-[9px] font-black text-muted-foreground ml-1">App Name</Label>
+                      <Input name="appName" required className="bg-black border-white/10 h-12 rounded-xl" />
+                   </div>
+                   <div className="space-y-2">
+                      <Label className="text-[9px] font-black text-muted-foreground ml-1">Affiliate Link</Label>
+                      <Input name="link" required className="bg-black border-white/10 h-12 rounded-xl" />
+                   </div>
+                   <div className="space-y-2">
+                      <Label className="text-[9px] font-black text-muted-foreground ml-1">Reward (Coins)</Label>
+                      <Input name="reward" type="number" required className="bg-black border-white/10 h-12 rounded-xl" />
+                   </div>
+                   <Button type="submit" className="md:col-span-3 h-14 bg-primary font-black uppercase italic rounded-2xl">ACTIVATE TASK MISSION</Button>
+                </form>
+             </Card>
+
+             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden">
+                <Table>
+                   <TableHeader className="bg-white/5">
+                      <TableRow className="border-white/5">
+                        <TableHead className="text-[10px] font-black px-8">Application</TableHead>
+                        <TableHead className="text-[10px] font-black">Reward</TableHead>
+                        <TableHead className="text-[10px] font-black text-right px-8">Protocol</TableHead>
+                      </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                      {tasksData?.map(task => (
+                        <TableRow key={task.id} className="border-white/5">
+                           <TableCell className="px-8 py-6 font-black uppercase text-sm italic">{task.appName}</TableCell>
+                           <TableCell className="font-black text-amber-500">{task.reward} 🪙</TableCell>
+                           <TableCell className="text-right px-8">
+                              <Button variant="ghost" size="icon" onClick={() => deleteDoc(doc(firestore!, 'cpa_tasks', task.id))} className="text-red-500 hover:bg-red-500/10">
+                                 <Trash2 className="h-4 w-4" />
+                              </Button>
+                           </TableCell>
+                        </TableRow>
+                      ))}
                    </TableBody>
                 </Table>
              </Card>
@@ -265,116 +431,53 @@ export default function AdminDashboard() {
 
         {activeTab === 'settings' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-             <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-8">
-                <div className="flex items-center gap-4">
-                   <div className="h-12 w-12 rounded-2xl bg-red-600/10 flex items-center justify-center border border-red-600/20">
-                      <ShieldCheck className="h-6 w-6 text-red-600" />
-                   </div>
-                   <h3 className="text-xl font-black uppercase italic">Safety Protocol</h3>
-                </div>
-                
+             <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[3rem] space-y-8">
+                <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Monitor className="text-primary" /> Media Protocol</h3>
                 <div className="space-y-6">
+                   <div className="space-y-2">
+                      <Label className="text-[9px] font-black text-muted-foreground uppercase">Homepage Hero Banner URL</Label>
+                      <Input 
+                        defaultValue={globalSettings?.heroBannerUrl} 
+                        onBlur={(e) => updateGlobalSetting('heroBannerUrl', e.target.value)}
+                        className="bg-black border-white/10 h-14 rounded-xl text-xs font-mono"
+                      />
+                   </div>
                    <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
                       <div>
                          <p className="text-sm font-black uppercase">Maintenance Mode</p>
-                         <p className="text-[9px] text-muted-foreground font-bold uppercase">Locks app for all non-admin users</p>
+                         <p className="text-[8px] text-muted-foreground font-black">LOCK GLOBAL ACCESS</p>
                       </div>
                       <Switch 
                         checked={!!globalSettings?.maintenanceMode} 
                         onCheckedChange={(val) => updateGlobalSetting('maintenanceMode', val)} 
                       />
                    </div>
-
-                   <div className="space-y-3">
-                      <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Telegram Support Link</Label>
-                      <div className="flex gap-2">
-                         <Input 
-                          defaultValue={globalSettings?.telegramUrl} 
-                          onBlur={(e) => updateGlobalSetting('telegramUrl', e.target.value)}
-                          placeholder="https://t.me/..." 
-                          className="bg-black border-white/10 h-12 rounded-xl text-xs" 
-                         />
-                      </div>
-                   </div>
                 </div>
              </Card>
 
-             <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-8">
-                <div className="flex items-center gap-4">
-                   <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                      <Monitor className="h-6 w-6 text-primary" />
-                   </div>
-                   <h3 className="text-xl font-black uppercase italic">Intelligence Feed</h3>
-                </div>
-                
+             <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[3rem] space-y-8">
+                <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Zap className="text-primary" /> Ad Intelligence</h3>
                 <div className="space-y-6">
-                   <div className="space-y-3">
-                      <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">CPA Network API URL</Label>
+                   <div className="space-y-2">
+                      <Label className="text-[9px] font-black text-muted-foreground uppercase">Banner Ad Unit ID</Label>
                       <Input 
-                        defaultValue={globalSettings?.cpaLeadUrl} 
-                        onBlur={(e) => updateGlobalSetting('cpaLeadUrl', e.target.value)}
-                        className="bg-black border-white/10 h-12 rounded-xl text-xs" 
+                        defaultValue={globalSettings?.bannerAdId} 
+                        onBlur={(e) => updateGlobalSetting('bannerAdId', e.target.value)}
+                        placeholder="ca-app-pub-..." 
+                        className="bg-black border-white/10 h-14 rounded-xl text-xs font-mono"
                       />
                    </div>
-                   
-                   <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                         <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Withdrawal Fee (%)</Label>
-                         <Input 
-                          type="number"
-                          defaultValue={globalSettings?.withdrawalFeePercent} 
-                          onBlur={(e) => updateGlobalSetting('withdrawalFeePercent', Number(e.target.value))}
-                          className="bg-black border-white/10 h-12 rounded-xl text-xs font-black" 
-                         />
-                      </div>
-                      <div className="space-y-3">
-                         <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Ref Reward (Coins)</Label>
-                         <Input 
-                          type="number"
-                          defaultValue={globalSettings?.referralRewardCoins} 
-                          onBlur={(e) => updateGlobalSetting('referralRewardCoins', Number(e.target.value))}
-                          className="bg-black border-white/10 h-12 rounded-xl text-xs font-black" 
-                         />
-                      </div>
+                   <div className="space-y-2">
+                      <Label className="text-[9px] font-black text-muted-foreground uppercase">Rewarded Video Ad Unit ID</Label>
+                      <Input 
+                        defaultValue={globalSettings?.videoAdId} 
+                        onBlur={(e) => updateGlobalSetting('videoAdId', e.target.value)}
+                        placeholder="ca-app-pub-..." 
+                        className="bg-black border-white/10 h-14 rounded-xl text-xs font-mono"
+                      />
                    </div>
                 </div>
              </Card>
-          </div>
-        )}
-
-        {activeTab === 'esports' && (
-          <div className="space-y-6">
-             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-black uppercase italic flex items-center gap-3"><Radio className="text-primary" /> Active Feed Management</h2>
-                <Button className="bg-primary h-12 px-8 font-black uppercase text-xs rounded-xl italic">
-                   <Plus className="h-4 w-4 mr-2" /> Launch New Match
-                </Button>
-             </div>
-             
-             <div className="grid gap-6">
-                {esMatches && esMatches.length > 0 ? esMatches.map(match => (
-                  <Card key={match.id} className="bg-[#0a0a0f] border-white/5 p-6 rounded-2xl flex items-center justify-between group hover:border-primary/20 transition-all">
-                     <div className="flex items-center gap-6">
-                        <div className="h-14 w-14 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
-                           <Video className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                           <p className="text-lg font-black uppercase italic">{match.title}</p>
-                           <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">{match.game} Arena • {match.status}</p>
-                        </div>
-                     </div>
-                     <div className="flex items-center gap-4">
-                        <Button variant="outline" className="border-white/10 h-10 px-6 font-black uppercase text-[10px] rounded-lg">EDIT STREAM</Button>
-                        <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-500/10"><Trash2 className="h-4 w-4" /></Button>
-                     </div>
-                  </Card>
-                )) : (
-                  <div className="py-24 text-center border-2 border-dashed border-white/5 rounded-[2.5rem]">
-                     <Monitor className="h-12 w-12 text-muted-foreground opacity-10 mx-auto mb-4" />
-                     <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">No Active Match Deployments</p>
-                  </div>
-                )}
-             </div>
           </div>
         )}
       </main>
@@ -382,14 +485,14 @@ export default function AdminDashboard() {
       {balanceAdjustment && (
         <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
            <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-sm rounded-[2rem]">
-              <VisuallyHidden.Root><DialogTitle>Balance Sync</DialogTitle></VisuallyHidden.Root>
+              <VisuallyHidden.Root><DialogTitle>Balance Management</DialogTitle></VisuallyHidden.Root>
               <div className="p-4 text-center space-y-6">
                 <h3 className={cn("text-xl font-black uppercase italic", balanceAdjustment.mode === 'add' ? "text-green-500" : "text-red-500")}>
-                  {balanceAdjustment.mode === 'add' ? "Credit Coins" : "Debit Coins"}
+                  {balanceAdjustment.mode === 'add' ? "Inject Coins" : "Debit Coins"}
                 </h3>
                 <Input type="number" value={adjAmount} onChange={e => setAdjAmount(e.target.value)} className="h-16 bg-black border-white/10 rounded-xl text-3xl font-black text-center" />
                 <Button onClick={() => executeAdjustment(balanceAdjustment.user.id, Number(adjAmount), balanceAdjustment.mode)} disabled={isProcessing} className="w-full h-14 bg-primary font-black uppercase italic text-lg rounded-xl">
-                   {isProcessing ? <Loader2 className="animate-spin" /> : "CONFIRM ACTION"}
+                   {isProcessing ? <Loader2 className="animate-spin" /> : "EXECUTE SYNC"}
                 </Button>
               </div>
            </DialogContent>
@@ -410,4 +513,3 @@ function SidebarLink({ active, icon, label, onClick }: any) {
   );
 }
 
-import { Trash2 } from 'lucide-react';
