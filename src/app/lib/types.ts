@@ -59,13 +59,14 @@ export interface Tournament {
 export interface PredictionPoll {
   id: string;
   question: string;
-  category: 'Cricket' | 'Esports' | 'Other';
+  category: string;
   optionA: string;
   optionB: string;
   entryFee: number;
   totalPool: number;
   status: 'active' | 'closed';
   expiry: string;
+  winner?: 'A' | 'B';
 }
 
 export interface Registration {
