@@ -49,22 +49,34 @@ export default function LoginPage() {
 
       if (!snap.exists()) {
         const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        
+        // Fetch IP & Location Intelligence
+        let ipData = { ip: 'Unknown', country: 'Global' };
+        try {
+           const res = await fetch('https://ipapi.co/json/');
+           const data = await res.json();
+           ipData = { ip: data.ip, country: data.country_name };
+        } catch(e) {}
+
         await setDoc(userDocRef, {
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
           depositBalance: 0,
           winningBalance: 0,
           bonusBalance: 0,
+          taskBalance: 0,
           coins: 0,
           rank: 'Bronze',
           referralCode: randomCode,
           tasksCompletedCount: 0,
           isAccountActivated: false,
+          lastIp: ipData.ip,
+          country: ipData.country,
           joinedAt: new Date().toISOString()
         });
       }
     } catch (err) {
-      console.error("Profile instantiation failure", err);
+      console.error("Industrial Profile instantiation failure", err);
     }
   };
 
@@ -108,7 +120,7 @@ export default function LoginPage() {
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter">Warrior <span className="text-primary">Enlist</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Identity Protection Protocol Active</p>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Industrial Identity Protocol Active</p>
       </div>
 
       <Tabs value={authMode} onValueChange={(val) => setAuthMode(val as any)} className="w-full">

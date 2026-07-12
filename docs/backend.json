@@ -3,7 +3,7 @@
   "entities": {
     "UserProfile": {
       "title": "UserProfile",
-      "description": "User profile with triple-balance wallet and referral data.",
+      "description": "User profile with triple-balance wallet and tracking parameters.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -11,37 +11,36 @@
         "depositBalance": { "type": "number" },
         "winningBalance": { "type": "number" },
         "bonusBalance": { "type": "number" },
-        "coins": { "type": "number", "description": "Total legacy balance" },
+        "taskBalance": { "type": "number" },
+        "coins": { "type": "number" },
         "referralCode": { "type": "string" },
-        "referredBy": { "type": "string" },
+        "tasksCompletedCount": { "type": "number" },
+        "isAccountActivated": { "type": "boolean" },
         "lastIp": { "type": "string" },
-        "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] },
-        "isAdmin": { "type": "boolean" },
-        "isBanned": { "type": "boolean" }
+        "country": { "type": "string" },
+        "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] }
       }
     },
-    "Tournament": {
-      "title": "Tournament",
-      "description": "Dynamic multi-game tournament structure.",
+    "CPATask": {
+      "title": "CPATask",
+      "description": "CPA mission details for users.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "name": { "type": "string" },
-        "gameType": { "type": "string", "enum": ["BGMI", "Free Fire", "Ludo King", "Other"] },
-        "bracketType": { "type": "string", "enum": ["Single Elimination", "Double Elimination", "League"] },
-        "entryFee": { "type": "number" },
-        "prizePool": { "type": "string" },
-        "status": { "type": "string", "enum": ["active", "upcoming", "completed", "cancelled"] },
-        "startDate": { "type": "string", "format": "date-time" }
+        "appName": { "type": "string" },
+        "link": { "type": "string" },
+        "reward": { "type": "number" },
+        "category": { "type": "string" }
       }
     },
     "WithdrawalRequest": {
       "title": "WithdrawalRequest",
-      "description": "User withdrawal applications for admin review.",
+      "description": "User withdrawal applications.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
         "amount": { "type": "number" },
         "method": { "type": "string" },
         "destination": { "type": "string" },
@@ -51,24 +50,36 @@
     }
   },
   "auth": {
-    "providers": ["password", "google", "phone"]
+    "providers": ["password", "google"]
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "User master profiles"
+      "description": "Master user profiles"
     },
     "/users/{userId}/ledger/{id}": {
       "schema": "object",
-      "description": "Transaction history"
-    },
-    "/tournaments/{tournamentId}": {
-      "schema": "Tournament",
-      "description": "Tournament records"
+      "description": "Financial transaction history"
     },
     "/withdrawals/{id}": {
       "schema": "WithdrawalRequest",
-      "description": "Withdrawal queue"
+      "description": "Global payout queue"
+    },
+    "/cpa_tasks/{id}": {
+      "schema": "CPATask",
+      "description": "Active missions for users"
+    },
+    "/cricket_matches/{id}": {
+      "schema": "object",
+      "description": "Live cricket signal data"
+    },
+    "/polls/{id}": {
+      "schema": "object",
+      "description": "Prediction polls"
+    },
+    "/settings/global": {
+      "schema": "object",
+      "description": "Global system configuration"
     }
   }
 }

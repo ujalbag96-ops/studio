@@ -4,18 +4,18 @@ import { initializeFirebase } from '@/firebase';
 import { doc, updateDoc, increment, collection, addDoc, getDoc } from 'firebase/firestore';
 
 /**
- * CPA Lead / Offerwall Postback Callback
- * This endpoint is called by the CPA network when a user completes an offer.
- * URL parameters: ?uid={userId}&reward={amount}&offer={offerTitle}
+ * CPA Postback Webhook
+ * Called by Offerwalls when a user completes a task.
+ * Params: ?uid={userId}&reward={amount}&offer={appName}
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('uid');
   const rewardAmount = parseFloat(searchParams.get('reward') || '0');
-  const offerTitle = searchParams.get('offer') || 'Strategic Mission';
+  const appName = searchParams.get('offer') || 'Mobile Mission';
 
   if (!userId || isNaN(rewardAmount) || rewardAmount <= 0) {
-    return NextResponse.json({ error: 'Invalid postback parameters' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid Operational Signal' }, { status: 400 });
   }
 
   try {
@@ -24,33 +24,30 @@ export async function GET(request: Request) {
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-      return NextResponse.json({ error: 'Warrior profile not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Warrior Profile Missing' }, { status: 404 });
     }
 
-    // Industrial Credit Protocol
+    // Industrial Atomic Update
     await updateDoc(userRef, {
       bonusBalance: increment(rewardAmount),
       coins: increment(rewardAmount),
-      lastTaskUpdate: new Date().toISOString()
+      tasksCompletedCount: increment(1),
+      isAccountActivated: (userSnap.data().tasksCompletedCount + 1) >= 10
     });
 
-    // Log to Ledger
+    // Encrypted Ledger Entry
     await addDoc(collection(firestore, 'users', userId, 'ledger'), {
-      userId,
       type: 'income',
       amount: rewardAmount,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `CPA Reward: ${offerTitle}`
+      description: `CPA Reward: ${appName} Verified`
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Credited ${rewardAmount} coins to ${userId}` 
-    });
+    return NextResponse.json({ success: true, message: `Credited ${rewardAmount} to ${userId}` });
 
   } catch (error: any) {
-    console.error('Postback Sync Failure:', error);
-    return NextResponse.json({ error: 'Arena database synchronization failed' }, { status: 500 });
+    console.error('Industrial Postback Failure:', error);
+    return NextResponse.json({ error: 'System Synchronization Error' }, { status: 500 });
   }
 }
