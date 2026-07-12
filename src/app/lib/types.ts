@@ -25,12 +25,14 @@ export interface UserProfile {
   lastSpinTimestamp?: string;
   vipStatus?: VIPStatus;
   taskBalance?: number;
+  weeklyWinnings?: number;
+  totalReferrals?: number;
 }
 
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';
@@ -52,6 +54,18 @@ export interface Tournament {
     roomId?: string;
     roomPassword?: string;
   };
+}
+
+export interface PredictionPoll {
+  id: string;
+  question: string;
+  category: 'Cricket' | 'Esports' | 'Other';
+  optionA: string;
+  optionB: string;
+  entryFee: number;
+  totalPool: number;
+  status: 'active' | 'closed';
+  expiry: string;
 }
 
 export interface Registration {

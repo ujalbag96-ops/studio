@@ -15,6 +15,7 @@ import { Tournament, Registration, UserProfile } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import CountdownTimer from '@/components/CountdownTimer';
 import Link from 'next/link';
+import ScratchCard from '@/components/ScratchCard';
 
 export default function TournamentDetails() {
   const params = useParams();
@@ -25,6 +26,7 @@ export default function TournamentDetails() {
   
   const [gameIdInput, setGameIdInput] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [showScratch, setShowScratch] = useState(false);
 
   const tournamentRef = useMemoFirebase(() => (firestore && params.id) ? doc(firestore, 'tournaments', params.id as string) : null, [firestore, params.id]);
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
@@ -88,6 +90,7 @@ export default function TournamentDetails() {
       });
 
       toast({ title: "DEPLOYED SUCCESSFULLY" });
+      setShowScratch(true);
     } catch (e) {
       toast({ variant: "destructive", title: "JOIN FAILED" });
     } finally {
@@ -100,6 +103,8 @@ export default function TournamentDetails() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8 animate-in fade-in duration-500 pb-32">
+      {showScratch && <ScratchCard onClose={() => setShowScratch(false)} />}
+      
       <Button variant="ghost" asChild className="mb-4 hover:bg-white/5 text-muted-foreground">
         <Link href="/"><ArrowLeft className="h-4 w-4 mr-2" /> All Arenas</Link>
       </Button>
