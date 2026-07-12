@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -21,23 +22,25 @@ import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import ConnectWalletModal from './ConnectWalletModal';
 
 export default function WalletModal({ children }: { children?: React.ReactNode }) {
-  const { user } = useUser();
+  const { user } = user;
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  const [isConnectOpen, setIsConnectOpen] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [convertAmount, setConvertAmount] = useState('');
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
     [firestore, user]
   );
-  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
   
   const { data: profile } = useDoc<UserProfile>(userProfileRef);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
-
-  const [isConverting, setIsConverting] = useState(false);
-  const [convertAmount, setConvertAmount] = useState('');
 
   const depositBal = profile?.depositBalance || 0;
   const winningBal = profile?.winningBalance || 0;
@@ -45,12 +48,6 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   
   const baseFee = settings?.conversionFeePercent || 0.012; 
   const tierFee = profile?.rank === 'Gold' ? 0.005 : profile?.rank === 'Silver' ? 0.008 : baseFee;
-  const telegramUrl = settings?.telegramUrl || 'https://t.me/bracketbattles_support';
-
-  const handleManualTopup = () => {
-    const message = encodeURIComponent(`I want to add cash to my account. Email: ${user?.email || user?.uid}`);
-    window.open(`${telegramUrl}?text=${message}`, '_blank');
-  };
 
   const handleConvertTasks = async () => {
     const amount = parseFloat(convertAmount);
@@ -104,94 +101,98 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   };
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        {children || (
-          <Button variant="ghost" className="flex items-center gap-2 rounded-full bg-[#121216] px-4 py-1.5 border border-white/5 hover:bg-white/5">
-            <Wallet className="h-4 w-4 text-primary" />
-            <span className="text-sm font-black text-white tabular-nums">
-              {(depositBal + winningBal).toLocaleString()} 🪙
-            </span>
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-md rounded-2xl overflow-hidden p-0">
-        <VisuallyHidden.Root>
-          <DialogTitle>My Wallet</DialogTitle>
-        </VisuallyHidden.Root>
-        
-        <div className="relative z-10 p-8 space-y-10">
-          <div className="flex items-center justify-between">
-             <div className="flex items-center gap-3">
-               <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-                 <Wallet className="h-6 w-6 text-white" />
-               </div>
-               <div>
-                 <h2 className="text-2xl font-black uppercase italic">My Wallet</h2>
-                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground">Secure Payments</span>
+    <>
+      <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
+      
+      <Dialog>
+        <DialogTrigger asChild>
+          {children || (
+            <button className="flex items-center gap-2 rounded-full bg-[#121216] px-4 py-1.5 border border-white/5 hover:bg-white/5">
+              <Wallet className="h-4 w-4 text-primary" />
+              <span className="text-sm font-black text-white tabular-nums">
+                {(depositBal + winningBal).toLocaleString()} 🪙
+              </span>
+            </button>
+          )}
+        </DialogTrigger>
+        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] overflow-hidden p-0">
+          <VisuallyHidden.Root>
+            <DialogTitle>My Wallet</DialogTitle>
+          </VisuallyHidden.Root>
+          
+          <div className="relative z-10 p-8 space-y-10">
+            <div className="flex items-center justify-between">
+               <div className="flex items-center gap-3">
+                 <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
+                   <Wallet className="h-6 w-6 text-white" />
+                 </div>
+                 <div>
+                   <h2 className="text-2xl font-black uppercase italic">My Wallet</h2>
+                   <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase text-muted-foreground">Secure Payments</span>
+                   </div>
                  </div>
                </div>
-             </div>
-             <div className="text-right">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Rank</p>
-                <div className="flex items-center gap-1.5 text-amber-500 font-bold text-sm italic">
-                   <Crown className="h-3 w-3" /> {profile?.rank || 'Bronze'}
-                </div>
-             </div>
-          </div>
+               <div className="text-right">
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Rank</p>
+                  <div className="flex items-center gap-1.5 text-amber-500 font-bold text-sm italic">
+                     <Crown className="h-3 w-3" /> {profile?.rank || 'Bronze'}
+                  </div>
+               </div>
+            </div>
 
-          <div className="grid grid-cols-3 gap-3">
-             <BalanceRow label="DEPOSIT" value={depositBal} color="blue" icon={<CreditCard className="h-3 w-3" />} />
-             <BalanceRow label="BONUS" value={taskBal} color="amber" icon={<Zap className="h-3 w-3" />} />
-             <BalanceRow label="WINNINGS" value={winningBal} color="green" icon={<Trophy className="h-3 w-3" />} />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-             <Button onClick={handleManualTopup} className="bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase text-xs">
-                <Plus className="h-4 w-4 mr-2" /> Add Cash
-             </Button>
-             <Button asChild className="bg-[#121216] border border-white/10 hover:bg-white/5 h-16 rounded-xl font-black uppercase text-xs">
-                <Link href="/withdraw" className="flex items-center justify-center">
-                   Withdraw <ArrowUpRight className="h-4 w-4 ml-2" />
-                </Link>
-             </Button>
-          </div>
+            <div className="grid grid-cols-3 gap-3">
+               <BalanceRow label="DEPOSIT" value={depositBal} color="blue" icon={<CreditCard className="h-3 w-3" />} />
+               <BalanceRow label="BONUS" value={taskBal} color="amber" icon={<Zap className="h-3 w-3" />} />
+               <BalanceRow label="WINNINGS" value={winningBal} color="green" icon={<Trophy className="h-3 w-3" />} />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+               <Button onClick={() => setIsConnectOpen(true)} className="bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase text-xs">
+                  <Plus className="h-4 w-4 mr-2" /> Add Cash
+               </Button>
+               <Button asChild className="bg-[#121216] border border-white/10 hover:bg-white/5 h-16 rounded-xl font-black uppercase text-xs">
+                  <Link href="/withdraw" className="flex items-center justify-center">
+                     Withdraw <ArrowUpRight className="h-4 w-4 ml-2" />
+                  </Link>
+               </Button>
+            </div>
 
-          <div className="bg-white/5 border border-white/5 rounded-2xl p-6 space-y-6">
-             <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                   <h4 className="text-xs font-bold uppercase italic flex items-center gap-2">
-                      <RefreshCcw className="h-4 w-4 text-amber-500" /> Convert Bonus
-                   </h4>
-                   <p className="text-[10px] text-muted-foreground font-bold uppercase italic">Transfer bonus coins to winnings</p>
-                </div>
-                <Badge className="bg-amber-500 text-black text-[9px] font-black border-none px-3 py-1 uppercase">{(tierFee * 100).toFixed(1)}% FEE</Badge>
-             </div>
-             
-             <div className="flex gap-3">
-                <div className="flex-1 relative">
-                   <Input 
-                    type="number" 
-                    placeholder="Amount..." 
-                    value={convertAmount}
-                    onChange={(e) => setConvertAmount(e.target.value)}
-                    className="bg-black border-white/10 h-14 rounded-xl text-lg font-black focus:ring-amber-500 pl-10"
-                   />
-                   <Zap className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-500 opacity-40" />
-                </div>
-                <Button 
-                  onClick={handleConvertTasks}
-                  disabled={isConverting || !convertAmount}
-                  className="bg-amber-500 hover:bg-amber-600 text-black h-14 px-8 rounded-xl font-black text-xs uppercase"
-                >
-                  {isConverting ? <Loader2 className="animate-spin h-5 w-5" /> : "Convert"}
-                </Button>
-             </div>
+            <div className="bg-white/5 border border-white/5 rounded-2xl p-6 space-y-6">
+               <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                     <h4 className="text-xs font-bold uppercase italic flex items-center gap-2">
+                        <RefreshCcw className="h-4 w-4 text-amber-500" /> Convert Bonus
+                     </h4>
+                     <p className="text-[10px] text-muted-foreground font-bold uppercase italic">Transfer bonus coins to winnings</p>
+                  </div>
+                  <Badge className="bg-amber-500 text-black text-[9px] font-black border-none px-3 py-1 uppercase">{(tierFee * 100).toFixed(1)}% FEE</Badge>
+               </div>
+               
+               <div className="flex gap-3">
+                  <div className="flex-1 relative">
+                     <Input 
+                      type="number" 
+                      placeholder="Amount..." 
+                      value={convertAmount}
+                      onChange={(e) => setConvertAmount(e.target.value)}
+                      className="bg-black border-white/10 h-14 rounded-xl text-lg font-black focus:ring-amber-500 pl-10"
+                     />
+                     <Zap className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-500 opacity-40" />
+                  </div>
+                  <Button 
+                    onClick={handleConvertTasks}
+                    disabled={isConverting || !convertAmount}
+                    className="bg-amber-500 hover:bg-amber-600 text-black h-14 px-8 rounded-xl font-black text-xs uppercase"
+                  >
+                    {isConverting ? <Loader2 className="animate-spin h-5 w-5" /> : "Convert"}
+                  </Button>
+               </div>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

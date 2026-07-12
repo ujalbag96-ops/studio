@@ -143,6 +143,11 @@ export interface AppSettings {
   heroBannerUrl?: string;
   cricketApiKey?: string;
   
+  // Deposit Settings
+  adminUpiId?: string;
+  depositTelegramUrl?: string;
+  automaticGatewayEnabled?: boolean;
+
   // Ad Management Config
   adMobAppId?: string;
   adMobBannerId?: string;

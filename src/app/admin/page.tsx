@@ -25,7 +25,8 @@ import {
   Gamepad2,
   Server,
   Lock,
-  ExternalLink
+  ExternalLink,
+  CreditCard
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,7 +70,10 @@ export default function AdminDashboard() {
     appLovinSdkKey: '',
     appLovinZoneId: '',
     maintenanceMode: false,
-    offerWallEnabled: true
+    offerWallEnabled: true,
+    adminUpiId: '',
+    depositTelegramUrl: '',
+    automaticGatewayEnabled: true
   });
 
   // Local state for JILI Integration
@@ -92,7 +96,10 @@ export default function AdminDashboard() {
         appLovinSdkKey: globalConfig.appLovinSdkKey || '',
         appLovinZoneId: globalConfig.appLovinZoneId || '',
         maintenanceMode: !!globalConfig.maintenanceMode,
-        offerWallEnabled: globalConfig.offerWallEnabled !== false
+        offerWallEnabled: globalConfig.offerWallEnabled !== false,
+        adminUpiId: globalConfig.adminUpiId || '',
+        depositTelegramUrl: globalConfig.depositTelegramUrl || '',
+        automaticGatewayEnabled: globalConfig.automaticGatewayEnabled !== false
       });
     }
   }, [globalConfig]);
@@ -382,6 +389,26 @@ export default function AdminDashboard() {
                       checked={systemConfig.offerWallEnabled} 
                       onCheckedChange={(v) => setSystemConfig({...systemConfig, offerWallEnabled: v})}
                     />
+                 </Card>
+              </div>
+
+              <div className="space-y-8">
+                 <h2 className="text-2xl font-black uppercase italic flex items-center gap-4"><CreditCard className="text-primary" /> Wallet & Deposit Config</h2>
+                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-green-600">
+                    <div className="grid md:grid-cols-2 gap-8">
+                       <ConfigField label="Master Admin UPI ID" value={systemConfig.adminUpiId} onChange={v => setSystemConfig({...systemConfig, adminUpiId: v})} placeholder="e.g. ujalbag@upi" />
+                       <ConfigField label="Deposit Verification Telegram" value={systemConfig.depositTelegramUrl} onChange={v => setSystemConfig({...systemConfig, depositTelegramUrl: v})} placeholder="https://t.me/your_support" />
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
+                       <div className="space-y-1">
+                          <p className="text-sm font-black uppercase italic">Automatic Digital Gateway</p>
+                          <p className="text-[9px] text-muted-foreground uppercase">Enable instant payment gateway simulation</p>
+                       </div>
+                       <Switch 
+                        checked={systemConfig.automaticGatewayEnabled} 
+                        onCheckedChange={(v) => setSystemConfig({...systemConfig, automaticGatewayEnabled: v})}
+                       />
+                    </div>
                  </Card>
               </div>
               
