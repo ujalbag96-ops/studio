@@ -6,7 +6,7 @@ import { doc, updateDoc, increment, collection, addDoc, query, where, orderBy } 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Timer, Zap, Globe, Target, ShieldCheck, Loader2, Info, Activity } from 'lucide-react';
+import { Trophy, Timer, Zap, Globe, Target, ShieldCheck, Loader2, Info, Activity, Flame } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { UserProfile, PredictionPoll } from '../lib/types';
@@ -82,7 +82,7 @@ export default function PredictionsPage() {
          </div>
          <h1 className="text-6xl md:text-8xl font-black uppercase italic tracking-tighter text-white">Poll <span className="text-primary">Wars</span></h1>
          <p className="text-muted-foreground font-medium text-lg max-w-2xl leading-relaxed">
-            Analyze current match dynamics, place your stakes, and win a share of the total arena prize pool.
+            Analyze match dynamics in real-time, place your stakes, and win a share of the total arena prize pool.
          </p>
       </div>
 
@@ -99,7 +99,7 @@ export default function PredictionsPage() {
                   <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
                      <Activity className="h-5 w-5 text-blue-500" />
                   </div>
-                  <h2 className="text-2xl font-black uppercase italic italic tracking-tighter">Live Cricket <span className="text-blue-500">Events</span></h2>
+                  <h2 className="text-2xl font-black uppercase italic italic tracking-tighter">Live Over-by-Over <span className="text-blue-500">Events</span></h2>
                </div>
                <div className="grid gap-6">
                   {cricketPolls.map((poll) => (
@@ -145,11 +145,13 @@ export default function PredictionsPage() {
 
 function PollCard({ poll, onVote, isVoting, variant = "primary" }: any) {
   const isBlue = variant === "blue";
+  const isOverSignal = poll.question.toLowerCase().includes('over #');
   
   return (
     <Card className={cn(
       "bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden group hover:shadow-2xl transition-all border-2",
-      isBlue ? "hover:border-blue-500/20" : "hover:border-primary/20"
+      isBlue ? "hover:border-blue-500/20 border-blue-500/5 shadow-[0_0_30px_rgba(59,130,246,0.05)]" : "hover:border-primary/20",
+      isOverSignal && "animate-in slide-in-from-left-4 duration-500"
     )}>
        <CardContent className="p-0">
           <div className="p-8 md:p-12 flex flex-col md:flex-row justify-between items-center gap-10">
@@ -158,11 +160,19 @@ function PollCard({ poll, onVote, isVoting, variant = "primary" }: any) {
                    <Badge className={cn("border-none uppercase font-black text-[8px] tracking-widest px-3 py-1", isBlue ? "bg-blue-500/20 text-blue-500" : "bg-primary/20 text-primary")}>
                      {poll.category}
                    </Badge>
+                   {isOverSignal && (
+                      <Badge className="bg-red-500/10 text-red-500 border-none uppercase font-black text-[8px] px-3 animate-pulse">FAST ACTION</Badge>
+                   )}
                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
                       <Timer className="h-3 w-3" /> {poll.expiry}
                    </div>
                 </div>
-                <h3 className="text-2xl md:text-4xl font-black uppercase italic leading-tight tracking-tighter text-white">{poll.question}</h3>
+                <h3 className={cn(
+                  "font-black uppercase italic leading-tight tracking-tighter text-white",
+                  isOverSignal ? "text-3xl md:text-5xl" : "text-2xl md:text-4xl"
+                )}>
+                  {poll.question}
+                </h3>
                 <div className="flex items-center justify-center md:justify-start gap-10">
                    <div>
                       <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Prize Pool</p>

@@ -19,7 +19,9 @@ import {
   Flag,
   Radio,
   Timer,
-  CheckCircle2
+  CheckCircle2,
+  Activity,
+  Flame
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,6 +46,10 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('withdrawals');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
+  // Over Predictor States
+  const [targetOver, setTargetOver] = useState('1');
+  const [targetRuns, setTargetRuns] = useState('12');
+
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   // Queries
@@ -51,7 +57,7 @@ export default function AdminDashboard() {
   const tournamentsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'tournaments') : null, [firestore, isAdminUser]);
   const cricketQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'cricket_matches') : null, [firestore, isAdminUser]);
   const esportsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'esports_matches') : null, [firestore, isAdminUser]);
-  const pollsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'polls') : null, [firestore, isAdminUser]);
+  const pollsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'polls'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   const tasksQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'cpa_tasks') : null, [firestore, isAdminUser]);
   const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
   
@@ -74,7 +80,7 @@ export default function AdminDashboard() {
       if (action === 'rejected') {
         batch.update(withdrawalRef, { status: 'rejected', processedAt: new Date().toISOString() });
         batch.update(userRef, {
-          winningBalance: increment(withdrawal.amount * 10), // Assuming 10 coins/INR
+          winningBalance: increment(withdrawal.amount * 10),
           coins: increment(withdrawal.amount * 10)
         });
         await batch.commit();
@@ -91,23 +97,25 @@ export default function AdminDashboard() {
     }
   };
 
-  const addCricketMatch = async (e: any) => {
-    e.preventDefault();
+  const deployOverSignal = async () => {
     if (!firestore) return;
-    const form = e.target;
-    setIsProcessing('cricket-add');
+    setIsProcessing('over-signal');
+    const question = `Will Over #${targetOver} yield ${targetRuns}+ runs?`;
     try {
-      await addDoc(collection(firestore, 'cricket_matches'), {
-        teamA: form.teamA.value,
-        teamB: form.teamB.value,
-        teamALogo: form.logoA.value || 'https://picsum.photos/seed/teama/100/100',
-        teamBLogo: form.logoB.value || 'https://picsum.photos/seed/teamb/100/100',
-        series: form.series.value,
-        status: 'upcoming',
-        startTime: new Date().toISOString()
+      await addDoc(collection(firestore, 'polls'), {
+        question,
+        category: 'Cricket Live',
+        entryFee: 10,
+        totalPool: 0,
+        status: 'active',
+        expiry: '10 Mins',
+        optionA: 'YES',
+        optionB: 'NO',
+        timestamp: new Date().toISOString()
       });
-      toast({ title: "CRICKET MATCH DEPLOYED" });
-      form.reset();
+      toast({ title: "OVER SIGNAL LIVE", description: question });
+      // Auto-increment over for next fast deploy
+      setTargetOver((prev) => (parseInt(prev) + 1).toString());
     } finally {
       setIsProcessing(null);
     }
@@ -137,35 +145,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const quickDeployCricketPoll = async (type: string) => {
-    if (!firestore) return;
-    setIsProcessing('poll-quick');
-    let question = "";
-    let fee = 10;
-    
-    if (type === '5over') question = "Will 45+ runs be scored in the first 5 overs?";
-    if (type === '10over') question = "Will 85+ runs be scored in the first 10 overs?";
-    if (type === 'wicket') question = "Will a wicket fall in the next 2 overs?";
-    if (type === 'boundary') question = "Will there be a 4 or 6 in the next over?";
-
-    try {
-      await addDoc(collection(firestore, 'polls'), {
-        question,
-        category: 'Cricket Live',
-        entryFee: fee,
-        totalPool: 0,
-        status: 'active',
-        expiry: '1 Hour',
-        optionA: 'YES',
-        optionB: 'NO',
-        timestamp: new Date().toISOString()
-      });
-      toast({ title: "CRICKET POLL ACTIVE", description: question });
-    } finally {
-      setIsProcessing(null);
-    }
-  };
-
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black text-center p-10">ACCESS RESTRICTED: MASTER ADMIN ONLY</div>;
 
@@ -178,9 +157,9 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <SidebarLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Ledger" onClick={() => setActiveTab('withdrawals')} />
+          <SidebarLink active={activeTab === 'polls'} icon={<Target />} label="Prediction Polls" onClick={() => setActiveTab('polls')} />
           <SidebarLink active={activeTab === 'cricket'} icon={<Flag />} label="Cricket Arena" onClick={() => setActiveTab('cricket')} />
           <SidebarLink active={activeTab === 'esports'} icon={<Radio />} label="E-Sports Hub" onClick={() => setActiveTab('esports')} />
-          <SidebarLink active={activeTab === 'polls'} icon={<Target />} label="Prediction Polls" onClick={() => setActiveTab('polls')} />
           <SidebarLink active={activeTab === 'tournaments'} icon={<Trophy />} label="Tournament List" onClick={() => setActiveTab('tournaments')} />
           <SidebarLink active={activeTab === 'tasks'} icon={<Smartphone />} label="CPA Missions" onClick={() => setActiveTab('tasks')} />
           <SidebarLink active={activeTab === 'settings'} icon={<Settings />} label="System Config" onClick={() => setActiveTab('settings')} />
@@ -243,21 +222,45 @@ export default function AdminDashboard() {
 
         {activeTab === 'polls' && (
           <div className="space-y-12">
+            {/* NEW: Over-by-Over Signal Deployer */}
             <div className="space-y-6">
-              <h2 className="text-xl font-black uppercase italic flex items-center gap-2">
-                <CheckCircle2 className="text-primary h-5 w-5" /> Cricket Quick Deploy
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                 <QuickPollButton label="5 Over Runs (45+)" icon={<Timer />} onClick={() => quickDeployCricketPoll('5over')} disabled={isProcessing === 'poll-quick'} />
-                 <QuickPollButton label="10 Over Runs (85+)" icon={<Flag />} onClick={() => quickDeployCricketPoll('10over')} disabled={isProcessing === 'poll-quick'} />
-                 <QuickPollButton label="Wicket Alert" icon={<Target />} onClick={() => quickDeployCricketPoll('wicket')} disabled={isProcessing === 'poll-quick'} />
-                 <QuickPollButton label="Boundary Alert" icon={<Zap />} onClick={() => quickDeployCricketPoll('boundary')} disabled={isProcessing === 'poll-quick'} />
-              </div>
+               <h2 className="text-xl font-black uppercase italic flex items-center gap-2">
+                  <Flame className="text-primary h-5 w-5 animate-pulse" /> Live Over Predictor (One-Click)
+               </h2>
+               <Card className="bg-primary/5 border-primary/20 border-2 rounded-[2rem] p-8">
+                  <div className="flex flex-col md:flex-row items-end gap-6">
+                     <div className="space-y-2 flex-1">
+                        <Label className="text-[10px] font-black uppercase text-primary ml-1">Target Over #</Label>
+                        <Input 
+                           type="number" 
+                           value={targetOver} 
+                           onChange={(e) => setTargetOver(e.target.value)}
+                           className="h-14 bg-black/60 border-primary/20 rounded-xl font-black text-xl text-center" 
+                        />
+                     </div>
+                     <div className="space-y-2 flex-1">
+                        <Label className="text-[10px] font-black uppercase text-primary ml-1">Target Runs Threshold</Label>
+                        <Input 
+                           type="number" 
+                           value={targetRuns} 
+                           onChange={(e) => setTargetRuns(e.target.value)}
+                           className="h-14 bg-black/60 border-primary/20 rounded-xl font-black text-xl text-center" 
+                        />
+                     </div>
+                     <Button 
+                        onClick={deployOverSignal} 
+                        disabled={isProcessing === 'over-signal'}
+                        className="h-14 px-10 bg-primary hover:bg-primary/90 rounded-xl font-black uppercase italic text-lg shadow-xl shadow-primary/20 flex-1 md:flex-none"
+                     >
+                        {isProcessing === 'over-signal' ? <Loader2 className="animate-spin" /> : "DEPLOY OVER SIGNAL"}
+                     </Button>
+                  </div>
+               </Card>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-10">
               <div className="lg:col-span-1 space-y-6">
-                <h2 className="text-xl font-black uppercase italic">Custom Event</h2>
+                <h2 className="text-xl font-black uppercase italic">Custom Event Deploy</h2>
                 <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] shadow-2xl">
                   <form onSubmit={addPoll} className="space-y-6">
                     <div className="space-y-2">
@@ -279,12 +282,14 @@ export default function AdminDashboard() {
                 </Card>
               </div>
               <div className="lg:col-span-2 space-y-6">
-                 <h2 className="text-xl font-black uppercase italic">Active Signals</h2>
-                 <div className="grid gap-4">
+                 <h2 className="text-xl font-black uppercase italic">Active Signals ({pollsData?.length})</h2>
+                 <div className="grid gap-4 max-h-[600px] overflow-y-auto pr-2 no-scrollbar">
                     {pollsData?.map(p => (
                       <Card key={p.id} className="bg-[#0a0a0f] border-white/5 p-6 flex items-center justify-between hover:border-primary/20 transition-all rounded-2xl group">
                          <div>
-                            <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase px-2 mb-2 italic">{p.category}</Badge>
+                            <Badge className={cn("border-none text-[8px] font-black uppercase px-2 mb-2 italic", p.category.includes('Cricket') ? "bg-blue-500/20 text-blue-500" : "bg-primary/10 text-primary")}>
+                               {p.category}
+                            </Badge>
                             <p className="font-black text-sm text-white uppercase italic">{p.question}</p>
                             <p className="text-[9px] text-muted-foreground uppercase font-bold mt-1">Pool: {p.totalPool} 🪙 • Entry: {p.entryFee} 🪙</p>
                          </div>
@@ -306,12 +311,33 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ... (Keep existing cricket, esports, settings tabs as they were) ... */}
         {activeTab === 'cricket' && (
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 space-y-6">
               <h2 className="text-xl font-black uppercase italic">New Match Deploy</h2>
               <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] shadow-2xl">
-                <form onSubmit={addCricketMatch} className="space-y-4">
+                <form onSubmit={async (e: any) => {
+                  e.preventDefault();
+                  if (!firestore) return;
+                  const form = e.target;
+                  setIsProcessing('cricket-add');
+                  try {
+                    await addDoc(collection(firestore, 'cricket_matches'), {
+                      teamA: form.teamA.value,
+                      teamB: form.teamB.value,
+                      teamALogo: form.logoA.value || 'https://picsum.photos/seed/teama/100/100',
+                      teamBLogo: form.logoB.value || 'https://picsum.photos/seed/teamb/100/100',
+                      series: form.series.value,
+                      status: 'upcoming',
+                      startTime: new Date().toISOString()
+                    });
+                    toast({ title: "CRICKET MATCH DEPLOYED" });
+                    form.reset();
+                  } finally {
+                    setIsProcessing(null);
+                  }
+                }} className="space-y-4">
                   <Input name="teamA" placeholder="Team A Name" required className="bg-black border-white/10 h-12" />
                   <Input name="logoA" placeholder="Team A Logo URL" className="bg-black border-white/10 h-12" />
                   <Input name="teamB" placeholder="Team B Name" required className="bg-black border-white/10 h-12" />
@@ -413,19 +439,6 @@ function SidebarLink({ active, icon, label, onClick }: any) {
     )}>
       <span className={cn("transition-transform", active && "scale-110")}>{icon}</span>
       <span>{label}</span>
-    </button>
-  );
-}
-
-function QuickPollButton({ label, icon, onClick, disabled }: any) {
-  return (
-    <button 
-      onClick={onClick}
-      disabled={disabled}
-      className="p-6 bg-white/5 border border-white/10 rounded-2xl flex flex-col items-center gap-3 hover:bg-primary/20 hover:border-primary/40 transition-all group disabled:opacity-50"
-    >
-       <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">{icon}</div>
-       <span className="text-[9px] font-black uppercase tracking-widest text-center">{label}</span>
     </button>
   );
 }
