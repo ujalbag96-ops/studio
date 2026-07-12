@@ -47,8 +47,9 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const pathname = usePathname();
   
+  // Standardized Path for Global Configurations
   const settingsRef = useMemoFirebase(() => 
-    firestore ? doc(firestore, 'settings', 'global') : null, 
+    firestore ? doc(firestore, 'app_settings', 'global_config') : null, 
     [firestore]
   );
   const { data: settings, isLoading } = useDoc<AppSettings>(settingsRef);

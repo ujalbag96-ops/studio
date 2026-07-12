@@ -36,7 +36,11 @@ export default function EarningHub() {
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
-  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  // Standardized Path for Global Configurations
+  const settingsRef = useMemoFirebase(() => 
+    firestore ? doc(firestore, 'app_settings', 'global_config') : null, 
+    [firestore]
+  );
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   
   const { data: settings, isLoading: settingsLoading } = useDoc<AppSettings>(settingsRef);
@@ -90,7 +94,7 @@ export default function EarningHub() {
 
       const currentTasks = (profile.tasksCompletedCount || 0) + 1;
       const activationGoal = 10;
-      const isActivated = currentTasks >= activationGoal || profile.depositBalance > 0;
+      const isActivated = currentTasks >= activationGoal || (profile.depositBalance || 0) > 0;
 
       const updateData: any = { 
         taskBalance: increment(5),
@@ -101,10 +105,10 @@ export default function EarningHub() {
 
       const ledgerData = {
         userId: user.uid,
-        type: 'income',
+        type: 'income' as const,
         amount: 5,
         date: new Date().toISOString().split('T')[0],
-        status: 'completed',
+        status: 'completed' as const,
         description: 'Premium Sponsored Interaction (Credit to Incentive Balance)'
       };
 
@@ -151,7 +155,10 @@ export default function EarningHub() {
     );
   }
 
-  const isRestricted = !settings?.offerWallEnabled || profile?.isVpnActive;
+  // Fallback if settings don't exist yet
+  const offerWallEnabled = settings?.offerWallEnabled !== false; 
+  const videoWallEnabled = settings?.videoWallEnabled !== false;
+  const isRestricted = !offerWallEnabled || profile?.isVpnActive;
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
@@ -220,12 +227,12 @@ export default function EarningHub() {
                </div>
                <Button 
                 onClick={handleWatchVideo}
-                disabled={isVideoLoading || cooldownRemaining > 0 || !settings?.videoWallEnabled || !!profile?.isVpnActive}
+                disabled={isVideoLoading || cooldownRemaining > 0 || !videoWallEnabled || !!profile?.isVpnActive}
                 className="w-full h-24 bg-primary hover:bg-primary/90 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xl shadow-2xl shadow-primary/20 transition-all hover:scale-105"
                >
                 {isVideoLoading ? <Loader2 className="animate-spin h-8 w-8" /> : 
                  profile?.isVpnActive ? "SECURE LOCK" :
-                 !settings?.videoWallEnabled ? "HUB OFFLINE" :
+                 !videoWallEnabled ? "HUB OFFLINE" :
                  cooldownRemaining > 0 ? `LOCKED ${formatCooldown(cooldownRemaining)}` : "EXECUTE TASK"}
                </Button>
             </div>

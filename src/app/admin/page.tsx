@@ -19,7 +19,9 @@ import {
   Target,
   Monitor,
   Layout,
-  Disc
+  Disc,
+  ShieldAlert,
+  Power
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +46,7 @@ export default function AdminDashboard() {
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  // Subscriptions
+  // Subscriptions - Unified Path 'app_settings/global_config'
   const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   const missionsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'cpa_missions') : null, [firestore, isAdminUser]);
   const adSettingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'app_settings', 'global_config') : null, [firestore, isAdminUser]);
@@ -54,13 +57,16 @@ export default function AdminDashboard() {
   const { data: globalConfig } = useDoc<any>(adSettingsRef);
   const { data: jhilliConfig } = useDoc<any>(jhilliRef);
 
-  // Local state for Ad Config
-  const [adConfig, setAdConfig] = useState({
+  // Local state for Global System Config (Ads + Maintenance)
+  const [systemConfig, setSystemConfig] = useState({
     adMobAppId: '',
     adMobBannerId: '',
     adMobInterstitialId: '',
     appLovinSdkKey: '',
-    appLovinZoneId: ''
+    appLovinZoneId: '',
+    maintenanceMode: false,
+    offerWallEnabled: true,
+    videoWallEnabled: true
   });
 
   // Local state for Jhilli Config
@@ -72,12 +78,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (globalConfig) {
-      setAdConfig({
+      setSystemConfig({
         adMobAppId: globalConfig.adMobAppId || '',
         adMobBannerId: globalConfig.adMobBannerId || '',
         adMobInterstitialId: globalConfig.adMobInterstitialId || '',
         appLovinSdkKey: globalConfig.appLovinSdkKey || '',
-        appLovinZoneId: globalConfig.appLovinZoneId || ''
+        appLovinZoneId: globalConfig.appLovinZoneId || '',
+        maintenanceMode: !!globalConfig.maintenanceMode,
+        offerWallEnabled: globalConfig.offerWallEnabled !== false,
+        videoWallEnabled: globalConfig.videoWallEnabled !== false
       });
     }
   }, [globalConfig]);
@@ -92,14 +101,14 @@ export default function AdminDashboard() {
     }
   }, [jhilliConfig]);
 
-  const handleSaveAds = async () => {
+  const handleSaveSystem = async () => {
     if (!firestore || !isAdminUser) return;
-    setIsProcessing('save-ads');
+    setIsProcessing('save-system');
     try {
-      await setDoc(doc(firestore, 'app_settings', 'global_config'), adConfig, { merge: true });
-      toast({ title: "CONFIGURATION LOCKED", description: "Ad IDs updated project-wide." });
+      await setDoc(doc(firestore, 'app_settings', 'global_config'), systemConfig, { merge: true });
+      toast({ title: "SYSTEM UPDATED", description: "Global configurations locked successfully." });
     } catch (e) {
-      toast({ variant: "destructive", title: "Write Failed" });
+      toast({ variant: "destructive", title: "Update Failed" });
     } finally {
       setIsProcessing(null);
     }
@@ -314,9 +323,9 @@ export default function AdminDashboard() {
                        <h3 className="text-lg font-black uppercase italic">AdMob Industrial</h3>
                     </div>
                     <div className="space-y-6">
-                       <ConfigField label="AdMob App ID" value={adConfig.adMobAppId} onChange={v => setAdConfig({...adConfig, adMobAppId: v})} />
-                       <ConfigField label="Banner Unit ID" value={adConfig.adMobBannerId} onChange={v => setAdConfig({...adConfig, adMobBannerId: v})} />
-                       <ConfigField label="Interstitial Unit ID" value={adConfig.adMobInterstitialId} onChange={v => setAdConfig({...adConfig, adMobInterstitialId: v})} />
+                       <ConfigField label="AdMob App ID" value={systemConfig.adMobAppId} onChange={v => setSystemConfig({...systemConfig, adMobAppId: v})} />
+                       <ConfigField label="Banner Unit ID" value={systemConfig.adMobBannerId} onChange={v => setSystemConfig({...systemConfig, adMobBannerId: v})} />
+                       <ConfigField label="Interstitial Unit ID" value={systemConfig.adMobInterstitialId} onChange={v => setSystemConfig({...systemConfig, adMobInterstitialId: v})} />
                     </div>
                  </Card>
 
@@ -325,14 +334,57 @@ export default function AdminDashboard() {
                        <h3 className="text-lg font-black uppercase italic">Video Wall (AppLovin)</h3>
                     </div>
                     <div className="space-y-6">
-                       <ConfigField label="AppLovin SDK Key" value={adConfig.appLovinSdkKey} onChange={v => setAdConfig({...adConfig, appLovinSdkKey: v})} />
-                       <ConfigField label="Reward Zone ID" value={adConfig.appLovinZoneId} onChange={v => setAdConfig({...adConfig, appLovinZoneId: v})} />
+                       <ConfigField label="AppLovin SDK Key" value={systemConfig.appLovinSdkKey} onChange={v => setSystemConfig({...systemConfig, appLovinSdkKey: v})} />
+                       <ConfigField label="Reward Zone ID" value={systemConfig.appLovinZoneId} onChange={v => setSystemConfig({...systemConfig, appLovinZoneId: v})} />
                     </div>
                  </Card>
               </div>
               
-              <Button onClick={handleSaveAds} disabled={isProcessing === 'save-ads'} className="w-full h-20 bg-blue-600 hover:bg-blue-500 font-black uppercase italic text-xl rounded-2xl shadow-2xl transition-all">
-                 {isProcessing === 'save-ads' ? <Loader2 className="animate-spin" /> : "SAVE MEDIA CONFIGURATION"}
+              <Button onClick={handleSaveSystem} disabled={isProcessing === 'save-system'} className="w-full h-20 bg-blue-600 hover:bg-blue-500 font-black uppercase italic text-xl rounded-2xl shadow-2xl transition-all">
+                 {isProcessing === 'save-system' ? <Loader2 className="animate-spin" /> : "SAVE MEDIA CONFIGURATION"}
+              </Button>
+           </div>
+        )}
+
+        {activeTab === 'settings' && (
+           <div className="max-w-4xl space-y-12 animate-in fade-in duration-500">
+              <div className="flex items-center gap-4">
+                 <Settings className="text-primary h-6 w-6" />
+                 <h2 className="text-2xl font-black uppercase italic">Global System Control</h2>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-8">
+                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] flex items-center justify-between border-t-4 border-t-red-600">
+                    <div className="space-y-1">
+                       <div className="flex items-center gap-3">
+                          <Power className="h-5 w-5 text-red-500" />
+                          <h3 className="text-lg font-black uppercase italic">Maintenance Mode</h3>
+                       </div>
+                       <p className="text-[9px] text-muted-foreground uppercase font-bold">Lock entire app for maintenance</p>
+                    </div>
+                    <Switch 
+                      checked={systemConfig.maintenanceMode} 
+                      onCheckedChange={(v) => setSystemConfig({...systemConfig, maintenanceMode: v})}
+                    />
+                 </Card>
+
+                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] flex items-center justify-between border-t-4 border-t-primary">
+                    <div className="space-y-1">
+                       <div className="flex items-center gap-3">
+                          <Smartphone className="h-5 w-5 text-primary" />
+                          <h3 className="text-lg font-black uppercase italic">OfferWall Master</h3>
+                       </div>
+                       <p className="text-[9px] text-muted-foreground uppercase font-bold">Global CPA Mission switch</p>
+                    </div>
+                    <Switch 
+                      checked={systemConfig.offerWallEnabled} 
+                      onCheckedChange={(v) => setSystemConfig({...systemConfig, offerWallEnabled: v})}
+                    />
+                 </Card>
+              </div>
+              
+              <Button onClick={handleSaveSystem} disabled={isProcessing === 'save-system'} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-2xl transition-all">
+                 {isProcessing === 'save-system' ? <Loader2 className="animate-spin" /> : "DEPLOY SYSTEM STATE"}
               </Button>
            </div>
         )}
