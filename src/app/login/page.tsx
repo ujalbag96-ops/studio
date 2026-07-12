@@ -9,16 +9,15 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldCheck, ShieldAlert, Eye, EyeOff } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Loader2, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -27,7 +26,6 @@ export default function LoginPage() {
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +33,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -44,62 +41,30 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const getIpIntelligence = async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
-      clearTimeout(timeoutId);
-      const data = await res.json();
-      return { ip: data.ip || '127.0.0.1', country: data.country_name || 'Global' };
-    } catch (e) {
-      return { ip: '127.0.0.1', country: 'Global' };
-    }
-  };
-
   const syncUserProfile = async (firebaseUser: any) => {
     if (!firestore) return;
     try {
-      const intel = await getIpIntelligence();
       const userDocRef = doc(firestore, 'users', firebaseUser.uid);
       const snap = await getDoc(userDocRef);
 
       if (!snap.exists()) {
-        const abuseQuery = query(collection(firestore, 'users'), where('lastIp', '==', intel.ip), limit(1));
-        const abuseSnap = await getDocs(abuseQuery);
-        
-        if (!abuseSnap.empty && authMode === 'signup') {
-          toast({ variant: "destructive", title: "SECURITY VIOLATION", description: "Multi-account detected on this terminal." });
-          throw new Error("DEVICE_ID_CONFLICT");
-        }
-
         const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        
         await setDoc(userDocRef, {
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
-          lastIp: intel.ip,
-          country: intel.country,
           depositBalance: 0,
           winningBalance: 0,
           bonusBalance: 0,
-          taskBalance: 0,
           coins: 0,
           rank: 'Bronze',
           referralCode: randomCode,
-          isAccountActivated: false,
           tasksCompletedCount: 0,
+          isAccountActivated: false,
           joinedAt: new Date().toISOString()
-        }, { merge: true });
-      } else {
-        await setDoc(userDocRef, { 
-          lastIp: intel.ip, 
-          lastActive: new Date().toISOString() 
-        }, { merge: true });
+        });
       }
-    } catch (err: any) {
-      if (err.message === "DEVICE_ID_CONFLICT") throw err;
-      console.error("Profile sync failure", err);
+    } catch (err) {
+      console.error("Profile instantiation failure", err);
     }
   };
 
@@ -107,7 +72,6 @@ export default function LoginPage() {
     e.preventDefault();
     if (!auth) return;
     setIsLoading(true);
-    setAuthError(null);
     try {
       let userCredential;
       if (authMode === 'login') {
@@ -117,11 +81,7 @@ export default function LoginPage() {
       }
       await syncUserProfile(userCredential.user);
     } catch (e: any) {
-      let msg = e.message;
-      if (e.code === 'auth/email-already-in-use') msg = "Warrior already enlisted. Try Login.";
-      if (e.code === 'auth/wrong-password') msg = "Incorrect Access Pass.";
-      setAuthError(msg);
-      toast({ variant: "destructive", title: "Access Denied", description: msg });
+      toast({ variant: "destructive", title: "Access Denied", description: e.message });
       setIsLoading(false);
     }
   };
@@ -134,9 +94,7 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, provider);
       await syncUserProfile(result.user);
     } catch (e: any) {
-      if (e.code !== 'auth/popup-closed-by-user') {
-        toast({ variant: "destructive", title: "Google Auth Failed", description: e.message });
-      }
+      toast({ variant: "destructive", title: "Auth Failure", description: e.message });
       setIsLoading(false);
     }
   };
@@ -149,18 +107,9 @@ export default function LoginPage() {
         <div className="h-20 w-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">
-          {authMode === 'login' ? 'Warrior' : 'Enlist'} <span className="text-primary">WinZO</span>
-        </h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Industrial Identity Protection Active</p>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Warrior <span className="text-primary">Enlist</span></h1>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Identity Protection Protocol Active</p>
       </div>
-
-      {authError && (
-        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 rounded-2xl">
-          <ShieldAlert className="h-4 w-4" />
-          <AlertDescription className="text-xs font-bold uppercase">{authError}</AlertDescription>
-        </Alert>
-      )}
 
       <Tabs value={authMode} onValueChange={(val) => setAuthMode(val as any)} className="w-full">
         <TabsList className="grid grid-cols-2 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
@@ -179,7 +128,7 @@ export default function LoginPage() {
                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Access Pass</Label>
                  <div className="relative">
                     <Input required type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl pr-12 font-mono" />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white">
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                  </div>
@@ -194,7 +143,7 @@ export default function LoginPage() {
 
       <Button onClick={handleGoogleAuth} disabled={isLoading} variant="outline" className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-3">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="h-5 w-5" alt="Google" />
-        One-Tap Google Access
+        Connect Google Identity
       </Button>
     </div>
   );
