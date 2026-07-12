@@ -27,12 +27,14 @@ export interface UserProfile {
   taskBalance?: number;
   weeklyWinnings?: number;
   totalReferrals?: number;
+  videosWatchedToday?: number;
+  lastVideoWatchDate?: string;
 }
 
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';

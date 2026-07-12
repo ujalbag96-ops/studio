@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
-import { collection, doc, query, limit, orderBy } from 'firebase/firestore';
+import { collection, doc, query, limit, orderBy, updateDoc, increment, addDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   LayoutDashboard,
@@ -23,7 +23,10 @@ import {
   Coins,
   Gift,
   Target,
-  Smartphone
+  Smartphone,
+  PlayCircle,
+  Video,
+  AlertCircle
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,7 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { UserProfile, UserLedgerEntry } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import WalletModal from '@/components/WalletModal';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
@@ -44,8 +47,9 @@ export default function UserDashboard() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const [activeNav, setActiveNav] = useState<'overview' | 'offers'>('overview');
+  const [activeNav, setActiveNav] = useState<'overview' | 'offers' | 'video'>('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
+  const [isWatching, setIsWatching] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
@@ -78,6 +82,57 @@ export default function UserDashboard() {
     }
   };
 
+  const handleWatchVideo = async () => {
+    if (!user || !firestore || !userProfileRef || !profile) return;
+
+    // Daily Limit Logic
+    const today = new Date().toISOString().split('T')[0];
+    const watchedToday = profile.lastVideoWatchDate === today ? (profile.videosWatchedToday || 0) : 0;
+    
+    if (watchedToday >= 5) {
+      toast({ 
+        variant: "destructive", 
+        title: "Daily Limit Reached", 
+        description: "You have already watched 5 videos today. Come back tomorrow!" 
+      });
+      return;
+    }
+
+    setIsWatching(true);
+    
+    // Simulate Video Playback Delay
+    try {
+      await new Promise(resolve => setTimeout(resolve, 6000));
+
+      await updateDoc(userProfileRef, {
+        bonusBalance: increment(2),
+        coins: increment(2),
+        videosWatchedToday: watchedToday + 1,
+        lastVideoWatchDate: today
+      });
+
+      await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
+        type: 'video_reward',
+        amount: 2,
+        date: today,
+        status: 'completed',
+        description: 'Watch & Earn Video Reward'
+      });
+
+      toast({ 
+        title: "Coins Credited!", 
+        description: "2 Bonus Coins added for watching video." 
+      });
+      
+      // Play reward sound
+      new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error crediting reward" });
+    } finally {
+      setIsWatching(false);
+    }
+  };
+
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
   if (!user) {
@@ -91,6 +146,9 @@ export default function UserDashboard() {
       </div>
     );
   }
+
+  const today = new Date().toISOString().split('T')[0];
+  const videosRemaining = 5 - (profile?.lastVideoWatchDate === today ? (profile?.videosWatchedToday || 0) : 0);
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary">
@@ -108,6 +166,7 @@ export default function UserDashboard() {
 
         <nav className="flex-1 p-8 space-y-2">
           <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Portfolio" onClick={() => setActiveNav('overview')} />
+          <SidebarItem active={activeNav === 'video'} icon={<PlayCircle />} label="Watch & Earn" onClick={() => setActiveNav('video')} />
           <SidebarItem active={activeNav === 'offers'} icon={<Zap />} label="CPA Missions" onClick={() => setActiveNav('offers')} />
           <SidebarItem active={false} icon={<Trophy />} label="My Matches" href="/" />
           <SidebarItem active={false} icon={<Gift />} label="Refer & Earn" href="/refer" />
@@ -123,7 +182,7 @@ export default function UserDashboard() {
       </aside>
 
       <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-10 pb-32">
-        {activeNav === 'overview' ? (
+        {activeNav === 'overview' && (
           <>
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
               <div className="space-y-4">
@@ -158,7 +217,7 @@ export default function UserDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} description="Ready for withdrawal" color="green" />
               <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} description="For match entries" color="blue" />
-              <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} description="From referrals/CPA" color="amber" />
+              <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} description="From referrals/Tasks" color="amber" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
@@ -177,10 +236,10 @@ export default function UserDashboard() {
                             <div className="flex items-center gap-6">
                                <div className={cn(
                                  "h-12 w-12 rounded-xl flex items-center justify-center border transition-all",
-                                 activity.type === 'income' || activity.type === 'referral' ? "bg-green-500/10 text-green-500 border-green-500/20" : 
+                                 ['income', 'referral', 'video_reward'].includes(activity.type) ? "bg-green-500/10 text-green-500 border-green-500/20" : 
                                  activity.type === 'withdrawal' || activity.type === 'entry_fee' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
                                )}>
-                                 {activity.type === 'income' || activity.type === 'referral' ? <TrendingUp className="h-5 w-5" /> : 
+                                 {['income', 'referral', 'video_reward'].includes(activity.type) ? <TrendingUp className="h-5 w-5" /> : 
                                   activity.type === 'withdrawal' ? <ArrowUpRight className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
                                </div>
                                <div className="space-y-1">
@@ -213,20 +272,105 @@ export default function UserDashboard() {
               <aside className="space-y-10">
                 <Card className="bg-gradient-to-br from-[#1a1a24] to-[#0a0a0f] border-primary/20 border-2 rounded-[2rem] p-10 text-center space-y-10 shadow-2xl relative overflow-hidden group">
                    <div className="mx-auto h-20 w-20 rounded-[1.5rem] bg-primary/10 flex items-center justify-center border border-primary/20">
-                      <Zap className="h-10 w-10 text-primary animate-pulse" />
+                      <PlayCircle className="h-10 w-10 text-primary animate-pulse" />
                    </div>
                    <div className="space-y-4 relative z-10">
-                      <h3 className="text-3xl font-black uppercase italic">Earn Free Cash</h3>
-                      <p className="text-sm text-muted-foreground font-medium">Complete CPA missions to scale your bonus balance.</p>
+                      <h3 className="text-3xl font-black uppercase italic">Free Video Income</h3>
+                      <p className="text-sm text-muted-foreground font-medium">Watch short ads to earn Bonus Coins instantly.</p>
                    </div>
-                   <Button onClick={() => setActiveNav('offers')} className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
-                      START EARNING
+                   <Button onClick={() => setActiveNav('video')} className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
+                      START WATCHING
                    </Button>
                 </Card>
               </aside>
             </div>
           </>
-        ) : (
+        )}
+
+        {activeNav === 'video' && (
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <header className="space-y-4">
+                <div className="flex items-center gap-3">
+                   <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Watch & Earn Hub</Badge>
+                </div>
+                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Watch <span className="text-primary">Videos</span></h1>
+                <p className="text-muted-foreground font-medium text-lg max-w-2xl leading-relaxed">
+                   Watch short video advertisements to earn <span className="text-primary font-bold">Bonus Coins</span>. You can watch up to 5 videos every day.
+                </p>
+             </header>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <Card className="bg-[#0a0a0f] border-white/5 border rounded-[2.5rem] overflow-hidden p-10 shadow-2xl space-y-8">
+                   <div className="flex items-center justify-between">
+                      <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                         <Video className="h-8 w-8 text-primary" />
+                      </div>
+                      <div className="text-right">
+                         <p className="text-[10px] font-black uppercase text-muted-foreground italic">Video Reward</p>
+                         <p className="text-4xl font-black text-white italic">2 🪙</p>
+                      </div>
+                   </div>
+                   
+                   <div className="space-y-6">
+                      <p className="text-sm text-muted-foreground font-medium leading-relaxed">
+                         Experience high-quality industrial ad content and get credited instantly. No hidden fees, just pure earning.
+                      </p>
+                      <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+                         <span className="text-[10px] font-black uppercase text-white tracking-widest italic">Daily Videos Remaining</span>
+                         <Badge className={cn("font-black text-lg h-10 w-10 flex items-center justify-center rounded-lg border-none", videosRemaining > 0 ? "bg-primary text-white" : "bg-red-500 text-white")}>
+                            {videosRemaining}
+                         </Badge>
+                      </div>
+                   </div>
+
+                   <Button 
+                    onClick={handleWatchVideo}
+                    disabled={isWatching || videosRemaining <= 0}
+                    className="w-full h-24 bg-primary hover:bg-primary/90 rounded-[1.5rem] font-black uppercase italic text-2xl shadow-2xl transition-all active:scale-95"
+                   >
+                      {isWatching ? (
+                        <div className="flex items-center gap-4">
+                           <Loader2 className="h-8 w-8 animate-spin" />
+                           <span>BUFFERING...</span>
+                        </div>
+                      ) : videosRemaining <= 0 ? "LIMIT REACHED" : "WATCH AD NOW"}
+                   </Button>
+                </Card>
+
+                <div className="space-y-6">
+                   <Card className="bg-white/5 border-white/5 rounded-2xl p-8 flex items-center gap-6">
+                      <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                         <Shield className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <div>
+                         <h4 className="text-sm font-black uppercase italic">Anti-Abuse System</h4>
+                         <p className="text-[10px] text-muted-foreground font-bold uppercase mt-1">Limits reset daily at 12:00 AM Midnight.</p>
+                      </div>
+                   </Card>
+                   <Card className="bg-white/5 border-white/5 rounded-2xl p-8 flex items-center gap-6">
+                      <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                         <Zap className="h-6 w-6 text-amber-500" />
+                      </div>
+                      <div>
+                         <h4 className="text-sm font-black uppercase italic">Instant Credits</h4>
+                         <p className="text-[10px] text-muted-foreground font-bold uppercase mt-1">Bonus coins can be used for any tournament.</p>
+                      </div>
+                   </Card>
+                   <Card className="bg-white/5 border-white/5 rounded-2xl p-8 flex items-center gap-6">
+                      <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/20">
+                         <Trophy className="h-6 w-6 text-green-500" />
+                      </div>
+                      <div>
+                         <h4 className="text-sm font-black uppercase italic">No Deposit Required</h4>
+                         <p className="text-[10px] text-muted-foreground font-bold uppercase mt-1">Start playing for free using video rewards.</p>
+                      </div>
+                   </Card>
+                </div>
+             </div>
+          </div>
+        )}
+
+        {activeNav === 'offers' && (
           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
              <header className="space-y-4">
                 <div className="flex items-center gap-3">
