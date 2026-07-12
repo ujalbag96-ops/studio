@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Zap, Wallet, LogIn, User, LogOut, Shield, Activity, UserPlus, Bell, Star, Gift, Trophy, Target, ShoppingBag, Flag, Radio } from 'lucide-react';
+import { Home, Zap, Wallet, LogIn, User, LogOut, Shield, Activity, Bell, Star, Gift, Trophy, Target, ShoppingBag, Flag, Radio } from 'lucide-react';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -16,7 +16,7 @@ const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function Navbar() {
   const { user } = useUser();
-  const auth = useAuth();
+  const auth = useAuth(); // Standardized Hook Usage
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -32,6 +32,7 @@ export default function Navbar() {
     }
   };
 
+  // Master Admin Visibility Check
   const isAdmin = user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   return (
@@ -52,7 +53,7 @@ export default function Navbar() {
             <NavLink href="/predictions" label="Polls" active={pathname === '/predictions'} />
             <NavLink href="/shop" label="Shop" active={pathname === '/shop'} />
             <NavLink href="/leaderboard" label="Hall of Fame" active={pathname === '/leaderboard'} />
-            {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-accent italic flex items-center gap-1.5"><Shield className="h-3 w-3" /> Admin</Link>}
+            {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-accent italic flex items-center gap-1.5 animate-pulse"><Shield className="h-3 w-3" /> Admin Hub</Link>}
           </div>
 
           <div className="flex items-center gap-6">

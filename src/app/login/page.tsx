@@ -24,7 +24,7 @@ const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function LoginPage() {
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
+  const auth = useAuth(); // Standardized Hook Usage
   const firestore = useFirestore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -39,13 +39,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && !isUserLoading) {
+      // Master Admin Routing Logic
       const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       router.push(isAdmin ? '/admin' : '/dashboard');
     }
   }, [user, isUserLoading, router]);
 
   const getIpIntelligence = async () => {
-    console.log('Initiating IP Intelligence Lookup...');
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
@@ -54,13 +54,11 @@ export default function LoginPage() {
       clearTimeout(timeoutId);
       
       const data = await res.json();
-      console.log('IP Intel Captured:', data.ip, data.country_name);
       return {
         ip: data.ip || '127.0.0.1',
         country: data.country_name || 'Global'
       };
     } catch (e) {
-      console.warn('IP Intel Signal Jammed, using fallback protocol.');
       return { ip: '127.0.0.1', country: 'Global' };
     }
   };
@@ -74,16 +72,14 @@ export default function LoginPage() {
       const snap = await getDoc(userDocRef);
 
       if (!snap.exists() && authMode === 'signup') {
-        console.log('New User Detected. Running Fraud Prevention Checks...');
         const abuseQuery = query(collection(firestore, 'users'), where('lastIp', '==', intel.ip), limit(1));
         const abuseSnap = await getDocs(abuseQuery);
         
         if (!abuseSnap.empty) {
-          console.error('Security Violation: Multi-account detected on IP', intel.ip);
           toast({ 
             variant: "destructive", 
             title: "SECURITY VIOLATION", 
-            description: "Multiple accounts detected on this terminal. Signal blocked." 
+            description: "Multiple accounts detected on this terminal." 
           });
           throw new Error("DEVICE_ID_CONFLICT");
         }
@@ -125,11 +121,11 @@ export default function LoginPage() {
 
         if (refCode) {
           await addDoc(collection(firestore, 'users', firebaseUser.uid, 'ledger'), {
-            type: 'income',
+            type: 'referral',
             amount: 10,
             date: new Date().toISOString().split('T')[0],
             status: 'completed',
-            description: "Viral Referral Welcome Bonus"
+            description: "Referral Welcome Reward"
           });
         }
       } else {
@@ -141,14 +137,14 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       if (err.message === "DEVICE_ID_CONFLICT") throw err;
-      console.error("Industrial Profile sync failed", err);
+      console.error("Profile sync error", err);
     }
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) {
-      toast({ variant: "destructive", title: "System Error", description: "Auth Protocol Offline. Please refresh." });
+      toast({ variant: "destructive", title: "System Error", description: "Auth Protocol Offline." });
       return;
     }
     
@@ -176,15 +172,13 @@ export default function LoginPage() {
       router.push(isAdmin ? '/admin' : '/dashboard');
       
     } catch (e: any) {
-      console.error('Authentication Exception:', e.code, e.message);
       let msg = e.message;
-      
-      if (e.code === 'auth/email-already-in-use') msg = "This email is already registered in the Arena.";
-      if (e.code === 'auth/invalid-email') msg = "The email terminal address is invalid.";
-      if (e.code === 'auth/weak-password') msg = "The access pass must be at least 6 characters.";
-      if (e.code === 'auth/wrong-password') msg = "Invalid access pass. Terminal rejected.";
-      if (e.code === 'auth/user-not-found') msg = "Warrior not found in database.";
-      if (e.message === "DEVICE_ID_CONFLICT") msg = "Multiple account detection blocked this registration.";
+      if (e.code === 'auth/email-already-in-use') msg = "Already registered.";
+      if (e.code === 'auth/invalid-email') msg = "Invalid email terminal.";
+      if (e.code === 'auth/weak-password') msg = "Pass must be 6+ characters.";
+      if (e.code === 'auth/wrong-password') msg = "Invalid pass. Access denied.";
+      if (e.code === 'auth/user-not-found') msg = "Warrior not found.";
+      if (e.message === "DEVICE_ID_CONFLICT") msg = "Multiple account block active.";
       
       setAuthError(msg);
       toast({ variant: "destructive", title: "Access Denied", description: msg });
@@ -203,8 +197,7 @@ export default function LoginPage() {
       router.push(isAdmin ? '/admin' : '/dashboard');
     } catch (e: any) {
       if (e.code !== 'auth/popup-closed-by-user') {
-        const msg = e.message === "DEVICE_ID_CONFLICT" ? "Multiple account detection blocked this registration." : e.message;
-        toast({ variant: "destructive", title: "Access Blocked", description: msg });
+        toast({ variant: "destructive", title: "Access Blocked", description: e.message });
       }
       setIsLoading(false);
     }
