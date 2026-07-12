@@ -18,6 +18,8 @@ export interface UserProfile {
   coins: number;
   referralCode: string;
   referredBy?: string;
+  referredByL1?: string; // Level 1 Referrer UID
+  referredByL2?: string; // Level 2 Referrer UID
   lastIp?: string;
   rank: UserRank;
   isAdmin?: boolean;
@@ -30,12 +32,14 @@ export interface UserProfile {
   videosWatchedToday?: number;
   lastVideoWatchDate?: string;
   isVpnActive?: boolean;
+  isAccountActivated?: boolean; // Gateway State
+  tasksCompletedCount?: number;
 }
 
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake' | 'esports_stake';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake' | 'esports_stake' | 'referral_comm';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';

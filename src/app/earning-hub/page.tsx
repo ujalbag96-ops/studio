@@ -68,7 +68,7 @@ export default function EarningHub() {
   };
 
   const handleWatchVideo = async () => {
-    if (!user || !firestore || !userRef) {
+    if (!user || !firestore || !userRef || !profile) {
       toast({ variant: "destructive", title: "Authentication Required" });
       return;
     }
@@ -88,9 +88,14 @@ export default function EarningHub() {
 
       const ledgerRef = collection(firestore, 'users', user.uid, 'ledger');
 
-      const updateData = { 
+      const currentTasks = (profile.tasksCompletedCount || 0) + 1;
+      const isActivated = currentTasks >= 2 || profile.depositBalance > 0;
+
+      const updateData: any = { 
         taskBalance: increment(5),
-        coins: increment(5) 
+        coins: increment(5),
+        tasksCompletedCount: increment(1),
+        isAccountActivated: isActivated
       };
 
       const ledgerData = {
@@ -123,7 +128,7 @@ export default function EarningHub() {
       
       toast({ 
         title: "Incentive Credited", 
-        description: "5 Supplemental Coins synchronized to your hub." 
+        description: isActivated && !profile.isAccountActivated ? "ACCOUNT ACTIVATED! All features unlocked." : "5 Supplemental Coins synchronized."
       });
       
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
@@ -160,7 +165,7 @@ export default function EarningHub() {
           Activity <span className="text-primary">Incentive</span> Hub
         </h1>
         <p className="text-muted-foreground font-medium text-lg max-w-2xl mx-auto md:mx-0 leading-relaxed">
-          The centralized portal for supplemental capital accumulation. Fulfill sponsored tasks to scale your <span className="text-amber-500 font-bold">Incentive Balance</span> and exchange for winnings.
+          The centralized portal for supplemental capital accumulation. Fulfill sponsored tasks to scale your <span className="text-amber-500 font-bold">Incentive Balance</span> and unlock your account.
         </p>
       </div>
 
@@ -169,7 +174,7 @@ export default function EarningHub() {
            <ShieldAlert className="h-8 w-8 text-red-500 animate-pulse" />
            <div>
               <h4 className="text-sm font-black uppercase tracking-widest text-red-500">Security Warning: VPN Active</h4>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase">Analytical missions are restricted while using proxy signals to maintain economic integrity.</p>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">Analytical missions are restricted while using proxy signals.</p>
            </div>
         </Card>
       )}

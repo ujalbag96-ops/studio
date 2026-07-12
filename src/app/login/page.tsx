@@ -9,7 +9,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, addDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,7 +36,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [showReset, setShowReset] = useState(false);
 
   // Redirection guard for already logged in users
   useEffect(() => {
@@ -64,6 +63,20 @@ export default function LoginPage() {
         const refCode = searchParams.get('ref');
         const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         
+        let l1ReferrerUid = '';
+        let l2ReferrerUid = '';
+
+        // Viral Referral Logic: Find L1 and L2
+        if (refCode) {
+          const refQuery = query(collection(firestore, 'users'), where('referralCode', '==', refCode));
+          const refSnap = await getDocs(refQuery);
+          if (!refSnap.empty) {
+            const l1Doc = refSnap.docs[0];
+            l1ReferrerUid = l1Doc.id;
+            l2ReferrerUid = l1Doc.data().referredByL1 || ''; // Level 1's referrer becomes Level 2
+          }
+        }
+        
         await setDoc(userDocRef, {
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
@@ -75,6 +88,10 @@ export default function LoginPage() {
           rank: 'Bronze',
           referralCode: randomCode,
           referredBy: refCode || null,
+          referredByL1: l1ReferrerUid,
+          referredByL2: l2ReferrerUid,
+          isAccountActivated: false,
+          tasksCompletedCount: 0,
           joinedAt: new Date().toISOString()
         }, { merge: true });
 
@@ -109,10 +126,8 @@ export default function LoginPage() {
       let userCredential;
       if (authMode === 'login') {
         userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Logged In Successfully" });
       } else {
         userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        toast({ title: "Account Created Successfully" });
       }
       
       await syncUserProfile(userCredential.user);
@@ -122,7 +137,7 @@ export default function LoginPage() {
     } catch (e: any) {
       setAuthError(e.message);
       toast({ variant: "destructive", title: "Authentication Error", description: e.message });
-      setIsLoading(false); // Only stop loading if failed, otherwise redirect takes over
+      setIsLoading(false);
     }
   };
 
@@ -133,8 +148,6 @@ export default function LoginPage() {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       await syncUserProfile(result.user);
-      toast({ title: "Google Sign-in Success" });
-      
       const isAdmin = result.user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       router.push(isAdmin ? '/admin' : '/dashboard');
     } catch (e: any) {
@@ -145,11 +158,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isUserLoading) return (
-    <div className="flex items-center justify-center min-h-screen bg-black">
-      <Loader2 className="animate-spin text-primary h-12 w-12" />
-    </div>
-  );
+  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin text-primary h-12 w-12" /></div>;
 
   return (
     <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-700">
@@ -194,9 +203,7 @@ export default function LoginPage() {
               <div className="space-y-2 relative">
                  <div className="flex justify-between items-center">
                     <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Password</Label>
-                    {authMode === 'login' && (
-                      <button type="button" onClick={() => setShowReset(true)} className="text-[10px] font-black text-primary uppercase hover:underline">Forgot?</button>
-                    )}
+                    {authMode === 'login' && <button type="button" className="text-[10px] font-black text-primary uppercase hover:underline">Forgot?</button>}
                  </div>
                  <div className="relative">
                     <Input 

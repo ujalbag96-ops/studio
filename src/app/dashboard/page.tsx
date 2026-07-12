@@ -43,6 +43,8 @@ import ConnectWalletModal from '@/components/ConnectWalletModal';
 import { useToast } from '@/hooks/use-toast';
 import OfferWall from '@/components/OfferWall';
 import LiveCricketWidget from '@/components/LiveCricketWidget';
+import ActivationGateway from '@/components/ActivationGateway';
+import ViralLeaderboard from '@/components/ViralLeaderboard';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -146,6 +148,12 @@ export default function UserDashboard() {
               </div>
             </header>
 
+            {/* Activation Gateway Challenge */}
+            <ActivationGateway 
+              tasksCompleted={profile?.tasksCompletedCount || 0} 
+              isActivated={!!profile?.isAccountActivated} 
+            />
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} color="green" />
               <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} color="blue" />
@@ -186,6 +194,13 @@ export default function UserDashboard() {
                     <div className="p-32 text-center text-muted-foreground uppercase font-black text-xs">No recent signals.</div>
                   )}
                 </Card>
+              </div>
+
+              <div className="space-y-8">
+                 <h3 className="text-2xl font-black uppercase italic flex items-center gap-3">
+                   <Zap className="h-6 w-6 text-primary" /> Viral Growth
+                 </h3>
+                 <ViralLeaderboard />
               </div>
             </div>
           </>
