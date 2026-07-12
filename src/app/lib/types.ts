@@ -139,6 +139,15 @@ export interface AppSettings {
   conversionFeePercent: number;
   telegramUrl: string;
   heroBannerUrl?: string;
+  
+  // Ad Management Config
+  adMobAppId?: string;
+  adMobBannerId?: string;
+  adMobInterstitialId?: string;
+  appLovinSdkKey?: string;
+  appLovinZoneId?: string;
+  
+  // Legacy / Direct
   bannerAdId?: string;
   videoAdId?: string;
 }

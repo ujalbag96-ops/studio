@@ -32,7 +32,10 @@ import {
   Star,
   Image as ImageIcon,
   Smartphone,
-  ShieldAlert
+  ShieldAlert,
+  Save,
+  Link as LinkIcon,
+  Layout
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,7 +46,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { UserProfile, WithdrawalRequest, Tournament, AppSettings } from '@/app/lib/types';
@@ -72,6 +75,9 @@ export default function AdminDashboard() {
   const [adjAmount, setAdjAmount] = useState('100');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Dynamic Settings State
+  const [localSettings, setLocalSettings] = useState<Partial<AppSettings>>({});
+
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   // Queries
@@ -86,6 +92,12 @@ export default function AdminDashboard() {
   const { data: tournamentsData } = useCollection<Tournament>(tournamentsQuery);
   const { data: tasksData } = useCollection<CPATask>(tasksQuery);
   const { data: globalSettings } = useDoc<AppSettings>(settingsRef);
+
+  useEffect(() => {
+    if (globalSettings) {
+      setLocalSettings(globalSettings);
+    }
+  }, [globalSettings]);
 
   // Fraud Detection Logic: Flag duplicate IPs
   const ipCounts = useMemo(() => {
@@ -112,6 +124,19 @@ export default function AdminDashboard() {
       toast({ title: "SYSTEM SYNCED", description: `${field} updated live.` });
     } catch (e) {
       toast({ variant: "destructive", title: "UPDATE FAILED" });
+    }
+  };
+
+  const handleSaveAllSettings = async () => {
+    if (!settingsRef) return;
+    setIsProcessing(true);
+    try {
+      await setDoc(settingsRef, localSettings, { merge: true });
+      toast({ title: "GLOBAL CONFIG SAVED", description: "Operational parameters synchronized." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "SYNC ERROR" });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -155,16 +180,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const updateTournamentStatus = async (tid: string, status: string) => {
-    if (!firestore) return;
-    try {
-      await updateDoc(doc(firestore, 'tournaments', tid), { status });
-      toast({ title: "BRACKET UPDATED", description: `Status: ${status}` });
-    } catch (e) {
-      toast({ variant: "destructive", title: "ERROR" });
-    }
-  };
-
   const handleWithdrawalAction = async (id: string, status: 'approved' | 'rejected', userId: string, amount: number) => {
     if (!firestore) return;
     setIsProcessing(true);
@@ -198,6 +213,16 @@ export default function AdminDashboard() {
     }
   };
 
+  const deleteTask = async (id: string) => {
+    if (!firestore) return;
+    try {
+      await deleteDoc(doc(firestore, 'cpa_tasks', id));
+      toast({ title: "TASK TERMINATED" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "ERROR" });
+    }
+  };
+
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black">ACCESS DENIED: ADMIN PROTOCOL ONLY</div>;
 
@@ -218,7 +243,6 @@ export default function AdminDashboard() {
         <nav className="flex-1 px-4 space-y-2 pt-4">
           <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="User Manager" onClick={() => setActiveTab('users')} />
           <SidebarLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Ledger" onClick={() => setActiveTab('withdrawals')} />
-          <SidebarLink active={activeTab === 'tournaments'} icon={<Target />} label="Brackets Control" onClick={() => setActiveTab('tournaments')} />
           <SidebarLink active={activeTab === 'tasks'} icon={<Smartphone />} label="CPA Task Manager" onClick={() => setActiveTab('tasks')} />
           <SidebarLink active={activeTab === 'settings'} icon={<Settings />} label="Media & Ads" onClick={() => setActiveTab('settings')} />
         </nav>
@@ -272,7 +296,6 @@ export default function AdminDashboard() {
                                 </Badge>
                                 {isDuplicateIp && <span className="text-[7px] text-red-500 font-black uppercase italic animate-pulse">Duplicate IP Alert</span>}
                               </div>
-                              <div className="text-[9px] text-muted-foreground font-bold uppercase mt-1">REGION: {u.country || 'GLOBAL'}</div>
                            </TableCell>
                            <TableCell className="text-center">
                               <div className="flex items-center justify-center gap-4">
@@ -304,57 +327,241 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'withdrawals' && (
-          <div className="space-y-6">
-             <h2 className="text-2xl font-black uppercase italic flex items-center gap-3"><Wallet className="text-primary" /> Payout Queue</h2>
-             <Card className="bg-[#0a0a0f] border-white/5 overflow-hidden rounded-2xl">
-                <Table>
-                   <TableHeader className="bg-white/5">
-                      <TableRow className="border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase px-8">Warrior ID & Security</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase">UPI / Destination</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-center">Amount</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-right px-8">Actions</TableHead>
-                      </TableRow>
-                   </TableHeader>
-                   <TableBody>
-                      {withdrawalsLoading ? (
-                        <TableRow><TableCell colSpan={4} className="py-20 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow>
-                      ) : withdrawalsData && withdrawalsData.length > 0 ? withdrawalsData.map(w => {
-                        const user = usersData?.find(u => u.id === w.userId);
-                        const isDuplicateIp = user?.lastIp && (ipCounts[user.lastIp] || 0) > 1;
-                        return (
-                        <TableRow key={w.id} className="border-white/5 hover:bg-white/5 transition-all">
-                           <TableCell className="px-8 py-6">
-                              <code className="text-[10px] font-mono text-primary">{w.userId}</code>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className={cn("text-[7px] font-black px-1.5 py-0.5 rounded border", isDuplicateIp ? "border-red-500 text-red-500 bg-red-500/10" : "border-white/5 text-muted-foreground")}>
-                                  IP: {user?.lastIp || 'N/A'}
-                                </span>
-                                {isDuplicateIp && <Badge className="bg-red-500 text-[6px] px-1 h-3">MULTI-ACCT</Badge>}
-                              </div>
-                              <p className="text-[8px] text-muted-foreground font-bold mt-1 uppercase">{new Date(w.timestamp).toLocaleString()}</p>
-                           </TableCell>
-                           <TableCell>
-                              <p className="text-xs font-black text-white">{w.method}</p>
-                              <p className="text-[10px] font-bold text-muted-foreground uppercase">{w.destination}</p>
-                           </TableCell>
-                           <TableCell className="text-center font-black text-green-500 tabular-nums">₹{w.amount}</TableCell>
-                           <TableCell className="text-right px-8 space-x-2">
-                              <Button onClick={() => handleWithdrawalAction(w.id, 'approved', w.userId, w.amount)} className="bg-green-600 h-9 font-black uppercase text-[9px] rounded-lg">MARK PAID</Button>
-                              <Button variant="destructive" onClick={() => handleWithdrawalAction(w.id, 'rejected', w.userId, w.amount)} className="h-9 font-black uppercase text-[9px] rounded-lg">DECLINE</Button>
-                           </TableCell>
-                        </TableRow>
-                      )}) : (
-                        <TableRow><TableCell colSpan={4} className="py-32 text-center text-muted-foreground uppercase font-black text-xs">Ledger Clear</TableCell></TableRow>
-                      )}
-                   </TableBody>
-                </Table>
-             </Card>
+        {activeTab === 'tasks' && (
+          <div className="grid lg:grid-cols-3 gap-10">
+            <div className="lg:col-span-1 space-y-6">
+              <h2 className="text-2xl font-black uppercase italic flex items-center gap-3"><Smartphone className="text-primary" /> Task Deployer</h2>
+              <Card className="bg-[#0a0a0f] border-white/5 p-8 space-y-6 shadow-2xl">
+                <form onSubmit={addTask} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Campaign Name</Label>
+                    <Input name="appName" required className="h-12 bg-black border-white/5 rounded-xl font-bold" placeholder="e.g. Finance App Install" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Tracking Link</Label>
+                    <Input name="link" required className="h-12 bg-black border-white/5 rounded-xl font-bold" placeholder="https://tracking.link/..." />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Reward Coins</Label>
+                    <Input name="reward" type="number" required className="h-12 bg-black border-white/5 rounded-xl font-bold" placeholder="50" />
+                  </div>
+                  <Button type="submit" className="w-full h-14 bg-primary font-black uppercase italic rounded-xl">DEPLOY MISSION</Button>
+                </form>
+              </Card>
+            </div>
+            <div className="lg:col-span-2 space-y-6">
+              <h2 className="text-2xl font-black uppercase italic">Active Missions</h2>
+              <Card className="bg-[#0a0a0f] border-white/5 overflow-hidden rounded-2xl">
+                 <Table>
+                    <TableHeader className="bg-white/5">
+                       <TableRow className="border-white/5">
+                          <TableHead className="text-[10px] font-black uppercase px-8">Campaign Details</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase text-center">Reward</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase text-right px-8">Actions</TableHead>
+                       </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                       {tasksData?.map(t => (
+                         <TableRow key={t.id} className="border-white/5">
+                            <TableCell className="px-8 py-4">
+                               <p className="text-sm font-black text-white">{t.appName}</p>
+                               <p className="text-[9px] text-muted-foreground truncate max-w-xs">{t.link}</p>
+                            </TableCell>
+                            <TableCell className="text-center font-black text-amber-500 tabular-nums">{t.reward} 🪙</TableCell>
+                            <TableCell className="text-right px-8">
+                               <Button size="icon" variant="ghost" onClick={() => deleteTask(t.id)} className="h-8 w-8 text-red-500 hover:bg-red-500/10">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </TableCell>
+                         </TableRow>
+                       ))}
+                    </TableBody>
+                 </Table>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="space-y-10">
+             <div className="flex items-center justify-between">
+                <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">System <span className="text-primary">Configuration</span></h2>
+                <Button 
+                  onClick={handleSaveAllSettings} 
+                  disabled={isProcessing}
+                  className="h-14 px-8 bg-green-600 hover:bg-green-500 rounded-2xl font-black uppercase italic shadow-xl shadow-green-600/20"
+                >
+                  {isProcessing ? <Loader2 className="animate-spin h-6 w-6" /> : <><Save className="h-5 w-5 mr-2" /> SAVE ALL CHANGES</>}
+                </Button>
+             </div>
+
+             <div className="grid md:grid-cols-2 gap-8">
+                {/* AdMob & SDK Settings */}
+                <Card className="bg-[#0a0a0f] border-white/5 p-10 space-y-8 rounded-[2.5rem] shadow-2xl">
+                   <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                      <Monitor className="text-primary h-6 w-6" />
+                      <h3 className="text-xl font-black uppercase italic">Media & Ads Protocol</h3>
+                   </div>
+                   <div className="space-y-6">
+                      <div className="space-y-2">
+                         <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">AdMob App ID</Label>
+                         <Input 
+                           value={localSettings.adMobAppId || ''} 
+                           onChange={e => setLocalSettings({...localSettings, adMobAppId: e.target.value})}
+                           className="h-12 bg-black border-white/5 rounded-xl font-mono text-xs" 
+                           placeholder="ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX"
+                         />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Banner Unit ID</Label>
+                            <Input 
+                              value={localSettings.adMobBannerId || ''} 
+                              onChange={e => setLocalSettings({...localSettings, adMobBannerId: e.target.value})}
+                              className="h-12 bg-black border-white/5 rounded-xl font-mono text-xs" 
+                            />
+                         </div>
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Interstitial Unit ID</Label>
+                            <Input 
+                              value={localSettings.adMobInterstitialId || ''} 
+                              onChange={e => setLocalSettings({...localSettings, adMobInterstitialId: e.target.value})}
+                              className="h-12 bg-black border-white/5 rounded-xl font-mono text-xs" 
+                            />
+                         </div>
+                      </div>
+                      <div className="h-px bg-white/5" />
+                      <div className="space-y-2">
+                         <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">AppLovin SDK Key</Label>
+                         <Input 
+                           value={localSettings.appLovinSdkKey || ''} 
+                           onChange={e => setLocalSettings({...localSettings, appLovinSdkKey: e.target.value})}
+                           className="h-12 bg-black border-white/5 rounded-xl font-mono text-xs" 
+                         />
+                      </div>
+                      <div className="space-y-2">
+                         <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Reward Zone ID</Label>
+                         <Input 
+                           value={localSettings.appLovinZoneId || ''} 
+                           onChange={e => setLocalSettings({...localSettings, appLovinZoneId: e.target.value})}
+                           className="h-12 bg-black border-white/5 rounded-xl font-mono text-xs" 
+                         />
+                      </div>
+                   </div>
+                </Card>
+
+                {/* CPA Offerwall Settings */}
+                <Card className="bg-[#0a0a0f] border-white/5 p-10 space-y-8 rounded-[2.5rem] shadow-2xl">
+                   <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                      <Zap className="text-amber-500 h-6 w-6" />
+                      <h3 className="text-xl font-black uppercase italic">CPA Mission Logic</h3>
+                   </div>
+                   <div className="space-y-6">
+                      <div className="space-y-2">
+                         <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">CPALead API/URL</Label>
+                         <div className="flex gap-2">
+                            <Input 
+                              value={localSettings.cpaLeadUrl || ''} 
+                              onChange={e => setLocalSettings({...localSettings, cpaLeadUrl: e.target.value})}
+                              className="h-12 bg-black border-white/5 rounded-xl font-mono text-[9px] flex-1" 
+                            />
+                            <Button variant="ghost" size="icon" className="h-12 w-12 bg-white/5 rounded-xl">
+                               <LinkIcon className="h-4 w-4" />
+                            </Button>
+                         </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                           <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Coins Per $1.00</Label>
+                           <Input 
+                             type="number"
+                             value={localSettings.coinValuePerDollar || ''} 
+                             onChange={e => setLocalSettings({...localSettings, coinValuePerDollar: parseInt(e.target.value)})}
+                             className="h-12 bg-black border-white/5 rounded-xl font-bold" 
+                           />
+                        </div>
+                        <div className="space-y-2">
+                           <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Admin Profit (%)</Label>
+                           <Input 
+                             type="number"
+                             value={localSettings.adminProfitPercentage || ''} 
+                             onChange={e => setLocalSettings({...localSettings, adminProfitPercentage: parseInt(e.target.value)})}
+                             className="h-12 bg-black border-white/5 rounded-xl font-bold" 
+                           />
+                        </div>
+                      </div>
+                      <div className="h-px bg-white/5" />
+                      <div className="space-y-4">
+                         <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+                            <div className="space-y-1">
+                               <p className="text-xs font-bold uppercase italic">CPA Offerwall</p>
+                               <p className="text-[8px] text-muted-foreground uppercase">Enable external mission signal</p>
+                            </div>
+                            <Switch 
+                              checked={localSettings.offerWallEnabled} 
+                              onCheckedChange={v => setLocalSettings({...localSettings, offerWallEnabled: v})} 
+                            />
+                         </div>
+                         <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+                            <div className="space-y-1">
+                               <p className="text-xs font-bold uppercase italic">Maintenance Mode</p>
+                               <p className="text-[8px] text-red-500 uppercase font-black">Block all user access</p>
+                            </div>
+                            <Switch 
+                              checked={localSettings.maintenanceMode} 
+                              onCheckedChange={v => setLocalSettings({...localSettings, maintenanceMode: v})} 
+                            />
+                         </div>
+                      </div>
+                   </div>
+                </Card>
+
+                {/* Promotional Media */}
+                <Card className="bg-[#0a0a0f] border-white/5 p-10 space-y-8 rounded-[2.5rem] shadow-2xl md:col-span-2">
+                   <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                      <Layout className="text-blue-500 h-6 w-6" />
+                      <h3 className="text-xl font-black uppercase italic">Dashboard Promotional Assets</h3>
+                   </div>
+                   <div className="grid md:grid-cols-2 gap-8">
+                      <div className="space-y-4">
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Hero Promotion Banner URL</Label>
+                            <Input 
+                              value={localSettings.heroBannerUrl || ''} 
+                              onChange={e => setLocalSettings({...localSettings, heroBannerUrl: e.target.value})}
+                              className="h-12 bg-black border-white/5 rounded-xl font-mono text-xs" 
+                            />
+                         </div>
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Official Telegram Link</Label>
+                            <Input 
+                              value={localSettings.telegramUrl || ''} 
+                              onChange={e => setLocalSettings({...localSettings, telegramUrl: e.target.value})}
+                              className="h-12 bg-black border-white/5 rounded-xl font-mono text-xs" 
+                            />
+                         </div>
+                      </div>
+                      <div className="aspect-video rounded-3xl bg-black/40 border border-white/5 flex items-center justify-center relative overflow-hidden">
+                         {localSettings.heroBannerUrl ? (
+                           <img src={localSettings.heroBannerUrl} className="w-full h-full object-cover" alt="Preview" />
+                         ) : (
+                           <div className="text-center space-y-2 opacity-20">
+                              <ImageIcon className="h-10 w-10 mx-auto" />
+                              <p className="text-[10px] font-black uppercase">Banner Preview</p>
+                           </div>
+                         )}
+                         <div className="absolute top-4 right-4">
+                            <Badge className="bg-blue-600 text-white font-black text-[8px] uppercase">Live View</Badge>
+                         </div>
+                      </div>
+                   </div>
+                </Card>
+             </div>
           </div>
         )}
       </main>
 
+      {/* Adjust Capital Dialog */}
       <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
         <DialogContent className="bg-[#0a0a0f] border-white/10 text-white rounded-2xl max-w-sm">
           <DialogHeader>
