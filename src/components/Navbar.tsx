@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Zap, Wallet, LogIn, User, LogOut, Shield, Activity, UserPlus, Bell } from 'lucide-react';
+import { Home, Zap, Wallet, LogIn, User, LogOut, Shield, Activity, UserPlus, Bell, Star, Gift } from 'lucide-react';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -48,8 +48,9 @@ export default function Navbar() {
           <div className="flex items-center gap-8">
             <NavLink href="/" label="Home" active={pathname === '/'} />
             <NavLink href="/dashboard" label="Dashboard" active={pathname === '/dashboard'} />
-            <NavLink href="/inbox" label="Inbox" active={pathname === '/inbox'} />
-            <NavLink href="/refer" label="Refer & Earn" active={pathname === '/refer'} />
+            <NavLink href="/rewards" label="Rewards" active={pathname === '/rewards'} />
+            <NavLink href="/vip" label="VIP Club" active={pathname === '/vip'} />
+            <NavLink href="/refer" label="Refer" active={pathname === '/refer'} />
             {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-accent italic flex items-center gap-1.5"><Shield className="h-3 w-3" /> Admin</Link>}
           </div>
 
@@ -81,9 +82,9 @@ export default function Navbar() {
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#0a0a0f] border-t border-white/5 flex items-center justify-around px-2">
         <MobileNavItem active={pathname === '/'} icon={<Home />} label="Home" href="/" />
+        <MobileNavItem active={pathname === '/rewards'} icon={<Gift />} label="Rewards" href="/rewards" />
+        <MobileNavItem active={pathname === '/vip'} icon={<Star />} label="VIP" href="/vip" />
         <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="Profile" href="/dashboard" />
-        <MobileNavItem active={pathname === '/inbox'} icon={<Bell />} label="Inbox" href="/inbox" />
-        <MobileNavItem active={pathname === '/refer'} icon={<UserPlus />} label="Refer" href="/refer" />
         <MobileNavItem active={pathname === '/ledger'} icon={<Wallet />} label="Wallet" href="/ledger" />
       </nav>
     </>
@@ -112,6 +113,7 @@ function UserMenu({ user, isAdmin, onLogout }: any) {
         <DropdownMenuLabel className="p-4 text-[10px] font-bold uppercase text-muted-foreground">My Account</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-white/5" />
         <DropdownMenuItem asChild className="focus:bg-white/5 h-11"><Link href="/dashboard" className="w-full flex items-center gap-3 font-bold uppercase text-[10px]"><User className="h-4 w-4" /> My Profile</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild className="focus:bg-white/5 h-11"><Link href="/vip" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] text-amber-500"><Star className="h-4 w-4" /> VIP Benefits</Link></DropdownMenuItem>
         {isAdmin && (
           <DropdownMenuItem asChild className="focus:bg-primary/20 h-11"><Link href="/admin" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] text-primary italic"><Shield className="h-4 w-4" /> Admin Panel</Link></DropdownMenuItem>
         )}

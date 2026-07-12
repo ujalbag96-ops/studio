@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trophy, Calendar, Users, ShieldAlert, Key, Gamepad2, Coins, Loader2, ArrowLeft, ShieldCheck, PlayCircle, Wallet, Zap } from 'lucide-react';
+import { Trophy, Calendar, Users, ShieldAlert, Key, Gamepad2, Coins, Loader2, ArrowLeft, ShieldCheck, PlayCircle, Wallet, Zap, Star } from 'lucide-react';
 import { useState } from 'react';
 import { Tournament, Registration, UserProfile } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -38,19 +38,25 @@ export default function TournamentDetails() {
   const { data: registrations } = useCollection<Registration>(regQuery);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
+  const isVip = profile?.vipStatus?.isActive && new Date(profile.vipStatus.expiryDate) > new Date();
+  const discountPercent = isVip ? (profile?.vipStatus?.tier === 'monthly' ? 20 : 10) : 0;
+  
+  const originalFee = tournament?.entryFee || 0;
+  const finalFee = Math.floor(originalFee * (1 - discountPercent / 100));
+
   const isJoined = registrations && registrations.length > 0;
   const playableBalance = (profile?.depositBalance || 0) + (profile?.winningBalance || 0) + (profile?.bonusBalance || 0);
-  const canAfford = playableBalance >= (tournament?.entryFee || 0);
+  const canAfford = playableBalance >= finalFee;
 
   const handleJoin = async () => {
     if (!user || !firestore || !tournament || !userRef || isJoining) return;
     if (!gameIdInput.trim()) { toast({ variant: "destructive", title: "ID Required" }); return; }
     if (!canAfford) { toast({ variant: "destructive", title: "Insufficient Assets" }); return; }
 
-    setIsJoining(true); // Anti-Hang Hardware Lock
+    setIsJoining(true); 
     try {
-      const fee = tournament.entryFee;
-      // Deduction Priority: Deposit -> Bonus -> Winning
+      const fee = finalFee;
+      
       let rem = fee;
       const depDec = Math.min(profile?.depositBalance || 0, rem);
       rem -= depDec;
@@ -78,14 +84,14 @@ export default function TournamentDetails() {
         amount: fee,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: `Joined: ${tournament.name}`
+        description: `Joined: ${tournament.name} ${isVip ? '(VIP Discount Applied)' : ''}`
       });
 
       toast({ title: "DEPLOYED SUCCESSFULLY" });
     } catch (e) {
       toast({ variant: "destructive", title: "JOIN FAILED" });
     } finally {
-      setIsJoining(false); // Release Lock
+      setIsJoining(false); 
     }
   };
 
@@ -107,14 +113,14 @@ export default function TournamentDetails() {
              <CountdownTimer targetDate={tournament.startDate} />
            </div>
         </div>
-      </div>
+      </div >
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-8">
           <Card className="bg-white/5 border-white/5 rounded-[2rem] p-8">
              <div className="grid grid-cols-2 gap-6">
                 <StatItem icon={<Trophy className="text-amber-400" />} label="Prize Pool" value={tournament.prizePool} />
-                <StatItem icon={<Coins className="text-primary" />} label="Entry Fee" value={`${tournament.entryFee} 🪙`} />
+                <StatItem icon={<Coins className="text-primary" />} label="Entry Fee" value={`${finalFee} 🪙`} />
                 <StatItem icon={<Calendar className="text-secondary" />} label="Start Time" value={new Date(tournament.startDate).toLocaleString()} />
                 <StatItem icon={<Gamepad2 className="text-white" />} label="Format" value={tournament.gameType} />
              </div>
@@ -136,20 +142,38 @@ export default function TournamentDetails() {
             </Card>
           ) : tournament.status === 'active' && (
             <Card className="bg-[#0a0a0f] border-primary/20 rounded-[2rem] p-8 shadow-2xl">
-               <CardHeader className="px-0">
-                  <CardTitle className="text-2xl font-black uppercase italic">Match Registration</CardTitle>
+               <CardHeader className="px-0 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-2xl font-black uppercase italic">Match Registration</CardTitle>
+                    {isVip && (
+                      <Badge className="bg-amber-500 text-black font-black italic uppercase px-3 py-1 text-[8px] tracking-widest">
+                         <Star className="h-3 w-3 mr-1 inline" /> VIP Discount {discountPercent}% Applied
+                      </Badge>
+                    )}
+                  </div>
                </CardHeader>
                <div className="space-y-6">
                   <div className="space-y-2">
                      <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Game User ID (Required)</Label>
                      <Input value={gameIdInput} onChange={e => setGameIdInput(e.target.value)} placeholder="e.g. 514209931" className="h-16 bg-black border-white/10 rounded-2xl font-black text-xl tracking-widest" />
                   </div>
-                  <div className="flex justify-between items-center p-5 bg-white/5 rounded-2xl border border-white/10">
-                     <span className="text-[10px] font-black uppercase opacity-60">Playable Assets:</span>
-                     <span className={cn("text-xl font-black", canAfford ? "text-green-500" : "text-red-500")}>{playableBalance.toFixed(1)} 🪙</span>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-5 bg-white/5 rounded-2xl border border-white/10">
+                       <span className="text-[8px] font-black uppercase opacity-60 block mb-1">Entry Fee</span>
+                       <div className="flex items-center gap-2">
+                          <span className={cn("text-xl font-black", isVip && "line-through opacity-40 text-xs")}>{originalFee}</span>
+                          {isVip && <span className="text-xl font-black text-amber-500">{finalFee} 🪙</span>}
+                       </div>
+                    </div>
+                    <div className="p-5 bg-white/5 rounded-2xl border border-white/10">
+                       <span className="text-[8px] font-black uppercase opacity-60 block mb-1">Your Assets</span>
+                       <span className={cn("text-xl font-black", canAfford ? "text-green-500" : "text-red-500")}>{playableBalance.toFixed(0)} 🪙</span>
+                    </div>
                   </div>
+
                   <Button type="button" onClick={handleJoin} disabled={isJoining || !canAfford} className="w-full h-20 bg-primary font-black text-xl italic uppercase shadow-xl">
-                     {isJoining ? <Loader2 className="animate-spin" /> : `PAY ${tournament.entryFee} COINS`}
+                     {isJoining ? <Loader2 className="animate-spin" /> : `PAY ${finalFee} COINS`}
                   </Button>
                </div>
             </Card>
