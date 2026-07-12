@@ -35,7 +35,7 @@ export interface UserProfile {
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';
@@ -79,6 +79,33 @@ export interface PredictionPoll {
   status: 'active' | 'closed';
   expiry: string;
   winner?: 'A' | 'B';
+}
+
+export interface CricketMatch {
+  id: string;
+  teamA: string;
+  teamB: string;
+  teamALogo: string;
+  teamBLogo: string;
+  startTime: string;
+  status: 'upcoming' | 'live' | 'completed';
+  series: string;
+  liveScore?: {
+    runsA?: string;
+    runsB?: string;
+    overs?: string;
+    target?: string;
+  };
+}
+
+export interface CricketPool {
+  id: string;
+  matchId: string;
+  question: string;
+  entryFee: number;
+  totalPool: number;
+  status: 'open' | 'closed';
+  type: 'winner' | 'runs' | 'wickets';
 }
 
 export interface Registration {

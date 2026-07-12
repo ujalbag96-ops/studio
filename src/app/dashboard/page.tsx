@@ -27,7 +27,8 @@ import {
   PlayCircle,
   Video,
   AlertCircle,
-  ShoppingBag
+  ShoppingBag,
+  Flag
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,7 +51,6 @@ export default function UserDashboard() {
   const { toast } = useToast();
   const [activeNav, setActiveNav] = useState<'overview' | 'offers' | 'video'>('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
-  const [isWatching, setIsWatching] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
@@ -66,7 +66,7 @@ export default function UserDashboard() {
     );
   }, [firestore, user]);
 
-  const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+  const { data: profile } = useDoc<UserProfile>(userProfileRef);
   const { data: recentActivity, isLoading: isActivityLoading } = useCollection<UserLedgerEntry>(ledgerQuery);
 
   const handleLogout = async () => {
@@ -83,73 +83,9 @@ export default function UserDashboard() {
     }
   };
 
-  const handleWatchVideo = async () => {
-    if (!user || !firestore || !userProfileRef || !profile) return;
-
-    // Daily Limit Logic
-    const today = new Date().toISOString().split('T')[0];
-    const watchedToday = profile.lastVideoWatchDate === today ? (profile.videosWatchedToday || 0) : 0;
-    
-    if (watchedToday >= 5) {
-      toast({ 
-        variant: "destructive", 
-        title: "Daily Limit Reached", 
-        description: "You have already watched 5 videos today. Come back tomorrow!" 
-      });
-      return;
-    }
-
-    setIsWatching(true);
-    
-    // Simulate Video Playback Delay
-    try {
-      await new Promise(resolve => setTimeout(resolve, 6000));
-
-      await updateDoc(userProfileRef, {
-        bonusBalance: increment(2),
-        coins: increment(2),
-        videosWatchedToday: watchedToday + 1,
-        lastVideoWatchDate: today
-      });
-
-      await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
-        type: 'video_reward',
-        amount: 2,
-        date: today,
-        status: 'completed',
-        description: 'Watch & Earn Video Reward'
-      });
-
-      toast({ 
-        title: "Coins Credited!", 
-        description: "2 Bonus Coins added for watching video." 
-      });
-      
-      // Play reward sound
-      new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
-    } catch (e) {
-      toast({ variant: "destructive", title: "Error crediting reward" });
-    } finally {
-      setIsWatching(false);
-    }
-  };
-
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
-  if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center gap-6 bg-[#050508]">
-        <Shield className="h-20 w-20 text-muted-foreground opacity-20" />
-        <h2 className="text-3xl font-black uppercase text-white">Login Required</h2>
-        <Button asChild size="lg" className="rounded-xl font-black px-12 h-14 bg-primary shadow-xl text-white uppercase italic">
-          <Link href="/login">Please Login</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  const today = new Date().toISOString().split('T')[0];
-  const videosRemaining = 5 - (profile?.lastVideoWatchDate === today ? (profile?.videosWatchedToday || 0) : 0);
+  if (!user) return <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary">
@@ -169,11 +105,8 @@ export default function UserDashboard() {
           <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Portfolio" onClick={() => setActiveNav('overview')} />
           <SidebarItem active={activeNav === 'video'} icon={<PlayCircle />} label="Watch & Earn" onClick={() => setActiveNav('video')} />
           <SidebarItem active={activeNav === 'offers'} icon={<Zap />} label="CPA Missions" onClick={() => setActiveNav('offers')} />
+          <SidebarItem active={false} icon={<Flag />} label="Cricket Hub" href="/cricket" />
           <SidebarItem active={false} icon={<ShoppingBag />} label="In-App Shop" href="/shop" />
-          <SidebarItem active={false} icon={<Trophy />} label="My Matches" href="/" />
-          <SidebarItem active={false} icon={<Gift />} label="Refer & Earn" href="/refer" />
-          <SidebarItem active={false} icon={<History />} label="Ledger" href="/ledger" />
-          <SidebarItem active={false} icon={<Wallet />} label="Withdraw" href="/withdraw" />
         </nav>
 
         <div className="p-8 border-t border-white/5">
@@ -188,22 +121,18 @@ export default function UserDashboard() {
           <>
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                   <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
-                </div>
+                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
                 <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Portfolio</span></h1>
-                
                 <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
-                   <div>
+                   <div className="truncate">
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">User ID (UID)</p>
                       <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
                    </div>
-                   <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 bg-white/5 hover:bg-primary/20">
+                   <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 shrink-0">
                       <Copy className="h-4 w-4" />
                    </Button>
                 </Card>
               </div>
-
               <div className="flex items-center gap-4">
                 <Button onClick={() => setIsConnectOpen(true)} className="bg-white/5 border border-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase italic">
                   Add Cash <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
@@ -217,10 +146,41 @@ export default function UserDashboard() {
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} description="Ready for withdrawal" color="green" />
-              <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} description="For match entries" color="blue" />
-              <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} description="From referrals/Tasks" color="amber" />
+              <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} color="green" />
+              <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} color="blue" />
+              <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} color="amber" />
             </div>
+
+            {/* Live Cricket Score Widget Placeholder */}
+            <Card className="bg-gradient-to-r from-blue-900/40 to-black border-blue-500/20 rounded-[2.5rem] p-8 md:p-12 overflow-hidden relative group">
+               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:rotate-12 transition-transform duration-1000">
+                  <Flag className="h-48 w-48 text-blue-400" />
+               </div>
+               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+                  <div className="space-y-6">
+                     <div className="flex items-center gap-3">
+                        <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 italic">Live Cricket Score Feed</span>
+                     </div>
+                     <div className="flex items-center gap-10">
+                        <div className="text-center space-y-2">
+                           <div className="h-16 w-16 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center font-black text-2xl">IND</div>
+                           <p className="text-xs font-black">184/4</p>
+                        </div>
+                        <div className="font-black text-muted-foreground italic">VS</div>
+                        <div className="text-center space-y-2">
+                           <div className="h-16 w-16 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center font-black text-2xl">AUS</div>
+                           <p className="text-xs font-black">72/1 (8.2)</p>
+                        </div>
+                     </div>
+                  </div>
+                  <div className="w-full md:w-auto">
+                     <Button asChild className="w-full md:w-64 h-20 bg-blue-600 hover:bg-blue-500 rounded-2xl font-black uppercase italic text-lg shadow-2xl">
+                        <Link href="/cricket">BET ON MATCH</Link>
+                     </Button>
+                  </div>
+               </div>
+            </Card>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
               <div className="xl:col-span-2 space-y-8">
@@ -228,166 +188,34 @@ export default function UserDashboard() {
                   <History className="h-6 w-6 text-primary" /> Recent Activity
                 </h3>
                 <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
-                  <CardContent className="p-0">
-                    {isActivityLoading ? (
-                      <div className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
-                    ) : recentActivity && recentActivity.length > 0 ? (
-                      <div className="divide-y divide-white/5">
-                        {recentActivity.map((activity) => (
-                          <div key={activity.id} className="p-8 flex items-center justify-between hover:bg-white/5 transition-all group">
-                            <div className="flex items-center gap-6">
-                               <div className={cn(
-                                 "h-12 w-12 rounded-xl flex items-center justify-center border transition-all",
-                                 ['income', 'referral', 'video_reward'].includes(activity.type) ? "bg-green-500/10 text-green-500 border-green-500/20" : 
-                                 activity.type === 'withdrawal' || activity.type === 'entry_fee' || activity.type === 'shop_redemption' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
-                               )}>
-                                 {['income', 'referral', 'video_reward'].includes(activity.type) ? <TrendingUp className="h-5 w-5" /> : 
-                                  activity.type === 'withdrawal' || activity.type === 'shop_redemption' ? <ArrowUpRight className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
-                               </div>
-                               <div className="space-y-1">
-                                 <p className="text-sm font-bold uppercase text-white group-hover:text-primary transition-colors">{activity.description || activity.type}</p>
-                                 <p className="text-[10px] text-muted-foreground font-bold uppercase">{activity.date}</p>
-                               </div>
-                            </div>
-                            <div className="text-right">
-                              <p className={cn(
-                                "text-xl font-black",
-                                activity.type === 'withdrawal' || activity.type === 'entry_fee' || activity.type === 'shop_redemption' ? "text-red-400" : "text-green-400"
-                              )}>
-                                {activity.type === 'withdrawal' || activity.type === 'entry_fee' || activity.type === 'shop_redemption' ? '-' : '+'}
-                                {activity.amount.toFixed(1)} 🪙
-                              </p>
-                            </div>
+                  {isActivityLoading ? (
+                    <div className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
+                  ) : recentActivity && recentActivity.length > 0 ? (
+                    <div className="divide-y divide-white/5">
+                      {recentActivity.map((activity) => (
+                        <div key={activity.id} className="p-8 flex items-center justify-between hover:bg-white/5 transition-all">
+                          <div className="flex items-center gap-6">
+                             <div className="h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
+                                <TrendingUp className="h-5 w-5 text-primary" />
+                             </div>
+                             <div>
+                                <p className="text-sm font-bold uppercase text-white">{activity.description || activity.type}</p>
+                                <p className="text-[10px] text-muted-foreground font-bold uppercase">{activity.date}</p>
+                             </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-32 text-center space-y-4">
-                         <History className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
-                         <p className="text-sm text-muted-foreground italic font-bold uppercase">No recent activity.</p>
-                      </div>
-                    )}
-                  </CardContent>
+                          <p className={cn("text-xl font-black", activity.amount < 0 ? "text-red-400" : "text-green-400")}>
+                            {activity.amount > 0 ? '+' : ''}{activity.amount} 🪙
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-32 text-center text-muted-foreground uppercase font-black text-xs">No recent signals.</div>
+                  )}
                 </Card>
               </div>
-
-              <aside className="space-y-10">
-                <Card className="bg-gradient-to-br from-[#1a1a24] to-[#0a0a0f] border-primary/20 border-2 rounded-[2rem] p-10 text-center space-y-10 shadow-2xl relative overflow-hidden group">
-                   <div className="mx-auto h-20 w-20 rounded-[1.5rem] bg-primary/10 flex items-center justify-center border border-primary/20">
-                      <PlayCircle className="h-10 w-10 text-primary animate-pulse" />
-                   </div>
-                   <div className="space-y-4 relative z-10">
-                      <h3 className="text-3xl font-black uppercase italic">Free Video Income</h3>
-                      <p className="text-sm text-muted-foreground font-medium">Watch short ads to earn Bonus Coins instantly.</p>
-                   </div>
-                   <Button onClick={() => setActiveNav('video')} className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
-                      START WATCHING
-                   </Button>
-                </Card>
-              </aside>
             </div>
           </>
-        )}
-
-        {activeNav === 'video' && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <header className="space-y-4">
-                <div className="flex items-center gap-3">
-                   <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Watch & Earn Hub</Badge>
-                </div>
-                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Watch <span className="text-primary">Videos</span></h1>
-                <p className="text-muted-foreground font-medium text-lg max-w-2xl leading-relaxed">
-                   Watch short video advertisements to earn <span className="text-primary font-bold">Bonus Coins</span>. You can watch up to 5 videos every day.
-                </p>
-             </header>
-
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <Card className="bg-[#0a0a0f] border-white/5 border rounded-[2.5rem] overflow-hidden p-10 shadow-2xl space-y-8">
-                   <div className="flex items-center justify-between">
-                      <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                         <Video className="h-8 w-8 text-primary" />
-                      </div>
-                      <div className="text-right">
-                         <p className="text-[10px] font-black uppercase text-muted-foreground italic">Video Reward</p>
-                         <p className="text-4xl font-black text-white italic">2 🪙</p>
-                      </div>
-                   </div>
-                   
-                   <div className="space-y-6">
-                      <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-                         Experience high-quality industrial ad content and get credited instantly. No hidden fees, just pure earning.
-                      </p>
-                      <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
-                         <span className="text-[10px] font-black uppercase text-white tracking-widest italic">Daily Videos Remaining</span>
-                         <Badge className={cn("font-black text-lg h-10 w-10 flex items-center justify-center rounded-lg border-none", videosRemaining > 0 ? "bg-primary text-white" : "bg-red-500 text-white")}>
-                            {videosRemaining}
-                         </Badge>
-                      </div>
-                   </div>
-
-                   <Button 
-                    onClick={handleWatchVideo}
-                    disabled={isWatching || videosRemaining <= 0}
-                    className="w-full h-24 bg-primary hover:bg-primary/90 rounded-[1.5rem] font-black uppercase italic text-2xl shadow-2xl transition-all active:scale-95"
-                   >
-                      {isWatching ? (
-                        <div className="flex items-center gap-4">
-                           <Loader2 className="h-8 w-8 animate-spin" />
-                           <span>BUFFERING...</span>
-                        </div>
-                      ) : videosRemaining <= 0 ? "LIMIT REACHED" : "WATCH AD NOW"}
-                   </Button>
-                </Card>
-
-                <div className="space-y-6">
-                   <Card className="bg-white/5 border-white/5 rounded-2xl p-8 flex items-center gap-6">
-                      <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                         <Shield className="h-6 w-6 text-blue-500" />
-                      </div>
-                      <div>
-                         <h4 className="text-sm font-black uppercase italic">Anti-Abuse System</h4>
-                         <p className="text-[10px] text-muted-foreground font-bold uppercase mt-1">Limits reset daily at 12:00 AM Midnight.</p>
-                      </div>
-                   </Card>
-                   <Card className="bg-white/5 border-white/5 rounded-2xl p-8 flex items-center gap-6">
-                      <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                         <Zap className="h-6 w-6 text-amber-500" />
-                      </div>
-                      <div>
-                         <h4 className="text-sm font-black uppercase italic">Instant Credits</h4>
-                         <p className="text-[10px] text-muted-foreground font-bold uppercase mt-1">Bonus coins can be used for any tournament.</p>
-                      </div>
-                   </Card>
-                   <Card className="bg-white/5 border-white/5 rounded-2xl p-8 flex items-center gap-6">
-                      <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/20">
-                         <Trophy className="h-6 w-6 text-green-500" />
-                      </div>
-                      <div>
-                         <h4 className="text-sm font-black uppercase italic">No Deposit Required</h4>
-                         <p className="text-[10px] text-muted-foreground font-bold uppercase mt-1">Start playing for free using video rewards.</p>
-                      </div>
-                   </Card>
-                </div>
-             </div>
-          </div>
-        )}
-
-        {activeNav === 'offers' && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <header className="space-y-4">
-                <div className="flex items-center gap-3">
-                   <Badge className="bg-amber-500/20 text-amber-500 border-none uppercase font-black px-4 py-1 text-[10px]">Strategic Missions</Badge>
-                </div>
-                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">CPA <span className="text-amber-500">Missions</span></h1>
-                <p className="text-muted-foreground font-medium text-lg max-w-2xl leading-relaxed">
-                   Complete localized tasks from our corporate sponsors to earn immediate <span className="text-amber-500 font-bold">Bonus Coins</span>. These coins can be used for any tournament entry.
-                </p>
-             </header>
-
-             <Card className="bg-[#0a0a0f] border-white/5 border rounded-[3rem] overflow-hidden p-8 md:p-12 shadow-2xl">
-                <OfferWall />
-             </Card>
-          </div>
         )}
       </main>
     </div>
@@ -404,20 +232,20 @@ function SidebarItem({ active, icon, label, onClick, href }: any) {
 
   if (href) {
     return (
-      <Link href={href} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all relative", active ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
+      <Link href={href} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all", active ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5")}>
         {content}
       </Link>
     );
   }
 
   return (
-    <button onClick={onClick} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all relative", active ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
+    <button onClick={onClick} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all", active ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5")}>
       {content}
     </button>
   );
 }
 
-function WalletCard({ label, value, icon, description, color }: any) {
+function WalletCard({ label, value, icon, color }: any) {
   const colorMap = {
     blue: "border-blue-500/20 text-blue-400 bg-blue-500/5",
     amber: "border-amber-500/20 text-amber-500 bg-amber-500/5",
@@ -425,20 +253,12 @@ function WalletCard({ label, value, icon, description, color }: any) {
   };
 
   return (
-    <Card className={cn(
-      "relative overflow-hidden p-6 rounded-[2rem] border-2 transition-all hover:scale-105 shadow-xl group",
-      colorMap[color as keyof typeof colorMap]
-    )}>
-      <div className="relative z-10 space-y-4">
-        <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border", colorMap[color as keyof typeof colorMap])}>
-           {icon}
-        </div>
+    <Card className={cn("p-6 rounded-[2rem] border-2 transition-all hover:scale-105 shadow-xl", colorMap[color as keyof typeof colorMap])}>
+      <div className="space-y-4">
+        <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border", colorMap[color as keyof typeof colorMap])}>{icon}</div>
         <div>
           <p className="text-[10px] font-bold uppercase text-muted-foreground/60 mb-1">{label}</p>
-          <h4 className="text-3xl font-black text-white italic tracking-tighter tabular-nums">
-            {(value || 0).toLocaleString()} <span className="text-sm opacity-40 font-bold">🪙</span>
-          </h4>
-          <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase italic">{description}</p>
+          <h4 className="text-3xl font-black text-white italic tracking-tighter">{value.toLocaleString()} 🪙</h4>
         </div>
       </div>
     </Card>

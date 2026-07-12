@@ -20,7 +20,9 @@ import {
   Wallet,
   Target,
   Trophy,
-  Trash2
+  Trash2,
+  Table as TableIcon,
+  Flag
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,7 +34,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { UserProfile, PredictionPoll } from '@/app/lib/types';
+import { UserProfile, PredictionPoll, CricketMatch } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
@@ -51,19 +53,24 @@ export default function AdminDashboard() {
   const [adjAmount, setAdjAmount] = useState('100');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Poll Form State
+  // Poll/Cricket Form State
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollEntryFee, setPollEntryFee] = useState('10');
+  
+  // Cricket Form
+  const [matchTeamA, setMatchTeamA] = useState('');
+  const [matchTeamB, setMatchTeamB] = useState('');
+  const [matchTime, setMatchTime] = useState('');
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
-  const withdrawalQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'withdrawals'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   const pollsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'polls') : null, [firestore, isAdminUser]);
+  const cricketQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'cricket_matches') : null, [firestore, isAdminUser]);
   
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
-  const { data: withdrawals, isLoading: withdrawsLoading } = useCollection<any>(withdrawalQuery);
-  const { data: polls, isLoading: pollsLoading } = useCollection<PredictionPoll>(pollsQuery);
+  const { data: polls } = useCollection<PredictionPoll>(pollsQuery);
+  const { data: matches } = useCollection<CricketMatch>(cricketQuery);
 
   const handleLogout = async () => {
     if (auth) {
@@ -101,33 +108,27 @@ export default function AdminDashboard() {
     }
   };
 
-  const createPoll = async () => {
-    if (!firestore || !pollQuestion.trim()) return;
+  const createCricketMatch = async () => {
+    if (!firestore || !matchTeamA || !matchTeamB) return;
     setIsProcessing(true);
     try {
-      await addDoc(collection(firestore, 'polls'), {
-        question: pollQuestion,
-        category: 'Sports',
-        optionA: 'YES',
-        optionB: 'NO',
-        entryFee: Number(pollEntryFee),
-        totalPool: 0,
-        status: 'active',
-        expiry: '24h'
+      await addDoc(collection(firestore, 'cricket_matches'), {
+        teamA: matchTeamA,
+        teamB: matchTeamB,
+        startTime: matchTime,
+        status: 'upcoming',
+        series: 'IPL T20 2024',
+        teamALogo: 'https://placehold.co/100x100/orange/white?text=' + matchTeamA.substring(0,2),
+        teamBLogo: 'https://placehold.co/100x100/blue/white?text=' + matchTeamB.substring(0,2),
       });
-      setPollQuestion('');
-      toast({ title: "POLL CREATED" });
+      setMatchTeamA('');
+      setMatchTeamB('');
+      toast({ title: "CRICKET MATCH DEPLOYED" });
     } catch (e) {
-      toast({ variant: "destructive", title: "FAILED" });
+      toast({ variant: "destructive", title: "FAILED TO DEPLOY" });
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const deletePoll = async (id: string) => {
-    if (!firestore) return;
-    await deleteDoc(doc(firestore, 'polls', id));
-    toast({ title: "POLL DELETED" });
   };
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
@@ -149,7 +150,7 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 px-4 space-y-2 pt-4">
           <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="Users List" onClick={() => setActiveTab('users')} />
-          <SidebarLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Withdrawals" onClick={() => setActiveTab('withdrawals')} />
+          <SidebarLink active={activeTab === 'cricket'} icon={<Flag />} label="Cricket Arena" onClick={() => setActiveTab('cricket')} />
           <SidebarLink active={activeTab === 'polls'} icon={<Target />} label="Poll Wars" onClick={() => setActiveTab('polls')} />
         </nav>
         <div className="p-6 border-t border-white/5">
@@ -208,34 +209,45 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'polls' && (
+        {activeTab === 'cricket' && (
           <div className="space-y-8">
             <Card className="bg-[#0a0a0f] border-primary/20 rounded-2xl p-8 space-y-6">
-               <h3 className="text-xl font-black uppercase italic text-primary flex items-center gap-2"><Target className="h-5 w-5" /> Launch New Poll</h3>
-               <div className="grid md:grid-cols-2 gap-6">
+               <h3 className="text-xl font-black uppercase italic text-primary flex items-center gap-2"><Flag className="h-5 w-5" /> Launch Cricket Match</h3>
+               <div className="grid md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase">Poll Question</Label>
-                     <Input value={pollQuestion} onChange={e => setPollQuestion(e.target.value)} placeholder="e.g. Will RCB win tonight?" className="bg-black border-white/10" />
+                     <Label className="text-[10px] font-black uppercase">Team A</Label>
+                     <Input value={matchTeamA} onChange={e => setMatchTeamA(e.target.value)} placeholder="e.g. India" className="bg-black border-white/10" />
                   </div>
                   <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase">Entry Fee (Coins)</Label>
-                     <Input type="number" value={pollEntryFee} onChange={e => setPollEntryFee(e.target.value)} className="bg-black border-white/10" />
+                     <Label className="text-[10px] font-black uppercase">Team B</Label>
+                     <Input value={matchTeamB} onChange={e => setMatchTeamB(e.target.value)} placeholder="e.g. Pakistan" className="bg-black border-white/10" />
+                  </div>
+                  <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase">Start Date/Time</Label>
+                     <Input type="datetime-local" value={matchTime} onChange={e => setMatchTime(e.target.value)} className="bg-black border-white/10" />
                   </div>
                </div>
-               <Button onClick={createPoll} disabled={isProcessing} className="w-full bg-primary font-black uppercase italic h-14 rounded-xl shadow-xl">
-                  {isProcessing ? <Loader2 className="animate-spin" /> : "DEPLOY POLL TO ARENA"}
+               <Button onClick={createCricketMatch} disabled={isProcessing} className="w-full bg-primary font-black uppercase italic h-14 rounded-xl">
+                  {isProcessing ? <Loader2 className="animate-spin" /> : "DEPLOY CRICKET SIGNAL"}
                </Button>
             </Card>
 
             <div className="grid gap-4">
-               <h3 className="text-lg font-black uppercase italic">Active Polls</h3>
-               {polls?.map(p => (
-                 <Card key={p.id} className="bg-white/5 border-white/10 p-6 flex items-center justify-between rounded-xl group">
-                    <div>
-                       <p className="font-bold text-sm uppercase">{p.question}</p>
-                       <p className="text-[9px] text-muted-foreground uppercase font-black mt-1">Fee: {p.entryFee} 🪙 • Pool: {p.totalPool} 🪙</p>
+               <h3 className="text-lg font-black uppercase italic">Live Deployments</h3>
+               {matches?.map(m => (
+                 <Card key={m.id} className="bg-white/5 border-white/10 p-6 flex items-center justify-between rounded-xl">
+                    <div className="flex items-center gap-6">
+                       <div className="text-center">
+                          <p className="font-black text-xl">{m.teamA}</p>
+                          <span className="text-[8px] text-muted-foreground uppercase">WARRIORS</span>
+                       </div>
+                       <div className="font-black text-primary italic">VS</div>
+                       <div className="text-center">
+                          <p className="font-black text-xl">{m.teamB}</p>
+                          <span className="text-[8px] text-muted-foreground uppercase">WARRIORS</span>
+                       </div>
                     </div>
-                    <Button onClick={() => deletePoll(p.id)} variant="ghost" size="icon" className="text-red-500 hover:bg-red-500/10"><Trash2 className="h-4 w-4" /></Button>
+                    <Badge className="bg-green-500/10 text-green-500 border-none px-4">{m.status}</Badge>
                  </Card>
                ))}
             </div>
