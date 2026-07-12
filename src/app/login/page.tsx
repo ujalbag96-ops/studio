@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -132,7 +131,9 @@ export default function LoginPage() {
       toast({ title: "Google Auth", description: "Login successful." });
     } catch (e: any) {
       setAuthError(e.message);
-      toast({ variant: "destructive", title: "Google Login Failed", description: e.message });
+      if (e.code !== 'auth/popup-closed-by-user') {
+        toast({ variant: "destructive", title: "Google Login Failed", description: e.message });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -183,8 +184,8 @@ export default function LoginPage() {
         <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">Login / <span className="text-primary">Register</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Sign in to manage your account</p>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">Sign In / <span className="text-primary">Sign Up</span></h1>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Manage your dashboard & winnings</p>
       </div>
 
       {authError && (

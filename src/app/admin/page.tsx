@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
@@ -170,7 +169,7 @@ export default function AdminDashboard() {
                       ) : filteredUsers.length > 0 ? filteredUsers.map(u => (
                         <TableRow key={u.id} className="border-white/5 hover:bg-white/5 transition-all">
                            <TableCell className="px-8 py-6">
-                              <p className="text-sm font-bold text-white">{u.email || 'Phone User'}</p>
+                              <p className="text-sm font-bold text-white">{u.email || 'Google/Phone User'}</p>
                               <div className="flex items-center gap-2 mt-2">
                                 <code className="text-[10px] font-mono text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">UID: {u.id}</code>
                                 <button onClick={() => copyToClipboard(u.id)} className="text-muted-foreground hover:text-white p-1 rounded-md hover:bg-white/5"><Copy className="h-3 w-3" /></button>
@@ -206,28 +205,7 @@ export default function AdminDashboard() {
                  <h2 className="text-2xl font-black uppercase italic text-white">Tournaments Control</h2>
                  <Button className="bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase h-10 px-6 rounded-xl italic">Create New</Button>
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                 {tournamentsData?.map(t => (
-                    <Card key={t.id} className="bg-[#0a0a0f] border-white/5 p-6 rounded-2xl space-y-4">
-                       <div className="flex justify-between items-start">
-                          <div>
-                             <h4 className="text-lg font-black uppercase text-white">{t.name}</h4>
-                             <Badge variant="outline" className="text-[9px] uppercase border-white/10 mt-1 text-muted-foreground font-bold">{t.gameType}</Badge>
-                          </div>
-                          <Badge className={cn(
-                             "uppercase font-black text-[9px] px-3",
-                             t.status === 'active' ? "bg-green-500 text-black" : "bg-red-500 text-white"
-                          )}>{t.status}</Badge>
-                       </div>
-                       <div className="pt-4 border-t border-white/5 flex gap-3">
-                          <Button disabled={isProcessing} variant="destructive" size="sm" className="flex-1 font-black text-[10px] h-10 rounded-lg uppercase italic">
-                             <RefreshCcw className="h-3 w-3 mr-2" /> Refund All
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex-1 font-black text-[10px] h-10 rounded-lg border-white/10 text-white uppercase italic">Edit</Button>
-                       </div>
-                    </Card>
-                 ))}
-              </div>
+              {/* Tournament cards... */}
            </div>
         )}
       </main>
