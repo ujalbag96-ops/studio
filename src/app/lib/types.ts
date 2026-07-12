@@ -89,6 +89,7 @@ export interface Tournament {
   status: TournamentStatus;
   startDate: string;
   banner: string;
+  streamUrl?: string; // Added real stream support
   roomCredentials?: {
     roomId?: string;
     roomPassword?: string;
@@ -154,6 +155,11 @@ export interface AppSettings {
   adMobInterstitialId?: string;
   appLovinSdkKey?: string;
   appLovinZoneId?: string;
+  
+  // Earning Banners (Added for user earning via clicks)
+  earningBannerUrl?: string;
+  earningBannerLink?: string;
+  earningBannerReward?: number;
   
   // Legacy / Direct
   bannerAdId?: string;

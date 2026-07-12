@@ -100,6 +100,17 @@ export default function TournamentDetails() {
     }
   };
 
+  const getEmbedUrl = (url?: string) => {
+    if (!url) return null;
+    if (url.includes('youtube.com/watch?v=')) {
+      return url.replace('watch?v=', 'embed/');
+    }
+    if (url.includes('youtu.be/')) {
+      return url.replace('youtu.be/', 'youtube.com/embed/');
+    }
+    return url;
+  };
+
   if (isTourLoading) return <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!tournament) notFound();
 
@@ -197,23 +208,34 @@ export default function TournamentDetails() {
         </div>
       ) : (
         <div className="space-y-8 animate-in zoom-in-95 duration-500">
-           <Card className="bg-black border-white/5 rounded-[3rem] overflow-hidden aspect-video relative group">
-              <div className="absolute inset-0 flex flex-col items-center justify-center space-y-6 z-10">
-                 <div className="h-24 w-24 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center animate-pulse">
-                    <Video className="h-10 w-10 text-destructive" />
-                 </div>
-                 <div className="text-center space-y-2">
-                    <h3 className="text-3xl font-black uppercase italic text-white">Live Feed Offline</h3>
-                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Stream starts 5 minutes before match kickoff</p>
-                 </div>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent opacity-60" />
-              <img src={tournament.banner} className="w-full h-full object-cover blur-xl opacity-20" alt="Stream BG" />
-           </Card>
+           {tournament.streamUrl ? (
+             <div className="aspect-video bg-black rounded-[3rem] overflow-hidden border border-white/5 shadow-2xl">
+                <iframe 
+                  src={getEmbedUrl(tournament.streamUrl) || ''} 
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+             </div>
+           ) : (
+             <Card className="bg-black border-white/5 rounded-[3rem] overflow-hidden aspect-video relative group">
+                <div className="absolute inset-0 flex flex-col items-center justify-center space-y-6 z-10">
+                   <div className="h-24 w-24 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center animate-pulse">
+                      <Video className="h-10 w-10 text-destructive" />
+                   </div>
+                   <div className="text-center space-y-2">
+                      <h3 className="text-3xl font-black uppercase italic text-white">Live Feed Offline</h3>
+                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Stream starts 5 minutes before match kickoff</p>
+                   </div>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent opacity-60" />
+                <img src={tournament.banner} className="w-full h-full object-cover blur-xl opacity-20" alt="Stream BG" />
+             </Card>
+           )}
 
            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <StreamStat label="Active Viewers" value="1.2K" icon={<Users className="text-blue-500" />} />
-              <StreamStat label="Stream Status" value="Awaiting" icon={<Radio className="text-destructive" />} />
+              <StreamStat label="Stream Status" value={tournament.streamUrl ? "Online" : "Awaiting"} icon={<Radio className={cn("text-destructive", tournament.streamUrl && "text-green-500 animate-pulse")} />} />
               <StreamStat label="Delay" value="Low Latency" icon={<Zap className="text-amber-500" />} />
               <StreamStat label="Resolution" value="1080p Ultra" icon={<ShieldCheck className="text-green-500" />} />
            </div>

@@ -26,7 +26,9 @@ import {
   Server,
   Lock,
   ExternalLink,
-  CreditCard
+  CreditCard,
+  Image as ImageIcon,
+  Video
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,7 +75,10 @@ export default function AdminDashboard() {
     offerWallEnabled: true,
     adminUpiId: '',
     depositTelegramUrl: '',
-    automaticGatewayEnabled: true
+    automaticGatewayEnabled: true,
+    earningBannerUrl: '',
+    earningBannerLink: '',
+    earningBannerReward: 5
   });
 
   // Local state for JILI Integration
@@ -99,7 +104,10 @@ export default function AdminDashboard() {
         offerWallEnabled: globalConfig.offerWallEnabled !== false,
         adminUpiId: globalConfig.adminUpiId || '',
         depositTelegramUrl: globalConfig.depositTelegramUrl || '',
-        automaticGatewayEnabled: globalConfig.automaticGatewayEnabled !== false
+        automaticGatewayEnabled: globalConfig.automaticGatewayEnabled !== false,
+        earningBannerUrl: globalConfig.earningBannerUrl || '',
+        earningBannerLink: globalConfig.earningBannerLink || '',
+        earningBannerReward: globalConfig.earningBannerReward || 5
       });
     }
   }, [globalConfig]);
@@ -320,7 +328,7 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'ads' && (
-           <div className="max-w-4xl space-y-12 animate-in fade-in duration-500">
+           <div className="max-w-5xl space-y-12 animate-in fade-in duration-500">
               <div className="flex items-center gap-4">
                  <Monitor className="text-blue-500 h-6 w-6" />
                  <h2 className="text-2xl font-black uppercase italic">Media & Ads Config</h2>
@@ -346,6 +354,27 @@ export default function AdminDashboard() {
                        <ConfigField label="AppLovin SDK Key" value={systemConfig.appLovinSdkKey} onChange={v => setSystemConfig({...systemConfig, appLovinSdkKey: v})} />
                        <ConfigField label="Reward Zone ID" value={systemConfig.appLovinZoneId} onChange={v => setSystemConfig({...systemConfig, appLovinZoneId: v})} />
                     </div>
+                 </Card>
+              </div>
+
+              {/* EARNING BANNER SECTION */}
+              <div className="space-y-8">
+                 <div className="flex items-center gap-4">
+                    <ImageIcon className="text-primary h-6 w-6" />
+                    <h2 className="text-2xl font-black uppercase italic">Sponsored Earning Banners</h2>
+                 </div>
+                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-green-600">
+                    <div className="grid md:grid-cols-3 gap-8">
+                       <ConfigField label="Banner Image URL" value={systemConfig.earningBannerUrl} onChange={v => setSystemConfig({...systemConfig, earningBannerUrl: v})} placeholder="https://..." />
+                       <ConfigField label="Click Target URL" value={systemConfig.earningBannerLink} onChange={v => setSystemConfig({...systemConfig, earningBannerLink: v})} placeholder="https://..." />
+                       <ConfigField label="User Reward (Coins)" value={systemConfig.earningBannerReward.toString()} onChange={v => setSystemConfig({...systemConfig, earningBannerReward: parseInt(v) || 0})} placeholder="5" />
+                    </div>
+                    {systemConfig.earningBannerUrl && (
+                      <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                        <p className="text-[8px] font-black uppercase text-muted-foreground mb-2">Live Preview</p>
+                        <img src={systemConfig.earningBannerUrl} className="h-20 w-full object-cover rounded-lg opacity-80" alt="Preview" />
+                      </div>
+                    )}
                  </Card>
               </div>
               

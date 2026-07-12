@@ -18,7 +18,9 @@ import {
   Gift,
   Coins,
   FileBarChart,
-  ShieldAlert
+  ShieldAlert,
+  ExternalLink,
+  Target
 } from 'lucide-react';
 import { AppSettings, UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
@@ -34,6 +36,7 @@ export default function EarningHub() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [isBannerClaiming, setIsBannerClaiming] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   // Standardized Path for Global Configurations
@@ -146,6 +149,37 @@ export default function EarningHub() {
     }
   };
 
+  const handleBannerClick = async () => {
+    if (!user || !firestore || !settings?.earningBannerLink || isBannerClaiming) return;
+    
+    setIsBannerClaiming(true);
+    window.open(settings.earningBannerLink, '_blank');
+
+    // Reward for banner click interaction
+    try {
+      const reward = settings.earningBannerReward || 2;
+      const updateData = {
+        taskBalance: increment(reward),
+        coins: increment(reward)
+      };
+
+      await updateDoc(userRef!, updateData);
+      await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
+        type: 'income',
+        amount: reward,
+        date: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        description: 'Banner Ad Engagement Dividend'
+      });
+
+      toast({ title: "CLICK REWARD CLAIMED", description: `${reward} Coins synchronized.` });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsBannerClaiming(false);
+    }
+  };
+
   if (settingsLoading || profileLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] gap-4">
@@ -183,6 +217,27 @@ export default function EarningHub() {
            <div>
               <h4 className="text-sm font-black uppercase tracking-widest text-red-500">Security Warning: VPN Active</h4>
               <p className="text-[10px] text-muted-foreground font-bold uppercase">Analytical missions are restricted while using proxy signals.</p>
+           </div>
+        </Card>
+      )}
+
+      {/* PROMOTIONAL EARNING BANNER */}
+      {settings?.earningBannerUrl && (
+        <Card onClick={handleBannerClick} className="bg-white/5 border-primary/20 border-2 rounded-[2.5rem] overflow-hidden group cursor-pointer relative shadow-2xl">
+           <div className="absolute top-4 right-4 z-10">
+              <Badge className="bg-primary text-white font-black uppercase italic animate-pulse">SPONSORED: +{settings.earningBannerReward} COINS</Badge>
+           </div>
+           <div className="h-40 md:h-48 w-full overflow-hidden">
+              <img src={settings.earningBannerUrl} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-70" alt="Sponsored Content" />
+           </div>
+           <div className="p-6 bg-black/60 backdrop-blur-md flex items-center justify-between border-t border-white/5">
+              <div>
+                 <p className="text-sm font-black uppercase italic text-white flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" /> Engage with Sponsor
+                 </p>
+                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Click to visit and claim instant coins</p>
+              </div>
+              <ExternalLink className="h-6 w-6 text-primary" />
            </div>
         </Card>
       )}
