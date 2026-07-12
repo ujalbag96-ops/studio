@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useUser, useCollection, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, addDoc, increment, query, orderBy, where, deleteDoc } from 'firebase/firestore';
+import { useUser, useCollection, useFirestore, useMemoFirebase, useAuth, useDoc } from '@/firebase';
+import { collection, doc, updateDoc, addDoc, increment, query, orderBy, where, deleteDoc, setDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   Users as UsersIcon, 
@@ -12,20 +12,19 @@ import {
   Gamepad2,
   LogOut,
   Plus,
-  Minus,
   ShieldCheck,
   CheckCircle2,
-  XCircle,
   Wallet,
   Target,
   Trophy,
-  Trash2,
-  Table as TableIcon,
   Flag,
   Radio,
   Zap,
   ArrowUpRight,
-  AlertCircle
+  AlertCircle,
+  Video,
+  Globe,
+  Monitor
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,10 +34,11 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { UserProfile, WithdrawalRequest, ESportsMatch } from '@/app/lib/types';
+import { UserProfile, WithdrawalRequest, ESportsMatch, AppSettings } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'users' | 'withdrawals' | 'esports'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'withdrawals' | 'esports' | 'settings'>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [balanceAdjustment, setBalanceAdjustment] = useState<{ user: UserProfile, mode: 'add' | 'deduct' } | null>(null);
   const [adjAmount, setAdjAmount] = useState('100');
@@ -63,15 +63,27 @@ export default function AdminDashboard() {
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
   const withdrawalsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'withdrawals'), where('status', '==', 'pending'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   const esportsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'esports_matches'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
+  const settingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'settings', 'global') : null, [firestore, isAdminUser]);
   
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
   const { data: withdrawalsData, isLoading: withdrawalsLoading } = useCollection<WithdrawalRequest>(withdrawalsQuery);
   const { data: esMatches } = useCollection<ESportsMatch>(esportsQuery);
+  const { data: globalSettings } = useDoc<AppSettings>(settingsRef);
 
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
       router.push('/login');
+    }
+  };
+
+  const updateGlobalSetting = async (field: keyof AppSettings, value: any) => {
+    if (!settingsRef) return;
+    try {
+      await setDoc(settingsRef, { [field]: value }, { merge: true });
+      toast({ title: "SYSTEM UPDATED", description: `${field} synchronized.` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "UPDATE FAILED" });
     }
   };
 
@@ -110,8 +122,6 @@ export default function AdminDashboard() {
     try {
       const withdrawalRef = doc(firestore, 'withdrawals', id);
       await updateDoc(withdrawalRef, { status, processedAt: new Date().toISOString() });
-
-      // Find original ledger entry for user and update it too (simplified)
       toast({ title: `WITHDRAWAL ${status.toUpperCase()}` });
     } catch (e) {
       toast({ variant: "destructive", title: "ACTION FAILED" });
@@ -138,9 +148,10 @@ export default function AdminDashboard() {
           <span className="font-black text-xl italic uppercase">ADMIN <span className="text-primary">HUB</span></span>
         </div>
         <nav className="flex-1 px-4 space-y-2 pt-4">
-          <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="Users List" onClick={() => setActiveTab('users')} />
+          <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="User Registry" onClick={() => setActiveTab('users')} />
           <SidebarLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Queue" onClick={() => setActiveTab('withdrawals')} />
           <SidebarLink active={activeTab === 'esports'} icon={<Radio />} label="E-Sports Control" onClick={() => setActiveTab('esports')} />
+          <SidebarLink active={activeTab === 'settings'} icon={<Settings />} label="System Protocol" onClick={() => setActiveTab('settings')} />
         </nav>
         <div className="p-6 border-t border-white/5">
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-red-500 hover:bg-red-500/10 transition-all font-black uppercase text-xs">
@@ -149,24 +160,29 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      <main className="flex-1 ml-72 p-10 space-y-10">
+      <main className="flex-1 ml-72 p-10 space-y-10 pb-32">
         <header className="flex items-center justify-between">
-           <h1 className="text-4xl font-black uppercase italic">WinZO <span className="text-primary">Admin</span></h1>
-           <Badge className="bg-primary/20 text-primary border-none font-bold px-4 py-1.5 text-xs uppercase">Authorized Session</Badge>
+           <h1 className="text-4xl font-black uppercase italic tracking-tighter">Command <span className="text-primary">Center</span></h1>
+           <div className="flex items-center gap-4">
+              {globalSettings?.maintenanceMode && (
+                <Badge className="bg-red-600 text-white animate-pulse border-none px-4 py-1.5 font-black uppercase">MAINTENANCE ACTIVE</Badge>
+              )}
+              <Badge className="bg-primary/20 text-primary border-none font-bold px-4 py-1.5 text-xs uppercase">Authorized Session</Badge>
+           </div>
         </header>
 
         {activeTab === 'users' && (
           <div className="space-y-6">
              <div className="flex items-center bg-white/5 border border-white/10 rounded-xl px-4 h-14">
                 <Search className="h-5 w-5 text-muted-foreground mr-3" />
-                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search by Email or UID..." className="bg-transparent border-none outline-none flex-1 text-sm font-bold text-white" />
+                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Identify User by Email or UID..." className="bg-transparent border-none outline-none flex-1 text-sm font-bold text-white" />
              </div>
              <Card className="bg-[#0a0a0f] border-white/5 overflow-hidden rounded-2xl">
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
-                        <TableHead className="text-[10px] font-black uppercase px-8">User Details</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-center">Balances</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase px-8">Identity</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-center">Balances (DEP / WIN)</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-right px-8">Actions</TableHead>
                       </TableRow>
                    </TableHeader>
@@ -178,12 +194,13 @@ export default function AdminDashboard() {
                            <TableCell className="px-8 py-6">
                               <p className="text-sm font-bold text-white">{u.email || 'Anonymous'}</p>
                               <code className="text-[9px] font-mono text-primary/60">UID: {u.id}</code>
-                              <div className="text-[9px] text-muted-foreground font-bold mt-1">IP: {u.lastIp || 'N/A'}</div>
+                              <div className="text-[9px] text-muted-foreground font-bold mt-1 uppercase">IP: {u.lastIp || 'STATIONARY'}</div>
                            </TableCell>
                            <TableCell className="text-center">
-                              <div className="flex flex-col items-center gap-1">
-                                 <Badge variant="outline" className="text-[8px] border-blue-500/20 text-blue-500 w-24 justify-between">DEP: {u.depositBalance?.toFixed(0)}</Badge>
-                                 <Badge variant="outline" className="text-[8px] border-green-500/20 text-green-500 w-24 justify-between">WIN: {u.winningBalance?.toFixed(0)}</Badge>
+                              <div className="flex items-center justify-center gap-3">
+                                 <span className="text-blue-400 font-black tabular-nums">{u.depositBalance?.toFixed(0)}</span>
+                                 <span className="opacity-20">/</span>
+                                 <span className="text-green-500 font-black tabular-nums">{u.winningBalance?.toFixed(0)}</span>
                               </div>
                            </TableCell>
                            <TableCell className="text-right px-8 space-x-2">
@@ -200,7 +217,7 @@ export default function AdminDashboard() {
 
         {activeTab === 'withdrawals' && (
           <div className="space-y-6">
-             <h2 className="text-2xl font-black uppercase italic flex items-center gap-3"><Wallet className="text-primary" /> Pending Payouts</h2>
+             <h2 className="text-2xl font-black uppercase italic flex items-center gap-3"><Wallet className="text-primary" /> Payout Queue</h2>
              <Card className="bg-[#0a0a0f] border-white/5 overflow-hidden rounded-2xl">
                 <Table>
                    <TableHeader className="bg-white/5">
@@ -208,7 +225,7 @@ export default function AdminDashboard() {
                         <TableHead className="text-[10px] font-black uppercase px-8">Warrior ID</TableHead>
                         <TableHead className="text-[10px] font-black uppercase">Gateway / Destination</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-center">Amount</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-right px-8">Decision</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-right px-8">Protocol</TableHead>
                       </TableRow>
                    </TableHeader>
                    <TableBody>
@@ -228,32 +245,15 @@ export default function AdminDashboard() {
                               <span className="text-lg font-black text-green-500 tabular-nums">₹{w.amount}</span>
                            </TableCell>
                            <TableCell className="text-right px-8 space-x-2">
-                              <Button 
-                                size="sm" 
-                                onClick={() => handleWithdrawalAction(w.id, 'approved', w.userId, w.amount)} 
-                                disabled={isProcessing}
-                                className="bg-green-600 h-10 px-6 font-black uppercase text-[10px] rounded-xl"
-                              >
-                                APPROVE
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => handleWithdrawalAction(w.id, 'rejected', w.userId, w.amount)} 
-                                disabled={isProcessing}
-                                className="h-10 px-6 font-black uppercase text-[10px] rounded-xl"
-                              >
-                                REJECT
-                              </Button>
+                              <Button onClick={() => handleWithdrawalAction(w.id, 'approved', w.userId, w.amount)} disabled={isProcessing} className="bg-green-600 h-10 px-6 font-black uppercase text-[10px] rounded-xl">APPROVE</Button>
+                              <Button variant="destructive" onClick={() => handleWithdrawalAction(w.id, 'rejected', w.userId, w.amount)} disabled={isProcessing} className="h-10 px-6 font-black uppercase text-[10px] rounded-xl">REJECT</Button>
                            </TableCell>
                         </TableRow>
                       )) : (
                         <TableRow>
                           <TableCell colSpan={4} className="py-32 text-center">
-                            <div className="space-y-2">
-                               <CheckCircle2 className="h-10 w-10 text-muted-foreground opacity-20 mx-auto" />
-                               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Queue Clear: All payouts processed</p>
-                            </div>
+                            <CheckCircle2 className="h-10 w-10 text-muted-foreground opacity-20 mx-auto mb-4" />
+                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em]">Payout Queue Clear</p>
                           </TableCell>
                         </TableRow>
                       )}
@@ -262,18 +262,133 @@ export default function AdminDashboard() {
              </Card>
           </div>
         )}
+
+        {activeTab === 'settings' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+             <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-8">
+                <div className="flex items-center gap-4">
+                   <div className="h-12 w-12 rounded-2xl bg-red-600/10 flex items-center justify-center border border-red-600/20">
+                      <ShieldCheck className="h-6 w-6 text-red-600" />
+                   </div>
+                   <h3 className="text-xl font-black uppercase italic">Safety Protocol</h3>
+                </div>
+                
+                <div className="space-y-6">
+                   <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
+                      <div>
+                         <p className="text-sm font-black uppercase">Maintenance Mode</p>
+                         <p className="text-[9px] text-muted-foreground font-bold uppercase">Locks app for all non-admin users</p>
+                      </div>
+                      <Switch 
+                        checked={!!globalSettings?.maintenanceMode} 
+                        onCheckedChange={(val) => updateGlobalSetting('maintenanceMode', val)} 
+                      />
+                   </div>
+
+                   <div className="space-y-3">
+                      <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Telegram Support Link</Label>
+                      <div className="flex gap-2">
+                         <Input 
+                          defaultValue={globalSettings?.telegramUrl} 
+                          onBlur={(e) => updateGlobalSetting('telegramUrl', e.target.value)}
+                          placeholder="https://t.me/..." 
+                          className="bg-black border-white/10 h-12 rounded-xl text-xs" 
+                         />
+                      </div>
+                   </div>
+                </div>
+             </Card>
+
+             <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-8">
+                <div className="flex items-center gap-4">
+                   <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                      <Monitor className="h-6 w-6 text-primary" />
+                   </div>
+                   <h3 className="text-xl font-black uppercase italic">Intelligence Feed</h3>
+                </div>
+                
+                <div className="space-y-6">
+                   <div className="space-y-3">
+                      <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">CPA Network API URL</Label>
+                      <Input 
+                        defaultValue={globalSettings?.cpaLeadUrl} 
+                        onBlur={(e) => updateGlobalSetting('cpaLeadUrl', e.target.value)}
+                        className="bg-black border-white/10 h-12 rounded-xl text-xs" 
+                      />
+                   </div>
+                   
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                         <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Withdrawal Fee (%)</Label>
+                         <Input 
+                          type="number"
+                          defaultValue={globalSettings?.withdrawalFeePercent} 
+                          onBlur={(e) => updateGlobalSetting('withdrawalFeePercent', Number(e.target.value))}
+                          className="bg-black border-white/10 h-12 rounded-xl text-xs font-black" 
+                         />
+                      </div>
+                      <div className="space-y-3">
+                         <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Ref Reward (Coins)</Label>
+                         <Input 
+                          type="number"
+                          defaultValue={globalSettings?.referralRewardCoins} 
+                          onBlur={(e) => updateGlobalSetting('referralRewardCoins', Number(e.target.value))}
+                          className="bg-black border-white/10 h-12 rounded-xl text-xs font-black" 
+                         />
+                      </div>
+                   </div>
+                </div>
+             </Card>
+          </div>
+        )}
+
+        {activeTab === 'esports' && (
+          <div className="space-y-6">
+             <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-black uppercase italic flex items-center gap-3"><Radio className="text-primary" /> Active Feed Management</h2>
+                <Button className="bg-primary h-12 px-8 font-black uppercase text-xs rounded-xl italic">
+                   <Plus className="h-4 w-4 mr-2" /> Launch New Match
+                </Button>
+             </div>
+             
+             <div className="grid gap-6">
+                {esMatches && esMatches.length > 0 ? esMatches.map(match => (
+                  <Card key={match.id} className="bg-[#0a0a0f] border-white/5 p-6 rounded-2xl flex items-center justify-between group hover:border-primary/20 transition-all">
+                     <div className="flex items-center gap-6">
+                        <div className="h-14 w-14 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
+                           <Video className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                           <p className="text-lg font-black uppercase italic">{match.title}</p>
+                           <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">{match.game} Arena • {match.status}</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-4">
+                        <Button variant="outline" className="border-white/10 h-10 px-6 font-black uppercase text-[10px] rounded-lg">EDIT STREAM</Button>
+                        <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-500/10"><Trash2 className="h-4 w-4" /></Button>
+                     </div>
+                  </Card>
+                )) : (
+                  <div className="py-24 text-center border-2 border-dashed border-white/5 rounded-[2.5rem]">
+                     <Monitor className="h-12 w-12 text-muted-foreground opacity-10 mx-auto mb-4" />
+                     <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">No Active Match Deployments</p>
+                  </div>
+                )}
+             </div>
+          </div>
+        )}
       </main>
 
       {balanceAdjustment && (
         <Dialog open={!!balanceAdjustment} onOpenChange={() => setBalanceAdjustment(null)}>
            <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-sm rounded-[2rem]">
-              <VisuallyHidden.Root><DialogTitle>Adjust Balance</DialogTitle></VisuallyHidden.Root>
+              <VisuallyHidden.Root><DialogTitle>Balance Sync</DialogTitle></VisuallyHidden.Root>
               <div className="p-4 text-center space-y-6">
-                <h3 className={cn("text-xl font-black uppercase", balanceAdjustment.mode === 'add' ? "text-green-500" : "text-red-500")}>
+                <h3 className={cn("text-xl font-black uppercase italic", balanceAdjustment.mode === 'add' ? "text-green-500" : "text-red-500")}>
                   {balanceAdjustment.mode === 'add' ? "Credit Coins" : "Debit Coins"}
                 </h3>
                 <Input type="number" value={adjAmount} onChange={e => setAdjAmount(e.target.value)} className="h-16 bg-black border-white/10 rounded-xl text-3xl font-black text-center" />
-                <Button onClick={() => executeAdjustment(balanceAdjustment.user.id, Number(adjAmount), balanceAdjustment.mode)} disabled={isProcessing} className="w-full h-14 bg-primary font-black uppercase">
+                <Button onClick={() => executeAdjustment(balanceAdjustment.user.id, Number(adjAmount), balanceAdjustment.mode)} disabled={isProcessing} className="w-full h-14 bg-primary font-black uppercase italic text-lg rounded-xl">
                    {isProcessing ? <Loader2 className="animate-spin" /> : "CONFIRM ACTION"}
                 </Button>
               </div>
@@ -287,10 +402,12 @@ export default function AdminDashboard() {
 function SidebarLink({ active, icon, label, onClick }: any) {
   return (
     <button onClick={onClick} className={cn(
-      "w-full flex items-center gap-4 px-6 py-4 rounded-xl transition-all text-[10px] font-black uppercase",
-      active ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
+      "w-full flex items-center gap-4 px-6 py-4 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest",
+      active ? "bg-primary text-white shadow-lg italic" : "text-muted-foreground hover:bg-white/5"
     )}>
       {icon} <span>{label}</span>
     </button>
   );
 }
+
+import { Trash2 } from 'lucide-react';
