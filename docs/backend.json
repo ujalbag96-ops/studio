@@ -18,34 +18,17 @@
         "isAccountActivated": { "type": "boolean" },
         "lastIp": { "type": "string" },
         "country": { "type": "string" },
-        "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] }
+        "lastSpinTimestamp": { "type": "string" }
       }
     },
-    "CPAMission": {
-      "title": "CPAMission",
-      "description": "CPA mission details for users.",
+    "JhilliConfig": {
+      "title": "JhilliConfig",
+      "description": "Spin wheel operational parameters.",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "appName": { "type": "string" },
-        "link": { "type": "string" },
-        "reward": { "type": "number" },
-        "category": { "type": "string" }
-      }
-    },
-    "PayoutRequest": {
-      "title": "PayoutRequest",
-      "description": "User withdrawal applications.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "userEmail": { "type": "string" },
-        "amount": { "type": "number" },
-        "method": { "type": "string" },
-        "destination": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
-        "timestamp": { "type": "string" }
+        "rewards": { "type": "array", "items": { "type": "number" } },
+        "dailyFreeLimit": { "type": "number" },
+        "spinCost": { "type": "number" }
       }
     }
   },
@@ -57,13 +40,9 @@
       "schema": "UserProfile",
       "description": "Master user profiles"
     },
-    "/payouts/{id}": {
-      "schema": "PayoutRequest",
-      "description": "Global payout queue"
-    },
-    "/cpa_missions/{id}": {
-      "schema": "CPAMission",
-      "description": "Active missions for users"
+    "/app_settings/jhilli_config": {
+      "schema": "JhilliConfig",
+      "description": "Dynamic spin wheel configuration"
     },
     "/app_settings/global_config": {
       "schema": "object",
