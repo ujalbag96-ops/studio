@@ -3,45 +3,45 @@ export type TournamentStatus = 'active' | 'upcoming' | 'completed' | 'cancelled'
 export type GameType = 'BGMI' | 'Free Fire' | 'Ludo King' | 'Other';
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
 
-export interface Team {
+export interface UserProfile {
   id: string;
-  name: string;
-  logo: string;
+  email?: string;
+  depositBalance: number;
+  winningBalance: number;
+  bonusBalance: number;
+  coins: number;
+  referralCode: string;
+  referredBy?: string;
+  lastIp?: string;
+  rank: UserRank;
+  isAdmin?: boolean;
+  isBanned?: boolean;
 }
 
-export interface Match {
+export interface UserLedgerEntry {
   id: string;
-  tournamentId: string;
-  teamA: Team;
-  teamB: Team;
-  scoreA: number;
-  scoreB: number;
-  status: 'live' | 'scheduled' | 'finished';
-  startTime: string;
-  description: string;
-  votesA: number;
-  votesB: number;
+  userId?: string;
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion';
+  amount: number;
+  date: string;
+  status: 'pending' | 'completed' | 'failed';
+  description?: string;
 }
 
 export interface Tournament {
   id: string;
   name: string;
-  status: TournamentStatus;
-  game: string;
   gameType: GameType;
-  prizePool: string;
+  bracketType: string;
   entryFee: number;
+  prizePool: string;
+  status: TournamentStatus;
   startDate: string;
   banner: string;
-  participantsCount?: number;
-  maxParticipants?: number;
-  isRefunded?: boolean;
   roomCredentials?: {
     roomId?: string;
     roomPassword?: string;
-    isDeployed?: boolean;
   };
-  winnerId?: string;
 }
 
 export interface Registration {
@@ -51,88 +51,4 @@ export interface Registration {
   gameId: string;
   joinedAt: string;
   feePaid: number;
-}
-
-export interface SupportMessage {
-  id: string;
-  userId: string;
-  message: string;
-  aiResponse?: string;
-  isFlagged?: boolean;
-  status: 'open' | 'resolved';
-  timestamp: string;
-}
-
-export interface SystemNotification {
-  id: string;
-  title: string;
-  body: string;
-  imageUrl?: string;
-  timestamp: string;
-  audience: 'all' | 'paid' | 'inactive';
-}
-
-export interface UserLedgerEntry {
-  id: string;
-  userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'passive_referral' | 'refund';
-  amount: number;
-  currencySymbol?: string;
-  date: string;
-  status: 'pending' | 'completed' | 'failed' | 'review_required';
-  description?: string;
-  isFlagged?: boolean;
-}
-
-export interface UserProfile {
-  id: string;
-  email?: string;
-  mobile?: string;
-  deviceId?: string;
-  lastIp?: string;
-  country?: string;
-  countryCode?: string;
-  depositBalance: number;
-  winningBalance: number;
-  taskBalance: number;
-  coins: number;
-  withdrawableCoins: number;
-  referralCode: string;
-  referredBy?: string;
-  isAdmin?: boolean;
-  isBanned?: boolean;
-  isVpnActive?: boolean;
-  rank: UserRank;
-  xp: number;
-  tasksCompletedToday: number;
-  lastTaskDate?: string;
-  upiId?: string;
-  lastActive?: string;
-  joinedAt?: string;
-}
-
-export interface AppSettings {
-  id: string;
-  maintenanceMode: boolean;
-  cpaLeadUrl: string;
-  cpaLeadApiKey?: string;
-  offerWallEnabled?: boolean;
-  videoWallEnabled?: boolean;
-  videoWallUrl?: string;
-  adMobAppId?: string;
-  adMobBannerId?: string;
-  adMobInterstitialId?: string;
-  adMobRewardedId?: string;
-  adMobEnabled?: boolean;
-  paymentGatewayKey?: string;
-  paymentGatewaySecret?: string;
-  paymentGatewayEnabled?: boolean;
-  autoWithdrawalThreshold?: number;
-  coinValuePerDollar?: number;
-  adminProfitPercentage?: number;
-  referralRewardCoins?: number;
-  passiveReferralPercent?: number;
-  conversionFeePercent?: number;
-  withdrawalFeePercent?: number;
-  telegramUrl?: string;
 }

@@ -20,7 +20,8 @@ import {
   CreditCard,
   Crown,
   Copy,
-  Coins
+  Coins,
+  Gift
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,7 +64,6 @@ export default function UserDashboard() {
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
-      toast({ title: "Logout Successful" });
       router.push('/login');
     }
   };
@@ -104,23 +104,16 @@ export default function UserDashboard() {
         </div>
 
         <nav className="flex-1 p-8 space-y-2">
-          <div className="pb-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Main Menu</p>
-            <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="My Dashboard" onClick={() => setActiveNav('overview')} />
-            <SidebarItem active={false} icon={<Zap />} label="Earn Coins" href="/earning-hub" />
-            <SidebarItem active={false} icon={<History />} label="My Transactions" href="/ledger" />
-            <SidebarItem active={false} icon={<Wallet />} label="Withdraw Cash" href="/withdraw" />
-          </div>
-          
-          <div className="pt-8 border-t border-white/5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-4 px-4">Account Status</p>
-            <SidebarItem active={false} icon={<Crown className="text-amber-500" />} label={`${profile?.rank?.toUpperCase() || 'BRONZE'} TIER`} href="/levels" />
-          </div>
+          <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Dashboard" onClick={() => setActiveNav('overview')} />
+          <SidebarItem active={false} icon={<Zap />} label="Earn Coins" href="/earning-hub" />
+          <SidebarItem active={false} icon={<Gift />} label="Refer & Earn" href="/refer" />
+          <SidebarItem active={false} icon={<History />} label="Ledger" href="/ledger" />
+          <SidebarItem active={false} icon={<Wallet />} label="Withdraw" href="/withdraw" />
         </nav>
 
         <div className="p-8 border-t border-white/5">
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all font-black uppercase text-xs italic">
-            <LogOut className="h-5 w-5" /> Logout Account
+            <LogOut className="h-5 w-5" /> Logout
           </button>
         </div>
       </aside>
@@ -130,9 +123,6 @@ export default function UserDashboard() {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
-               <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-bold uppercase">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live System Status
-               </div>
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Portfolio</span></h1>
             
@@ -159,25 +149,18 @@ export default function UserDashboard() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <WalletCard label="Total Balance" value={profile?.coins || 0} icon={<Coins />} description="Combined wallet value" color="primary" />
-          <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} description="Withdraw anytime" color="green" />
-          <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} description="For game entries" color="blue" />
-          <WalletCard label="Bonus Coins" value={profile?.taskBalance || 0} icon={<Zap />} description="Earned from tasks" color="amber" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} description="Ready for withdrawal" color="green" />
+          <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} description="For match entries" color="blue" />
+          <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} description="From referrals/tasks" color="amber" />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           <div className="xl:col-span-2 space-y-8">
-            <div className="flex items-center justify-between px-2">
-               <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic">
-                 <History className="h-6 w-6 text-primary" /> Activity History
-               </h3>
-               <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary font-bold uppercase text-xs h-10 px-6 rounded-xl border border-white/5">
-                  <Link href="/ledger">View Full Ledger <ChevronRight className="h-4 w-4 ml-2" /></Link>
-               </Button>
-            </div>
-            
-            <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl min-h-[300px]">
+            <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic">
+              <History className="h-6 w-6 text-primary" /> Recent Transactions
+            </h3>
+            <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
               <CardContent className="p-0">
                 {isActivityLoading ? (
                   <div className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
@@ -189,7 +172,7 @@ export default function UserDashboard() {
                            <div className={cn(
                              "h-12 w-12 rounded-xl flex items-center justify-center border transition-all",
                              activity.type === 'income' ? "bg-green-500/10 text-green-500 border-green-500/20" : 
-                             activity.type === 'withdrawal' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
+                             activity.type === 'withdrawal' || activity.type === 'entry_fee' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
                            )}>
                              {activity.type === 'income' ? <TrendingUp className="h-5 w-5" /> : 
                               activity.type === 'withdrawal' ? <ArrowUpRight className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
@@ -199,20 +182,14 @@ export default function UserDashboard() {
                              <p className="text-[10px] text-muted-foreground font-bold uppercase">{activity.date}</p>
                            </div>
                         </div>
-                        <div className="text-right space-y-2">
+                        <div className="text-right">
                           <p className={cn(
-                            "text-xl font-black tracking-tighter",
+                            "text-xl font-black",
                             activity.type === 'withdrawal' || activity.type === 'entry_fee' ? "text-red-400" : "text-green-400"
                           )}>
                             {activity.type === 'withdrawal' || activity.type === 'entry_fee' ? '-' : '+'}
-                            {activity.type === 'withdrawal' ? `₹${activity.amount.toFixed(2)}` : `${activity.amount.toFixed(1)} 🪙`}
+                            {activity.amount.toFixed(1)} 🪙
                           </p>
-                          <Badge variant="outline" className={cn(
-                             "text-[8px] font-black uppercase border-none",
-                             activity.status === 'completed' ? "text-green-500" : "text-yellow-500"
-                          )}>
-                            {activity.status}
-                          </Badge>
                         </div>
                       </div>
                     ))}
@@ -220,7 +197,7 @@ export default function UserDashboard() {
                 ) : (
                   <div className="p-32 text-center space-y-4">
                      <History className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
-                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No recent activity found.</p>
+                     <p className="text-sm text-muted-foreground italic font-bold uppercase">No recent activity.</p>
                   </div>
                 )}
               </CardContent>
@@ -233,11 +210,11 @@ export default function UserDashboard() {
                   <Zap className="h-10 w-10 text-primary animate-pulse" />
                </div>
                <div className="space-y-4 relative z-10">
-                  <h3 className="text-3xl font-black uppercase italic">Free Coins</h3>
-                  <p className="text-sm text-muted-foreground font-medium">Earn extra winnings by watching ads.</p>
+                  <h3 className="text-3xl font-black uppercase italic">Bonus Hub</h3>
+                  <p className="text-sm text-muted-foreground font-medium">Earn extra credits for match entries.</p>
                </div>
                <Button asChild className="w-full bg-primary hover:bg-primary/90 h-16 rounded-xl font-black uppercase tracking-widest text-lg transition-all hover:scale-105">
-                  <Link href="/earning-hub">Earn Winnings</Link>
+                  <Link href="/earning-hub">Earn Now</Link>
                </Button>
             </Card>
           </aside>
@@ -252,20 +229,19 @@ function SidebarItem({ active, icon, label, onClick, href }: any) {
     <>
       <span className={cn("h-5 w-5 transition-all", active ? "scale-110 text-white" : "text-muted-foreground")}>{icon}</span>
       <span className="text-xs font-bold uppercase italic">{label}</span>
-      {active && <div className="absolute left-0 h-6 w-1 bg-primary rounded-full" />}
     </>
   );
 
   if (href) {
     return (
-      <Link href={href} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all relative", active ? "bg-primary text-white shadow-lg shadow-primary/10" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
+      <Link href={href} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all relative", active ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
         {content}
       </Link>
     );
   }
 
   return (
-    <button onClick={onClick} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all relative", active ? "bg-primary text-white shadow-lg shadow-primary/10" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
+    <button onClick={onClick} className={cn("w-full flex items-center gap-6 px-8 py-4 rounded-xl transition-all relative", active ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5 hover:text-white")}>
       {content}
     </button>
   );
@@ -273,7 +249,6 @@ function SidebarItem({ active, icon, label, onClick, href }: any) {
 
 function WalletCard({ label, value, icon, description, color }: any) {
   const colorMap = {
-    primary: "border-primary/20 text-primary bg-primary/5",
     blue: "border-blue-500/20 text-blue-400 bg-blue-500/5",
     amber: "border-amber-500/20 text-amber-500 bg-amber-500/5",
     green: "border-green-500/20 text-green-500 bg-green-500/5"
@@ -285,12 +260,12 @@ function WalletCard({ label, value, icon, description, color }: any) {
       colorMap[color as keyof typeof colorMap]
     )}>
       <div className="relative z-10 space-y-4">
-        <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border shadow-md", colorMap[color as keyof typeof colorMap])}>
+        <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border", colorMap[color as keyof typeof colorMap])}>
            {icon}
         </div>
         <div>
           <p className="text-[10px] font-bold uppercase text-muted-foreground/60 mb-1">{label}</p>
-          <h4 className="text-3xl font-black text-white italic tracking-tighter tabular-nums flex items-baseline gap-2">
+          <h4 className="text-3xl font-black text-white italic tracking-tighter tabular-nums">
             {(value || 0).toLocaleString()} <span className="text-sm opacity-40 font-bold">🪙</span>
           </h4>
           <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase italic">{description}</p>

@@ -1,62 +1,74 @@
+
 {
   "entities": {
     "UserProfile": {
       "title": "UserProfile",
-      "description": "User profile with balance and admin status.",
+      "description": "User profile with triple-balance wallet and referral data.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "email": { "type": "string" },
-        "coins": { "type": "number" },
-        "withdrawableCoins": { "type": "number" },
+        "depositBalance": { "type": "number" },
+        "winningBalance": { "type": "number" },
+        "bonusBalance": { "type": "number" },
+        "coins": { "type": "number", "description": "Total legacy balance" },
+        "referralCode": { "type": "string" },
+        "referredBy": { "type": "string" },
+        "lastIp": { "type": "string" },
+        "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] },
         "isAdmin": { "type": "boolean" },
-        "isBanned": { "type": "boolean" },
-        "deviceId": { "type": "string" }
+        "isBanned": { "type": "boolean" }
       }
     },
     "Tournament": {
       "title": "Tournament",
-      "description": "Gaming tournament details.",
+      "description": "Dynamic multi-game tournament structure.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "status": { "type": "string", "enum": ["active", "upcoming", "completed"] },
+        "gameType": { "type": "string", "enum": ["BGMI", "Free Fire", "Ludo King", "Other"] },
+        "bracketType": { "type": "string", "enum": ["Single Elimination", "Double Elimination", "League"] },
         "entryFee": { "type": "number" },
-        "prizePool": { "type": "string" }
+        "prizePool": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "upcoming", "completed", "cancelled"] },
+        "startDate": { "type": "string", "format": "date-time" }
       }
     },
-    "Match": {
-      "title": "Match",
-      "description": "Individual battle details.",
+    "WithdrawalRequest": {
+      "title": "WithdrawalRequest",
+      "description": "User withdrawal applications for admin review.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "status": { "type": "string", "enum": ["live", "scheduled", "finished"] },
-        "scoreA": { "type": "number" },
-        "scoreB": { "type": "number" }
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string" },
+        "destination": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "timestamp": { "type": "string" }
       }
     }
   },
   "auth": {
-    "providers": ["password", "phone", "anonymous"]
+    "providers": ["password", "google", "phone"]
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "User documents"
+      "description": "User master profiles"
+    },
+    "/users/{userId}/ledger/{id}": {
+      "schema": "object",
+      "description": "Transaction history"
     },
     "/tournaments/{tournamentId}": {
       "schema": "Tournament",
       "description": "Tournament records"
     },
-    "/matches/{matchId}": {
-      "schema": "Match",
-      "description": "Match records"
-    },
-    "/settings/global": {
-      "schema": "object",
-      "description": "App settings"
+    "/withdrawals/{id}": {
+      "schema": "WithdrawalRequest",
+      "description": "Withdrawal queue"
     }
   }
 }

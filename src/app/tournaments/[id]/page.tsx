@@ -6,9 +6,10 @@ import { doc, updateDoc, increment, collection, addDoc, query, where } from 'fir
 import { notFound, useParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trophy, Calendar, Users, ShieldAlert, Key, Gamepad2, Coins, Loader2, ArrowLeft, ShieldCheck, Copy, CheckCircle2, PlayCircle, Wallet, Zap } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Trophy, Calendar, Users, ShieldAlert, Key, Gamepad2, Coins, Loader2, ArrowLeft, ShieldCheck, PlayCircle, Wallet, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { Tournament, Registration, UserProfile } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -38,35 +39,30 @@ export default function TournamentDetails() {
   const { data: profile } = useDoc<UserProfile>(userRef);
 
   const isJoined = registrations && registrations.length > 0;
-  const playableBalance = (profile?.depositBalance || 0) + (profile?.winningBalance || 0);
+  const playableBalance = (profile?.depositBalance || 0) + (profile?.winningBalance || 0) + (profile?.bonusBalance || 0);
   const canAfford = playableBalance >= (tournament?.entryFee || 0);
 
   const handleJoin = async () => {
-    if (!user || !firestore || !tournament || !userRef) {
-      router.push('/login');
-      return;
-    }
+    if (!user || !firestore || !tournament || !userRef || isJoining) return;
+    if (!gameIdInput.trim()) { toast({ variant: "destructive", title: "ID Required" }); return; }
+    if (!canAfford) { toast({ variant: "destructive", title: "Insufficient Assets" }); return; }
 
-    if (!gameIdInput.trim()) {
-      toast({ variant: "destructive", title: "Game ID Required" });
-      return;
-    }
-
-    if (!canAfford) {
-      toast({ variant: "destructive", title: "Insufficient Assets" });
-      return;
-    }
-
-    setIsJoining(true);
+    setIsJoining(true); // Anti-Hang Hardware Lock
     try {
-      const depositDeduction = Math.min(profile?.depositBalance || 0, tournament.entryFee);
-      const remainingFee = tournament.entryFee - depositDeduction;
+      const fee = tournament.entryFee;
+      // Deduction Priority: Deposit -> Bonus -> Winning
+      let rem = fee;
+      const depDec = Math.min(profile?.depositBalance || 0, rem);
+      rem -= depDec;
+      const bonDec = Math.min(profile?.bonusBalance || 0, rem);
+      rem -= bonDec;
+      const winDec = rem;
       
       await updateDoc(userRef, { 
-        depositBalance: increment(-depositDeduction),
-        winningBalance: increment(-remainingFee),
-        withdrawableCoins: increment(-remainingFee),
-        coins: increment(-tournament.entryFee)
+        depositBalance: increment(-depDec),
+        bonusBalance: increment(-bonDec),
+        winningBalance: increment(-winDec),
+        coins: increment(-fee)
       });
 
       await addDoc(collection(firestore, 'registrations'), {
@@ -74,22 +70,22 @@ export default function TournamentDetails() {
         tournamentId: tournament.id,
         gameId: gameIdInput,
         joinedAt: new Date().toISOString(),
-        feePaid: tournament.entryFee
+        feePaid: fee
       });
 
       await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
         type: 'entry_fee',
-        amount: tournament.entryFee,
+        amount: fee,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: `Participation Fee: ${tournament.name}`
+        description: `Joined: ${tournament.name}`
       });
 
-      toast({ title: "DEPLOYMENT SUCCESSFUL" });
+      toast({ title: "DEPLOYED SUCCESSFULLY" });
     } catch (e) {
-      toast({ variant: "destructive", title: "DEPLOYMENT FAILED" });
+      toast({ variant: "destructive", title: "JOIN FAILED" });
     } finally {
-      setIsJoining(false);
+      setIsJoining(false); // Release Lock
     }
   };
 
@@ -99,18 +95,8 @@ export default function TournamentDetails() {
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8 animate-in fade-in duration-500 pb-32">
       <Button variant="ghost" asChild className="mb-4 hover:bg-white/5 text-muted-foreground">
-        <Link href="/"><ArrowLeft className="h-4 w-4 mr-2" /> Arena Sector</Link>
+        <Link href="/"><ArrowLeft className="h-4 w-4 mr-2" /> All Arenas</Link>
       </Button>
-
-      {tournament.status === 'cancelled' && (
-         <Alert className="bg-red-500/10 border-red-500/20 text-red-500 rounded-[2rem] p-6">
-            <ShieldAlert className="h-6 w-6" />
-            <div>
-               <AlertTitle className="font-black uppercase">ARENA OFFLINE</AlertTitle>
-               <AlertDescription className="font-bold text-xs">This tournament has been cancelled. Refunds have been initiated to user balances.</AlertDescription>
-            </div>
-         </Alert>
-      )}
 
       <div className="relative rounded-[2.5rem] overflow-hidden border border-white/5 h-64 md:h-80 shadow-2xl">
         <img src={tournament.banner} alt={tournament.name} className="h-full w-full object-cover opacity-60" />
@@ -119,7 +105,6 @@ export default function TournamentDetails() {
            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter italic">{tournament.name}</h1>
            <div className="flex items-center gap-4">
              <CountdownTimer targetDate={tournament.startDate} />
-             {isJoined && <Badge className="bg-green-500 text-black font-black uppercase px-3">ENLISTED</Badge>}
            </div>
         </div>
       </div>
@@ -137,35 +122,34 @@ export default function TournamentDetails() {
 
           {isJoined ? (
             <Card className="bg-green-500/10 border-green-500/20 rounded-[2rem] p-8 border-2 shadow-2xl relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-8 opacity-5 rotate-12"><PlayCircle className="h-40 w-40 text-green-500" /></div>
-               <h3 className="text-2xl font-black text-green-500 uppercase flex items-center gap-3 italic"><Key /> Secure Session Keys</h3>
+               <h3 className="text-2xl font-black text-green-500 uppercase flex items-center gap-3 italic"><Key /> Active Keys</h3>
                <div className="grid sm:grid-cols-2 gap-4 mt-6">
                   <div className="p-6 bg-black/60 rounded-2xl border border-white/5">
                      <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Access ID</p>
-                     <p className="text-2xl font-black tracking-widest">{tournament.roomCredentials?.roomId || "SECURED"}</p>
+                     <p className="text-2xl font-black tracking-widest">{tournament.roomCredentials?.roomId || "AWAITING"}</p>
                   </div>
                   <div className="p-6 bg-black/60 rounded-2xl border border-white/5">
                      <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Access Pass</p>
-                     <p className="text-2xl font-black tracking-widest">{tournament.roomCredentials?.roomPassword || "SECURED"}</p>
+                     <p className="text-2xl font-black tracking-widest">{tournament.roomCredentials?.roomPassword || "AWAITING"}</p>
                   </div>
                </div>
             </Card>
-          ) : tournament.status !== 'cancelled' && (
+          ) : tournament.status === 'active' && (
             <Card className="bg-[#0a0a0f] border-primary/20 rounded-[2rem] p-8 shadow-2xl">
                <CardHeader className="px-0">
-                  <CardTitle className="text-2xl font-black uppercase italic">Enlist in Arena</CardTitle>
+                  <CardTitle className="text-2xl font-black uppercase italic">Match Registration</CardTitle>
                </CardHeader>
                <div className="space-y-6">
                   <div className="space-y-2">
-                     <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Warrior System ID (Verification)</Label>
+                     <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Game User ID (Required)</Label>
                      <Input value={gameIdInput} onChange={e => setGameIdInput(e.target.value)} placeholder="e.g. 514209931" className="h-16 bg-black border-white/10 rounded-2xl font-black text-xl tracking-widest" />
                   </div>
                   <div className="flex justify-between items-center p-5 bg-white/5 rounded-2xl border border-white/10">
-                     <span className="text-[10px] font-black uppercase opacity-60">Liquid Assets:</span>
+                     <span className="text-[10px] font-black uppercase opacity-60">Playable Assets:</span>
                      <span className={cn("text-xl font-black", canAfford ? "text-green-500" : "text-red-500")}>{playableBalance.toFixed(1)} 🪙</span>
                   </div>
-                  <Button type="button" onClick={handleJoin} disabled={isJoining || !canAfford} className="w-full h-20 bg-primary font-black text-xl italic uppercase shadow-xl shadow-primary/20">
-                     {isJoining ? <Loader2 className="animate-spin" /> : `CONFIRM ${tournament.entryFee} COINS`}
+                  <Button type="button" onClick={handleJoin} disabled={isJoining || !canAfford} className="w-full h-20 bg-primary font-black text-xl italic uppercase shadow-xl">
+                     {isJoining ? <Loader2 className="animate-spin" /> : `PAY ${tournament.entryFee} COINS`}
                   </Button>
                </div>
             </Card>
