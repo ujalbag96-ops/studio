@@ -29,17 +29,27 @@ export interface UserProfile {
   totalReferrals?: number;
   videosWatchedToday?: number;
   lastVideoWatchDate?: string;
+  isVpnActive?: boolean;
 }
 
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';
   description?: string;
   currencySymbol?: string;
+}
+
+export interface ShopItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  category: 'Voucher' | 'Redeem Code' | 'Game Credit';
 }
 
 export interface Tournament {

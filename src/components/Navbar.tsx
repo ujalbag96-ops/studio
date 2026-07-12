@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Zap, Wallet, LogIn, User, LogOut, Shield, Activity, UserPlus, Bell, Star, Gift, Trophy, Target } from 'lucide-react';
+import { Home, Zap, Wallet, LogIn, User, LogOut, Shield, Activity, UserPlus, Bell, Star, Gift, Trophy, Target, ShoppingBag } from 'lucide-react';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -48,6 +48,7 @@ export default function Navbar() {
           <div className="flex items-center gap-8">
             <NavLink href="/" label="Home" active={pathname === '/'} />
             <NavLink href="/predictions" label="Polls" active={pathname === '/predictions'} />
+            <NavLink href="/shop" label="Shop" active={pathname === '/shop'} />
             <NavLink href="/leaderboard" label="Hall of Fame" active={pathname === '/leaderboard'} />
             <NavLink href="/rewards" label="Rewards" active={pathname === '/rewards'} />
             <NavLink href="/vip" label="VIP Club" active={pathname === '/vip'} />
@@ -82,9 +83,9 @@ export default function Navbar() {
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#0a0a0f] border-t border-white/5 flex items-center justify-around px-2">
         <MobileNavItem active={pathname === '/'} icon={<Home />} label="Home" href="/" />
+        <MobileNavItem active={pathname === '/shop'} icon={<ShoppingBag />} label="Shop" href="/shop" />
         <MobileNavItem active={pathname === '/predictions'} icon={<Target />} label="Polls" href="/predictions" />
         <MobileNavItem active={pathname === '/leaderboard'} icon={<Trophy />} label="Ranks" href="/leaderboard" />
-        <MobileNavItem active={pathname === '/rewards'} icon={<Gift />} label="Gifts" href="/rewards" />
         <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="Profile" href="/dashboard" />
       </nav>
     </>
@@ -113,6 +114,7 @@ function UserMenu({ user, isAdmin, onLogout }: any) {
         <DropdownMenuLabel className="p-4 text-[10px] font-bold uppercase text-muted-foreground">My Account</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-white/5" />
         <DropdownMenuItem asChild className="focus:bg-white/5 h-11"><Link href="/dashboard" className="w-full flex items-center gap-3 font-bold uppercase text-[10px]"><User className="h-4 w-4" /> My Profile</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild className="focus:bg-white/5 h-11"><Link href="/shop" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] text-primary"><ShoppingBag className="h-4 w-4" /> WinZO Shop</Link></DropdownMenuItem>
         <DropdownMenuItem asChild className="focus:bg-white/5 h-11"><Link href="/leaderboard" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] text-accent"><Trophy className="h-4 w-4" /> Hall of Fame</Link></DropdownMenuItem>
         <DropdownMenuItem asChild className="focus:bg-white/5 h-11"><Link href="/vip" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] text-amber-500"><Star className="h-4 w-4" /> VIP Benefits</Link></DropdownMenuItem>
         {isAdmin && (

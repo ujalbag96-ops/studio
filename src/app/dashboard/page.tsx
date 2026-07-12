@@ -26,7 +26,8 @@ import {
   Smartphone,
   PlayCircle,
   Video,
-  AlertCircle
+  AlertCircle,
+  ShoppingBag
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -168,6 +169,7 @@ export default function UserDashboard() {
           <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Portfolio" onClick={() => setActiveNav('overview')} />
           <SidebarItem active={activeNav === 'video'} icon={<PlayCircle />} label="Watch & Earn" onClick={() => setActiveNav('video')} />
           <SidebarItem active={activeNav === 'offers'} icon={<Zap />} label="CPA Missions" onClick={() => setActiveNav('offers')} />
+          <SidebarItem active={false} icon={<ShoppingBag />} label="In-App Shop" href="/shop" />
           <SidebarItem active={false} icon={<Trophy />} label="My Matches" href="/" />
           <SidebarItem active={false} icon={<Gift />} label="Refer & Earn" href="/refer" />
           <SidebarItem active={false} icon={<History />} label="Ledger" href="/ledger" />
@@ -237,10 +239,10 @@ export default function UserDashboard() {
                                <div className={cn(
                                  "h-12 w-12 rounded-xl flex items-center justify-center border transition-all",
                                  ['income', 'referral', 'video_reward'].includes(activity.type) ? "bg-green-500/10 text-green-500 border-green-500/20" : 
-                                 activity.type === 'withdrawal' || activity.type === 'entry_fee' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
+                                 activity.type === 'withdrawal' || activity.type === 'entry_fee' || activity.type === 'shop_redemption' ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
                                )}>
                                  {['income', 'referral', 'video_reward'].includes(activity.type) ? <TrendingUp className="h-5 w-5" /> : 
-                                  activity.type === 'withdrawal' ? <ArrowUpRight className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
+                                  activity.type === 'withdrawal' || activity.type === 'shop_redemption' ? <ArrowUpRight className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
                                </div>
                                <div className="space-y-1">
                                  <p className="text-sm font-bold uppercase text-white group-hover:text-primary transition-colors">{activity.description || activity.type}</p>
@@ -250,9 +252,9 @@ export default function UserDashboard() {
                             <div className="text-right">
                               <p className={cn(
                                 "text-xl font-black",
-                                activity.type === 'withdrawal' || activity.type === 'entry_fee' ? "text-red-400" : "text-green-400"
+                                activity.type === 'withdrawal' || activity.type === 'entry_fee' || activity.type === 'shop_redemption' ? "text-red-400" : "text-green-400"
                               )}>
-                                {activity.type === 'withdrawal' || activity.type === 'entry_fee' ? '-' : '+'}
+                                {activity.type === 'withdrawal' || activity.type === 'entry_fee' || activity.type === 'shop_redemption' ? '-' : '+'}
                                 {activity.amount.toFixed(1)} 🪙
                               </p>
                             </div>
