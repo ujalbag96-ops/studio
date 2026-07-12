@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, setDoc, addDoc, increment, query, orderBy, where, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, addDoc, increment, query, orderBy, where, deleteDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   Users as UsersIcon, 
@@ -14,7 +14,6 @@ import {
   Plus,
   Minus,
   ShieldCheck,
-  Smartphone,
   CheckCircle2,
   XCircle,
   Wallet,
@@ -24,7 +23,9 @@ import {
   Table as TableIcon,
   Flag,
   Radio,
-  Zap
+  Zap,
+  ArrowUpRight,
+  AlertCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { UserProfile, PredictionPoll, CricketMatch, ESportsMatch, ESportsPoll } from '@/app/lib/types';
+import { UserProfile, WithdrawalRequest, ESportsMatch } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
@@ -50,29 +51,21 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'withdrawals' | 'esports'>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [balanceAdjustment, setBalanceAdjustment] = useState<{ user: UserProfile, mode: 'add' | 'deduct' } | null>(null);
   const [adjAmount, setAdjAmount] = useState('100');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // E-Sports Form State
-  const [esMatchTitle, setEsMatchTitle] = useState('');
-  const [esGame, setEsGame] = useState('BGMI');
-  const [esTeamA, setEsMatchTeamA] = useState('');
-  const [esTeamB, setEsMatchTeamB] = useState('');
-
-  // Poll State
-  const [selectedMatchId, setSelectedMatchId] = useState('');
-  const [pollQuestion, setPollQuestion] = useState('');
-  const [pollFee, setPollFee] = useState('10');
-
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
+  // Queries
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
+  const withdrawalsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'withdrawals'), where('status', '==', 'pending'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   const esportsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'esports_matches'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
+  const { data: withdrawalsData, isLoading: withdrawalsLoading } = useCollection<WithdrawalRequest>(withdrawalsQuery);
   const { data: esMatches } = useCollection<ESportsMatch>(esportsQuery);
 
   const handleLogout = async () => {
@@ -82,47 +75,46 @@ export default function AdminDashboard() {
     }
   };
 
-  const createESportsMatch = async () => {
-    if (!firestore || !esMatchTitle || !esTeamA) return;
+  const executeAdjustment = async (uid: string, amount: number, mode: 'add' | 'deduct') => {
+    if (!firestore) return;
     setIsProcessing(true);
     try {
-      await addDoc(collection(firestore, 'esports_matches'), {
-        title: esMatchTitle,
-        game: esGame,
-        teamA: esTeamA,
-        teamB: esTeamB,
-        status: 'live',
-        timestamp: new Date().toISOString()
+      const finalAmount = mode === 'add' ? amount : -amount;
+      const userRef = doc(firestore, 'users', uid);
+      
+      await updateDoc(userRef, {
+        depositBalance: increment(finalAmount),
+        coins: increment(finalAmount)
       });
-      setEsMatchTitle('');
-      setEsMatchTeamA('');
-      setEsMatchTeamB('');
-      toast({ title: "E-SPORTS SIGNAL DEPLOYED" });
+
+      await addDoc(collection(firestore, 'users', uid, 'ledger'), {
+        type: mode === 'add' ? 'deposit' : 'withdrawal',
+        amount: Math.abs(finalAmount),
+        date: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        description: `Admin Manual Adjustment: ${mode.toUpperCase()}`
+      });
+
+      toast({ title: `SUCCESS: ${mode.toUpperCase()} ${amount} COINS` });
+      setBalanceAdjustment(null);
     } catch (e) {
-      toast({ variant: "destructive", title: "DEPLOYMENT FAILED" });
+      toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const createLivePoll = async () => {
-    if (!firestore || !selectedMatchId || !pollQuestion) return;
+  const handleWithdrawalAction = async (id: string, status: 'approved' | 'rejected', userId: string, amount: number) => {
+    if (!firestore) return;
     setIsProcessing(true);
     try {
-      await addDoc(collection(firestore, 'esports_polls'), {
-        matchId: selectedMatchId,
-        question: pollQuestion,
-        optionA: 'YES',
-        optionB: 'NO',
-        entryFee: Number(pollFee),
-        totalPool: 0,
-        status: 'open',
-        timestamp: new Date().toISOString()
-      });
-      setPollQuestion('');
-      toast({ title: "LIVE POLL DEPLOYED" });
+      const withdrawalRef = doc(firestore, 'withdrawals', id);
+      await updateDoc(withdrawalRef, { status, processedAt: new Date().toISOString() });
+
+      // Find original ledger entry for user and update it too (simplified)
+      toast({ title: `WITHDRAWAL ${status.toUpperCase()}` });
     } catch (e) {
-      toast({ variant: "destructive", title: "POLL FAILED" });
+      toast({ variant: "destructive", title: "ACTION FAILED" });
     } finally {
       setIsProcessing(false);
     }
@@ -147,8 +139,8 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 px-4 space-y-2 pt-4">
           <SidebarLink active={activeTab === 'users'} icon={<UsersIcon />} label="Users List" onClick={() => setActiveTab('users')} />
+          <SidebarLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Queue" onClick={() => setActiveTab('withdrawals')} />
           <SidebarLink active={activeTab === 'esports'} icon={<Radio />} label="E-Sports Control" onClick={() => setActiveTab('esports')} />
-          <SidebarLink active={activeTab === 'cricket'} icon={<Flag />} label="Cricket Arena" onClick={() => setActiveTab('cricket')} />
         </nav>
         <div className="p-6 border-t border-white/5">
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-red-500 hover:bg-red-500/10 transition-all font-black uppercase text-xs">
@@ -195,8 +187,8 @@ export default function AdminDashboard() {
                               </div>
                            </TableCell>
                            <TableCell className="text-right px-8 space-x-2">
-                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u, mode: 'add' })} className="h-8 text-[9px] font-black bg-green-600 rounded-lg px-3">ADD</Button>
-                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u, mode: 'deduct' })} className="h-8 text-[9px] font-black bg-red-600 rounded-lg px-3">DEDUCT</Button>
+                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u, mode: 'add' })} className="h-8 text-[9px] font-black bg-green-600 rounded-lg px-3 uppercase">Add</Button>
+                              <Button size="sm" onClick={() => setBalanceAdjustment({ user: u, mode: 'deduct' })} className="h-8 text-[9px] font-black bg-red-600 rounded-lg px-3 uppercase">Deduct</Button>
                            </TableCell>
                         </TableRow>
                       ))}
@@ -206,69 +198,68 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'esports' && (
-          <div className="grid lg:grid-cols-2 gap-10">
-            <Card className="bg-[#0a0a0f] border-primary/20 rounded-2xl p-8 space-y-6">
-               <h3 className="text-xl font-black uppercase italic text-primary flex items-center gap-2"><Radio className="h-5 w-5" /> Deploy E-Sports Match</h3>
-               <div className="space-y-4">
-                  <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase">Match Title</Label>
-                     <Input value={esMatchTitle} onChange={e => setEsMatchTitle(e.target.value)} placeholder="e.g. BGMI Pro Scrims Finals" className="bg-black border-white/10" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                       <Label className="text-[10px] font-black uppercase">Game Sector</Label>
-                       <Select value={esGame} onValueChange={setEsGame}>
-                          <SelectTrigger className="bg-black border-white/10 h-12">
-                             <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-[#121216] border-white/10 text-white">
-                             <SelectItem value="BGMI">BGMI</SelectItem>
-                             <SelectItem value="Free Fire">FREE FIRE</SelectItem>
-                             <SelectItem value="Valorant">VALORANT</SelectItem>
-                          </SelectContent>
-                       </Select>
-                    </div>
-                    <div className="space-y-2">
-                       <Label className="text-[10px] font-black uppercase">Team A</Label>
-                       <Input value={esTeamA} onChange={e => setEsMatchTeamA(e.target.value)} placeholder="Team Alpha" className="bg-black border-white/10" />
-                    </div>
-                  </div>
-                  <Button onClick={createESportsMatch} disabled={isProcessing} className="w-full bg-primary font-black uppercase h-14 rounded-xl">
-                    {isProcessing ? <Loader2 className="animate-spin" /> : "LAUNCH LIVE FEED"}
-                  </Button>
-               </div>
-            </Card>
-
-            <Card className="bg-[#0a0a0f] border-amber-500/20 rounded-2xl p-8 space-y-6">
-               <h3 className="text-xl font-black uppercase italic text-amber-500 flex items-center gap-2"><Zap className="h-5 w-5" /> Deploy Live Poll</h3>
-               <div className="space-y-4">
-                  <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase">Select Active Match</Label>
-                     <Select value={selectedMatchId} onValueChange={setSelectedMatchId}>
-                        <SelectTrigger className="bg-black border-white/10 h-12">
-                           <SelectValue placeholder="Select Match" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#121216] border-white/10 text-white">
-                           {esMatches?.map(m => (
-                             <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
-                  </div>
-                  <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase">Poll Question</Label>
-                     <Input value={pollQuestion} onChange={e => setPollQuestion(e.target.value)} placeholder="e.g. Will Team A wipe the next squad?" className="bg-black border-white/10" />
-                  </div>
-                  <div className="space-y-2">
-                     <Label className="text-[10px] font-black uppercase">Entry Fee (Coins)</Label>
-                     <Input type="number" value={pollFee} onChange={e => setPollFee(e.target.value)} className="bg-black border-white/10" />
-                  </div>
-                  <Button onClick={createLivePoll} disabled={isProcessing || !selectedMatchId} className="w-full bg-amber-500 text-black font-black uppercase h-14 rounded-xl">
-                    {isProcessing ? <Loader2 className="animate-spin" /> : "PUSH LIVE POLL"}
-                  </Button>
-               </div>
-            </Card>
+        {activeTab === 'withdrawals' && (
+          <div className="space-y-6">
+             <h2 className="text-2xl font-black uppercase italic flex items-center gap-3"><Wallet className="text-primary" /> Pending Payouts</h2>
+             <Card className="bg-[#0a0a0f] border-white/5 overflow-hidden rounded-2xl">
+                <Table>
+                   <TableHeader className="bg-white/5">
+                      <TableRow className="border-white/5">
+                        <TableHead className="text-[10px] font-black uppercase px-8">Warrior ID</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase">Gateway / Destination</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-center">Amount</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-right px-8">Decision</TableHead>
+                      </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                      {withdrawalsLoading ? (
+                        <TableRow><TableCell colSpan={4} className="py-20 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow>
+                      ) : withdrawalsData && withdrawalsData.length > 0 ? withdrawalsData.map(w => (
+                        <TableRow key={w.id} className="border-white/5 hover:bg-white/5 transition-all">
+                           <TableCell className="px-8 py-6">
+                              <code className="text-[10px] font-mono text-primary">{w.userId}</code>
+                              <p className="text-[8px] text-muted-foreground font-bold mt-1 uppercase">{new Date(w.timestamp).toLocaleString()}</p>
+                           </TableCell>
+                           <TableCell>
+                              <p className="text-xs font-black text-white">{w.method}</p>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase">{w.destination}</p>
+                           </TableCell>
+                           <TableCell className="text-center">
+                              <span className="text-lg font-black text-green-500 tabular-nums">₹{w.amount}</span>
+                           </TableCell>
+                           <TableCell className="text-right px-8 space-x-2">
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleWithdrawalAction(w.id, 'approved', w.userId, w.amount)} 
+                                disabled={isProcessing}
+                                className="bg-green-600 h-10 px-6 font-black uppercase text-[10px] rounded-xl"
+                              >
+                                APPROVE
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => handleWithdrawalAction(w.id, 'rejected', w.userId, w.amount)} 
+                                disabled={isProcessing}
+                                className="h-10 px-6 font-black uppercase text-[10px] rounded-xl"
+                              >
+                                REJECT
+                              </Button>
+                           </TableCell>
+                        </TableRow>
+                      )) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="py-32 text-center">
+                            <div className="space-y-2">
+                               <CheckCircle2 className="h-10 w-10 text-muted-foreground opacity-20 mx-auto" />
+                               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Queue Clear: All payouts processed</p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                   </TableBody>
+                </Table>
+             </Card>
           </div>
         )}
       </main>
@@ -282,7 +273,7 @@ export default function AdminDashboard() {
                   {balanceAdjustment.mode === 'add' ? "Credit Coins" : "Debit Coins"}
                 </h3>
                 <Input type="number" value={adjAmount} onChange={e => setAdjAmount(e.target.value)} className="h-16 bg-black border-white/10 rounded-xl text-3xl font-black text-center" />
-                <Button onClick={() => executeAdjustment(balanceAdjustment.user.id, Number(adjAmount), balanceAdjustment.mode)} disabled={isProcessing} className="w-full h-14 bg-primary font-black">
+                <Button onClick={() => executeAdjustment(balanceAdjustment.user.id, Number(adjAmount), balanceAdjustment.mode)} disabled={isProcessing} className="w-full h-14 bg-primary font-black uppercase">
                    {isProcessing ? <Loader2 className="animate-spin" /> : "CONFIRM ACTION"}
                 </Button>
               </div>
