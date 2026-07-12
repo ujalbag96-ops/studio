@@ -25,7 +25,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import ConnectWalletModal from './ConnectWalletModal';
 
 export default function WalletModal({ children }: { children?: React.ReactNode }) {
-  const { user } = user;
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
