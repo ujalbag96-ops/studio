@@ -21,7 +21,11 @@ import {
   Layout,
   Disc,
   ShieldAlert,
-  Power
+  Power,
+  Gamepad2,
+  Server,
+  Lock,
+  ExternalLink
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,23 +45,23 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'withdrawals' | 'missions' | 'ads' | 'jhilli' | 'settings'>('withdrawals');
+  const [activeTab, setActiveTab] = useState<'withdrawals' | 'missions' | 'ads' | 'jili' | 'settings'>('withdrawals');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  // Subscriptions - Unified Path 'app_settings/global_config'
+  // Subscriptions
   const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   const missionsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'cpa_missions') : null, [firestore, isAdminUser]);
-  const adSettingsRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'app_settings', 'global_config') : null, [firestore, isAdminUser]);
-  const jhilliRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'app_settings', 'jhilli_config') : null, [firestore, isAdminUser]);
+  const globalConfigRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'app_settings', 'global_config') : null, [firestore, isAdminUser]);
+  const jiliRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'app_settings', 'jili_integration') : null, [firestore, isAdminUser]);
   
   const { data: payoutsData } = useCollection<any>(payoutsQuery);
   const { data: missionsData } = useCollection<any>(missionsQuery);
-  const { data: globalConfig } = useDoc<any>(adSettingsRef);
-  const { data: jhilliConfig } = useDoc<any>(jhilliRef);
+  const { data: globalConfig } = useDoc<any>(globalConfigRef);
+  const { data: jiliConfig } = useDoc<any>(jiliRef);
 
-  // Local state for Global System Config (Ads + Maintenance)
+  // Local state for Global System Config
   const [systemConfig, setSystemConfig] = useState({
     adMobAppId: '',
     adMobBannerId: '',
@@ -65,15 +69,18 @@ export default function AdminDashboard() {
     appLovinSdkKey: '',
     appLovinZoneId: '',
     maintenanceMode: false,
-    offerWallEnabled: true,
-    videoWallEnabled: true
+    offerWallEnabled: true
   });
 
-  // Local state for Jhilli Config
-  const [jhilliLocal, setJhilliLocal] = useState({
-    rewards: '0, 5, 10, 2, 20, 1, 15, 50',
-    dailyFreeLimit: 1,
-    spinCost: 10
+  // Local state for JILI Integration
+  const [jiliLocal, setJiliLocal] = useState({
+    apiEndpoint: '',
+    agentId: '',
+    secureKey: '',
+    slotsEnabled: true,
+    crashEnabled: true,
+    rummyEnabled: true,
+    rouletteEnabled: true
   });
 
   useEffect(() => {
@@ -85,21 +92,24 @@ export default function AdminDashboard() {
         appLovinSdkKey: globalConfig.appLovinSdkKey || '',
         appLovinZoneId: globalConfig.appLovinZoneId || '',
         maintenanceMode: !!globalConfig.maintenanceMode,
-        offerWallEnabled: globalConfig.offerWallEnabled !== false,
-        videoWallEnabled: globalConfig.videoWallEnabled !== false
+        offerWallEnabled: globalConfig.offerWallEnabled !== false
       });
     }
   }, [globalConfig]);
 
   useEffect(() => {
-    if (jhilliConfig) {
-      setJhilliLocal({
-        rewards: Array.isArray(jhilliConfig.rewards) ? jhilliConfig.rewards.join(', ') : jhilliConfig.rewards || '0, 5, 10, 2, 20, 1, 15, 50',
-        dailyFreeLimit: jhilliConfig.dailyFreeLimit || 1,
-        spinCost: jhilliConfig.spinCost || 10
+    if (jiliConfig) {
+      setJiliLocal({
+        apiEndpoint: jiliConfig.apiEndpoint || '',
+        agentId: jiliConfig.agentId || '',
+        secureKey: jiliConfig.secureKey || '',
+        slotsEnabled: jiliConfig.enabledModules?.slots !== false,
+        crashEnabled: jiliConfig.enabledModules?.crash !== false,
+        rummyEnabled: jiliConfig.enabledModules?.rummy !== false,
+        rouletteEnabled: jiliConfig.enabledModules?.roulette !== false
       });
     }
-  }, [jhilliConfig]);
+  }, [jiliConfig]);
 
   const handleSaveSystem = async () => {
     if (!firestore || !isAdminUser) return;
@@ -114,20 +124,25 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSaveJhilli = async () => {
+  const handleSaveJili = async () => {
     if (!firestore || !isAdminUser) return;
-    setIsProcessing('save-jhilli');
+    setIsProcessing('save-jili');
     try {
-      const rewardsArray = jhilliLocal.rewards.split(',').map(r => parseFloat(r.trim())).filter(r => !isNaN(r));
-      await setDoc(doc(firestore, 'app_settings', 'jhilli_config'), {
-        rewards: rewardsArray,
-        dailyFreeLimit: Number(jhilliLocal.dailyFreeLimit),
-        spinCost: Number(jhilliLocal.spinCost),
+      await setDoc(doc(firestore, 'app_settings', 'jili_integration'), {
+        apiEndpoint: jiliLocal.apiEndpoint,
+        agentId: jiliLocal.agentId,
+        secureKey: jiliLocal.secureKey,
+        enabledModules: {
+          slots: jiliLocal.slotsEnabled,
+          crash: jiliLocal.crashEnabled,
+          rummy: jiliLocal.rummyEnabled,
+          roulette: jiliLocal.rouletteEnabled
+        },
         updatedAt: new Date().toISOString()
       }, { merge: true });
-      toast({ title: "JHILLI ENGINE UPDATED", description: "Spin wheel parameters synced." });
+      toast({ title: "JILI HUB SYNCHRONIZED", description: "API Integration parameters verified and saved." });
     } catch (e) {
-      toast({ variant: "destructive", title: "Config Failed" });
+      toast({ variant: "destructive", title: "Integration Failed" });
     } finally {
       setIsProcessing(null);
     }
@@ -173,32 +188,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeployMission = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!firestore || !isAdminUser) return;
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    
-    const missionData = {
-      appName: formData.get('appName'),
-      link: formData.get('link'),
-      reward: parseInt(formData.get('reward') as string),
-      category: 'Mobile Interaction',
-      timestamp: new Date().toISOString()
-    };
-
-    setIsProcessing('mission-deploy');
-    try {
-      await addDoc(collection(firestore, 'cpa_missions'), missionData);
-      toast({ title: "MISSION LIVE", description: `${missionData.appName} deployed.` });
-      form.reset();
-    } catch (e) {
-      toast({ variant: "destructive", title: "Deployment Interrupted" });
-    } finally {
-      setIsProcessing(null);
-    }
-  };
-
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black p-10 uppercase italic">Access Denied: Master Authorization Required</div>;
 
@@ -213,7 +202,7 @@ export default function AdminDashboard() {
           <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Ledger" onClick={() => setActiveTab('withdrawals')} />
           <AdminLink active={activeTab === 'missions'} icon={<Smartphone />} label="CPA Missions" onClick={() => setActiveTab('missions')} />
           <AdminLink active={activeTab === 'ads'} icon={<Monitor />} label="Media & Ads" onClick={() => setActiveTab('ads')} />
-          <AdminLink active={activeTab === 'jhilli'} icon={<Disc />} label="Jhilli Control" onClick={() => setActiveTab('jhilli')} />
+          <AdminLink active={activeTab === 'jili'} icon={<Gamepad2 />} label="JILI Games Hub" onClick={() => setActiveTab('jili')} />
           <AdminLink active={activeTab === 'settings'} icon={<Settings />} label="Global System" onClick={() => setActiveTab('settings')} />
         </nav>
       </aside>
@@ -275,37 +264,50 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'jhilli' && (
+        {activeTab === 'jili' && (
            <div className="max-w-4xl space-y-12 animate-in fade-in duration-500">
               <div className="flex items-center gap-4">
-                 <Disc className="text-primary h-6 w-6" />
-                 <h2 className="text-2xl font-black uppercase italic">Jhilli (Lucky Spin) Control</h2>
+                 <Gamepad2 className="text-primary h-6 w-6" />
+                 <h2 className="text-2xl font-black uppercase italic">JILI Games Hub Integration</h2>
               </div>
 
-              <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-primary">
-                 <div className="grid md:grid-cols-2 gap-10">
+              <div className="grid md:grid-cols-3 gap-8">
+                 <Card className="md:col-span-2 bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-primary">
                     <div className="space-y-6">
-                       <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Reward Segments (Comma Separated)</Label>
-                          <Input value={jhilliLocal.rewards} onChange={e => setJhilliLocal({...jhilliLocal, rewards: e.target.value})} className="bg-black border-white/10 h-14 rounded-xl font-mono text-xs text-primary" placeholder="5, 10, 0, 50..." />
-                          <p className="text-[9px] text-muted-foreground italic uppercase">Total 8 segments recommended for visual sync.</p>
+                       <ConfigField label="API Endpoint URL" value={jiliLocal.apiEndpoint} onChange={v => setJiliLocal({...jiliLocal, apiEndpoint: v})} placeholder="https://api.jiligames.com/..." />
+                       <div className="grid grid-cols-2 gap-6">
+                          <ConfigField label="Merchant ID / Agent" value={jiliLocal.agentId} onChange={v => setJiliLocal({...jiliLocal, agentId: v})} placeholder="Agent ID" />
+                          <ConfigField label="Secret Key / MD5" value={jiliLocal.secureKey} onChange={v => setJiliLocal({...jiliLocal, secureKey: v})} placeholder="MD5 Salt" />
                        </div>
                     </div>
+                    
+                    <Button onClick={handleSaveJili} disabled={isProcessing === 'save-jili'} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase italic text-lg rounded-2xl shadow-xl transition-all">
+                       {isProcessing === 'save-jili' ? <Loader2 className="animate-spin" /> : "SAVE JILI API PARAMETERS"}
+                    </Button>
+                 </Card>
+
+                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-blue-500">
+                    <h3 className="text-sm font-black uppercase italic flex items-center gap-2"><Server className="h-4 w-4" /> Game Modules</h3>
                     <div className="space-y-6">
-                       <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Daily Free Spins</Label>
-                          <Input type="number" value={jhilliLocal.dailyFreeLimit} onChange={e => setJhilliLocal({...jhilliLocal, dailyFreeLimit: Number(e.target.value)})} className="bg-black border-white/10 h-14 rounded-xl font-black text-primary" />
-                       </div>
-                       <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Cost per Extra Spin (Coins)</Label>
-                          <Input type="number" value={jhilliLocal.spinCost} onChange={e => setJhilliLocal({...jhilliLocal, spinCost: Number(e.target.value)})} className="bg-black border-white/10 h-14 rounded-xl font-black text-primary" />
-                       </div>
+                       <GameToggle label="Slots Infrastructure" checked={jiliLocal.slotsEnabled} onChange={v => setJiliLocal({...jiliLocal, slotsEnabled: v})} />
+                       <GameToggle label="Crash Games (Aviator)" checked={jiliLocal.crashEnabled} onChange={v => setJiliLocal({...jiliLocal, crashEnabled: v})} />
+                       <GameToggle label="Rummy / Card Games" checked={jiliLocal.rummyEnabled} onChange={v => setJiliLocal({...jiliLocal, rummyEnabled: v})} />
+                       <GameToggle label="Live Roulette Feed" checked={jiliLocal.rouletteEnabled} onChange={v => setJiliLocal({...jiliLocal, rouletteEnabled: v})} />
+                    </div>
+                 </Card>
+              </div>
+
+              <Card className="bg-primary/5 border border-primary/20 p-8 rounded-2xl">
+                 <div className="flex items-start gap-4">
+                    <ShieldAlert className="h-6 w-6 text-primary shrink-0" />
+                    <div className="space-y-2">
+                       <p className="text-xs font-black uppercase text-white">Callback Integration Required</p>
+                       <p className="text-[10px] text-muted-foreground uppercase leading-relaxed font-bold">
+                          Ensure your server whitelist IP matches the JILI panel. Callback URL for JILI Dashboard: 
+                          <span className="text-primary ml-2 font-mono">https://your-app.com/api/jili/callback</span>
+                       </p>
                     </div>
                  </div>
-                 
-                 <Button onClick={handleSaveJhilli} disabled={isProcessing === 'save-jhilli'} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase italic text-lg rounded-2xl shadow-xl transition-all">
-                    {isProcessing === 'save-jhilli' ? <Loader2 className="animate-spin" /> : "SAVE JHILLI ENGINE SETTINGS"}
-                 </Button>
               </Card>
            </div>
         )}
@@ -394,7 +396,31 @@ export default function AdminDashboard() {
             <div className="lg:col-span-2 space-y-8">
                <h2 className="text-2xl font-black uppercase italic flex items-center gap-4"><Plus className="text-primary" /> New Mission Deploy</h2>
                <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] shadow-2xl border-2 border-primary/10">
-                  <form onSubmit={handleDeployMission} className="space-y-8">
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!firestore || !isAdminUser) return;
+                    const form = e.currentTarget;
+                    const formData = new FormData(form);
+                    
+                    const missionData = {
+                      appName: formData.get('appName'),
+                      link: formData.get('link'),
+                      reward: parseInt(formData.get('reward') as string),
+                      category: 'Mobile Interaction',
+                      timestamp: new Date().toISOString()
+                    };
+
+                    setIsProcessing('mission-deploy');
+                    try {
+                      await addDoc(collection(firestore, 'cpa_missions'), missionData);
+                      toast({ title: "MISSION LIVE", description: `${missionData.appName} deployed.` });
+                      form.reset();
+                    } catch (e) {
+                      toast({ variant: "destructive", title: "Deployment Interrupted" });
+                    } finally {
+                      setIsProcessing(null);
+                    }
+                  }} className="space-y-8">
                     <div className="space-y-3">
                        <Label className="text-[10px] font-black uppercase text-muted-foreground">App Name / Brand</Label>
                        <Input name="appName" placeholder="e.g. WinZO Pro" required className="bg-black border-white/10 h-14 rounded-xl" />
@@ -447,11 +473,20 @@ function AdminLink({ active, icon, label, onClick }: any) {
   );
 }
 
-function ConfigField({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) {
+function ConfigField({ label, value, onChange, placeholder = "Enter ID..." }: { label: string, value: string, onChange: (v: string) => void, placeholder?: string }) {
   return (
     <div className="space-y-2">
        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">{label}</Label>
-       <Input value={value} onChange={e => onChange(e.target.value)} className="bg-black border-white/10 h-12 font-mono text-xs text-primary" placeholder="Enter ID..." />
+       <Input value={value} onChange={e => onChange(e.target.value)} className="bg-black border-white/10 h-12 font-mono text-xs text-primary" placeholder={placeholder} />
+    </div>
+  );
+}
+
+function GameToggle({ label, checked, onChange }: { label: string, checked: boolean, onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
+       <span className="text-[10px] font-black uppercase text-white/80">{label}</span>
+       <Switch checked={checked} onCheckedChange={onChange} />
     </div>
   );
 }

@@ -30,6 +30,25 @@
         "dailyFreeLimit": { "type": "number" },
         "spinCost": { "type": "number" }
       }
+    },
+    "JiliIntegration": {
+      "title": "JiliIntegration",
+      "description": "JILI Games API configuration parameters.",
+      "type": "object",
+      "properties": {
+        "apiEndpoint": { "type": "string" },
+        "agentId": { "type": "string" },
+        "secureKey": { "type": "string" },
+        "enabledModules": { 
+          "type": "object",
+          "properties": {
+            "slots": { "type": "boolean" },
+            "crash": { "type": "boolean" },
+            "rummy": { "type": "boolean" },
+            "roulette": { "type": "boolean" }
+          }
+        }
+      }
     }
   },
   "auth": {
@@ -47,6 +66,10 @@
     "/app_settings/global_config": {
       "schema": "object",
       "description": "Global system configuration for Ads and APIs"
+    },
+    "/app_settings/jili_integration": {
+      "schema": "JiliIntegration",
+      "description": "JILI Games API Integration Hub"
     }
   }
 }
