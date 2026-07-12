@@ -21,7 +21,10 @@ import {
   Timer,
   CheckCircle2,
   Activity,
-  Flame
+  Flame,
+  LineChart,
+  RefreshCw,
+  Eye
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,10 +32,11 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { WithdrawalRequest, AppSettings, Tournament, CricketMatch, ESportsMatch, PredictionPoll } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { fetchLiveCricketMatches } from '@/lib/cricket-service';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -49,6 +53,10 @@ export default function AdminDashboard() {
   // Over Predictor States
   const [targetOver, setTargetOver] = useState('1');
   const [targetRuns, setTargetRuns] = useState('12');
+
+  // Live Intelligence State
+  const [liveMatches, setLiveMatches] = useState<CricketMatch[]>([]);
+  const [intelLoading, setLiveIntelLoading] = useState(false);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -68,6 +76,22 @@ export default function AdminDashboard() {
   const { data: pollsData } = useCollection<PredictionPoll>(pollsQuery);
   const { data: tasksData } = useCollection<any>(tasksQuery);
   const { data: globalSettings } = useDoc<AppSettings>(settingsRef);
+
+  useEffect(() => {
+    if (activeTab === 'cricket' || activeTab === 'polls') {
+       refreshLiveIntel();
+    }
+  }, [activeTab]);
+
+  const refreshLiveIntel = async () => {
+    setLiveIntelLoading(true);
+    try {
+      const data = await fetchLiveCricketMatches(globalSettings?.cricketApiKey);
+      setLiveMatches(data);
+    } finally {
+      setLiveIntelLoading(false);
+    }
+  };
 
   const handleWithdrawalAction = async (withdrawal: WithdrawalRequest, action: 'approved' | 'rejected') => {
     if (!firestore) return;
@@ -114,7 +138,6 @@ export default function AdminDashboard() {
         timestamp: new Date().toISOString()
       });
       toast({ title: "OVER SIGNAL LIVE", description: question });
-      // Auto-increment over for next fast deploy
       setTargetOver((prev) => (parseInt(prev) + 1).toString());
     } finally {
       setIsProcessing(null);
@@ -222,40 +245,78 @@ export default function AdminDashboard() {
 
         {activeTab === 'polls' && (
           <div className="space-y-12">
-            {/* NEW: Over-by-Over Signal Deployer */}
             <div className="space-y-6">
-               <h2 className="text-xl font-black uppercase italic flex items-center gap-2">
-                  <Flame className="text-primary h-5 w-5 animate-pulse" /> Live Over Predictor (One-Click)
-               </h2>
-               <Card className="bg-primary/5 border-primary/20 border-2 rounded-[2rem] p-8">
-                  <div className="flex flex-col md:flex-row items-end gap-6">
-                     <div className="space-y-2 flex-1">
-                        <Label className="text-[10px] font-black uppercase text-primary ml-1">Target Over #</Label>
-                        <Input 
-                           type="number" 
-                           value={targetOver} 
-                           onChange={(e) => setTargetOver(e.target.value)}
-                           className="h-14 bg-black/60 border-primary/20 rounded-xl font-black text-xl text-center" 
-                        />
+               <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-black uppercase italic flex items-center gap-2">
+                     <Flame className="text-primary h-5 w-5 animate-pulse" /> Live Over Predictor
+                  </h2>
+                  <Button variant="ghost" onClick={refreshLiveIntel} disabled={intelLoading} className="text-[9px] font-black uppercase italic text-muted-foreground">
+                     {intelLoading ? <Loader2 className="animate-spin h-3 w-3" /> : <RefreshCw className="h-3 w-3 mr-2" />} Sync Live Intel
+                  </Button>
+               </div>
+               <div className="grid lg:grid-cols-2 gap-8">
+                  <Card className="bg-primary/5 border-primary/20 border-2 rounded-[2rem] p-8">
+                     <div className="flex flex-col gap-6">
+                        <div className="grid grid-cols-2 gap-6">
+                           <div className="space-y-2">
+                              <Label className="text-[10px] font-black uppercase text-primary ml-1">Target Over #</Label>
+                              <Input 
+                                 type="number" 
+                                 value={targetOver} 
+                                 onChange={(e) => setTargetOver(e.target.value)}
+                                 className="h-14 bg-black/60 border-primary/20 rounded-xl font-black text-xl text-center" 
+                              />
+                           </div>
+                           <div className="space-y-2">
+                              <Label className="text-[10px] font-black uppercase text-primary ml-1">Target Runs Threshold</Label>
+                              <Input 
+                                 type="number" 
+                                 value={targetRuns} 
+                                 onChange={(e) => setTargetRuns(e.target.value)}
+                                 className="h-14 bg-black/60 border-primary/20 rounded-xl font-black text-xl text-center" 
+                              />
+                           </div>
+                        </div>
+                        <Button 
+                           onClick={deployOverSignal} 
+                           disabled={isProcessing === 'over-signal'}
+                           className="h-14 px-10 bg-primary hover:bg-primary/90 rounded-xl font-black uppercase italic text-lg shadow-xl shadow-primary/20"
+                        >
+                           {isProcessing === 'over-signal' ? <Loader2 className="animate-spin" /> : "DEPLOY OVER SIGNAL"}
+                        </Button>
                      </div>
-                     <div className="space-y-2 flex-1">
-                        <Label className="text-[10px] font-black uppercase text-primary ml-1">Target Runs Threshold</Label>
-                        <Input 
-                           type="number" 
-                           value={targetRuns} 
-                           onChange={(e) => setTargetRuns(e.target.value)}
-                           className="h-14 bg-black/60 border-primary/20 rounded-xl font-black text-xl text-center" 
-                        />
+                  </Card>
+
+                  {/* Live Intel Snippet */}
+                  <Card className="bg-blue-500/5 border-blue-500/20 border-2 rounded-[2rem] p-6 flex flex-col justify-between">
+                     <div className="flex items-center justify-between mb-4">
+                        <Badge className="bg-blue-500/20 text-blue-400 border-none uppercase font-black text-[8px] italic">Live Intelligence</Badge>
+                        <span className="text-[9px] font-black text-blue-400/60 uppercase">{liveMatches[0]?.series}</span>
                      </div>
-                     <Button 
-                        onClick={deployOverSignal} 
-                        disabled={isProcessing === 'over-signal'}
-                        className="h-14 px-10 bg-primary hover:bg-primary/90 rounded-xl font-black uppercase italic text-lg shadow-xl shadow-primary/20 flex-1 md:flex-none"
-                     >
-                        {isProcessing === 'over-signal' ? <Loader2 className="animate-spin" /> : "DEPLOY OVER SIGNAL"}
-                     </Button>
-                  </div>
-               </Card>
+                     {liveMatches[0] ? (
+                        <div className="space-y-4">
+                           <div className="flex justify-between items-center">
+                              <span className="text-xs font-black uppercase">{liveMatches[0].teamA}</span>
+                              <span className="text-xl font-black italic">{liveMatches[0].liveScore?.runsA}</span>
+                           </div>
+                           <div className="flex justify-between items-center">
+                              <span className="text-xs font-black uppercase">{liveMatches[0].teamB}</span>
+                              <span className="text-xl font-black italic">{liveMatches[0].liveScore?.runsB}</span>
+                           </div>
+                           <div className="flex items-center gap-2 pt-2 border-t border-blue-500/10">
+                              <span className="text-[9px] font-black text-muted-foreground uppercase">Last 6 Balls:</span>
+                              <div className="flex gap-1">
+                                 {liveMatches[0].liveScore?.lastBalls?.map((b, i) => (
+                                    <div key={i} className={cn("h-4 w-4 rounded-full flex items-center justify-center text-[8px] font-black", b === 'W' ? "bg-red-500 text-white" : b === '6' || b === '4' ? "bg-green-500 text-black" : "bg-white/10 text-white")}>{b}</div>
+                                 ))}
+                              </div>
+                           </div>
+                        </div>
+                     ) : (
+                        <div className="text-center py-6 text-[10px] font-black text-muted-foreground uppercase italic opacity-40">Connecting to Stadium Signal...</div>
+                     )}
+                  </Card>
+               </div>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-10">
@@ -299,77 +360,101 @@ export default function AdminDashboard() {
                          </div>
                       </Card>
                     ))}
-                    {(!pollsData || pollsData.length === 0) && (
-                      <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-[2rem] opacity-40">
-                         <Target className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                         <p className="text-[10px] font-black uppercase tracking-widest">No signals deployed.</p>
-                      </div>
-                    )}
                  </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* ... (Keep existing cricket, esports, settings tabs as they were) ... */}
         {activeTab === 'cricket' && (
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 space-y-6">
-              <h2 className="text-xl font-black uppercase italic">New Match Deploy</h2>
-              <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] shadow-2xl">
-                <form onSubmit={async (e: any) => {
-                  e.preventDefault();
-                  if (!firestore) return;
-                  const form = e.target;
-                  setIsProcessing('cricket-add');
-                  try {
-                    await addDoc(collection(firestore, 'cricket_matches'), {
-                      teamA: form.teamA.value,
-                      teamB: form.teamB.value,
-                      teamALogo: form.logoA.value || 'https://picsum.photos/seed/teama/100/100',
-                      teamBLogo: form.logoB.value || 'https://picsum.photos/seed/teamb/100/100',
-                      series: form.series.value,
-                      status: 'upcoming',
-                      startTime: new Date().toISOString()
-                    });
-                    toast({ title: "CRICKET MATCH DEPLOYED" });
-                    form.reset();
-                  } finally {
-                    setIsProcessing(null);
-                  }
-                }} className="space-y-4">
-                  <Input name="teamA" placeholder="Team A Name" required className="bg-black border-white/10 h-12" />
-                  <Input name="logoA" placeholder="Team A Logo URL" className="bg-black border-white/10 h-12" />
-                  <Input name="teamB" placeholder="Team B Name" required className="bg-black border-white/10 h-12" />
-                  <Input name="logoB" placeholder="Team B Logo URL" className="bg-black border-white/10 h-12" />
-                  <Input name="series" placeholder="Series (e.g. IPL 2024)" required className="bg-black border-white/10 h-12" />
-                  <Button type="submit" disabled={isProcessing === 'cricket-add'} className="w-full bg-primary font-black uppercase italic h-14 rounded-xl mt-4">
-                    {isProcessing === 'cricket-add' ? <Loader2 className="animate-spin" /> : "LAUNCH ARENA"}
-                  </Button>
-                </form>
-              </Card>
+          <div className="space-y-12">
+            <div className="grid lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-1 space-y-6">
+                <h2 className="text-xl font-black uppercase italic">New Match Deploy</h2>
+                <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] shadow-2xl">
+                  <form onSubmit={async (e: any) => {
+                    e.preventDefault();
+                    if (!firestore) return;
+                    const form = e.target;
+                    setIsProcessing('cricket-add');
+                    try {
+                      await addDoc(collection(firestore, 'cricket_matches'), {
+                        teamA: form.teamA.value,
+                        teamB: form.teamB.value,
+                        teamALogo: form.logoA.value || 'https://picsum.photos/seed/teama/100/100',
+                        teamBLogo: form.logoB.value || 'https://picsum.photos/seed/teamb/100/100',
+                        series: form.series.value,
+                        status: 'upcoming',
+                        startTime: new Date().toISOString()
+                      });
+                      toast({ title: "CRICKET MATCH DEPLOYED" });
+                      form.reset();
+                    } finally {
+                      setIsProcessing(null);
+                    }
+                  }} className="space-y-4">
+                    <Input name="teamA" placeholder="Team A Name" required className="bg-black border-white/10 h-12" />
+                    <Input name="logoA" placeholder="Team A Logo URL" className="bg-black border-white/10 h-12" />
+                    <Input name="teamB" placeholder="Team B Name" required className="bg-black border-white/10 h-12" />
+                    <Input name="logoB" placeholder="Team B Logo URL" className="bg-black border-white/10 h-12" />
+                    <Input name="series" placeholder="Series (e.g. IPL 2024)" required className="bg-black border-white/10 h-12" />
+                    <Button type="submit" disabled={isProcessing === 'cricket-add'} className="w-full bg-primary font-black uppercase italic h-14 rounded-xl mt-4">
+                      {isProcessing === 'cricket-add' ? <Loader2 className="animate-spin" /> : "LAUNCH ARENA"}
+                    </Button>
+                  </form>
+                </Card>
+              </div>
+              <div className="lg:col-span-2 space-y-6">
+                 <h2 className="text-xl font-black uppercase italic">Live Arena Signals</h2>
+                 <div className="grid gap-4">
+                    {cricketData?.map(m => (
+                      <Card key={m.id} className="bg-[#0a0a0f] border-white/5 p-5 flex items-center justify-between rounded-2xl hover:border-blue-500/20 transition-all">
+                         <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-2">
+                               <img src={m.teamALogo} className="h-10 w-10 object-contain rounded-lg bg-white/5 p-1" />
+                               <span className="font-black italic text-sm">{m.teamA.substring(0, 3).toUpperCase()}</span>
+                            </div>
+                            <span className="text-primary font-black italic text-xs">VS</span>
+                            <div className="flex items-center gap-2">
+                               <span className="font-black italic text-sm">{m.teamB.substring(0, 3).toUpperCase()}</span>
+                               <img src={m.teamBLogo} className="h-10 w-10 object-contain rounded-lg bg-white/5 p-1" />
+                            </div>
+                            <Badge variant="outline" className="border-white/10 text-[8px] font-bold text-muted-foreground uppercase">{m.series}</Badge>
+                         </div>
+                         <div className="flex items-center gap-3">
+                            <Badge className="bg-blue-600/10 text-blue-500 border-none italic font-black uppercase text-[9px]">{m.status}</Badge>
+                            <Button variant="ghost" onClick={() => deleteDoc(doc(firestore!, 'cricket_matches', m.id))} className="text-red-500"><Trash2 className="h-4 w-4" /></Button>
+                         </div>
+                      </Card>
+                    ))}
+                 </div>
+              </div>
             </div>
-            <div className="lg:col-span-2 space-y-6">
-               <h2 className="text-xl font-black uppercase italic">Live Arena Signals</h2>
-               <div className="grid gap-4">
-                  {cricketData?.map(m => (
-                    <Card key={m.id} className="bg-[#0a0a0f] border-white/5 p-5 flex items-center justify-between rounded-2xl hover:border-blue-500/20 transition-all">
-                       <div className="flex items-center gap-6">
-                          <div className="flex items-center gap-2">
-                             <img src={m.teamALogo} className="h-10 w-10 object-contain rounded-lg bg-white/5 p-1" />
-                             <span className="font-black italic text-sm">{m.teamA.substring(0, 3).toUpperCase()}</span>
-                          </div>
-                          <span className="text-primary font-black italic text-xs">VS</span>
-                          <div className="flex items-center gap-2">
-                             <span className="font-black italic text-sm">{m.teamB.substring(0, 3).toUpperCase()}</span>
-                             <img src={m.teamBLogo} className="h-10 w-10 object-contain rounded-lg bg-white/5 p-1" />
-                          </div>
-                          <Badge variant="outline" className="border-white/10 text-[8px] font-bold text-muted-foreground uppercase">{m.series}</Badge>
+            
+            <div className="space-y-6">
+               <h2 className="text-xl font-black uppercase italic flex items-center gap-3">
+                  <LineChart className="text-blue-400 h-5 w-5" /> Live Intelligence Feed (External API)
+               </h2>
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {liveMatches.map((m) => (
+                    <Card key={m.id} className="bg-white/5 border-white/5 p-6 rounded-2xl space-y-4 group hover:border-blue-500/40 transition-all">
+                       <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black uppercase text-blue-400 italic">Match Intel</span>
+                          <Badge className="bg-red-500/20 text-red-500 border-none text-[8px] font-black animate-pulse">LIVE</Badge>
                        </div>
-                       <div className="flex items-center gap-3">
-                          <Badge className="bg-blue-600/10 text-blue-500 border-none italic font-black uppercase text-[9px]">{m.status}</Badge>
-                          <Button variant="ghost" onClick={() => deleteDoc(doc(firestore!, 'cricket_matches', m.id))} className="text-red-500"><Trash2 className="h-4 w-4" /></Button>
+                       <div className="space-y-3">
+                          <p className="text-sm font-black uppercase italic text-center text-white/80">{m.teamA} vs {m.teamB}</p>
+                          <div className="bg-black/40 p-4 rounded-xl border border-white/5 text-center">
+                             <p className="text-2xl font-black text-blue-400 tabular-nums">{m.liveScore?.runsA || 'Awaiting'}</p>
+                             <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Overs: {m.liveScore?.overs}</p>
+                          </div>
                        </div>
+                       <Button variant="outline" onClick={() => {
+                          setTargetOver(Math.ceil(parseFloat(m.liveScore?.overs || '0') + 1).toString());
+                          setActiveTab('polls');
+                       }} className="w-full h-10 border-blue-500/20 text-blue-400 hover:bg-blue-500/10 font-black text-[9px] uppercase tracking-widest rounded-xl">
+                          AUTO-FILL SIGNAL
+                       </Button>
                     </Card>
                   ))}
                </div>
@@ -405,16 +490,16 @@ export default function AdminDashboard() {
 
                  <div className="grid gap-6">
                     <div className="space-y-2">
+                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Cricket API Intelligence ID</Label>
+                       <Input value={globalSettings?.cricketApiKey || ''} onChange={e => updateDoc(settingsRef!, { cricketApiKey: e.target.value })} placeholder="Enter CricAPI or RapidAPI Key" className="bg-black border-white/10 h-12 font-mono text-xs text-blue-400" />
+                    </div>
+                    <div className="space-y-2">
                        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Telegram Fleet URL</Label>
                        <Input value={globalSettings?.telegramUrl || ''} onChange={e => updateDoc(settingsRef!, { telegramUrl: e.target.value })} className="bg-black border-white/10 h-12 font-mono text-xs text-primary" />
                     </div>
-                    <div className="space-y-2">
-                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">AdMob Banner Intelligence ID</Label>
-                       <Input value={globalSettings?.adMobBannerId || ''} onChange={e => updateDoc(settingsRef!, { adMobBannerId: e.target.value })} className="bg-black border-white/10 h-12 font-mono text-xs" />
-                    </div>
                     <div className="grid grid-cols-2 gap-6">
                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Paisa Withdrawal Fee (%)</Label>
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Withdrawal Fee (%)</Label>
                           <Input type="number" value={globalSettings?.withdrawalFeePercent || 8} onChange={e => updateDoc(settingsRef!, { withdrawalFeePercent: parseInt(e.target.value) })} className="bg-black border-white/10 h-12 font-black italic" />
                        </div>
                        <div className="space-y-2">

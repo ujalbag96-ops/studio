@@ -107,6 +107,7 @@ export interface PredictionPoll {
   status: 'active' | 'closed';
   expiry: string;
   winner?: 'A' | 'B';
+  timestamp: string;
 }
 
 export interface CricketMatch {
@@ -123,6 +124,7 @@ export interface CricketMatch {
     runsB?: string;
     overs?: string;
     target?: string;
+    lastBalls?: string[];
   };
   winner?: string;
 }
@@ -139,6 +141,7 @@ export interface AppSettings {
   conversionFeePercent: number;
   telegramUrl: string;
   heroBannerUrl?: string;
+  cricketApiKey?: string;
   
   // Ad Management Config
   adMobAppId?: string;
