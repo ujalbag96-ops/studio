@@ -1,10 +1,14 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore } from 'firebase/firestore';
 
+/**
+ * Industrial Firebase Initialization
+ * Ensures only one instance of Firebase is initialized on the client.
+ */
 export function initializeFirebase() {
   const firebaseApp = getApps().length === 0 
     ? initializeApp(firebaseConfig) 

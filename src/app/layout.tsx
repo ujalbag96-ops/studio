@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -10,7 +9,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import SupportChat from '@/components/SupportChat';
 import { usePathname } from 'next/navigation';
-import { Loader2, ShieldAlert, Settings } from 'lucide-react';
+import { Loader2, ShieldAlert } from 'lucide-react';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -47,7 +46,6 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const pathname = usePathname();
   
-  // Standardized Path for Global Configurations
   const settingsRef = useMemoFirebase(() => 
     firestore ? doc(firestore, 'app_settings', 'global_config') : null, 
     [firestore]
@@ -60,7 +58,6 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
                          pathname === '/login' || 
                          pathname === '/auth';
                          
-  // PRODUCTION LOGIC: Maintenance blocks all except authorized Admin accounts
   const isMaintenance = settings?.maintenanceMode && !isExcludedPage && !isAdmin;
 
   if (isLoading) return (
@@ -90,12 +87,6 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
            <div className="h-px w-20 bg-white/10 mx-auto" />
            <p className="text-[10px] font-black text-primary uppercase tracking-widest italic">ETA: 15-45 MINUTES</p>
         </div>
-        {isAdmin && (
-          <div className="pt-10">
-             <p className="text-[8px] font-black uppercase text-red-500 mb-2">Admin Overpass Detected</p>
-             <button onClick={() => window.location.reload()} className="bg-white/5 border border-white/10 px-6 py-2 rounded-xl text-[10px] font-black uppercase">Refresh Protocol</button>
-          </div>
-        )}
       </div>
     );
   }
