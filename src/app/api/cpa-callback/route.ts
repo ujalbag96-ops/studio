@@ -52,6 +52,7 @@ export async function GET(request: Request) {
     });
 
     // 2. MLM Anti-Fraud Logic
+    // Fetch uplines to distribute commission AND check for device/IP collisions
     const uplineIds = [userData.referredBy, userData.referredByL2].filter(Boolean);
 
     for (const parentId of uplineIds) {

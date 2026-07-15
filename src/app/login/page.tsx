@@ -48,14 +48,14 @@ function LoginContent() {
       const userDocRef = doc(firestore, 'users', firebaseUser.uid);
       const snap = await getDoc(userDocRef);
 
-      // Generate or retrieve Device ID
+      // Generate or retrieve Device ID (Simulated Hardware Fingerprint)
       let deviceId = localStorage.getItem('bb_device_id');
       if (!deviceId) {
         deviceId = 'DEV-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
         localStorage.setItem('bb_device_id', deviceId);
       }
 
-      // Fetch IP Signal
+      // Fetch IP Signal for Anti-Fraud
       let ipData = { ip: 'Unknown', country: 'Global' };
       try {
          const res = await fetch('https://ipapi.co/json/');
