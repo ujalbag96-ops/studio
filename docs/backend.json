@@ -3,7 +3,7 @@
   "entities": {
     "UserProfile": {
       "title": "UserProfile",
-      "description": "User profile with triple-balance wallet and tracking parameters.",
+      "description": "User profile with MLM referral hierarchy and multi-tier balances.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -12,8 +12,12 @@
         "winningBalance": { "type": "number" },
         "bonusBalance": { "type": "number" },
         "taskBalance": { "type": "number" },
+        "referralCommissionBalance": { "type": "number" },
         "coins": { "type": "number" },
         "referralCode": { "type": "string" },
+        "referredBy": { "type": "string", "description": "L1 Upline UID" },
+        "referredByL2": { "type": "string", "description": "L2 Upline UID" },
+        "mlmLevel": { "type": "number", "enum": [0, 1000, 3000, 5000, 10000] },
         "tasksCompletedCount": { "type": "number" },
         "isAccountActivated": { "type": "boolean" },
         "lastIp": { "type": "string" },
@@ -21,33 +25,15 @@
         "lastSpinTimestamp": { "type": "string" }
       }
     },
-    "JhilliConfig": {
-      "title": "JhilliConfig",
-      "description": "Spin wheel operational parameters.",
+    "MlmPackage": {
+      "title": "MlmPackage",
+      "description": "MLM Tiered joining packages",
       "type": "object",
       "properties": {
-        "rewards": { "type": "array", "items": { "type": "number" } },
-        "dailyFreeLimit": { "type": "number" },
-        "spinCost": { "type": "number" }
-      }
-    },
-    "JiliIntegration": {
-      "title": "JiliIntegration",
-      "description": "JILI Games API configuration parameters.",
-      "type": "object",
-      "properties": {
-        "apiEndpoint": { "type": "string" },
-        "agentId": { "type": "string" },
-        "secureKey": { "type": "string" },
-        "enabledModules": { 
-          "type": "object",
-          "properties": {
-            "slots": { "type": "boolean" },
-            "crash": { "type": "boolean" },
-            "rummy": { "type": "boolean" },
-            "roulette": { "type": "boolean" }
-          }
-        }
+        "tierName": { "type": "string" },
+        "cost": { "type": "number" },
+        "l1CommissionPercent": { "type": "number" },
+        "l2CommissionPercent": { "type": "number" }
       }
     }
   },
@@ -57,19 +43,11 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "Master user profiles"
+      "description": "Master user profiles with MLM links"
     },
-    "/app_settings/jhilli_config": {
-      "schema": "JhilliConfig",
-      "description": "Dynamic spin wheel configuration"
-    },
-    "/app_settings/global_config": {
+    "/app_settings/mlm_config": {
       "schema": "object",
-      "description": "Global system configuration for Ads and APIs"
-    },
-    "/app_settings/jili_integration": {
-      "schema": "JiliIntegration",
-      "description": "JILI Games API Integration Hub"
+      "description": "MLM commission rates and tier settings"
     }
   }
 }

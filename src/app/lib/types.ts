@@ -15,11 +15,12 @@ export interface UserProfile {
   depositBalance: number;
   winningBalance: number;
   bonusBalance: number;
+  referralCommissionBalance?: number;
   coins: number;
   referralCode: string;
-  referredBy?: string;
-  referredByL1?: string;
-  referredByL2?: string;
+  referredBy?: string; // L1 Upline
+  referredByL2?: string; // L2 Upline
+  mlmLevel?: number; // 0, 1000, 3000, 5000, 10000
   lastIp?: string;
   country?: string;
   rank: UserRank;
@@ -40,7 +41,7 @@ export interface UserProfile {
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake' | 'esports_stake' | 'referral_comm';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake' | 'esports_stake' | 'referral_comm' | 'mlm_joining';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';
@@ -74,55 +75,6 @@ export interface AppSettings {
   earningBannerUrl?: string;
   earningBannerLink?: string;
   earningBannerReward?: number;
-}
-
-export interface SystemNotification {
-  id: string;
-  title: string;
-  body: string;
-  imageUrl?: string;
-  timestamp: string;
-  type: 'broadcast' | 'personal';
-}
-
-export interface SupportMessage {
-  id: string;
-  userId: string;
-  message: string;
-  aiResponse?: string;
-  isFlagged?: boolean;
-  status: 'open' | 'resolved';
-  timestamp: string;
-}
-
-export interface CricketMatch {
-  id: string;
-  teamA: string;
-  teamB: string;
-  teamALogo: string;
-  teamBLogo: string;
-  series: string;
-  status: 'live' | 'upcoming' | 'completed';
-  startTime: string;
-  liveScore?: {
-    runsA: string;
-    runsB: string;
-    overs: string;
-    target?: string;
-    lastBalls?: string[];
-  };
-  winner?: string;
-}
-
-export interface PredictionPoll {
-  id: string;
-  question: string;
-  optionA: string;
-  optionB: string;
-  entryFee: number;
-  totalPool: number;
-  expiry: string;
-  status: 'open' | 'closed';
-  category: string;
-  timestamp: string;
+  mlmCommissionL1?: number; // e.g. 0.20 for 20%
+  mlmCommissionL2?: number; // e.g. 0.10 for 10%
 }

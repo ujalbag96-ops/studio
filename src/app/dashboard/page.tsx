@@ -30,7 +30,8 @@ import {
   ShoppingBag,
   Flag,
   Lock,
-  Mail
+  Mail,
+  Network
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,7 +55,7 @@ export default function UserDashboard() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const [activeNav, setActiveNav] = useState<'overview' | 'offers' | 'video'>('overview');
+  const [activeNav, setActiveNav] = useState<'overview' | 'offers' | 'video' | 'mlm'>('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
@@ -112,6 +113,7 @@ export default function UserDashboard() {
 
         <nav className="flex-1 p-8 space-y-2">
           <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Portfolio" onClick={() => setActiveNav('overview')} />
+          <SidebarItem active={activeNav === 'mlm'} icon={<Network />} label="MLM Network" onClick={() => setActiveNav('mlm')} />
           <SidebarItem active={false} icon={<Mail />} label="My Inbox" href="/inbox" />
           <SidebarItem active={activeNav === 'video'} icon={<PlayCircle />} label="Watch & Earn" onClick={() => setActiveNav('video')} />
           <SidebarItem active={activeNav === 'offers'} icon={<Zap />} label="CPA Missions" onClick={() => setActiveNav('offers')} />
@@ -164,10 +166,11 @@ export default function UserDashboard() {
               isActivated={isActivated} 
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} color="green" />
               <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} color="blue" />
               <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} color="amber" />
+              <WalletCard label="Network Commission" value={profile?.referralCommissionBalance || 0} icon={<Network />} color="primary" />
             </div>
 
             <LiveCricketWidget />
@@ -215,6 +218,41 @@ export default function UserDashboard() {
           </>
         )}
 
+        {activeNav === 'mlm' && (
+           <div className="space-y-12">
+              <div className="space-y-4">
+                 <h1 className="text-5xl font-black uppercase italic tracking-tighter">Network <span className="text-primary">Intelligence</span></h1>
+                 <p className="text-muted-foreground">Monitor your tiered downline and real-time commissions.</p>
+              </div>
+              
+              <div className="grid md:grid-cols-3 gap-6">
+                 <Card className="bg-white/5 border-white/10 p-8 rounded-[2rem] space-y-4">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground">Current MLM Tier</p>
+                    <h3 className="text-3xl font-black italic">{profile?.mlmLevel ? `${profile.mlmLevel} Package` : 'No Active Package'}</h3>
+                    <Button asChild variant="outline" className="w-full border-primary/20 text-primary uppercase font-black text-[10px] h-12 rounded-xl">
+                       <Link href="/vip">UPGRADE PACKAGE</Link>
+                    </Button>
+                 </Card>
+                 <Card className="bg-white/5 border-white/10 p-8 rounded-[2rem] space-y-4">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground">Network Size</p>
+                    <h3 className="text-3xl font-black italic">{profile?.totalReferrals || 0} Direct Nodes</h3>
+                 </Card>
+                 <Card className="bg-primary/10 border-primary/20 p-8 rounded-[2rem] space-y-4">
+                    <p className="text-[10px] font-black uppercase text-primary">Pending Comm Share</p>
+                    <h3 className="text-3xl font-black italic text-white">{profile?.referralCommissionBalance?.toFixed(2) || 0} 🪙</h3>
+                 </Card>
+              </div>
+
+              <div className="space-y-6">
+                 <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Network className="text-primary" /> MLM Protocol Explanation</h3>
+                 <div className="grid md:grid-cols-2 gap-8">
+                    <MlmRule icon={<Zap />} title="30% CPA Share" desc="30% of your downline's CPA mission revenue is distributed as 20% to L1 (Direct) and 10% to L2 (Indirect)." />
+                    <MlmRule icon={<Trophy />} title="Joining Bonuses" desc="When a user joins a 1000-10000 tier, 30% of the fee is shared instantly with uplines." />
+                 </div>
+              </div>
+           </div>
+        )}
+
         {activeNav === 'offers' && (
            <div className="space-y-10">
               <div className="space-y-4">
@@ -225,7 +263,7 @@ export default function UserDashboard() {
            </div>
         )}
 
-        {activeNav === 'video' && (activeNav === 'video' && (
+        {activeNav === 'video' && (
            <div className="space-y-10">
               <div className="space-y-4">
                  <h1 className="text-5xl font-black uppercase italic tracking-tighter">Watch <span className="text-primary">& Earn</span></h1>
@@ -242,7 +280,7 @@ export default function UserDashboard() {
                  </Button>
               </Card>
            </div>
-        ))}
+        )}
       </main>
     </div>
   );
@@ -275,7 +313,8 @@ function WalletCard({ label, value, icon, color }: any) {
   const colorMap = {
     blue: "border-blue-500/20 text-blue-400 bg-blue-500/5",
     amber: "border-amber-500/20 text-amber-500 bg-amber-500/5",
-    green: "border-green-500/20 text-green-500 bg-green-500/5"
+    green: "border-green-500/20 text-green-500 bg-green-500/5",
+    primary: "border-primary/20 text-primary bg-primary/5"
   };
 
   return (
@@ -288,5 +327,19 @@ function WalletCard({ label, value, icon, color }: any) {
         </div>
       </div>
     </Card>
+  );
+}
+
+function MlmRule({ icon, title, desc }: any) {
+  return (
+    <div className="flex items-start gap-4">
+       <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 text-primary shrink-0">
+          {icon}
+       </div>
+       <div>
+          <h4 className="text-sm font-black uppercase italic text-white">{title}</h4>
+          <p className="text-[11px] text-muted-foreground font-bold leading-relaxed">{desc}</p>
+       </div>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useUser, useFirestore, useAuth } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
@@ -9,23 +9,24 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-export default function LoginPage() {
+function LoginContent() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -48,9 +49,23 @@ export default function LoginPage() {
       const snap = await getDoc(userDocRef);
 
       if (!snap.exists()) {
+        const referralCodeFromUrl = searchParams.get('ref');
+        let l1Upline = '';
+        let l2Upline = '';
+
+        // Find L1 and L2 uplines if ref code exists
+        if (referralCodeFromUrl) {
+          const q = query(collection(firestore, 'users'), where('referralCode', '==', referralCodeFromUrl), limit(1));
+          const uplineSnap = await getDocs(q);
+          if (!uplineSnap.empty) {
+            const l1Data = uplineSnap.docs[0].data();
+            l1Upline = uplineSnap.docs[0].id;
+            l2Upline = l1Data.referredBy || ''; // L1's L1 becomes our L2
+          }
+        }
+
         const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         
-        // Fetch IP & Location Intelligence
         let ipData = { ip: 'Unknown', country: 'Global' };
         try {
            const res = await fetch('https://ipapi.co/json/');
@@ -65,9 +80,13 @@ export default function LoginPage() {
           winningBalance: 0,
           bonusBalance: 0,
           taskBalance: 0,
+          referralCommissionBalance: 0,
           coins: 0,
           rank: 'Bronze',
           referralCode: randomCode,
+          referredBy: l1Upline,
+          referredByL2: l2Upline,
+          mlmLevel: 0,
           tasksCompletedCount: 0,
           isAccountActivated: false,
           lastIp: ipData.ip,
@@ -158,5 +177,13 @@ export default function LoginPage() {
         Connect Google Identity
       </Button>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin text-primary h-12 w-12" /></div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
