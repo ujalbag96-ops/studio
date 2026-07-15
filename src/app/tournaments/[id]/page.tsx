@@ -17,6 +17,7 @@ import CountdownTimer from '@/components/CountdownTimer';
 import Link from 'next/link';
 import ScratchCard from '@/components/ScratchCard';
 import { cn } from '@/lib/utils';
+import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 
 export default function TournamentDetails() {
   const params = useParams();
@@ -29,6 +30,7 @@ export default function TournamentDetails() {
   const [isJoining, setIsJoining] = useState(false);
   const [showScratch, setShowScratch] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'stream'>('info');
+  const [showRiskModal, setShowRiskModal] = useState(false);
 
   const tournamentRef = useMemoFirebase(() => (firestore && params.id) ? doc(firestore, 'tournaments', params.id as string) : null, [firestore, params.id]);
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
@@ -56,6 +58,12 @@ export default function TournamentDetails() {
     if (!user || !firestore || !tournament || !userRef || isJoining) return;
     if (!gameIdInput.trim()) { toast({ variant: "destructive", title: "ID Required" }); return; }
     if (!canAfford) { toast({ variant: "destructive", title: "Insufficient Assets" }); return; }
+
+    // Check Risk Consent
+    if (!profile?.riskNoticeAccepted) {
+      setShowRiskModal(true);
+      return;
+    }
 
     setIsJoining(true); 
     try {
@@ -117,6 +125,7 @@ export default function TournamentDetails() {
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8 animate-in fade-in duration-500 pb-32">
       {showScratch && <ScratchCard onClose={() => setShowScratch(false)} />}
+      <RiskDisclosureModal isOpen={showRiskModal} onOpenChange={setShowRiskModal} onAccepted={handleJoin} />
       
       <Button variant="ghost" asChild className="mb-4 hover:bg-white/5 text-muted-foreground">
         <Link href="/"><ArrowLeft className="h-4 w-4 mr-2" /> All Arenas</Link>

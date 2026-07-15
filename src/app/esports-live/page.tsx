@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { UserProfile, ESportsMatch, ESportsPoll } from '../lib/types';
 import { cn } from '@/lib/utils';
+import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 
 export default function ESportsLiveHub() {
   const { user } = useUser();
@@ -19,6 +20,8 @@ export default function ESportsLiveHub() {
   
   const [selectedGame, setSelectedGame] = useState<'All' | 'BGMI' | 'Free Fire' | 'Valorant'>('All');
   const [isVoting, setIsVoting] = useState<string | null>(null);
+  const [showRiskModal, setShowRiskModal] = useState(false);
+  const [pendingPoll, setPendingPoll] = useState<{ poll: ESportsPoll; choice: string } | null>(null);
 
   const matchesQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'esports_matches'), orderBy('timestamp', 'desc')) : null, 
@@ -38,6 +41,12 @@ export default function ESportsLiveHub() {
   const handlePredict = async (poll: ESportsPoll, choice: string) => {
     if (!user || !firestore || !profile) {
       toast({ variant: "destructive", title: "Login Required" });
+      return;
+    }
+
+    if (!profile.riskNoticeAccepted) {
+      setPendingPoll({ poll, choice });
+      setShowRiskModal(true);
       return;
     }
 
@@ -78,6 +87,12 @@ export default function ESportsLiveHub() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-12 pb-32">
+      <RiskDisclosureModal 
+        isOpen={showRiskModal} 
+        onOpenChange={setShowRiskModal} 
+        onAccepted={() => pendingPoll && handlePredict(pendingPoll.poll, pendingPoll.choice)} 
+      />
+
       <div className="space-y-4 pt-10">
          <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[10px]">Industrial E-Sports Arena</Badge>
          <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white">Live <span className="text-primary">Stakes</span></h1>
@@ -195,5 +210,15 @@ function GameFilter({ label, active, onClick }: any) {
     >
       {label}
     </button>
+  );
+}
+
+function StreamStat({ label, value, icon }: any) {
+  return (
+    <Card className="bg-white/5 border-white/5 rounded-2xl p-6 text-center space-y-2">
+       <div className="mx-auto h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">{icon}</div>
+       <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">{label}</p>
+       <p className="text-xs font-black text-white italic">{value}</p>
+    </Card>
   );
 }
