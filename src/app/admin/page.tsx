@@ -32,7 +32,9 @@ import {
   Fingerprint,
   CheckCircle2,
   Activity,
-  Search
+  Search,
+  Megaphone,
+  Mail
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +43,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -52,7 +55,7 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'withdrawals' | 'missions' | 'ads' | 'jili' | 'settings' | 'cricket' | 'polls'>('withdrawals');
+  const [activeTab, setActiveTab] = useState<'withdrawals' | 'missions' | 'ads' | 'jili' | 'settings' | 'cricket' | 'polls' | 'broadcast'>('withdrawals');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -61,14 +64,34 @@ export default function AdminDashboard() {
   const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   const missionsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'cpa_missions') : null, [firestore, isAdminUser]);
   const globalConfigRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'app_settings', 'global_config') : null, [firestore, isAdminUser]);
-  const jiliRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'app_settings', 'jili_integration') : null, [firestore, isAdminUser]);
-  const paymentSignalsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payment_signals'), orderBy('timestamp', 'desc'), orderBy('isUsed', 'asc')) : null, [firestore, isAdminUser]);
+  const paymentSignalsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payment_signals'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   
   const { data: payoutsData } = useCollection<any>(payoutsQuery);
   const { data: missionsData } = useCollection<any>(missionsQuery);
   const { data: globalConfig } = useDoc<any>(globalConfigRef);
-  const { data: jiliConfig } = useDoc<any>(jiliRef);
   const { data: paymentSignals } = useCollection<any>(paymentSignalsQuery);
+
+  // Broadcast state
+  const [notif, setNotif] = useState({ title: '', body: '', imageUrl: '' });
+
+  const handleSendBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore || !isAdminUser) return;
+    setIsProcessing('broadcast');
+    try {
+      await addDoc(collection(firestore, 'notifications'), {
+        ...notif,
+        timestamp: new Date().toISOString(),
+        type: 'broadcast'
+      });
+      toast({ title: "BROADCAST DISPATCHED", description: "Signal sent to all user inboxes." });
+      setNotif({ title: '', body: '', imageUrl: '' });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Broadcast Failed" });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
 
   // Local state for Global System Config
   const [systemConfig, setSystemConfig] = useState({
@@ -86,17 +109,6 @@ export default function AdminDashboard() {
     earningBannerLink: '',
     earningBannerReward: 5,
     cricketApiKey: ''
-  });
-
-  // Local state for JILI Integration
-  const [jiliLocal, setJiliLocal] = useState({
-    apiEndpoint: '',
-    agentId: '',
-    secureKey: '',
-    slotsEnabled: true,
-    crashEnabled: true,
-    rummyEnabled: true,
-    rouletteEnabled: true
   });
 
   useEffect(() => {
@@ -120,20 +132,6 @@ export default function AdminDashboard() {
     }
   }, [globalConfig]);
 
-  useEffect(() => {
-    if (jiliConfig) {
-      setJiliLocal({
-        apiEndpoint: jiliConfig.apiEndpoint || '',
-        agentId: jiliConfig.agentId || '',
-        secureKey: jiliConfig.secureKey || '',
-        slotsEnabled: jiliConfig.enabledModules?.slots !== false,
-        crashEnabled: jiliConfig.enabledModules?.crash !== false,
-        rummyEnabled: jiliConfig.enabledModules?.rummy !== false,
-        rouletteEnabled: jiliConfig.enabledModules?.roulette !== false
-      });
-    }
-  }, [jiliConfig]);
-
   const handleSaveSystem = async () => {
     if (!firestore || !isAdminUser) return;
     setIsProcessing('save-system');
@@ -142,30 +140,6 @@ export default function AdminDashboard() {
       toast({ title: "SYSTEM UPDATED", description: "Global configurations locked successfully." });
     } catch (e) {
       toast({ variant: "destructive", title: "Update Failed" });
-    } finally {
-      setIsProcessing(null);
-    }
-  };
-
-  const handleSaveJili = async () => {
-    if (!firestore || !isAdminUser) return;
-    setIsProcessing('save-jili');
-    try {
-      await setDoc(doc(firestore, 'app_settings', 'jili_integration'), {
-        apiEndpoint: jiliLocal.apiEndpoint,
-        agentId: jiliLocal.agentId,
-        secureKey: jiliLocal.secureKey,
-        enabledModules: {
-          slots: jiliLocal.slotsEnabled,
-          crash: jiliLocal.crashEnabled,
-          rummy: jiliLocal.rummyEnabled,
-          roulette: jiliLocal.rouletteEnabled
-        },
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-      toast({ title: "JILI HUB SYNCHRONIZED", description: "API Integration parameters verified and saved." });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Integration Failed" });
     } finally {
       setIsProcessing(null);
     }
@@ -223,6 +197,7 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
           <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Ledger" onClick={() => setActiveTab('withdrawals')} />
+          <AdminLink active={activeTab === 'broadcast'} icon={<Megaphone />} label="Broadcast News" onClick={() => setActiveTab('broadcast')} />
           <AdminLink active={activeTab === 'missions'} icon={<Smartphone />} label="CPA Missions" onClick={() => setActiveTab('missions')} />
           <AdminLink active={activeTab === 'ads'} icon={<Monitor />} label="Media & Ads" onClick={() => setActiveTab('ads')} />
           <AdminLink active={activeTab === 'jili'} icon={<Gamepad2 />} label="JILI Games Hub" onClick={() => setActiveTab('jili')} />
@@ -247,10 +222,6 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-4">
                   <Wallet className="text-primary h-6 w-6" />
                   <h2 className="text-2xl font-black uppercase italic">Withdrawal Queue</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                   <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                   <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">UTR Match Engine Live</span>
                 </div>
              </div>
              
@@ -300,267 +271,34 @@ export default function AdminDashboard() {
                    </TableBody>
                 </Table>
              </Card>
-
-             {/* UTR AUTO-VERIFICATION LOGS */}
-             <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                   <Fingerprint className="text-primary h-5 w-5" />
-                   <h2 className="text-xl font-black uppercase italic">UTR Signal Logs (Telegram)</h2>
-                </div>
-                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden">
-                   <Table>
-                      <TableHeader className="bg-white/5">
-                         <TableRow className="border-white/5">
-                            <TableHead className="px-8 py-4 text-[9px] font-black uppercase">UTR ID</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase">Amount</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase">Status</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase text-right px-8">Captured At</TableHead>
-                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                         {paymentSignals?.slice(0, 10).map((s: any) => (
-                           <TableRow key={s.id} className="border-white/5 text-[11px]">
-                              <TableCell className="px-8 font-mono text-primary font-black">{s.utrId}</TableCell>
-                              <TableCell className="font-black">₹{s.amount}</TableCell>
-                              <TableCell>
-                                 {s.isUsed ? (
-                                   <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] uppercase">USED BY: {s.usedBy?.substring(0,6)}...</Badge>
-                                 ) : (
-                                   <Badge variant="outline" className="text-[8px] uppercase border-white/10 text-muted-foreground">READY</Badge>
-                                 )}
-                              </TableCell>
-                              <TableCell className="text-right px-8 text-muted-foreground uppercase font-black">{s.timestamp?.toDate ? s.timestamp.toDate().toLocaleString() : 'Just Now'}</TableCell>
-                           </TableRow>
-                         ))}
-                      </TableBody>
-                   </Table>
-                </Card>
-             </div>
           </div>
         )}
 
-        {activeTab === 'jili' && (
-           <div className="max-w-4xl space-y-12 animate-in fade-in duration-500">
+        {activeTab === 'broadcast' && (
+           <div className="max-w-3xl space-y-12 animate-in fade-in duration-500">
               <div className="flex items-center gap-4">
-                 <Gamepad2 className="text-primary h-6 w-6" />
-                 <h2 className="text-2xl font-black uppercase italic">JILI Games Hub Integration</h2>
+                 <Megaphone className="text-primary h-6 w-6" />
+                 <h2 className="text-2xl font-black uppercase italic">Broadcast System News</h2>
               </div>
-
-              <div className="grid md:grid-cols-3 gap-8">
-                 <Card className="md:col-span-2 bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-primary">
-                    <div className="space-y-6">
-                       <ConfigField label="API Endpoint URL" value={jiliLocal.apiEndpoint} onChange={v => setJiliLocal({...jiliLocal, apiEndpoint: v})} placeholder="https://api.jiligames.com/..." />
-                       <div className="grid grid-cols-2 gap-6">
-                          <ConfigField label="Merchant ID / Agent" value={jiliLocal.agentId} onChange={v => setJiliLocal({...jiliLocal, agentId: v})} placeholder="Agent ID" />
-                          <ConfigField label="Secret Key / MD5" value={jiliLocal.secureKey} onChange={v => setJiliLocal({...jiliLocal, secureKey: v})} placeholder="MD5 Salt" />
-                       </div>
+              <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] shadow-2xl border-t-4 border-t-primary">
+                 <form onSubmit={handleSendBroadcast} className="space-y-8">
+                    <div className="space-y-3">
+                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Headline Title</Label>
+                       <Input required value={notif.title} onChange={e => setNotif({...notif, title: e.target.value})} placeholder="e.g. MEGA CRICKET LEAGUE LIVE!" className="h-14 bg-black border-white/10 rounded-xl" />
                     </div>
-                    
-                    <Button onClick={handleSaveJili} disabled={isProcessing === 'save-jili'} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase italic text-lg rounded-2xl shadow-xl transition-all">
-                       {isProcessing === 'save-jili' ? <Loader2 className="animate-spin" /> : "SAVE JILI API PARAMETERS"}
+                    <div className="space-y-3">
+                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Image URL (Optional)</Label>
+                       <Input value={notif.imageUrl} onChange={e => setNotif({...notif, imageUrl: e.target.value})} placeholder="https://..." className="h-14 bg-black border-white/10 rounded-xl font-mono text-xs" />
+                    </div>
+                    <div className="space-y-3">
+                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Message Content</Label>
+                       <Textarea required value={notif.body} onChange={e => setNotif({...notif, body: e.target.value})} placeholder="Describe the tactical update..." className="min-h-32 bg-black border-white/10 rounded-xl" />
+                    </div>
+                    <Button type="submit" disabled={isProcessing === 'broadcast'} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+                       {isProcessing === 'broadcast' ? <Loader2 className="animate-spin" /> : "DISPATCH GLOBAL SIGNAL"}
                     </Button>
-                 </Card>
-
-                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-blue-500">
-                    <h3 className="text-sm font-black uppercase italic flex items-center gap-2"><Server className="h-4 w-4" /> Game Modules</h3>
-                    <div className="space-y-6">
-                       <GameToggle label="Slots Infrastructure" checked={jiliLocal.slotsEnabled} onChange={v => setJiliLocal({...jiliLocal, slotsEnabled: v})} />
-                       <GameToggle label="Crash Games (Aviator)" checked={jiliLocal.crashEnabled} onChange={v => setJiliLocal({...jiliLocal, crashEnabled: v})} />
-                       <GameToggle label="Rummy / Card Games" checked={jiliLocal.rummyEnabled} onChange={v => setJiliLocal({...jiliLocal, rummyEnabled: v})} />
-                       <GameToggle label="Live Roulette Feed" checked={jiliLocal.rouletteEnabled} onChange={v => setJiliLocal({...jiliLocal, rouletteEnabled: v})} />
-                    </div>
-                 </Card>
-              </div>
-
-              <Card className="bg-primary/5 border border-primary/20 p-8 rounded-2xl">
-                 <div className="flex items-start gap-4">
-                    <ShieldAlert className="h-6 w-6 text-primary shrink-0" />
-                    <div className="space-y-2">
-                       <p className="text-xs font-black uppercase text-white">Callback Integration Required</p>
-                       <p className="text-[10px] text-muted-foreground uppercase leading-relaxed font-bold">
-                          Ensure your server whitelist IP matches the JILI panel. Callback URL for JILI Dashboard: 
-                          <span className="text-primary ml-2 font-mono">https://your-app.com/api/jili/callback</span>
-                       </p>
-                    </div>
-                 </div>
+                 </form>
               </Card>
-           </div>
-        )}
-
-        {activeTab === 'cricket' && (
-           <div className="max-w-5xl space-y-12 animate-in fade-in duration-500">
-              <div className="flex items-center gap-4">
-                 <Flag className="text-primary h-6 w-6" />
-                 <h2 className="text-2xl font-black uppercase italic">Cricket Arena Deployer</h2>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-8">
-                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-primary shadow-2xl">
-                    <h3 className="text-lg font-black uppercase italic">Match Configuration</h3>
-                    <form onSubmit={async (e) => {
-                      e.preventDefault();
-                      const fd = new FormData(e.currentTarget);
-                      const matchData = {
-                        teamA: fd.get('teamA'),
-                        teamB: fd.get('teamB'),
-                        teamALogo: fd.get('teamALogo') || 'https://picsum.photos/seed/t1/100/100',
-                        teamBLogo: fd.get('teamBLogo') || 'https://picsum.photos/seed/t2/100/100',
-                        series: fd.get('series'),
-                        status: 'active',
-                        timestamp: new Date().toISOString()
-                      };
-                      setIsProcessing('cricket-match');
-                      await addDoc(collection(firestore!, 'cricket_matches'), matchData);
-                      setIsProcessing(null);
-                      toast({ title: "MATCH DEPLOYED" });
-                      (e.target as any).reset();
-                    }} className="space-y-6">
-                       <div className="grid grid-cols-2 gap-4">
-                          <ConfigField label="Team A Name" value={''} onChange={() => {}} placeholder="India" name="teamA" />
-                          <ConfigField label="Team B Name" value={''} onChange={() => {}} placeholder="Australia" name="teamB" />
-                       </div>
-                       <ConfigField label="Series Name" value={''} onChange={() => {}} placeholder="Border-Gavaskar Trophy" name="series" />
-                       <div className="grid grid-cols-2 gap-4">
-                          <ConfigField label="Team A Logo URL" value={''} onChange={() => {}} name="teamALogo" />
-                          <ConfigField label="Team B Logo URL" value={''} onChange={() => {}} name="teamBLogo" />
-                       </div>
-                       <Button type="submit" disabled={isProcessing === 'cricket-match'} className="w-full h-16 bg-primary font-black uppercase italic rounded-xl">
-                          {isProcessing === 'cricket-match' ? <Loader2 className="animate-spin" /> : "LAUNCH MATCH"}
-                       </Button>
-                    </form>
-                 </Card>
-
-                 <Card className="bg-primary/5 border border-primary/20 p-10 rounded-[2.5rem] space-y-6 flex flex-col justify-center text-center">
-                    <Activity className="h-16 w-16 text-primary mx-auto animate-pulse" />
-                    <h3 className="text-xl font-black uppercase italic">Live Analytics Feed</h3>
-                    <p className="text-[10px] text-muted-foreground uppercase font-black leading-relaxed">
-                       API Key: {systemConfig.cricketApiKey ? "CONNECTED" : "NOT SET"}
-                    </p>
-                    <div className="p-4 bg-black/40 rounded-xl border border-white/5 space-y-4">
-                       <p className="text-[9px] font-black uppercase text-muted-foreground">Next Over Prediction Engine</p>
-                       <Button variant="outline" className="w-full border-primary/40 text-primary font-black uppercase text-[10px] h-12 rounded-xl">
-                          FETCH LIVE SCORE
-                       </Button>
-                    </div>
-                 </Card>
-              </div>
-           </div>
-        )}
-
-        {activeTab === 'polls' && (
-          <div className="max-w-4xl space-y-12 animate-in fade-in duration-500">
-             <div className="flex items-center gap-4">
-                <Target className="text-primary h-6 w-6" />
-                <h2 className="text-2xl font-black uppercase italic">Over-by-Over Poll Manager</h2>
-             </div>
-
-             <div className="grid md:grid-cols-3 gap-8">
-                <Card className="md:col-span-2 bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-primary">
-                   <h3 className="text-lg font-black uppercase italic">Deploy Live Over Signal</h3>
-                   <form onSubmit={async (e) => {
-                     e.preventDefault();
-                     const fd = new FormData(e.currentTarget);
-                     const overNum = fd.get('overNum');
-                     const runs = fd.get('runs');
-                     const pollData = {
-                        question: `Will Over #${overNum} yield ${runs}+ runs?`,
-                        optionA: 'YES',
-                        optionB: 'NO',
-                        category: 'Cricket Live Over',
-                        entryFee: 10,
-                        totalPool: 0,
-                        expiry: 'Next 5 Minutes',
-                        status: 'open',
-                        timestamp: new Date().toISOString()
-                     };
-                     setIsProcessing('poll-deploy');
-                     await addDoc(collection(firestore!, 'polls'), pollData);
-                     setIsProcessing(null);
-                     toast({ title: "SIGNAL LIVE" });
-                     (e.target as any).reset();
-                   }} className="space-y-6">
-                      <div className="grid grid-cols-2 gap-6">
-                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Over Number</Label>
-                            <Input name="overNum" type="number" placeholder="5" className="h-14 bg-black border-white/10 rounded-xl font-black text-xl text-primary" required />
-                         </div>
-                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Target Runs (Limit)</Label>
-                            <Input name="runs" type="number" placeholder="22" className="h-14 bg-black border-white/10 rounded-xl font-black text-xl text-primary" required />
-                         </div>
-                      </div>
-                      <Button type="submit" disabled={isProcessing === 'poll-deploy'} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
-                         {isProcessing === 'poll-deploy' ? <Loader2 className="animate-spin" /> : "LAUNCH OVER SIGNAL"}
-                      </Button>
-                   </form>
-                </Card>
-
-                <Card className="bg-white/5 border border-white/10 p-8 rounded-[2rem] space-y-6">
-                   <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Quick Templates</h4>
-                   <div className="space-y-3">
-                      <TemplateButton label="Next Wicket (Yes/No)" />
-                      <TemplateButton label="Boundary in Next 3 Balls" />
-                      <TemplateButton label="DRS Review Signal" />
-                   </div>
-                </Card>
-             </div>
-          </div>
-        )}
-
-        {activeTab === 'ads' && (
-           <div className="max-w-5xl space-y-12 animate-in fade-in duration-500">
-              <div className="flex items-center gap-4">
-                 <Monitor className="text-blue-500 h-6 w-6" />
-                 <h2 className="text-2xl font-black uppercase italic">Media & Ads Config</h2>
-              </div>
-              
-              <div className="grid md:grid-cols-2 gap-8">
-                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-blue-500">
-                    <div className="space-y-1">
-                       <h3 className="text-lg font-black uppercase italic">AdMob Industrial</h3>
-                    </div>
-                    <div className="space-y-6">
-                       <ConfigField label="AdMob App ID" value={systemConfig.adMobAppId} onChange={v => setSystemConfig({...systemConfig, adMobAppId: v})} />
-                       <ConfigField label="Banner Unit ID" value={systemConfig.adMobBannerId} onChange={v => setSystemConfig({...systemConfig, adMobBannerId: v})} />
-                       <ConfigField label="Interstitial Unit ID" value={systemConfig.adMobInterstitialId} onChange={v => setSystemConfig({...systemConfig, adMobInterstitialId: v})} />
-                    </div>
-                 </Card>
-
-                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-amber-500">
-                    <div className="space-y-1">
-                       <h3 className="text-lg font-black uppercase italic">Video Wall (AppLovin)</h3>
-                    </div>
-                    <div className="space-y-6">
-                       <ConfigField label="AppLovin SDK Key" value={systemConfig.appLovinSdkKey} onChange={v => setSystemConfig({...systemConfig, appLovinSdkKey: v})} />
-                       <ConfigField label="Reward Zone ID" value={systemConfig.appLovinZoneId} onChange={v => setSystemConfig({...systemConfig, appLovinZoneId: v})} />
-                    </div>
-                 </Card>
-              </div>
-
-              {/* EARNING BANNER SECTION */}
-              <div className="space-y-8">
-                 <div className="flex items-center gap-4">
-                    <ImageIcon className="text-primary h-6 w-6" />
-                    <h2 className="text-2xl font-black uppercase italic">Sponsored Earning Banners</h2>
-                 </div>
-                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-green-600">
-                    <div className="grid md:grid-cols-3 gap-8">
-                       <ConfigField label="Banner Image URL" value={systemConfig.earningBannerUrl} onChange={v => setSystemConfig({...systemConfig, earningBannerUrl: v})} placeholder="https://..." />
-                       <ConfigField label="Click Target URL" value={systemConfig.earningBannerLink} onChange={v => setSystemConfig({...systemConfig, earningBannerLink: v})} placeholder="https://..." />
-                       <ConfigField label="User Reward (Coins)" value={systemConfig.earningBannerReward.toString()} onChange={v => setSystemConfig({...systemConfig, earningBannerReward: parseInt(v) || 0})} placeholder="5" />
-                    </div>
-                    {systemConfig.earningBannerUrl && (
-                      <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                        <p className="text-[8px] font-black uppercase text-muted-foreground mb-2">Live Preview</p>
-                        <img src={systemConfig.earningBannerUrl} className="h-20 w-full object-cover rounded-lg opacity-80" alt="Preview" />
-                      </div>
-                    )}
-                 </Card>
-              </div>
-              
-              <Button onClick={handleSaveSystem} disabled={isProcessing === 'save-system'} className="w-full h-20 bg-blue-600 hover:bg-blue-500 font-black uppercase italic text-xl rounded-2xl shadow-2xl transition-all">
-                 {isProcessing === 'save-system' ? <Loader2 className="animate-spin" /> : "SAVE MEDIA CONFIGURATION"}
-              </Button>
            </div>
         )}
 
@@ -600,101 +338,11 @@ export default function AdminDashboard() {
                     />
                  </Card>
               </div>
-
-              <div className="space-y-8">
-                 <h2 className="text-2xl font-black uppercase italic flex items-center gap-4"><CreditCard className="text-primary" /> Wallet & Deposit Config</h2>
-                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-green-600">
-                    <div className="grid md:grid-cols-2 gap-8">
-                       <ConfigField label="Master Admin UPI ID" value={systemConfig.adminUpiId} onChange={v => setSystemConfig({...systemConfig, adminUpiId: v})} placeholder="e.g. ujalbag@upi" />
-                       <ConfigField label="Deposit Verification Telegram" value={systemConfig.depositTelegramUrl} onChange={v => setSystemConfig({...systemConfig, depositTelegramUrl: v})} placeholder="https://t.me/your_support" />
-                    </div>
-                    <div className="space-y-4">
-                       <ConfigField label="Cricket Live Data API Key" value={systemConfig.cricketApiKey} onChange={v => setSystemConfig({...systemConfig, cricketApiKey: v})} placeholder="Your API Key" />
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
-                       <div className="space-y-1">
-                          <p className="text-sm font-black uppercase italic">Automatic Digital Gateway</p>
-                          <p className="text-[9px] text-muted-foreground uppercase">Enable instant payment gateway simulation</p>
-                       </div>
-                       <Switch 
-                        checked={systemConfig.automaticGatewayEnabled} 
-                        onCheckedChange={(v) => setSystemConfig({...systemConfig, automaticGatewayEnabled: v})}
-                       />
-                    </div>
-                 </Card>
-              </div>
               
               <Button onClick={handleSaveSystem} disabled={isProcessing === 'save-system'} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-2xl transition-all">
                  {isProcessing === 'save-system' ? <Loader2 className="animate-spin" /> : "DEPLOY SYSTEM STATE"}
               </Button>
            </div>
-        )}
-
-        {activeTab === 'missions' && (
-          <div className="grid lg:grid-cols-5 gap-12 animate-in fade-in duration-500">
-            <div className="lg:col-span-2 space-y-8">
-               <h2 className="text-2xl font-black uppercase italic flex items-center gap-4"><Plus className="text-primary" /> New Mission Deploy</h2>
-               <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] shadow-2xl border-2 border-primary/10">
-                  <form onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (!firestore || !isAdminUser) return;
-                    const form = e.currentTarget;
-                    const formData = new FormData(form);
-                    
-                    const missionData = {
-                      appName: formData.get('appName'),
-                      link: formData.get('link'),
-                      reward: parseInt(formData.get('reward') as string),
-                      category: 'Mobile Interaction',
-                      timestamp: new Date().toISOString()
-                    };
-
-                    setIsProcessing('mission-deploy');
-                    try {
-                      await addDoc(collection(firestore, 'cpa_missions'), missionData);
-                      toast({ title: "MISSION LIVE", description: `${missionData.appName} deployed.` });
-                      form.reset();
-                    } catch (e) {
-                      toast({ variant: "destructive", title: "Deployment Interrupted" });
-                    } finally {
-                      setIsProcessing(null);
-                    }
-                  }} className="space-y-8">
-                    <div className="space-y-3">
-                       <Label className="text-[10px] font-black uppercase text-muted-foreground">App Name / Brand</Label>
-                       <Input name="appName" placeholder="e.g. WinZO Pro" required className="bg-black border-white/10 h-14 rounded-xl" />
-                    </div>
-                    <div className="space-y-3">
-                       <Label className="text-[10px] font-black uppercase text-muted-foreground">Tracking URL</Label>
-                       <Input name="link" placeholder="https://..." required className="bg-black border-white/10 h-14 rounded-xl font-mono text-xs" />
-                    </div>
-                    <div className="space-y-3">
-                       <Label className="text-[10px] font-black uppercase text-muted-foreground">Reward Volume (Coins)</Label>
-                       <Input name="reward" type="number" defaultValue="50" required className="bg-black border-white/10 h-14 rounded-xl font-black text-primary" />
-                    </div>
-                    <Button type="submit" disabled={isProcessing === 'mission-deploy'} className="w-full bg-primary h-16 font-black uppercase italic text-lg rounded-2xl shadow-xl">
-                       {isProcessing === 'mission-deploy' ? <Loader2 className="animate-spin" /> : "LAUNCH MISSION"}
-                    </Button>
-                  </form>
-               </Card>
-            </div>
-            <div className="lg:col-span-3 space-y-8">
-               <h2 className="text-2xl font-black uppercase italic">Active Missions ({missionsData?.length})</h2>
-               <div className="grid gap-4">
-                  {missionsData?.map((m: any) => (
-                    <Card key={m.id} className="bg-[#0a0a0f] border-white/5 p-8 flex items-center justify-between rounded-2xl group border-l-4 border-l-primary/40">
-                       <div>
-                          <p className="font-black uppercase text-lg italic">{m.appName}</p>
-                          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{m.reward} COINS</p>
-                       </div>
-                       <Button variant="ghost" onClick={() => deleteDoc(doc(firestore!, 'cpa_missions', m.id))} className="text-red-500 hover:bg-red-500/10 h-12 w-12 rounded-xl">
-                          <Trash2 className="h-6 w-6" />
-                       </Button>
-                    </Card>
-                  ))}
-               </div>
-            </div>
-          </div>
         )}
       </main>
     </div>
@@ -716,24 +364,7 @@ function ConfigField({ label, value, onChange, placeholder = "Enter ID...", name
   return (
     <div className="space-y-2 flex-1">
        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">{label}</Label>
-       <Input name={name} value={value || undefined} onChange={e => onChange(e.target.value)} className="bg-black border-white/10 h-12 font-mono text-xs text-primary" placeholder={placeholder} />
+       <Input name={name} value={value} onChange={e => onChange(e.target.value)} className="bg-black border-white/10 h-12 font-mono text-xs text-primary" placeholder={placeholder} />
     </div>
   );
-}
-
-function GameToggle({ label, checked, onChange }: { label: string, checked: boolean, onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
-       <span className="text-[10px] font-black uppercase text-white/80">{label}</span>
-       <Switch checked={checked} onCheckedChange={onChange} />
-    </div>
-  );
-}
-
-function TemplateButton({ label }: { label: string }) {
-   return (
-     <Button variant="ghost" className="w-full h-12 justify-start px-4 text-[11px] font-black uppercase italic border border-white/5 rounded-xl hover:bg-primary/10 hover:text-primary">
-        <Plus className="h-3 w-3 mr-2" /> {label}
-     </Button>
-   );
 }

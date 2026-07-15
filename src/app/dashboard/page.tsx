@@ -29,7 +29,8 @@ import {
   AlertCircle,
   ShoppingBag,
   Flag,
-  Lock
+  Lock,
+  Mail
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -111,6 +112,7 @@ export default function UserDashboard() {
 
         <nav className="flex-1 p-8 space-y-2">
           <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Portfolio" onClick={() => setActiveNav('overview')} />
+          <SidebarItem active={false} icon={<Mail />} label="My Inbox" href="/inbox" />
           <SidebarItem active={activeNav === 'video'} icon={<PlayCircle />} label="Watch & Earn" onClick={() => setActiveNav('video')} />
           <SidebarItem active={activeNav === 'offers'} icon={<Zap />} label="CPA Missions" onClick={() => setActiveNav('offers')} />
           <SidebarItem active={false} icon={<Flag />} label="Cricket Hub" href="/cricket" />
@@ -223,7 +225,7 @@ export default function UserDashboard() {
            </div>
         )}
 
-        {activeNav === 'video' && (
+        {activeNav === 'video' && (activeNav === 'video' && (
            <div className="space-y-10">
               <div className="space-y-4">
                  <h1 className="text-5xl font-black uppercase italic tracking-tighter">Watch <span className="text-primary">& Earn</span></h1>
@@ -240,7 +242,7 @@ export default function UserDashboard() {
                  </Button>
               </Card>
            </div>
-        )}
+        ))}
       </main>
     </div>
   );

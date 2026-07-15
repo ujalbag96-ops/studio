@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Zap, Wallet, User, LogOut, Shield, Activity, Radio, ShoppingBag, Trophy, Target } from 'lucide-react';
+import { Home, Zap, Wallet, User, LogOut, Shield, Activity, Radio, ShoppingBag, Trophy, Target, Bell } from 'lucide-react';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -57,6 +57,12 @@ export default function Navbar() {
           <div className="flex items-center gap-6">
             {user ? (
               <>
+                <Link href="/inbox" className="relative group">
+                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
+                    <Bell className="h-5 w-5 text-muted-foreground group-hover:text-white" />
+                  </div>
+                  <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full animate-ping" />
+                </Link>
                 <WalletModal />
                 <UserMenu user={user} isAdmin={isAdmin} onLogout={handleLogout} />
               </>
@@ -76,6 +82,11 @@ export default function Navbar() {
           <span className="text-lg font-black italic uppercase">WINZO</span>
         </Link>
         <div className="flex items-center gap-3">
+          {user && (
+            <Link href="/inbox" className="h-9 w-9 rounded-lg bg-white/5 flex items-center justify-center">
+              <Bell className="h-4 w-4 text-muted-foreground" />
+            </Link>
+          )}
           {user && <WalletModal />}
           <UserMenu user={user} isAdmin={isAdmin} onLogout={handleLogout} />
         </div>
@@ -115,6 +126,7 @@ function UserMenu({ user, isAdmin, onLogout }: any) {
         <DropdownMenuLabel className="p-4 text-[10px] font-bold uppercase text-muted-foreground">Warrior Account</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-white/5" />
         <DropdownMenuItem asChild className="focus:bg-white/5 h-11 cursor-pointer"><Link href="/dashboard" className="w-full flex items-center gap-3 font-bold uppercase text-[10px]"><User className="h-4 w-4" /> Portfolio</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild className="focus:bg-white/5 h-11 cursor-pointer"><Link href="/inbox" className="w-full flex items-center gap-3 font-bold uppercase text-[10px]"><Bell className="h-4 w-4" /> My Inbox</Link></DropdownMenuItem>
         <DropdownMenuItem asChild className="focus:bg-white/5 h-11 cursor-pointer"><Link href="/shop" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] text-primary"><ShoppingBag className="h-4 w-4" /> WinZO Shop</Link></DropdownMenuItem>
         {isAdmin && (
           <DropdownMenuItem asChild className="focus:bg-primary/20 h-11 cursor-pointer"><Link href="/admin" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] text-amber-500 italic"><Shield className="h-4 w-4" /> Admin Hub</Link></DropdownMenuItem>

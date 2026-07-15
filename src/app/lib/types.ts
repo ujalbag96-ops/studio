@@ -76,6 +76,15 @@ export interface AppSettings {
   earningBannerReward?: number;
 }
 
+export interface SystemNotification {
+  id: string;
+  title: string;
+  body: string;
+  imageUrl?: string;
+  timestamp: string;
+  type: 'broadcast' | 'personal';
+}
+
 export interface SupportMessage {
   id: string;
   userId: string;
@@ -83,5 +92,37 @@ export interface SupportMessage {
   aiResponse?: string;
   isFlagged?: boolean;
   status: 'open' | 'resolved';
+  timestamp: string;
+}
+
+export interface CricketMatch {
+  id: string;
+  teamA: string;
+  teamB: string;
+  teamALogo: string;
+  teamBLogo: string;
+  series: string;
+  status: 'live' | 'upcoming' | 'completed';
+  startTime: string;
+  liveScore?: {
+    runsA: string;
+    runsB: string;
+    overs: string;
+    target?: string;
+    lastBalls?: string[];
+  };
+  winner?: string;
+}
+
+export interface PredictionPoll {
+  id: string;
+  question: string;
+  optionA: string;
+  optionB: string;
+  entryFee: number;
+  totalPool: number;
+  expiry: string;
+  status: 'open' | 'closed';
+  category: string;
   timestamp: string;
 }
