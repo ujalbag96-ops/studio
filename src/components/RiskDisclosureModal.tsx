@@ -1,19 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ShieldAlert, CheckCircle2, AlertTriangle, ShieldCheck, Lock, ArrowDown } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface RiskDisclosureModalProps {
   isOpen: boolean;
@@ -25,17 +26,27 @@ export default function RiskDisclosureModal({ isOpen, onOpenChange, onAccepted }
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [isUpdating, setIsUpdating] = React.useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const isBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 20;
+    if (isBottom) {
+      setHasScrolledToBottom(true);
+    }
+  };
 
   const handleAccept = async () => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !hasScrolledToBottom) return;
     setIsUpdating(true);
     try {
       const userRef = doc(firestore, 'users', user.uid);
       await updateDoc(userRef, {
         riskNoticeAccepted: true
       });
-      toast({ title: "DISCLOSURE ACCEPTED", description: "You may now participate in tournaments." });
+      toast({ title: "DISCLOSURE ACCEPTED", description: "You now have access to premium arena features." });
       onOpenChange(false);
       if (onAccepted) onAccepted();
     } catch (e) {
@@ -47,50 +58,106 @@ export default function RiskDisclosureModal({ isOpen, onOpenChange, onAccepted }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-lg rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
-        <div className="bg-red-600/10 p-8 border-b border-white/5 flex items-center gap-4">
-           <div className="h-14 w-14 rounded-2xl bg-red-600/20 flex items-center justify-center border border-red-600/30">
-              <ShieldAlert className="h-8 w-8 text-red-500 animate-pulse" />
+      <DialogContent className="bg-[#050508] border-primary/20 text-white max-w-xl rounded-[2.5rem] overflow-hidden p-0 shadow-[0_0_100px_rgba(255,123,0,0.1)]">
+        <DialogHeader className="bg-gradient-to-r from-primary/20 to-transparent p-8 border-b border-white/5 flex flex-row items-center gap-6">
+           <div className="h-16 w-16 rounded-[1.5rem] bg-primary/10 flex items-center justify-center border border-primary/30 shadow-[0_0_20px_rgba(255,123,0,0.2)]">
+              <ShieldAlert className="h-10 w-10 text-primary animate-pulse" />
            </div>
-           <div>
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter">Risk Disclosure</h2>
-              <p className="text-[10px] font-black uppercase text-red-400/60 tracking-widest italic">Action Required: Tactical Consent</p>
+           <div className="text-left">
+              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter leading-none">Risk <span className="text-primary">Disclosure</span></DialogTitle>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] mt-2 italic">Industrial Consent Protocol v2.4</p>
            </div>
-        </div>
+        </DialogHeader>
 
         <div className="p-8 space-y-6">
-           <div className="p-6 bg-white/5 border border-white/10 rounded-2xl space-y-4">
-              <p className="text-sm font-bold uppercase italic text-white leading-relaxed">
-                 <span className="text-red-500 font-black">IMPORTANT NOTICE:</span> Any participation in JILI Games, PUBG Tournaments, or other competitive E-Sports matches involving entry fees or deposited funds is strictly at your own individual risk. 
-              </p>
-              <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-                 The platform does not guarantee winnings and is not responsible for any losses or defeats in these matches.
-              </p>
+           <div className="bg-black/40 border border-white/5 rounded-3xl overflow-hidden">
+              <ScrollArea className="h-72 p-6" onScrollCapture={handleScroll}>
+                 <div className="space-y-8 pb-10">
+                    <section className="space-y-4">
+                       <h4 className="text-primary font-black uppercase italic text-sm flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4" /> 1. DEPOSIT & GAMEPLAY RISK
+                       </h4>
+                       <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight">
+                          Any participation in <span className="text-white font-bold">JILI Games, PUBG / E-Sports Tournaments</span>, paid Ludo/Casual matches, Fantasy Cricket Leagues, or any game/activity requiring entry fees or deposited funds is strictly at your own financial and personal risk. 
+                       </p>
+                       <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight">
+                          The platform does not guarantee winnings, is not liable for technical disconnections during matches, and will not refund any losses or entry fees under any circumstances. Results determined by official arena adjudicators are final.
+                       </p>
+                    </section>
+
+                    <section className="space-y-4 border-t border-white/5 pt-6">
+                       <h4 className="text-green-500 font-black uppercase italic text-sm flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4" /> 2. CPA TASK EARNINGS (100% SAFE)
+                       </h4>
+                       <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight">
+                          All rewards, coins, and cash payouts generated by completing <span className="text-white font-bold">CPA Tasks</span>, surveys, or app installs are completely free, 100% guaranteed, and hold zero financial risk. These activities are subsidized by sponsors and are protected under our Secure Earning Policy.
+                       </p>
+                    </section>
+
+                    <section className="space-y-4 border-t border-white/5 pt-6">
+                       <h4 className="text-muted-foreground font-black uppercase italic text-sm">3. USER ACKNOWLEDGMENT</h4>
+                       <p className="text-[10px] text-muted-foreground/60 font-bold leading-relaxed uppercase">
+                          By clicking 'I AGREE', you confirm that you are playing premium matches solely at your own risk. You waive all rights to litigation or chargebacks regarding competitive gameplay outcomes.
+                       </p>
+                    </section>
+                 </div>
+              </ScrollArea>
            </div>
 
-           <div className="flex items-start gap-4 p-5 rounded-2xl bg-green-500/5 border border-green-500/10">
-              <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-              <div>
-                 <h4 className="text-[10px] font-black uppercase text-green-500 tracking-widest">Guaranteed Sector</h4>
-                 <p className="text-[11px] text-muted-foreground font-bold uppercase leading-relaxed mt-1">
-                    However, all earnings, rewards, and commissions generated through completed <span className="text-white">CPA tasks</span> are 100% guaranteed, secure, and risk-free.
-                 </p>
+           {!hasScrolledToBottom && (
+              <div className="flex items-center justify-center gap-2 text-primary animate-bounce">
+                 <ArrowDown className="h-4 w-4" />
+                 <span className="text-[9px] font-black uppercase tracking-widest">Scroll to bottom to unlock</span>
               </div>
-           </div>
-
-           <div className="flex items-center gap-3 px-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-              <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">By continuing, you acknowledge individual financial responsibility.</p>
-           </div>
+           )}
         </div>
 
         <DialogFooter className="p-8 bg-white/5 border-t border-white/5 flex flex-col sm:flex-row gap-4">
-           <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 font-black uppercase italic text-xs h-14 rounded-xl hover:bg-white/5">Decline</Button>
-           <Button onClick={handleAccept} disabled={isUpdating} className="flex-1 bg-primary hover:bg-primary/90 h-14 rounded-xl font-black uppercase italic text-sm shadow-xl">
-              {isUpdating ? "SYNCING..." : "I AGREE & CONTINUE"}
+           <Button 
+            variant="ghost" 
+            onClick={() => onOpenChange(false)} 
+            className="flex-1 font-black uppercase italic text-xs h-16 rounded-2xl hover:bg-white/5 border border-white/5"
+           >
+              Decline Access
+           </Button>
+           <Button 
+            onClick={handleAccept} 
+            disabled={isUpdating || !hasScrolledToBottom} 
+            className={cn(
+              "flex-1 h-16 rounded-2xl font-black uppercase italic text-sm shadow-2xl transition-all",
+              hasScrolledToBottom ? "bg-primary hover:bg-primary/90 text-white" : "bg-muted text-muted-foreground cursor-not-allowed"
+            )}
+           >
+              {isUpdating ? <Loader2 className="animate-spin" /> : "I AGREE & CONTINUE"}
            </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Loader2(props: any) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M12 2v4" />
+      <path d="m16.2 7.8 2.9-2.9" />
+      <path d="M18 12h4" />
+      <path d="m16.2 16.2 2.9 2.9" />
+      <path d="M12 18v4" />
+      <path d="m4.9 19.1 2.9-2.9" />
+      <path d="M2 12h4" />
+      <path d="m4.9 4.9 2.9 2.9" />
+    </svg>
   );
 }
