@@ -48,31 +48,38 @@ function LoginContent() {
       const userDocRef = doc(firestore, 'users', firebaseUser.uid);
       const snap = await getDoc(userDocRef);
 
+      // Generate or retrieve Device ID
+      let deviceId = localStorage.getItem('bb_device_id');
+      if (!deviceId) {
+        deviceId = 'DEV-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
+        localStorage.setItem('bb_device_id', deviceId);
+      }
+
+      // Fetch IP Signal
+      let ipData = { ip: 'Unknown', country: 'Global' };
+      try {
+         const res = await fetch('https://ipapi.co/json/');
+         const data = await res.json();
+         ipData = { ip: data.ip, country: data.country_name };
+      } catch(e) {}
+
       if (!snap.exists()) {
         const referralCodeFromUrl = searchParams.get('ref');
         let l1Upline = '';
         let l2Upline = '';
 
-        // Find L1 and L2 uplines if ref code exists
         if (referralCodeFromUrl) {
           const q = query(collection(firestore, 'users'), where('referralCode', '==', referralCodeFromUrl), limit(1));
           const uplineSnap = await getDocs(q);
           if (!uplineSnap.empty) {
             const l1Data = uplineSnap.docs[0].data();
             l1Upline = uplineSnap.docs[0].id;
-            l2Upline = l1Data.referredBy || ''; // L1's L1 becomes our L2
+            l2Upline = l1Data.referredBy || '';
           }
         }
 
         const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         
-        let ipData = { ip: 'Unknown', country: 'Global' };
-        try {
-           const res = await fetch('https://ipapi.co/json/');
-           const data = await res.json();
-           ipData = { ip: data.ip, country: data.country_name };
-        } catch(e) {}
-
         await setDoc(userDocRef, {
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
@@ -89,13 +96,22 @@ function LoginContent() {
           mlmLevel: 0,
           tasksCompletedCount: 0,
           isAccountActivated: false,
+          deviceId: deviceId,
           lastIp: ipData.ip,
           country: ipData.country,
+          status: 'active',
+          isSuspended: false,
           joinedAt: new Date().toISOString()
         });
+      } else {
+        // Update security signals on login
+        await setDoc(userDocRef, { 
+          lastIp: ipData.ip, 
+          deviceId: deviceId 
+        }, { merge: true });
       }
     } catch (err) {
-      console.error("Industrial Profile instantiation failure", err);
+      console.error("Industrial Identity instantiation failure", err);
     }
   };
 

@@ -21,11 +21,13 @@ export interface UserProfile {
   referredBy?: string; // L1 Upline
   referredByL2?: string; // L2 Upline
   mlmLevel?: number; // 0, 1000, 3000, 5000, 10000
+  deviceId?: string; // Hardware Fingerprint
   lastIp?: string;
   country?: string;
   rank: UserRank;
   isAdmin?: boolean;
-  isBanned?: boolean;
+  isSuspended?: boolean; // Fraud Lock
+  status?: 'active' | 'suspended';
   lastSpinTimestamp?: string;
   vipStatus?: VIPStatus;
   taskBalance?: number;
@@ -77,6 +79,4 @@ export interface AppSettings {
   earningBannerUrl?: string;
   earningBannerLink?: string;
   earningBannerReward?: number;
-  mlmCommissionL1?: number; // e.g. 0.20 for 20%
-  mlmCommissionL2?: number; // e.g. 0.10 for 10%
 }

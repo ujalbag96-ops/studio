@@ -33,7 +33,8 @@ import {
   Mail,
   Network,
   Users,
-  CheckCircle2
+  CheckCircle2,
+  ShieldAlert
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -100,7 +101,30 @@ export default function UserDashboard() {
   const isMilestoneHit = (profile?.networkTaskCompletions || 0) >= milestoneGoal;
 
   return (
-    <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary">
+    <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative">
+      {/* SECURITY LOCK OVERLAY */}
+      {profile?.isSuspended && (
+        <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 text-center">
+           <div className="max-w-md space-y-8 animate-in zoom-in-95 duration-500">
+              <div className="h-32 w-32 bg-red-600/20 rounded-[3rem] border-2 border-red-600 flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(220,38,38,0.3)]">
+                 <ShieldAlert className="h-16 w-16 text-red-600 animate-pulse" />
+              </div>
+              <div className="space-y-4">
+                 <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Identity <span className="text-red-600">Locked</span></h2>
+                 <p className="text-muted-foreground font-medium leading-relaxed">
+                    Our anti-fraud engine has detected multiple accounts originating from this hardware signature. Your account has been suspended pending manual audit.
+                 </p>
+                 <div className="p-4 bg-red-600/10 border border-red-600/20 rounded-xl">
+                    <p className="text-[10px] font-black uppercase text-red-400">Violation: Device Collision Pattern</p>
+                 </div>
+              </div>
+              <Button asChild variant="outline" className="h-14 px-10 border-white/10 text-white font-black uppercase">
+                 <a href="https://t.me/bracketbattles_support" target="_blank">APPEAL SUSPENSION</a>
+              </Button>
+           </div>
+        </div>
+      )}
+
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
       
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
@@ -176,11 +200,11 @@ export default function UserDashboard() {
                         <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Elite Network Milestone</h3>
                      </div>
                      <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-lg">
-                        Reach <span className="text-white font-bold">1000 Network Tasks</span> to claim your 30% Master Revenue Share. Monitor your progress below.
+                        Reach <span className="text-white font-bold">1000 Verified Network Tasks</span> to claim your 30% Master Revenue Share. Fraudulent activity detected by IP/Device signatures is excluded.
                      </p>
                      <div className="space-y-3">
                         <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                           <span className="text-muted-foreground">Network Progress</span>
+                           <span className="text-muted-foreground">Clean Network Progress</span>
                            <span className="text-amber-400">{profile?.networkTaskCompletions || 0} / 1000 Tasks Completed</span>
                         </div>
                         <Progress value={milestoneProgress} className="h-3 bg-white/5" />
@@ -189,7 +213,7 @@ export default function UserDashboard() {
                   <div className="w-full md:w-auto flex flex-col gap-3">
                      <div className="p-6 bg-black/40 rounded-2xl border border-white/5 text-center">
                         <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Potential Payout</p>
-                        <p className="text-3xl font-black text-amber-500 italic">{(profile?.totalNetworkRevenue || 0) * 0.3} 🪙</p>
+                        <p className="text-3xl font-black text-amber-500 italic">{( (profile?.totalNetworkRevenue || 0) * 0.3 ).toFixed(1)} 🪙</p>
                      </div>
                      {isMilestoneHit && (
                         <Badge className="bg-green-500 text-black font-black uppercase italic px-4 py-2 mx-auto">Milestone Hit! Payout Active</Badge>
