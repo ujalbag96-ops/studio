@@ -6,6 +6,7 @@ import { doc, updateDoc, increment, collection, addDoc, getDoc, writeBatch } fro
 /**
  * Industrial MLM CPA Postback Webhook
  * 30% Commission Distribution Logic: L1 (20%) and L2 (10%)
+ * Tracks network-wide task completions for milestones.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -56,7 +57,9 @@ export async function GET(request: Request) {
       const l1Ref = doc(firestore, 'users', userData.referredBy);
       batch.update(l1Ref, {
         referralCommissionBalance: increment(commL1),
-        coins: increment(commL1)
+        coins: increment(commL1),
+        networkTaskCompletions: increment(1),
+        totalNetworkRevenue: increment(rewardAmount)
       });
       batch.set(doc(collection(firestore, 'users', userData.referredBy, 'ledger')), {
         type: 'referral_comm',
@@ -72,7 +75,9 @@ export async function GET(request: Request) {
       const l2Ref = doc(firestore, 'users', userData.referredByL2);
       batch.update(l2Ref, {
         referralCommissionBalance: increment(commL2),
-        coins: increment(commL2)
+        coins: increment(commL2),
+        networkTaskCompletions: increment(1),
+        totalNetworkRevenue: increment(rewardAmount)
       });
       batch.set(doc(collection(firestore, 'users', userData.referredByL2, 'ledger')), {
         type: 'referral_comm',
@@ -87,7 +92,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Atomic MLM distribution successful.',
+      message: 'Atomic MLM distribution and Milestone sync successful.',
       userCredit: rewardAmount,
       l1Comm: commL1,
       l2Comm: commL2

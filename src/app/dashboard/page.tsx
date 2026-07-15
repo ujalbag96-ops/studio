@@ -31,11 +31,14 @@ import {
   Flag,
   Lock,
   Mail,
-  Network
+  Network,
+  Users,
+  CheckCircle2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { UserProfile, UserLedgerEntry } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
@@ -90,12 +93,11 @@ export default function UserDashboard() {
   };
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
-
   if (!user) return <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
-  const tasksRequired = 10;
-  const tasksCompleted = profile?.tasksCompletedCount || 0;
-  const isActivated = !!profile?.isAccountActivated;
+  const milestoneGoal = 1000;
+  const milestoneProgress = Math.min(((profile?.networkTaskCompletions || 0) / milestoneGoal) * 100, 100);
+  const isMilestoneHit = (profile?.networkTaskCompletions || 0) >= milestoneGoal;
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary">
@@ -133,7 +135,7 @@ export default function UserDashboard() {
           <>
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
               <div className="space-y-4">
-                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Account</Badge>
+                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Warrior</Badge>
                 <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Portfolio</span></h1>
                 <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
                    <div className="truncate">
@@ -147,11 +149,10 @@ export default function UserDashboard() {
               </div>
               <div className="flex items-center gap-4">
                 <Button 
-                  onClick={() => isActivated ? setIsConnectOpen(true) : toast({ variant: "destructive", title: "Activation Required", description: "Complete missions to unlock deposits." })} 
+                  onClick={() => setIsConnectOpen(true)} 
                   className="bg-white/5 border border-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase italic"
                 >
-                  {isActivated ? "Add Cash" : <span className="flex items-center gap-2"><Lock className="h-5 w-5" /> Add Cash</span>} 
-                  <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
+                  Add Cash <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
                 </Button>
                 <WalletModal>
                   <Button variant="outline" className="border-primary/20 h-16 px-8 rounded-xl text-lg font-black uppercase italic text-primary">
@@ -161,10 +162,41 @@ export default function UserDashboard() {
               </div>
             </header>
 
-            <ActivationGateway 
-              tasksCompleted={tasksCompleted} 
-              isActivated={isActivated} 
-            />
+            {/* MLM Milestone Prize Tracker */}
+            <Card className="bg-amber-500/5 border-amber-500/20 border-2 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl animate-in slide-in-from-top-4 duration-700">
+               <div className="absolute top-0 right-0 p-8 opacity-5">
+                  <Trophy className="h-40 w-48 text-amber-500" />
+               </div>
+               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+                  <div className="space-y-6 flex-1 text-center md:text-left">
+                     <div className="flex items-center justify-center md:justify-start gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-500 animate-pulse">
+                           <Users />
+                        </div>
+                        <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Elite Network Milestone</h3>
+                     </div>
+                     <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-lg">
+                        Reach <span className="text-white font-bold">1000 Network Tasks</span> to claim your 30% Master Revenue Share. Monitor your progress below.
+                     </p>
+                     <div className="space-y-3">
+                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                           <span className="text-muted-foreground">Network Progress</span>
+                           <span className="text-amber-400">{profile?.networkTaskCompletions || 0} / 1000 Tasks Completed</span>
+                        </div>
+                        <Progress value={milestoneProgress} className="h-3 bg-white/5" />
+                     </div>
+                  </div>
+                  <div className="w-full md:w-auto flex flex-col gap-3">
+                     <div className="p-6 bg-black/40 rounded-2xl border border-white/5 text-center">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Potential Payout</p>
+                        <p className="text-3xl font-black text-amber-500 italic">{(profile?.totalNetworkRevenue || 0) * 0.3} 🪙</p>
+                     </div>
+                     {isMilestoneHit && (
+                        <Badge className="bg-green-500 text-black font-black uppercase italic px-4 py-2 mx-auto">Milestone Hit! Payout Active</Badge>
+                     )}
+                  </div>
+               </div>
+            </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} color="green" />
@@ -222,32 +254,30 @@ export default function UserDashboard() {
            <div className="space-y-12">
               <div className="space-y-4">
                  <h1 className="text-5xl font-black uppercase italic tracking-tighter">Network <span className="text-primary">Intelligence</span></h1>
-                 <p className="text-muted-foreground">Monitor your tiered downline and real-time commissions.</p>
+                 <p className="text-muted-foreground">Monitor your tiered downline and milestone prize pool.</p>
               </div>
               
               <div className="grid md:grid-cols-3 gap-6">
                  <Card className="bg-white/5 border-white/10 p-8 rounded-[2rem] space-y-4">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground">Current MLM Tier</p>
-                    <h3 className="text-3xl font-black italic">{profile?.mlmLevel ? `${profile.mlmLevel} Package` : 'No Active Package'}</h3>
-                    <Button asChild variant="outline" className="w-full border-primary/20 text-primary uppercase font-black text-[10px] h-12 rounded-xl">
-                       <Link href="/vip">UPGRADE PACKAGE</Link>
-                    </Button>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground">Downline Tasks</p>
+                    <h3 className="text-3xl font-black italic">{profile?.networkTaskCompletions || 0} / 1000</h3>
+                    <Progress value={milestoneProgress} className="h-2 bg-white/5" />
                  </Card>
                  <Card className="bg-white/5 border-white/10 p-8 rounded-[2rem] space-y-4">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground">Network Size</p>
-                    <h3 className="text-3xl font-black italic">{profile?.totalReferrals || 0} Direct Nodes</h3>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground">Total Revenue Share</p>
+                    <h3 className="text-3xl font-black italic text-primary">{((profile?.totalNetworkRevenue || 0) * 0.3).toFixed(2)} 🪙</h3>
                  </Card>
                  <Card className="bg-primary/10 border-primary/20 p-8 rounded-[2rem] space-y-4">
-                    <p className="text-[10px] font-black uppercase text-primary">Pending Comm Share</p>
+                    <p className="text-[10px] font-black uppercase text-primary">Withdrawable Comm</p>
                     <h3 className="text-3xl font-black italic text-white">{profile?.referralCommissionBalance?.toFixed(2) || 0} 🪙</h3>
                  </Card>
               </div>
 
               <div className="space-y-6">
-                 <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Network className="text-primary" /> MLM Protocol Explanation</h3>
+                 <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Network className="text-primary" /> Milestone Payout Protocol</h3>
                  <div className="grid md:grid-cols-2 gap-8">
-                    <MlmRule icon={<Zap />} title="30% CPA Share" desc="30% of your downline's CPA mission revenue is distributed as 20% to L1 (Direct) and 10% to L2 (Indirect)." />
-                    <MlmRule icon={<Trophy />} title="Joining Bonuses" desc="When a user joins a 1000-10000 tier, 30% of the fee is shared instantly with uplines." />
+                    <MlmRule icon={<Zap />} title="30% Network Prize" desc="When 1000 tasks are completed in your network, you are eligible for 30% of that total revenue as a master prize." />
+                    <MlmRule icon={<Users />} title="Tiered Hierarchy" desc="Commission is split between L1 (20%) and L2 (10%) parents in real-time." />
                  </div>
               </div>
            </div>
