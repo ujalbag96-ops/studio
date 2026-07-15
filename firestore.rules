@@ -45,6 +45,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /payment_signals/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Secure Transactional Data
     match /payouts/{docId} {
       allow create: if request.auth != null;

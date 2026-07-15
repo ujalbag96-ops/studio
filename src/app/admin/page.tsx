@@ -30,7 +30,9 @@ import {
   Image as ImageIcon,
   Video,
   Fingerprint,
-  CheckCircle2
+  CheckCircle2,
+  Activity,
+  Search
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,7 +52,7 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'withdrawals' | 'missions' | 'ads' | 'jili' | 'settings'>('withdrawals');
+  const [activeTab, setActiveTab] = useState<'withdrawals' | 'missions' | 'ads' | 'jili' | 'settings' | 'cricket' | 'polls'>('withdrawals');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -60,11 +62,13 @@ export default function AdminDashboard() {
   const missionsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'cpa_missions') : null, [firestore, isAdminUser]);
   const globalConfigRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'app_settings', 'global_config') : null, [firestore, isAdminUser]);
   const jiliRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'app_settings', 'jili_integration') : null, [firestore, isAdminUser]);
+  const paymentSignalsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payment_signals'), orderBy('timestamp', 'desc'), orderBy('isUsed', 'asc')) : null, [firestore, isAdminUser]);
   
   const { data: payoutsData } = useCollection<any>(payoutsQuery);
   const { data: missionsData } = useCollection<any>(missionsQuery);
   const { data: globalConfig } = useDoc<any>(globalConfigRef);
   const { data: jiliConfig } = useDoc<any>(jiliRef);
+  const { data: paymentSignals } = useCollection<any>(paymentSignalsQuery);
 
   // Local state for Global System Config
   const [systemConfig, setSystemConfig] = useState({
@@ -80,7 +84,8 @@ export default function AdminDashboard() {
     automaticGatewayEnabled: true,
     earningBannerUrl: '',
     earningBannerLink: '',
-    earningBannerReward: 5
+    earningBannerReward: 5,
+    cricketApiKey: ''
   });
 
   // Local state for JILI Integration
@@ -109,7 +114,8 @@ export default function AdminDashboard() {
         automaticGatewayEnabled: globalConfig.automaticGatewayEnabled !== false,
         earningBannerUrl: globalConfig.earningBannerUrl || '',
         earningBannerLink: globalConfig.earningBannerLink || '',
-        earningBannerReward: globalConfig.earningBannerReward || 5
+        earningBannerReward: globalConfig.earningBannerReward || 5,
+        cricketApiKey: globalConfig.cricketApiKey || ''
       });
     }
   }, [globalConfig]);
@@ -215,11 +221,13 @@ export default function AdminDashboard() {
           <ShieldCheck className="h-7 w-7 text-primary" />
           <span className="font-black text-xl italic uppercase tracking-tighter">ARENA <span className="text-primary">ADMIN</span></span>
         </div>
-        <nav className="flex-1 p-6 space-y-2">
+        <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
           <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Ledger" onClick={() => setActiveTab('withdrawals')} />
           <AdminLink active={activeTab === 'missions'} icon={<Smartphone />} label="CPA Missions" onClick={() => setActiveTab('missions')} />
           <AdminLink active={activeTab === 'ads'} icon={<Monitor />} label="Media & Ads" onClick={() => setActiveTab('ads')} />
           <AdminLink active={activeTab === 'jili'} icon={<Gamepad2 />} label="JILI Games Hub" onClick={() => setActiveTab('jili')} />
+          <AdminLink active={activeTab === 'cricket'} icon={<Flag />} label="Cricket Arena" onClick={() => setActiveTab('cricket')} />
+          <AdminLink active={activeTab === 'polls'} icon={<Target />} label="Poll Manager" onClick={() => setActiveTab('polls')} />
           <AdminLink active={activeTab === 'settings'} icon={<Settings />} label="Global System" onClick={() => setActiveTab('settings')} />
         </nav>
       </aside>
@@ -234,7 +242,7 @@ export default function AdminDashboard() {
         </header>
 
         {activeTab === 'withdrawals' && (
-          <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="space-y-12 animate-in fade-in duration-500">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <Wallet className="text-primary h-6 w-6" />
@@ -245,6 +253,7 @@ export default function AdminDashboard() {
                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">UTR Match Engine Live</span>
                 </div>
              </div>
+             
              <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
                 <Table>
                    <TableHeader className="bg-white/5">
@@ -291,6 +300,42 @@ export default function AdminDashboard() {
                    </TableBody>
                 </Table>
              </Card>
+
+             {/* UTR AUTO-VERIFICATION LOGS */}
+             <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                   <Fingerprint className="text-primary h-5 w-5" />
+                   <h2 className="text-xl font-black uppercase italic">UTR Signal Logs (Telegram)</h2>
+                </div>
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden">
+                   <Table>
+                      <TableHeader className="bg-white/5">
+                         <TableRow className="border-white/5">
+                            <TableHead className="px-8 py-4 text-[9px] font-black uppercase">UTR ID</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">Amount</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">Status</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase text-right px-8">Captured At</TableHead>
+                         </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                         {paymentSignals?.slice(0, 10).map((s: any) => (
+                           <TableRow key={s.id} className="border-white/5 text-[11px]">
+                              <TableCell className="px-8 font-mono text-primary font-black">{s.utrId}</TableCell>
+                              <TableCell className="font-black">₹{s.amount}</TableCell>
+                              <TableCell>
+                                 {s.isUsed ? (
+                                   <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] uppercase">USED BY: {s.usedBy?.substring(0,6)}...</Badge>
+                                 ) : (
+                                   <Badge variant="outline" className="text-[8px] uppercase border-white/10 text-muted-foreground">READY</Badge>
+                                 )}
+                              </TableCell>
+                              <TableCell className="text-right px-8 text-muted-foreground uppercase font-black">{s.timestamp?.toDate ? s.timestamp.toDate().toLocaleString() : 'Just Now'}</TableCell>
+                           </TableRow>
+                         ))}
+                      </TableBody>
+                   </Table>
+                </Card>
+             </div>
           </div>
         )}
 
@@ -340,6 +385,126 @@ export default function AdminDashboard() {
                  </div>
               </Card>
            </div>
+        )}
+
+        {activeTab === 'cricket' && (
+           <div className="max-w-5xl space-y-12 animate-in fade-in duration-500">
+              <div className="flex items-center gap-4">
+                 <Flag className="text-primary h-6 w-6" />
+                 <h2 className="text-2xl font-black uppercase italic">Cricket Arena Deployer</h2>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-8">
+                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-primary shadow-2xl">
+                    <h3 className="text-lg font-black uppercase italic">Match Configuration</h3>
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      const fd = new FormData(e.currentTarget);
+                      const matchData = {
+                        teamA: fd.get('teamA'),
+                        teamB: fd.get('teamB'),
+                        teamALogo: fd.get('teamALogo') || 'https://picsum.photos/seed/t1/100/100',
+                        teamBLogo: fd.get('teamBLogo') || 'https://picsum.photos/seed/t2/100/100',
+                        series: fd.get('series'),
+                        status: 'active',
+                        timestamp: new Date().toISOString()
+                      };
+                      setIsProcessing('cricket-match');
+                      await addDoc(collection(firestore!, 'cricket_matches'), matchData);
+                      setIsProcessing(null);
+                      toast({ title: "MATCH DEPLOYED" });
+                      (e.target as any).reset();
+                    }} className="space-y-6">
+                       <div className="grid grid-cols-2 gap-4">
+                          <ConfigField label="Team A Name" value={''} onChange={() => {}} placeholder="India" name="teamA" />
+                          <ConfigField label="Team B Name" value={''} onChange={() => {}} placeholder="Australia" name="teamB" />
+                       </div>
+                       <ConfigField label="Series Name" value={''} onChange={() => {}} placeholder="Border-Gavaskar Trophy" name="series" />
+                       <div className="grid grid-cols-2 gap-4">
+                          <ConfigField label="Team A Logo URL" value={''} onChange={() => {}} name="teamALogo" />
+                          <ConfigField label="Team B Logo URL" value={''} onChange={() => {}} name="teamBLogo" />
+                       </div>
+                       <Button type="submit" disabled={isProcessing === 'cricket-match'} className="w-full h-16 bg-primary font-black uppercase italic rounded-xl">
+                          {isProcessing === 'cricket-match' ? <Loader2 className="animate-spin" /> : "LAUNCH MATCH"}
+                       </Button>
+                    </form>
+                 </Card>
+
+                 <Card className="bg-primary/5 border border-primary/20 p-10 rounded-[2.5rem] space-y-6 flex flex-col justify-center text-center">
+                    <Activity className="h-16 w-16 text-primary mx-auto animate-pulse" />
+                    <h3 className="text-xl font-black uppercase italic">Live Analytics Feed</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase font-black leading-relaxed">
+                       API Key: {systemConfig.cricketApiKey ? "CONNECTED" : "NOT SET"}
+                    </p>
+                    <div className="p-4 bg-black/40 rounded-xl border border-white/5 space-y-4">
+                       <p className="text-[9px] font-black uppercase text-muted-foreground">Next Over Prediction Engine</p>
+                       <Button variant="outline" className="w-full border-primary/40 text-primary font-black uppercase text-[10px] h-12 rounded-xl">
+                          FETCH LIVE SCORE
+                       </Button>
+                    </div>
+                 </Card>
+              </div>
+           </div>
+        )}
+
+        {activeTab === 'polls' && (
+          <div className="max-w-4xl space-y-12 animate-in fade-in duration-500">
+             <div className="flex items-center gap-4">
+                <Target className="text-primary h-6 w-6" />
+                <h2 className="text-2xl font-black uppercase italic">Over-by-Over Poll Manager</h2>
+             </div>
+
+             <div className="grid md:grid-cols-3 gap-8">
+                <Card className="md:col-span-2 bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-primary">
+                   <h3 className="text-lg font-black uppercase italic">Deploy Live Over Signal</h3>
+                   <form onSubmit={async (e) => {
+                     e.preventDefault();
+                     const fd = new FormData(e.currentTarget);
+                     const overNum = fd.get('overNum');
+                     const runs = fd.get('runs');
+                     const pollData = {
+                        question: `Will Over #${overNum} yield ${runs}+ runs?`,
+                        optionA: 'YES',
+                        optionB: 'NO',
+                        category: 'Cricket Live Over',
+                        entryFee: 10,
+                        totalPool: 0,
+                        expiry: 'Next 5 Minutes',
+                        status: 'open',
+                        timestamp: new Date().toISOString()
+                     };
+                     setIsProcessing('poll-deploy');
+                     await addDoc(collection(firestore!, 'polls'), pollData);
+                     setIsProcessing(null);
+                     toast({ title: "SIGNAL LIVE" });
+                     (e.target as any).reset();
+                   }} className="space-y-6">
+                      <div className="grid grid-cols-2 gap-6">
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Over Number</Label>
+                            <Input name="overNum" type="number" placeholder="5" className="h-14 bg-black border-white/10 rounded-xl font-black text-xl text-primary" required />
+                         </div>
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Target Runs (Limit)</Label>
+                            <Input name="runs" type="number" placeholder="22" className="h-14 bg-black border-white/10 rounded-xl font-black text-xl text-primary" required />
+                         </div>
+                      </div>
+                      <Button type="submit" disabled={isProcessing === 'poll-deploy'} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+                         {isProcessing === 'poll-deploy' ? <Loader2 className="animate-spin" /> : "LAUNCH OVER SIGNAL"}
+                      </Button>
+                   </form>
+                </Card>
+
+                <Card className="bg-white/5 border border-white/10 p-8 rounded-[2rem] space-y-6">
+                   <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Quick Templates</h4>
+                   <div className="space-y-3">
+                      <TemplateButton label="Next Wicket (Yes/No)" />
+                      <TemplateButton label="Boundary in Next 3 Balls" />
+                      <TemplateButton label="DRS Review Signal" />
+                   </div>
+                </Card>
+             </div>
+          </div>
         )}
 
         {activeTab === 'ads' && (
@@ -443,6 +608,9 @@ export default function AdminDashboard() {
                        <ConfigField label="Master Admin UPI ID" value={systemConfig.adminUpiId} onChange={v => setSystemConfig({...systemConfig, adminUpiId: v})} placeholder="e.g. ujalbag@upi" />
                        <ConfigField label="Deposit Verification Telegram" value={systemConfig.depositTelegramUrl} onChange={v => setSystemConfig({...systemConfig, depositTelegramUrl: v})} placeholder="https://t.me/your_support" />
                     </div>
+                    <div className="space-y-4">
+                       <ConfigField label="Cricket Live Data API Key" value={systemConfig.cricketApiKey} onChange={v => setSystemConfig({...systemConfig, cricketApiKey: v})} placeholder="Your API Key" />
+                    </div>
                     <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
                        <div className="space-y-1">
                           <p className="text-sm font-black uppercase italic">Automatic Digital Gateway</p>
@@ -544,11 +712,11 @@ function AdminLink({ active, icon, label, onClick }: any) {
   );
 }
 
-function ConfigField({ label, value, onChange, placeholder = "Enter ID..." }: { label: string, value: string, onChange: (v: string) => void, placeholder?: string }) {
+function ConfigField({ label, value, onChange, placeholder = "Enter ID...", name }: { label: string, value: string, onChange: (v: string) => void, placeholder?: string, name?: string }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 flex-1">
        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">{label}</Label>
-       <Input value={value} onChange={e => onChange(e.target.value)} className="bg-black border-white/10 h-12 font-mono text-xs text-primary" placeholder={placeholder} />
+       <Input name={name} value={value || undefined} onChange={e => onChange(e.target.value)} className="bg-black border-white/10 h-12 font-mono text-xs text-primary" placeholder={placeholder} />
     </div>
   );
 }
@@ -560,4 +728,12 @@ function GameToggle({ label, checked, onChange }: { label: string, checked: bool
        <Switch checked={checked} onCheckedChange={onChange} />
     </div>
   );
+}
+
+function TemplateButton({ label }: { label: string }) {
+   return (
+     <Button variant="ghost" className="w-full h-12 justify-start px-4 text-[11px] font-black uppercase italic border border-white/5 rounded-xl hover:bg-primary/10 hover:text-primary">
+        <Plus className="h-3 w-3 mr-2" /> {label}
+     </Button>
+   );
 }
