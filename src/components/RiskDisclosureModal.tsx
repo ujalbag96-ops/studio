@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -65,7 +64,7 @@ export default function RiskDisclosureModal({ isOpen, onOpenChange, onAccepted }
                  <span className="text-red-500 font-black">IMPORTANT NOTICE:</span> Any participation in JILI Games, PUBG Tournaments, or other competitive E-Sports matches involving entry fees or deposited funds is strictly at your own individual risk. 
               </p>
               <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-                 The platform does not guarantee winnings and is not responsible for any losses or defeats in these matches. High-stakes competition involves performance variance.
+                 The platform does not guarantee winnings and is not responsible for any losses or defeats in these matches.
               </p>
            </div>
 
@@ -74,7 +73,7 @@ export default function RiskDisclosureModal({ isOpen, onOpenChange, onAccepted }
               <div>
                  <h4 className="text-[10px] font-black uppercase text-green-500 tracking-widest">Guaranteed Sector</h4>
                  <p className="text-[11px] text-muted-foreground font-bold uppercase leading-relaxed mt-1">
-                    All earnings, rewards, and commissions generated through completed <span className="text-white">CPA tasks</span> are 100% guaranteed, secure, and risk-free.
+                    However, all earnings, rewards, and commissions generated through completed <span className="text-white">CPA tasks</span> are 100% guaranteed, secure, and risk-free.
                  </p>
               </div>
            </div>

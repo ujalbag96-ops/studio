@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -6,17 +5,22 @@ import { collection, doc, updateDoc, increment, addDoc, query, where } from 'fir
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Trophy, Timer, Zap, Globe, Target, ShieldCheck, Loader2, Info, Flag } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { UserProfile, CricketMatch } from '../lib/types';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 
 export default function CricketHub() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isVoting, setIsVoting] = useState<string | null>(null);
+  const [showRiskModal, setShowRiskModal] = useState(false);
+  const [pendingVote, setPendingVote] = useState<{ matchId: string, team: string, fee: number } | null>(null);
 
   const matchesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cricket_matches') : null, [firestore]);
   const { data: matches, isLoading } = useCollection<CricketMatch>(matchesQuery);
@@ -30,6 +34,12 @@ export default function CricketHub() {
       return;
     }
 
+    if (!profile.riskNoticeAccepted) {
+      setPendingVote({ matchId, team, fee });
+      setShowRiskModal(true);
+      return;
+    }
+
     if (profile.coins < fee) {
       toast({ variant: "destructive", title: "Insufficient Balance" });
       return;
@@ -37,7 +47,7 @@ export default function CricketHub() {
 
     setIsVoting(matchId);
     try {
-      await updateDoc(userRef, {
+      await updateDoc(userRef!, {
         coins: increment(-fee),
         depositBalance: increment(-fee)
       });
@@ -60,6 +70,12 @@ export default function CricketHub() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
+      <RiskDisclosureModal 
+        isOpen={showRiskModal} 
+        onOpenChange={setShowRiskModal} 
+        onAccepted={() => pendingVote && handlePredict(pendingVote.matchId, pendingVote.team, pendingVote.fee)} 
+      />
+
       <div className="space-y-4 pt-10 text-center md:text-left">
          <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[10px]">Cricket Prediction Arena</Badge>
          <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white">Live <span className="text-primary">Stakes</span></h1>

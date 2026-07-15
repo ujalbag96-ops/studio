@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, increment, collection, addDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, doc, updateDoc, increment, addDoc, query, where, orderBy } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,12 +11,15 @@ import { useToast } from '@/hooks/use-toast';
 import { UserProfile, PredictionPoll } from '../lib/types';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 
 export default function PredictionsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isVoting, setIsVoting] = useState<string | null>(null);
+  const [showRiskModal, setShowRiskModal] = useState(false);
+  const [pendingVote, setPendingVote] = useState<{ pollId: string, fee: number, choice: string } | null>(null);
 
   const pollsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'polls'), orderBy('timestamp', 'desc')) : null, 
@@ -34,6 +36,12 @@ export default function PredictionsPage() {
       return;
     }
 
+    if (!profile.riskNoticeAccepted) {
+      setPendingVote({ pollId, fee, choice });
+      setShowRiskModal(true);
+      return;
+    }
+
     if (profile.coins < fee) {
       toast({ variant: "destructive", title: "Insufficient Assets", description: "Complete missions or add cash to play." });
       return;
@@ -41,7 +49,7 @@ export default function PredictionsPage() {
 
     setIsVoting(pollId);
     try {
-      await updateDoc(userRef, {
+      await updateDoc(userRef!, {
         coins: increment(-fee),
         depositBalance: increment(-fee)
       });
@@ -56,7 +64,7 @@ export default function PredictionsPage() {
         amount: fee,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: `Poll Entry: ${choice} (#${pollId})`
+        description: `Poll Entry: ${choice} (Poll #${pollId})`
       });
 
       toast({ title: "PREDICTION LOCKED", description: "Your vote has been registered in the arena pool." });
@@ -75,6 +83,12 @@ export default function PredictionsPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
+      <RiskDisclosureModal 
+        isOpen={showRiskModal} 
+        onOpenChange={setShowRiskModal} 
+        onAccepted={() => pendingVote && handleVote(pendingVote.pollId, pendingVote.fee, pendingVote.choice)} 
+      />
+
       <div className="space-y-4 pt-10 text-center md:text-left">
          <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-primary/10 border border-primary/20 shadow-xl">
             <Target className="h-4 w-4 text-primary animate-pulse" />
@@ -99,7 +113,7 @@ export default function PredictionsPage() {
                   <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
                      <Activity className="h-5 w-5 text-blue-500" />
                   </div>
-                  <h2 className="text-2xl font-black uppercase italic italic tracking-tighter">Live Over-by-Over <span className="text-blue-500">Events</span></h2>
+                  <h2 className="text-2xl font-black uppercase italic tracking-tighter">Live Over-by-Over <span className="text-blue-500">Events</span></h2>
                </div>
                <div className="grid gap-6">
                   {cricketPolls.map((poll) => (
@@ -115,7 +129,7 @@ export default function PredictionsPage() {
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                      <Zap className="h-5 w-5 text-primary" />
                   </div>
-                  <h2 className="text-2xl font-black uppercase italic italic tracking-tighter">General <span className="text-primary">Predictions</span></h2>
+                  <h2 className="text-2xl font-black uppercase italic tracking-tighter">General <span className="text-primary">Predictions</span></h2>
                </div>
                <div className="grid gap-6">
                   {otherPolls.map((poll) => (
