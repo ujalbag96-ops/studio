@@ -57,12 +57,15 @@ function LoginContent() {
         localStorage.setItem('bb_device_id', deviceId);
       }
 
+      // Geo-IP Integration
       let ipData = { ip: 'Unknown', country: 'Global' };
       try {
          const res = await fetch('https://ipapi.co/json/');
          const data = await res.json();
          ipData = { ip: data.ip, country: data.country_name };
-      } catch(e) {}
+      } catch(e) {
+         console.error("Geo-IP node unreachable");
+      }
 
       if (!snap.exists()) {
         const referralCodeFromUrl = searchParams.get('ref');
@@ -76,8 +79,6 @@ function LoginContent() {
             const l1Data = uplineSnap.docs[0].data();
             l1Upline = uplineSnap.docs[0].id;
             l2Upline = l1Data.referredBy || '';
-            
-            // Increment parent's referral count
             await setDoc(doc(firestore, 'users', l1Upline), { totalReferrals: increment(1) }, { merge: true });
           }
         }
@@ -111,7 +112,7 @@ function LoginContent() {
           joinedAt: new Date().toISOString()
         });
       } else {
-        await setDoc(userDocRef, { lastIp: ipData.ip, deviceId: deviceId }, { merge: true });
+        await setDoc(userDocRef, { lastIp: ipData.ip, deviceId: deviceId, country: ipData.country }, { merge: true });
       }
     } catch (err) {
       console.error("Identity instantiation failure", err);

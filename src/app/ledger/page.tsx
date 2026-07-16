@@ -88,7 +88,7 @@ export default function LedgerPage() {
     );
   }
 
-  const income = ledgerData?.filter(l => l.type === 'income' || l.type === 'referral').reduce((acc, curr) => acc + curr.amount, 0) || 0;
+  const income = ledgerData?.filter(l => l.type === 'income' || l.type === 'referral' || l.type === 'referral_comm').reduce((acc, curr) => acc + curr.amount, 0) || 0;
   const withdrawals = ledgerData?.filter(l => l.type === 'withdrawal').reduce((acc, curr) => acc + curr.amount, 0) || 0;
 
   return (
@@ -188,8 +188,8 @@ export default function LedgerPage() {
               </TableHeader>
               <TableBody>
                 {ledgerData.map((entry) => {
-                   const isPositive = entry.type === 'income' || entry.type === 'deposit' || entry.type === 'referral';
-                   const entryCurrency = entry.currencySymbol || (entry.type === 'withdrawal' ? '₹' : '');
+                   const isPositive = entry.type === 'income' || entry.type === 'deposit' || entry.type === 'referral' || entry.type === 'referral_comm';
+                   const entryCurrency = entry.currencySymbol || currencyData.symbol;
                    return (
                     <TableRow key={entry.id} onClick={() => setSelectedTx(entry)} className="border-white/5 hover:bg-white/5 transition-all group cursor-pointer">
                       <TableCell className="px-8 py-6">
@@ -271,5 +271,49 @@ function SummaryCard({ title, value, icon, description }: { title: string; value
         </div>
       </div>
     </Card>
+  );
+}
+
+function TransactionReceipt({ transaction, onClose }: any) {
+  if (!transaction) return null;
+  return (
+    <Dialog open={!!transaction} onOpenChange={onClose}>
+      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-sm rounded-[2.5rem] p-8">
+        <div className="space-y-6 text-center">
+           <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto border border-primary/20">
+              <Zap className="h-10 w-10 text-primary" />
+           </div>
+           <h3 className="text-2xl font-black uppercase italic">Receipt Verified</h3>
+           <div className="py-6 border-y border-white/5 space-y-2">
+              <p className="text-[10px] font-black text-muted-foreground uppercase">Amount Details</p>
+              <p className="text-4xl font-black text-white">{transaction.amount} {transaction.type === 'withdrawal' ? transaction.currencySymbol : '🪙'}</p>
+              <Badge className="bg-white/5 text-muted-foreground uppercase font-black text-[8px]">{transaction.type}</Badge>
+           </div>
+           <div className="text-left space-y-4">
+              <div className="flex justify-between text-[10px] font-bold uppercase">
+                 <span className="text-muted-foreground">Date</span>
+                 <span>{transaction.date}</span>
+              </div>
+              <div className="flex justify-between text-[10px] font-bold uppercase">
+                 <span className="text-muted-foreground">Status</span>
+                 <span className="text-green-500">{transaction.status}</span>
+              </div>
+              <p className="text-xs text-muted-foreground italic text-center pt-4">"{transaction.description || 'System Synchronized'}"</p>
+           </div>
+           <Button onClick={onClose} className="w-full h-14 bg-primary font-black uppercase italic rounded-xl">CLOSE RECEIPT</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Dialog({ children, open, onOpenChange }: any) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+       <div className="relative animate-in zoom-in-95 duration-300">
+          {children}
+       </div>
+    </div>
   );
 }
