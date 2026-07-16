@@ -1,22 +1,86 @@
+
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Loader2, ShieldCheck, Zap, AlertTriangle, Eye, Lock, Sparkles } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Loader2, 
+  ShieldCheck, 
+  Zap, 
+  AlertTriangle, 
+  Eye, 
+  Sparkles, 
+  Clock, 
+  Trophy,
+  CheckCircle2,
+  BrainCircuit
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 function ViewerContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useUser();
+  const { toast } = useToast();
   const url = searchParams.get('url');
   
   const [showSolution, setShowSolution] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [adCountdown, setAdCountdown] = useState(10);
+  
+  // Earning State
+  const [secondsRead, setSecondsRead] = useState(0);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizStep, setQuizStep] = useState(0);
+  const [quizAnswers, setQuizAnswers] = useState<string[]>([]);
+
+  // Reading Timer (15 mins = 900 seconds)
+  useEffect(() => {
+    if (!user || isProcessing) return;
+    const interval = setInterval(() => {
+      setSecondsRead(prev => {
+        const next = prev + 1;
+        if (next === 900) {
+          handleReward('reading');
+          return 0; // Reset for next milestone
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [user, isProcessing]);
+
+  const handleReward = async (type: 'reading' | 'quiz') => {
+    if (!user) return;
+    try {
+      const res = await fetch('/api/reading-reward', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, type })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ 
+          title: type === 'reading' ? "READING REWARD" : "QUIZ REWARD", 
+          description: `+${data.reward} Coins added to your wallet!` 
+        });
+        new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
+      }
+    } catch (e) {
+      console.error("Reward sync failed");
+    }
+  };
 
   const handleRewardedAd = () => {
     setIsProcessing(true);
@@ -37,6 +101,13 @@ function ViewerContent() {
     setIsProcessing(false);
   };
 
+  const submitQuiz = () => {
+    // Simple logic: all correct for now in prototype
+    handleReward('quiz');
+    setShowQuiz(false);
+    setQuizStep(0);
+  };
+
   if (!url) return <div className="p-20 text-center">Invalid Resource URL</div>;
 
   return (
@@ -46,8 +117,16 @@ function ViewerContent() {
             <ArrowLeft className="h-3 w-3 mr-2" /> Back
          </Button>
          <div className="flex items-center gap-3">
+            <div className="bg-black/40 border border-white/10 px-4 py-2 rounded-xl flex items-center gap-3">
+               <Clock className="h-3 w-3 text-primary animate-pulse" />
+               <span className="text-[10px] font-black text-white tabular-nums">
+                 {Math.floor(secondsRead / 60)}m {secondsRead % 60}s Read
+               </span>
+               <div className="h-1 w-12 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-primary" style={{ width: `${(secondsRead / 900) * 100}%` }} />
+               </div>
+            </div>
             <Badge variant="outline" className="border-white/10 text-primary font-black uppercase text-[9px] italic">Free Reader v4.1</Badge>
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
          </div>
       </div>
 
@@ -89,13 +168,24 @@ function ViewerContent() {
                   <ShieldCheck className="h-40 w-40 text-primary" />
                </div>
                <h3 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
-                  <ShieldCheck className="h-6 w-6 text-primary" /> Free Reader
+                  <Trophy className="h-6 w-6 text-primary" /> Smart Rewards
                </h3>
                <ul className="space-y-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest relative z-10">
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Open Resource Policy</li>
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Ad-Supported Access</li>
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Zero Cost Educational Hub</li>
+                  <li className="flex items-center justify-between">
+                     <span>15 Mins Read</span>
+                     <span className="text-primary font-black">+2 🪙</span>
+                  </li>
+                  <li className="flex items-center justify-between">
+                     <span>Chapter Quiz</span>
+                     <span className="text-primary font-black">+5 🪙</span>
+                  </li>
                </ul>
+               <Button 
+                onClick={() => setShowQuiz(true)}
+                className="w-full h-12 bg-white/5 border border-white/10 hover:bg-primary text-[10px] font-black uppercase rounded-xl transition-all"
+               >
+                  <BrainCircuit className="h-4 w-4 mr-2" /> TAKE QUIZ
+               </Button>
             </Card>
 
             <Card className="bg-amber-500/5 border-amber-500/20 p-8 rounded-[2.5rem] space-y-6 shadow-2xl">
@@ -103,14 +193,48 @@ function ViewerContent() {
                   <AlertTriangle className="h-6 w-6" />
                </div>
                <div className="space-y-2">
-                  <h4 className="text-sm font-black uppercase italic text-white">Student Policy</h4>
+                  <h4 className="text-sm font-black uppercase italic text-white">Earn Policy</h4>
                   <p className="text-[10px] text-muted-foreground font-medium uppercase leading-relaxed">
-                     We keep books free for students through minimal ads. Commercial usage of these free materials is strictly prohibited.
+                     Rewards are credited after verification. Closing the tab early may reset the reading timer.
                   </p>
                </div>
             </Card>
          </div>
       </div>
+
+      {/* QUIZ DIALOG */}
+      <Dialog open={showQuiz} onOpenChange={setShowQuiz}>
+         <DialogContent className="bg-[#0a0a0f] border-primary/20 text-white max-w-sm rounded-[2.5rem] p-8">
+            <DialogHeader className="text-center space-y-4">
+               <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto border border-primary/20">
+                  <BrainCircuit className="h-8 w-8 text-primary" />
+               </div>
+               <DialogTitle className="text-2xl font-black uppercase italic">Knowledge Check</DialogTitle>
+               <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Complete 3 questions for +5 coins</DialogDescription>
+            </DialogHeader>
+            <div className="py-8 space-y-6">
+               <div className="space-y-4">
+                  <p className="text-sm font-bold uppercase italic text-center">"{quizStep === 0 ? "What is the primary topic of this material?" : quizStep === 1 ? "Which concept was explained on Page 2?" : "What is the main conclusion?"}"</p>
+                  <RadioGroup className="grid gap-3">
+                     {["A) Engineering Logic", "B) Industrial Design", "C) Applied Science"].map((opt, i) => (
+                        <div key={i} className="flex items-center space-x-3 bg-white/5 p-4 rounded-xl border border-white/5 hover:border-primary/40 cursor-pointer">
+                           <RadioGroupItem value={opt} id={`opt-${i}`} />
+                           <Label htmlFor={`opt-${i}`} className="text-[10px] font-bold uppercase">{opt}</Label>
+                        </div>
+                     ))}
+                  </RadioGroup>
+               </div>
+            </div>
+            <DialogFooter>
+               <Button 
+                onClick={() => quizStep < 2 ? setQuizStep(s => s + 1) : submitQuiz()}
+                className="w-full h-14 bg-primary font-black uppercase italic rounded-xl"
+               >
+                  {quizStep < 2 ? "NEXT QUESTION" : "SUBMIT & CLAIM"}
+               </Button>
+            </DialogFooter>
+         </DialogContent>
+      </Dialog>
 
       {/* REWARDED AD MODAL SIMULATION */}
       {isProcessing && (

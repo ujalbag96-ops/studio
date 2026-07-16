@@ -8,14 +8,20 @@ import { Button } from '@/components/ui/button';
 import { 
   Loader2, 
   Zap, 
-  PlayCircle,
-  ShieldCheck,
-  Video,
-  TrendingUp,
-  Coins,
-  Tv,
-  MonitorPlay,
-  X
+  PlayCircle, 
+  ShieldCheck, 
+  Video, 
+  TrendingUp, 
+  Coins, 
+  Tv, 
+  MonitorPlay, 
+  X,
+  Target,
+  Trophy,
+  ArrowRight,
+  Gift,
+  CheckCircle2,
+  Smartphone
 } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
@@ -23,6 +29,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
+import OfferWall from '@/components/OfferWall';
 
 export default function EarningHub() {
   const { user } = useUser();
@@ -33,6 +41,7 @@ export default function EarningHub() {
   const [adCountdown, setAdCountdown] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentReward, setCurrentReward] = useState(0);
+  const [activeTab, setActiveTab] = useState<'ads' | 'missions'>('ads');
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile, isLoading: profileLoading } = useDoc<UserProfile>(userRef);
@@ -84,81 +93,113 @@ export default function EarningHub() {
 
   if (profileLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin text-primary h-12 w-12" /></div>;
 
+  const weeklyTarget = 50;
+  const weeklyProgress = Math.min(((profile?.weeklyPointsEarned || 0) / weeklyTarget) * 100, 100);
+
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
       <div className="space-y-6 pt-12 text-center md:text-left">
-        <div className="flex items-center justify-center md:justify-start gap-4">
-           <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Simulated AdMob Network</Badge>
-           <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest">
-              <ShieldCheck className="h-4 w-4 text-green-500" /> S2S Video Verification Active
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+           <div className="space-y-4">
+              <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Elite Earning Terminal</Badge>
+              <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-none italic text-white">
+                Income <span className="text-primary">Hub</span>
+              </h1>
+              <p className="text-muted-foreground font-medium text-lg max-w-2xl leading-relaxed">
+                Complete sponsored missions and watch video signals to earn industrial-grade campus credits.
+              </p>
            </div>
+
+           {/* POCKET MONEY HOOK CARD */}
+           <Card className="w-full md:w-80 bg-gradient-to-br from-[#1a1a24] to-black border-primary/20 border-2 rounded-[2.5rem] p-6 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                 <Trophy className="h-20 w-20 text-primary" />
+              </div>
+              <div className="relative z-10 space-y-4">
+                 <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4 text-primary" />
+                    <span className="text-[10px] font-black uppercase text-white italic">Weekly Pocket Money</span>
+                 </div>
+                 <h4 className="text-xl font-black italic">Target: ₹50.00</h4>
+                 <div className="space-y-2">
+                    <div className="flex justify-between text-[8px] font-black uppercase text-muted-foreground">
+                       <span>Progress</span>
+                       <span className="text-primary">{profile?.weeklyPointsEarned || 0} / 50 🪙</span>
+                    </div>
+                    <Progress value={weeklyProgress} className="h-2 bg-white/5" />
+                 </div>
+                 <p className="text-[8px] font-bold text-muted-foreground uppercase leading-relaxed">
+                    Earn 50 coins this week to instantly unlock your ₹50 pocket money payout protocol.
+                 </p>
+              </div>
+           </Card>
         </div>
-        <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-none italic text-white">
-          Video <span className="text-primary">Rewards</span>
-        </h1>
-        <p className="text-muted-foreground font-medium text-lg max-w-2xl leading-relaxed">
-          Watch high-bandwidth video signals to claim instant coins. No app installs, no tasks. 100% Free capital.
-        </p>
       </div>
 
-      {/* Industrial Banner Ad Simulation */}
-      <Card className="bg-[#0a0a0f] border-dashed border-2 border-white/10 p-6 rounded-[2rem] flex items-center justify-center overflow-hidden relative group">
-         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.5em] italic">Sponsored Segment • Banner Ad Slot #1</p>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         <AdRewardCard 
-            title="Quick Signal" 
-            reward={5} 
-            duration={15} 
-            icon={<Zap className="text-amber-500" />} 
-            onClick={() => triggerVideoAd(5, 15)} 
-         />
-         <AdRewardCard 
-            title="Prime Stream" 
-            reward={15} 
-            duration={30} 
-            icon={<Tv className="text-primary" />} 
-            onClick={() => triggerVideoAd(15, 30)} 
-            highlight 
-         />
-         <AdRewardCard 
-            title="Mega Yield" 
-            reward={50} 
-            duration={60} 
-            icon={<MonitorPlay className="text-green-500" />} 
-            onClick={() => triggerVideoAd(50, 60)} 
-         />
+      <div className="flex items-center gap-2 p-1 bg-white/5 rounded-2xl border border-white/5 max-w-sm mx-auto md:mx-0">
+         <button onClick={() => setActiveTab('ads')} className={cn("flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'ads' ? "bg-primary text-white" : "text-muted-foreground hover:text-white")}>Video Rewards</button>
+         <button onClick={() => setActiveTab('missions')} className={cn("flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'missions' ? "bg-primary text-white" : "text-muted-foreground hover:text-white")}>Strategic Missions</button>
       </div>
 
-      <section className="space-y-8">
-         <h2 className="text-3xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-            <TrendingUp className="text-primary" /> High-Value <span className="text-primary">Cinema Missions</span>
-         </h2>
-         
-         <Card className="bg-[#0a0a0f] border-primary/20 border-2 rounded-[3rem] overflow-hidden group shadow-2xl relative">
-            <div className="p-10 flex flex-col md:flex-row items-center justify-between gap-10">
-               <div className="flex items-center gap-8">
-                  <div className="h-20 w-20 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                     <Video className="h-10 w-10" />
+      {activeTab === 'ads' ? (
+        <div className="space-y-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <AdRewardCard 
+                title="Quick Signal" 
+                reward={5} 
+                duration={15} 
+                icon={<Zap className="text-amber-500" />} 
+                onClick={() => triggerVideoAd(5, 15)} 
+            />
+            <AdRewardCard 
+                title="Prime Stream" 
+                reward={15} 
+                duration={30} 
+                icon={<Tv className="text-primary" />} 
+                onClick={() => triggerVideoAd(15, 30)} 
+                highlight 
+            />
+            <AdRewardCard 
+                title="Mega Yield" 
+                reward={50} 
+                duration={60} 
+                icon={<MonitorPlay className="text-green-500" />} 
+                onClick={() => triggerVideoAd(50, 60)} 
+            />
+          </div>
+
+          <section className="space-y-8">
+            <h2 className="text-3xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+                <TrendingUp className="text-primary" /> High-Value <span className="text-primary">Cinema Sessions</span>
+            </h2>
+            <Card className="bg-[#0a0a0f] border-primary/20 border-2 rounded-[3rem] overflow-hidden group shadow-2xl relative">
+                <div className="p-10 flex flex-col md:flex-row items-center justify-between gap-10">
+                  <div className="flex items-center gap-8">
+                      <div className="h-20 w-20 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                        <Video className="h-10 w-10" />
+                      </div>
+                      <div className="space-y-2">
+                        <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black px-3">MASSIVE REWARD</Badge>
+                        <h3 className="text-3xl font-black uppercase italic text-white">Movie Watch Session</h3>
+                        <p className="text-muted-foreground text-sm font-medium uppercase tracking-tight">Watch cinematic content for 10 mins for a master payout.</p>
+                      </div>
                   </div>
-                  <div className="space-y-2">
-                     <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black px-3">MASSIVE REWARD</Badge>
-                     <h3 className="text-3xl font-black uppercase italic text-white">Movie Watch Session</h3>
-                     <p className="text-muted-foreground text-sm font-medium uppercase tracking-tight">Watch a full cinematic sample (10 mins) for a master payout.</p>
+                  <div className="text-center md:text-right">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 italic">Distributed Dividend</p>
+                      <p className="text-5xl font-black text-white italic">300 <span className="text-xl text-primary opacity-40">🪙</span></p>
+                      <Button asChild className="mt-6 h-16 px-12 bg-primary hover:bg-primary/90 font-black uppercase italic rounded-2xl shadow-xl">
+                        <Link href="/watch-earn">ENTER CINEMA ENGINE</Link>
+                      </Button>
                   </div>
-               </div>
-               <div className="text-center md:text-right">
-                  <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 italic">Distributed Dividend</p>
-                  <p className="text-5xl font-black text-white italic">300 <span className="text-xl text-primary opacity-40">🪙</span></p>
-                  <Button asChild className="mt-6 h-16 px-12 bg-primary hover:bg-primary/90 font-black uppercase italic rounded-2xl shadow-xl">
-                     <Link href="/watch-earn">ENTER CINEMA ENGINE</Link>
-                  </Button>
-               </div>
-            </div>
-         </Card>
-      </section>
+                </div>
+            </Card>
+          </section>
+        </div>
+      ) : (
+        <div className="animate-in fade-in duration-500">
+           <OfferWall />
+        </div>
+      )}
 
       {/* REWARDED AD MODAL SIMULATION */}
       {showAdModal && (
@@ -195,9 +236,6 @@ export default function EarningHub() {
                     </Button>
                  </div>
               </div>
-              <div className="bg-white/5 p-4 text-center">
-                 <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest italic opacity-40">Industrial Ad Transmission v4.1 Operational</p>
-              </div>
            </Card>
         </div>
       )}
@@ -230,7 +268,6 @@ function AdRewardCard({ title, reward, duration, icon, onClick, highlight }: any
                WATCH & EARN
             </Button>
          </div>
-         {highlight && <div className="absolute top-0 right-0 p-4 opacity-5"><TrendingUp className="h-32 w-32" /></div>}
       </Card>
    );
 }

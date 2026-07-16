@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { Home, Zap, Wallet, User, LogOut, Shield, Activity, GraduationCap, Library, Bell, BookOpen, Trophy } from 'lucide-react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
@@ -11,15 +11,20 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import WalletModal from './WalletModal';
 import { cn } from '@/lib/utils';
+import { UserProfile } from '@/app/lib/types';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function Navbar() {
   const { user } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
+
+  const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const { data: profile } = useDoc<UserProfile>(userRef);
 
   const handleLogout = async () => {
     if (!auth) return;
@@ -48,7 +53,7 @@ export default function Navbar() {
           <div className="flex items-center gap-8">
             <NavLink href="/" label="Home" active={pathname === '/'} />
             <NavLink href="/campus" label="Resource Locker" active={pathname.startsWith('/campus')} />
-            <NavLink href="/earning-hub" label="Ad Rewards" active={pathname === '/earning-hub'} />
+            <NavLink href="/earning-hub" label="Income Hub" active={pathname === '/earning-hub'} />
             <NavLink href="/movies" label="Cinema" active={pathname === '/movies'} />
             <NavLink href="/leaderboard" label="Hall of Fame" active={pathname === '/leaderboard'} />
             {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-amber-500 italic flex items-center gap-1.5 animate-pulse"><Shield className="h-3 w-3" /> Admin Hub</Link>}
@@ -57,6 +62,10 @@ export default function Navbar() {
           <div className="flex items-center gap-6">
             {user ? (
               <>
+                <div className="hidden lg:flex items-center gap-3 px-4 py-1.5 bg-primary/5 border border-primary/20 rounded-full">
+                   <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                   <span className="text-[10px] font-black uppercase text-primary italic">Live Points: {(profile?.coins || 0).toLocaleString()}</span>
+                </div>
                 <Link href="/inbox" className="relative group">
                   <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
                     <Bell className="h-5 w-5 text-muted-foreground group-hover:text-white" />
@@ -79,7 +88,7 @@ export default function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#0a0a0f] border-t border-white/5 flex items-center justify-around px-2">
         <MobileNavItem active={pathname === '/'} icon={<Home />} label="Home" href="/" />
         <MobileNavItem active={pathname.startsWith('/campus')} icon={<Library />} label="Locker" href="/campus" />
-        <MobileNavItem active={pathname === '/earning-hub'} icon={<Zap />} label="Ads" href="/earning-hub" />
+        <MobileNavItem active={pathname === '/earning-hub'} icon={<Zap />} label="Income" href="/earning-hub" />
         <MobileNavItem active={pathname === '/leaderboard'} icon={<Trophy />} label="Ranks" href="/leaderboard" />
         <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="Portfolio" href="/dashboard" />
       </nav>
