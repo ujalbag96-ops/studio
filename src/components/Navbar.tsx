@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Zap, Wallet, User, LogOut, Shield, Activity, Radio, ShoppingBag, Trophy, Target, Bell, Gamepad2 } from 'lucide-react';
+import { Home, Zap, Wallet, User, LogOut, Shield, Activity, Radio, ShoppingBag, Trophy, Target, Bell, Gamepad2, TrendingUp } from 'lucide-react';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -50,7 +50,8 @@ export default function Navbar() {
             <NavLink href="/esports-live" label="E-Sports" active={pathname === '/esports-live'} />
             <NavLink href="/cricket" label="Cricket" active={pathname === '/cricket'} />
             <NavLink href="/predictions" label="Polls" active={pathname === '/predictions'} />
-            <NavLink href="/games/chicken-road" label="Mini-Games" active={pathname.startsWith('/games')} />
+            <NavLink href="/games/multiplier" label="Multi-Win" active={pathname === '/games/multiplier'} />
+            <NavLink href="/games/chicken-road" label="Mini-Games" active={pathname.startsWith('/games') && pathname !== '/games/multiplier'} />
             <NavLink href="/shop" label="Redeem Shop" active={pathname === '/shop'} />
             {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-amber-500 italic flex items-center gap-1.5 animate-pulse"><Shield className="h-3 w-3" /> Admin Hub</Link>}
           </div>
@@ -97,7 +98,7 @@ export default function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#0a0a0f] border-t border-white/5 flex items-center justify-around px-2">
         <MobileNavItem active={pathname === '/'} icon={<Home />} label="Home" href="/" />
         <MobileNavItem active={pathname === '/esports-live'} icon={<Radio />} label="E-Sports" href="/esports-live" />
-        <MobileNavItem active={pathname === '/games/chicken-road'} icon={<Gamepad2 />} label="Games" href="/games/chicken-road" />
+        <MobileNavItem active={pathname === '/games/multiplier'} icon={<TrendingUp />} label="Multi-Win" href="/games/multiplier" />
         <MobileNavItem active={pathname === '/leaderboard'} icon={<Trophy />} label="Ranks" href="/leaderboard" />
         <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="Profile" href="/dashboard" />
       </nav>

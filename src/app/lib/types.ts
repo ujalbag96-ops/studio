@@ -17,6 +17,7 @@ export interface UserProfile {
   bonusBalance: number;
   referralCommissionBalance?: number;
   coins: number;
+  walletBalanceINR: number; // Real-time INR Master Balance
   referralCode: string;
   referredBy?: string; // L1 Upline
   referredByL2?: string; // L2 Upline
@@ -48,7 +49,7 @@ export interface UserProfile {
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake' | 'esports_stake' | 'referral_comm' | 'mlm_joining' | 'vip_bonus' | 'game_fee';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake' | 'esports_stake' | 'referral_comm' | 'mlm_joining' | 'vip_bonus' | 'game_fee' | 'multiplier_bet' | 'multiplier_win' | 'jackpot';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';
