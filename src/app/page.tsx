@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { Match, Tournament, GameType } from './lib/types';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import LivePrizePool from '@/components/LivePrizePool';
 
 export default function Home() {
   const firestore = useFirestore();
@@ -29,6 +30,16 @@ export default function Home() {
   
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-12 pb-24 md:pb-12 bg-background">
+      {/* Jackpot Widget Hook */}
+      <section className="animate-in slide-in-from-top-10 duration-700">
+         <LivePrizePool />
+         <div className="flex justify-center -mt-6 relative z-10">
+            <Button asChild className="h-14 px-10 bg-primary hover:bg-primary/90 font-black uppercase italic rounded-2xl shadow-2xl">
+               <Link href="/lottery">ENTER DRAW NOW <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+         </div>
+      </section>
+
       {/* High-Octane Gaming Hero */}
       <section className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-[#121216] to-[#0a0a0f] border border-white/5 shadow-2xl">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -mr-40 -mt-40 animate-pulse" />

@@ -16,7 +16,7 @@ const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 export default function Navbar() {
   const { user } = useUser();
-  const auth = useAuth(); // Returns Auth instance directly
+  const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -48,11 +48,11 @@ export default function Navbar() {
           <div className="flex items-center gap-8">
             <NavLink href="/" label="Home" active={pathname === '/'} />
             <NavLink href="/esports-live" label="E-Sports" active={pathname === '/esports-live'} />
+            <NavLink href="/lottery" label="Jackpot Draw" active={pathname === '/lottery'} />
             <NavLink href="/cricket" label="Cricket" active={pathname === '/cricket'} />
             <NavLink href="/predictions" label="Polls" active={pathname === '/predictions'} />
             <NavLink href="/games/multiplier" label="Multi-Win" active={pathname === '/games/multiplier'} />
             <NavLink href="/games/ludo-lite" label="Ludo Lite" active={pathname === '/games/ludo-lite'} />
-            <NavLink href="/shop" label="Redeem Shop" active={pathname === '/shop'} />
             {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-amber-500 italic flex items-center gap-1.5 animate-pulse"><Shield className="h-3 w-3" /> Admin Hub</Link>}
           </div>
 
@@ -77,29 +77,12 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Top Bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-[100] h-16 bg-[#0a0a0f] border-b border-white/5 flex items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <Zap className="h-6 w-6 text-primary" />
-          <span className="text-lg font-black italic uppercase">WINZO</span>
-        </Link>
-        <div className="flex items-center gap-3">
-          {user && (
-            <Link href="/inbox" className="h-9 w-9 rounded-lg bg-white/5 flex items-center justify-center">
-              <Bell className="h-4 w-4 text-muted-foreground" />
-            </Link>
-          )}
-          {user && <WalletModal />}
-          <UserMenu user={user} isAdmin={isAdmin} onLogout={handleLogout} />
-        </div>
-      </div>
-
       {/* Mobile Nav Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#0a0a0f] border-t border-white/5 flex items-center justify-around px-2">
         <MobileNavItem active={pathname === '/'} icon={<Home />} label="Home" href="/" />
+        <MobileNavItem active={pathname === '/lottery'} icon={<Trophy />} label="Jackpot" href="/lottery" />
         <MobileNavItem active={pathname === '/esports-live'} icon={<Radio />} label="E-Sports" href="/esports-live" />
         <MobileNavItem active={pathname === '/games/ludo-lite'} icon={<Dices className="h-5 w-5" />} label="Ludo" href="/games/ludo-lite" />
-        <MobileNavItem active={pathname === '/leaderboard'} icon={<Trophy />} label="Ranks" href="/leaderboard" />
         <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="Profile" href="/dashboard" />
       </nav>
     </>
