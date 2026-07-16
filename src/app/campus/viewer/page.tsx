@@ -3,8 +3,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, increment } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,15 +17,16 @@ import {
   Sparkles, 
   Clock, 
   Trophy,
-  CheckCircle2,
-  BrainCircuit
+  BrainCircuit,
+  ChevronRight,
+  CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz-flow';
 
 function ViewerContent() {
   const searchParams = useSearchParams();
@@ -36,30 +36,36 @@ function ViewerContent() {
   const url = searchParams.get('url');
   
   const [showSolution, setShowSolution] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isAdRunning, setIsAdRunning] = useState(false);
   const [adCountdown, setAdCountdown] = useState(10);
   
   // Earning State
   const [secondsRead, setSecondsRead] = useState(0);
+  
+  // Quiz State
   const [showQuiz, setShowQuiz] = useState(false);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizData, setQuizData] = useState<GenerateQuizOutput | null>(null);
   const [quizStep, setQuizStep] = useState(0);
-  const [quizAnswers, setQuizAnswers] = useState<string[]>([]);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [score, setScore] = useState(0);
+  const [quizFinished, setQuizFinished] = useState(false);
 
   // Reading Timer (15 mins = 900 seconds)
   useEffect(() => {
-    if (!user || isProcessing) return;
+    if (!user || isAdRunning || showQuiz) return;
     const interval = setInterval(() => {
       setSecondsRead(prev => {
         const next = prev + 1;
         if (next === 900) {
           handleReward('reading');
-          return 0; // Reset for next milestone
+          return 0; 
         }
         return next;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [user, isProcessing]);
+  }, [user, isAdRunning, showQuiz]);
 
   const handleReward = async (type: 'reading' | 'quiz') => {
     if (!user) return;
@@ -82,8 +88,8 @@ function ViewerContent() {
     }
   };
 
-  const handleRewardedAd = () => {
-    setIsProcessing(true);
+  const handleTakeQuizClick = () => {
+    setIsAdRunning(true);
     setAdCountdown(10);
     const interval = setInterval(() => {
       setAdCountdown(prev => {
@@ -96,16 +102,65 @@ function ViewerContent() {
     }, 1000);
   };
 
-  const confirmReward = () => {
-    setShowSolution(true);
-    setIsProcessing(false);
+  const startAiQuiz = async () => {
+    setIsAdRunning(false);
+    setShowQuiz(true);
+    setQuizLoading(true);
+    setQuizFinished(false);
+    setQuizStep(0);
+    setScore(0);
+
+    try {
+      // Logic: Use URL or dummy text to generate quiz via Genkit
+      const res = await generateQuiz({ 
+        contentSummary: "This is a technical engineering resource covering industrial logic, AES-256 encryption, and secure node communication protocols." 
+      });
+      setQuizData(res);
+    } catch (e) {
+      toast({ variant: "destructive", title: "AI Error", description: "Failed to generate quiz signals." });
+      setShowQuiz(false);
+    } finally {
+      setQuizLoading(false);
+    }
   };
 
-  const submitQuiz = () => {
-    // Simple logic: all correct for now in prototype
-    handleReward('quiz');
-    setShowQuiz(false);
-    setQuizStep(0);
+  const handleNextQuestion = () => {
+    if (selectedOption === null || !quizData) return;
+
+    // Check Answer
+    if (selectedOption === quizData.questions[quizStep].correctIndex) {
+      setScore(s => s + 1);
+    }
+
+    if (quizStep < 4) {
+      setQuizStep(s => s + 1);
+      setSelectedOption(null);
+    } else {
+      finishQuiz();
+    }
+  };
+
+  const finishQuiz = () => {
+    setQuizFinished(true);
+    // Logic: If score >= 3, give 5 coins
+    const finalScore = score + (selectedOption === quizData?.questions[quizStep].correctIndex ? 1 : 0);
+    if (finalScore >= 3) {
+      handleReward('quiz');
+    }
+  };
+
+  const handleSolutionAd = () => {
+    setIsAdRunning(true);
+    setAdCountdown(10);
+    const interval = setInterval(() => {
+      setAdCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   if (!url) return <div className="p-20 text-center">Invalid Resource URL</div>;
@@ -122,9 +177,6 @@ function ViewerContent() {
                <span className="text-[10px] font-black text-white tabular-nums">
                  {Math.floor(secondsRead / 60)}m {secondsRead % 60}s Read
                </span>
-               <div className="h-1 w-12 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: `${(secondsRead / 900) * 100}%` }} />
-               </div>
             </div>
             <Badge variant="outline" className="border-white/10 text-primary font-black uppercase text-[9px] italic">Free Reader v4.1</Badge>
          </div>
@@ -141,19 +193,15 @@ function ViewerContent() {
                   />
                </div>
 
-               {/* Locked Solution Overlay */}
                {!showSolution && (
                  <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black via-black/90 to-transparent flex flex-col items-center justify-end p-12 space-y-6 z-10">
-                    <div className="h-16 w-16 bg-green-500/10 border border-green-500/20 rounded-2xl flex items-center justify-center text-green-500 shadow-2xl">
-                       <Sparkles className="h-8 w-8" />
-                    </div>
                     <div className="text-center space-y-2">
                        <h3 className="text-2xl font-black uppercase italic text-white">Full Solution is <span className="text-green-500">FREE</span></h3>
                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Watch one ad to unlock premium detailed analysis for free</p>
                     </div>
                     <Button 
-                      onClick={handleRewardedAd}
-                      className="h-16 px-10 bg-green-600 hover:bg-green-500 text-white font-black uppercase italic rounded-2xl shadow-xl shadow-green-500/20"
+                      onClick={handleSolutionAd}
+                      className="h-16 px-10 bg-green-600 hover:bg-green-500 text-white font-black uppercase italic rounded-2xl shadow-xl"
                     >
                        UNLOCK FOR FREE (AD) <Zap className="ml-3 h-5 w-5 fill-white" />
                     </Button>
@@ -181,10 +229,10 @@ function ViewerContent() {
                   </li>
                </ul>
                <Button 
-                onClick={() => setShowQuiz(true)}
+                onClick={handleTakeQuizClick}
                 className="w-full h-12 bg-white/5 border border-white/10 hover:bg-primary text-[10px] font-black uppercase rounded-xl transition-all"
                >
-                  <BrainCircuit className="h-4 w-4 mr-2" /> TAKE QUIZ
+                  <BrainCircuit className="h-4 w-4 mr-2" /> TAKE QUIZ (AD)
                </Button>
             </Card>
 
@@ -194,8 +242,8 @@ function ViewerContent() {
                </div>
                <div className="space-y-2">
                   <h4 className="text-sm font-black uppercase italic text-white">Earn Policy</h4>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase leading-relaxed">
-                     Rewards are credited after verification. Closing the tab early may reset the reading timer.
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase leading-relaxed text-center">
+                     Rewards are credited after verification. Closing the tab early resets progress.
                   </p>
                </div>
             </Card>
@@ -204,56 +252,85 @@ function ViewerContent() {
 
       {/* QUIZ DIALOG */}
       <Dialog open={showQuiz} onOpenChange={setShowQuiz}>
-         <DialogContent className="bg-[#0a0a0f] border-primary/20 text-white max-w-sm rounded-[2.5rem] p-8">
-            <DialogHeader className="text-center space-y-4">
-               <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto border border-primary/20">
-                  <BrainCircuit className="h-8 w-8 text-primary" />
+         <DialogContent className="bg-[#0a0a0f] border-primary/20 text-white max-w-lg rounded-[3rem] p-0 overflow-hidden">
+            {quizLoading ? (
+              <div className="p-20 text-center space-y-6">
+                 <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+                 <p className="text-[10px] font-black uppercase tracking-widest italic">AI generating quiz signals...</p>
+              </div>
+            ) : quizFinished ? (
+               <div className="p-12 text-center space-y-8">
+                  <div className={cn(
+                    "h-24 w-24 rounded-[2rem] flex items-center justify-center mx-auto border-2",
+                    score >= 3 ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-red-500/10 border-red-500/20 text-red-500"
+                  )}>
+                     {score >= 3 ? <CheckCircle2 className="h-12 w-12" /> : <AlertTriangle className="h-12 w-12" />}
+                  </div>
+                  <div className="space-y-2">
+                     <h3 className="text-3xl font-black uppercase italic">{score >= 3 ? "SUCCESS!" : "FAILED"}</h3>
+                     <p className="text-lg font-black italic">Score: {score}/5</p>
+                     <p className="text-[10px] text-muted-foreground uppercase font-bold">
+                        {score >= 3 ? "+5 Coins added to your wallet!" : "You need 3 correct answers to earn rewards."}
+                     </p>
+                  </div>
+                  <Button onClick={() => setShowQuiz(false)} className="w-full h-16 bg-primary font-black uppercase italic rounded-2xl">CONTINUE READING</Button>
                </div>
-               <DialogTitle className="text-2xl font-black uppercase italic">Knowledge Check</DialogTitle>
-               <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Complete 3 questions for +5 coins</DialogDescription>
-            </DialogHeader>
-            <div className="py-8 space-y-6">
-               <div className="space-y-4">
-                  <p className="text-sm font-bold uppercase italic text-center">"{quizStep === 0 ? "What is the primary topic of this material?" : quizStep === 1 ? "Which concept was explained on Page 2?" : "What is the main conclusion?"}"</p>
-                  <RadioGroup className="grid gap-3">
-                     {["A) Engineering Logic", "B) Industrial Design", "C) Applied Science"].map((opt, i) => (
-                        <div key={i} className="flex items-center space-x-3 bg-white/5 p-4 rounded-xl border border-white/5 hover:border-primary/40 cursor-pointer">
-                           <RadioGroupItem value={opt} id={`opt-${i}`} />
-                           <Label htmlFor={`opt-${i}`} className="text-[10px] font-bold uppercase">{opt}</Label>
-                        </div>
-                     ))}
-                  </RadioGroup>
+            ) : quizData ? (
+               <div className="p-10 space-y-8">
+                  <div className="flex items-center justify-between">
+                     <Badge className="bg-primary/20 text-primary uppercase font-black text-[8px]">Step {quizStep + 1} of 5</Badge>
+                     <div className="flex gap-1">
+                        {[0,1,2,3,4].map(i => (
+                           <div key={i} className={cn("h-1 w-8 rounded-full", i === quizStep ? "bg-primary" : i < quizStep ? "bg-primary/40" : "bg-white/5")} />
+                        ))}
+                     </div>
+                  </div>
+
+                  <div className="space-y-6">
+                     <h4 className="text-xl font-black uppercase italic leading-tight">"{quizData.questions[quizStep].question}"</h4>
+                     <RadioGroup onValueChange={(val) => setSelectedOption(parseInt(val))} className="grid gap-3">
+                        {quizData.questions[quizStep].options.map((opt, i) => (
+                           <div key={i} className={cn(
+                             "flex items-center space-x-3 bg-white/5 p-5 rounded-2xl border transition-all cursor-pointer",
+                             selectedOption === i ? "border-primary bg-primary/10" : "border-white/5 hover:border-white/10"
+                           )}>
+                              <RadioGroupItem value={i.toString()} id={`q-${i}`} />
+                              <Label htmlFor={`q-${i}`} className="flex-1 text-[11px] font-bold uppercase cursor-pointer">{opt}</Label>
+                           </div>
+                        ))}
+                     </RadioGroup>
+                  </div>
+
+                  <Button 
+                    onClick={handleNextQuestion} 
+                    disabled={selectedOption === null}
+                    className="w-full h-16 bg-primary font-black uppercase italic rounded-2xl shadow-xl flex items-center justify-center gap-3"
+                  >
+                     {quizStep < 4 ? "NEXT QUESTION" : "SUBMIT & FINALIZE"} <ChevronRight className="h-5 w-5" />
+                  </Button>
                </div>
-            </div>
-            <DialogFooter>
-               <Button 
-                onClick={() => quizStep < 2 ? setQuizStep(s => s + 1) : submitQuiz()}
-                className="w-full h-14 bg-primary font-black uppercase italic rounded-xl"
-               >
-                  {quizStep < 2 ? "NEXT QUESTION" : "SUBMIT & CLAIM"}
-               </Button>
-            </DialogFooter>
+            ) : null}
          </DialogContent>
       </Dialog>
 
       {/* REWARDED AD MODAL SIMULATION */}
-      {isProcessing && (
+      {isAdRunning && (
         <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-500">
-           <Card className="max-w-md w-full bg-[#0d0d12] border-green-500/20 border-2 rounded-[3rem] overflow-hidden relative shadow-[0_0_100px_rgba(34,197,94,0.2)]">
+           <Card className="max-w-md w-full bg-[#0d0d12] border-primary/20 border-2 rounded-[3rem] overflow-hidden relative shadow-[0_0_100px_rgba(99,102,241,0.2)]">
               <div className="p-12 text-center space-y-10">
                  <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full border-4 border-green-500/10" />
+                    <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
                     <div 
-                      className="absolute inset-0 rounded-full border-t-4 border-green-500 transition-all duration-1000 ease-linear" 
+                      className="absolute inset-0 rounded-full border-t-4 border-primary transition-all duration-1000 ease-linear" 
                       style={{ transform: `rotate(${(10 - adCountdown) * 36}deg)` }}
                     />
-                    <Eye className="h-12 w-12 text-green-500 animate-pulse" />
+                    <Eye className="h-12 w-12 text-primary animate-pulse" />
                  </div>
 
                  <div className="space-y-4">
-                    <h3 className="text-3xl font-black uppercase italic tracking-tighter">Decrypting <span className="text-green-500">Free Solution...</span></h3>
+                    <h3 className="text-3xl font-black uppercase italic">Ad Signal Locked</h3>
                     <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                       Watching sponsor signal to finalize free unlock protocol.
+                       Watching sponsor video to authorize your next intelligence session.
                     </p>
                  </div>
 
@@ -261,13 +338,13 @@ function ViewerContent() {
                     <p className="text-5xl font-black text-white italic tabular-nums">{adCountdown}s</p>
                     <Button 
                       disabled={adCountdown > 0} 
-                      onClick={confirmReward}
+                      onClick={() => adCountdown === 0 && (showQuiz === false ? startAiQuiz() : (setShowSolution(true), setIsAdRunning(false)))}
                       className={cn(
                         "w-full h-20 rounded-2xl font-black text-xl uppercase italic shadow-2xl transition-all",
                         adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce" : "bg-white/5 text-white/20 border border-white/10"
                       )}
                     >
-                       {adCountdown === 0 ? "CONFIRM FREE UNLOCK" : "WATCHING SPONSOR..."}
+                       {adCountdown === 0 ? "CONFIRM UNLOCK" : "WATCHING SPONSOR..."}
                     </Button>
                  </div>
               </div>
