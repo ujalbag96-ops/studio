@@ -6,7 +6,10 @@ import { useUser, useFirestore, useAuth } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, query, where, getDocs, limit, addDoc, increment } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
@@ -15,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldCheck, Eye, EyeOff, LifeBuoy, KeyRound } from 'lucide-react';
+import { Loader2, ShieldCheck, Eye, EyeOff, LifeBuoy, KeyRound, Smartphone, Mail, Hash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,11 +34,19 @@ function LoginContent() {
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'phone'>('login');
+  
+  // Email Auth State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
+  // Phone Auth State
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  
+  // Support State
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportData, setSupportData] = useState({ contact: '', issue: '' });
 
@@ -89,6 +100,7 @@ function LoginContent() {
         await setDoc(userDocRef, {
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
+          phoneNumber: firebaseUser.phoneNumber || '',
           depositBalance: 0,
           winningBalance: 0,
           bonusBalance: 0,
@@ -134,6 +146,50 @@ function LoginContent() {
       await syncUserProfile(userCredential.user);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Access Denied", description: e.message });
+      setIsLoading(false);
+    }
+  };
+
+  // --- Phone Auth Logic ---
+  const setupRecaptcha = () => {
+    if (!auth) return;
+    if (!(window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+      });
+    }
+  };
+
+  const handleSendOtp = async () => {
+    if (!auth || !phoneNumber) return;
+    setIsLoading(true);
+    try {
+      setupRecaptcha();
+      const verifier = (window as any).recaptchaVerifier;
+      const result = await signInWithPhoneNumber(auth, phoneNumber, verifier);
+      setConfirmationResult(result);
+      toast({ title: "OTP Dispatched", description: `Verification code sent to ${phoneNumber}` });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "SMS Failed", description: e.message });
+      if ((window as any).recaptchaVerifier) {
+        (window as any).recaptchaVerifier.clear();
+        (window as any).recaptchaVerifier = null;
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!confirmationResult || !otp) return;
+    setIsLoading(true);
+    try {
+      const userCredential = await confirmationResult.confirm(otp);
+      await syncUserProfile(userCredential.user);
+      toast({ title: "Identity Verified", description: "Welcome to the Arena!" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Invalid Token", description: "The OTP entered is incorrect or expired." });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -190,6 +246,8 @@ function LoginContent() {
 
   return (
     <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-700">
+      <div id="recaptcha-container"></div>
+      
       <div className="text-center space-y-3">
         <div className="h-20 w-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <ShieldCheck className="h-10 w-10 text-primary" />
@@ -199,12 +257,13 @@ function LoginContent() {
       </div>
 
       <Tabs value={authMode} onValueChange={(val) => setAuthMode(val as any)} className="w-full">
-        <TabsList className="grid grid-cols-2 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
-          <TabsTrigger value="login" className="font-black text-[10px] data-[state=active]:bg-primary rounded-xl uppercase">Sign In</TabsTrigger>
-          <TabsTrigger value="signup" className="font-black text-[10px] data-[state=active]:bg-primary rounded-xl uppercase">Register</TabsTrigger>
+        <TabsList className="grid grid-cols-3 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
+          <TabsTrigger value="login" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase flex items-center gap-1.5"><Mail className="h-3 w-3" /> Login</TabsTrigger>
+          <TabsTrigger value="signup" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase flex items-center gap-1.5"><Hash className="h-3 w-3" /> Register</TabsTrigger>
+          <TabsTrigger value="phone" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase flex items-center gap-1.5"><Smartphone className="h-3 w-3" /> Phone</TabsTrigger>
         </TabsList>
 
-        <TabsContent value={authMode} className="mt-6">
+        <TabsContent value="login" className="mt-6">
           <form onSubmit={handleEmailAuth} className="space-y-4">
             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
               <div className="space-y-2">
@@ -214,37 +273,100 @@ function LoginContent() {
               <div className="space-y-2">
                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Access Pass</Label>
                  <div className="relative">
-                    <Input required={authMode === 'login'} type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl pr-12 font-mono" />
+                    <Input required type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl pr-12 font-mono" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                  </div>
               </div>
-
-              {authMode === 'login' && (
-                <div className="flex justify-end px-1">
-                   <button 
-                    type="button" 
-                    onClick={handleResetPassword}
-                    className="text-[9px] font-black uppercase text-primary hover:underline flex items-center gap-1.5"
-                   >
-                      <KeyRound className="h-3 w-3" /> Forgot Password?
-                   </button>
-                </div>
-              )}
-
-              <Button type="submit" disabled={isLoading} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl shadow-xl">
-                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (authMode === 'login' ? 'INITIATE LOGIN' : 'CREATE ACCOUNT')}
-              </Button>
-              <div className="text-center">
-                 <button type="button" onClick={() => setShowSupportModal(true)} className="text-[10px] font-black uppercase text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-2 mx-auto">
-                    <LifeBuoy className="h-3 w-3" /> Manual Recovery / Support
+              <div className="flex justify-end px-1">
+                 <button type="button" onClick={handleResetPassword} className="text-[9px] font-black uppercase text-primary hover:underline flex items-center gap-1.5">
+                    <KeyRound className="h-3 w-3" /> Forgot Password?
                  </button>
               </div>
+              <Button type="submit" disabled={isLoading} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl shadow-xl">
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : 'INITIATE LOGIN'}
+              </Button>
             </Card>
           </form>
         </TabsContent>
+
+        <TabsContent value="signup" className="mt-6">
+          <form onSubmit={handleEmailAuth} className="space-y-4">
+            <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
+              <div className="space-y-2">
+                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Target Email</Label>
+                 <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl font-bold" />
+              </div>
+              <div className="space-y-2">
+                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">New Access Pass</Label>
+                 <Input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl font-mono" />
+              </div>
+              <Button type="submit" disabled={isLoading} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl shadow-xl">
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : 'CREATE IDENTITY'}
+              </Button>
+            </Card>
+          </form>
+        </TabsContent>
+
+        <TabsContent value="phone" className="mt-6">
+          <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
+            {!confirmationResult ? (
+              <div className="space-y-4">
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Mobile Identification</Label>
+                    <Input 
+                      placeholder="+91 98765 43210" 
+                      value={phoneNumber} 
+                      onChange={e => setPhoneNumber(e.target.value)} 
+                      className="h-14 bg-black border-white/10 rounded-xl font-black text-lg tracking-widest text-primary"
+                    />
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase text-center mt-2 italic">Format: +[CountryCode] [Number]</p>
+                 </div>
+                 <Button 
+                   onClick={handleSendOtp} 
+                   disabled={isLoading || !phoneNumber} 
+                   className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl"
+                 >
+                   {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : 'DISPATCH OTP'}
+                 </Button>
+              </div>
+            ) : (
+              <div className="space-y-4 animate-in zoom-in-95 duration-300">
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Enter 6-Digit Signal</Label>
+                    <Input 
+                      placeholder="123456" 
+                      maxLength={6}
+                      value={otp} 
+                      onChange={e => setOtp(e.target.value)} 
+                      className="h-16 bg-black border-white/10 rounded-xl font-black text-3xl tracking-[0.5em] text-primary text-center"
+                    />
+                 </div>
+                 <Button 
+                   onClick={handleVerifyOtp} 
+                   disabled={isLoading || otp.length < 6} 
+                   className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl"
+                 >
+                   {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : 'VERIFY & JOIN'}
+                 </Button>
+                 <button 
+                  onClick={() => setConfirmationResult(null)} 
+                  className="w-full text-[10px] font-black uppercase text-muted-foreground hover:text-white"
+                 >
+                    Change Phone Number
+                 </button>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      <div className="text-center">
+         <button type="button" onClick={() => setShowSupportModal(true)} className="text-[10px] font-black uppercase text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-2 mx-auto">
+            <LifeBuoy className="h-3 w-3" /> Manual Recovery / Support
+         </button>
+      </div>
 
       <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
          <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2rem]">
