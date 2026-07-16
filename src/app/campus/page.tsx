@@ -2,7 +2,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, GraduationCap, Library, FlaskConical, Palette, Landmark, Pill, Briefcase } from 'lucide-react';
+import { BookOpen, GraduationCap, Library, FlaskConical, Palette, Landmark, Pill, Briefcase, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -20,7 +20,9 @@ export default function CampusHomeScreen() {
     <div className="max-w-7xl mx-auto p-6 md:p-12 space-y-12 pb-32">
       <header className="space-y-6 pt-12 text-center md:text-left">
         <div className="flex items-center justify-center md:justify-start gap-4">
-           <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Resource Locker v2.0</Badge>
+           <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black tracking-widest px-4 py-1 text-[9px] flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3" /> 100% Free Study Hub
+           </Badge>
            <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">
               Industrial Study Repository
            </div>
@@ -29,7 +31,7 @@ export default function CampusHomeScreen() {
           Resource <span className="text-primary">Sectors</span>
         </h1>
         <p className="text-muted-foreground font-medium text-lg max-w-2xl">
-          Select your department to access curated study materials, industrial notes, and previous year questions.
+          Access curated study materials, industrial notes, and previous year questions. <span className="text-white font-bold italic">Always free for students.</span>
         </p>
       </header>
 
@@ -48,6 +50,9 @@ export default function CampusHomeScreen() {
                   <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white">{dept.name}</h3>
                   <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-2">{dept.desc}</p>
                 </div>
+                <div className="pt-2">
+                   <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-none text-[8px] font-black uppercase px-3 py-1">FREE ACCESS ENABLED</Badge>
+                </div>
               </div>
               <div className="absolute -bottom-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity">
                  <Library className="h-40 w-40" />
@@ -61,7 +66,7 @@ export default function CampusHomeScreen() {
       <section className="pt-10">
          <Card className="bg-[#0a0a0f] border-dashed border-2 border-white/10 p-12 rounded-[3rem] text-center space-y-6">
             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em]">Sponsor Sector</p>
-            <h3 className="text-2xl font-black uppercase italic text-white/40">Student Prime Deals Coming Soon</h3>
+            <h3 className="text-2xl font-black uppercase italic text-white/40">Keep our resources free by supporting sponsors</h3>
          </Card>
       </section>
     </div>

@@ -5,7 +5,7 @@ import { useState, Suspense } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Loader2, ShieldCheck, Zap, AlertTriangle, Eye, Lock } from 'lucide-react';
+import { ArrowLeft, Loader2, ShieldCheck, Zap, AlertTriangle, Eye, Lock, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -46,7 +46,7 @@ function ViewerContent() {
             <ArrowLeft className="h-3 w-3 mr-2" /> Back
          </Button>
          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="border-white/10 text-primary font-black uppercase text-[9px] italic">Industrial PDF Viewer v4.1</Badge>
+            <Badge variant="outline" className="border-white/10 text-primary font-black uppercase text-[9px] italic">Free Reader v4.1</Badge>
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
          </div>
       </div>
@@ -65,18 +65,18 @@ function ViewerContent() {
                {/* Locked Solution Overlay */}
                {!showSolution && (
                  <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black via-black/90 to-transparent flex flex-col items-center justify-end p-12 space-y-6 z-10">
-                    <div className="h-16 w-16 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center text-amber-500 shadow-2xl">
-                       <Lock className="h-8 w-8" />
+                    <div className="h-16 w-16 bg-green-500/10 border border-green-500/20 rounded-2xl flex items-center justify-center text-green-500 shadow-2xl">
+                       <Sparkles className="h-8 w-8" />
                     </div>
                     <div className="text-center space-y-2">
-                       <h3 className="text-2xl font-black uppercase italic text-white">Full Solution Locked</h3>
-                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Watch industrial ad signal to unlock detailed analysis</p>
+                       <h3 className="text-2xl font-black uppercase italic text-white">Full Solution is <span className="text-green-500">FREE</span></h3>
+                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Watch one ad to unlock premium detailed analysis for free</p>
                     </div>
                     <Button 
                       onClick={handleRewardedAd}
-                      className="h-16 px-10 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase italic rounded-2xl shadow-xl shadow-amber-500/20"
+                      className="h-16 px-10 bg-green-600 hover:bg-green-500 text-white font-black uppercase italic rounded-2xl shadow-xl shadow-green-500/20"
                     >
-                       UNLOCK SOLUTIONS (AD) <Zap className="ml-3 h-5 w-5 fill-black" />
+                       UNLOCK FOR FREE (AD) <Zap className="ml-3 h-5 w-5 fill-white" />
                     </Button>
                  </div>
                )}
@@ -89,12 +89,12 @@ function ViewerContent() {
                   <ShieldCheck className="h-40 w-40 text-primary" />
                </div>
                <h3 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
-                  <ShieldCheck className="h-6 w-6 text-primary" /> Viewer Intel
+                  <ShieldCheck className="h-6 w-6 text-primary" /> Free Reader
                </h3>
                <ul className="space-y-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest relative z-10">
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Anti-Print Protocol Active</li>
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Dynamic Watermarking</li>
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Industrial PDF Rendering</li>
+                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Open Resource Policy</li>
+                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Ad-Supported Access</li>
+                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Zero Cost Educational Hub</li>
                </ul>
             </Card>
 
@@ -103,9 +103,9 @@ function ViewerContent() {
                   <AlertTriangle className="h-6 w-6" />
                </div>
                <div className="space-y-2">
-                  <h4 className="text-sm font-black uppercase italic text-white">Academic Integrity</h4>
+                  <h4 className="text-sm font-black uppercase italic text-white">Student Policy</h4>
                   <p className="text-[10px] text-muted-foreground font-medium uppercase leading-relaxed">
-                     Materials are for educational reference only. Commercial distribution is strictly prohibited under industrial academic policies.
+                     We keep books free for students through minimal ads. Commercial usage of these free materials is strictly prohibited.
                   </p>
                </div>
             </Card>
@@ -115,21 +115,21 @@ function ViewerContent() {
       {/* REWARDED AD MODAL SIMULATION */}
       {isProcessing && (
         <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-500">
-           <Card className="max-w-md w-full bg-[#0d0d12] border-amber-500/20 border-2 rounded-[3rem] overflow-hidden relative shadow-[0_0_100px_rgba(245,158,11,0.2)]">
+           <Card className="max-w-md w-full bg-[#0d0d12] border-green-500/20 border-2 rounded-[3rem] overflow-hidden relative shadow-[0_0_100px_rgba(34,197,94,0.2)]">
               <div className="p-12 text-center space-y-10">
                  <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full border-4 border-amber-500/10" />
+                    <div className="absolute inset-0 rounded-full border-4 border-green-500/10" />
                     <div 
-                      className="absolute inset-0 rounded-full border-t-4 border-amber-500 transition-all duration-1000 ease-linear" 
+                      className="absolute inset-0 rounded-full border-t-4 border-green-500 transition-all duration-1000 ease-linear" 
                       style={{ transform: `rotate(${(10 - adCountdown) * 36}deg)` }}
                     />
-                    <Eye className="h-12 w-12 text-amber-500 animate-pulse" />
+                    <Eye className="h-12 w-12 text-green-500 animate-pulse" />
                  </div>
 
                  <div className="space-y-4">
-                    <h3 className="text-3xl font-black uppercase italic tracking-tighter">Decrypting <span className="text-amber-500">Solutions...</span></h3>
+                    <h3 className="text-3xl font-black uppercase italic tracking-tighter">Decrypting <span className="text-green-500">Free Solution...</span></h3>
                     <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                       Watching sponsor signal to finalize unlock protocol.
+                       Watching sponsor signal to finalize free unlock protocol.
                     </p>
                  </div>
 
@@ -143,7 +143,7 @@ function ViewerContent() {
                         adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce" : "bg-white/5 text-white/20 border border-white/10"
                       )}
                     >
-                       {adCountdown === 0 ? "CONFIRM UNLOCK" : "WATCHING SIGNAL..."}
+                       {adCountdown === 0 ? "CONFIRM FREE UNLOCK" : "WATCHING SPONSOR..."}
                     </Button>
                  </div>
               </div>

@@ -6,7 +6,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Loader2, ArrowLeft, Zap, Lock, ShieldCheck, X } from 'lucide-react';
+import { FileText, Download, Loader2, ArrowLeft, Zap, Lock, ShieldCheck, X, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -62,10 +62,14 @@ export default function SubjectMaterialScreen() {
       </div>
 
       <header className="space-y-4 text-center md:text-left">
+        <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-green-500/10 border border-green-500/20 mb-2">
+           <Sparkles className="h-3 w-3 text-green-500" />
+           <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">100% Free Resources</span>
+        </div>
         <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic text-white leading-none">
           Resource <span className="text-primary">Locker</span>
         </h1>
-        <p className="text-muted-foreground font-medium text-lg">Curated materials for the industrial student node.</p>
+        <p className="text-muted-foreground font-medium text-lg">Curated materials for the industrial student node. No subscription required.</p>
       </header>
 
       {isLoading ? (
@@ -79,18 +83,19 @@ export default function SubjectMaterialScreen() {
                    <FileText className="h-8 w-8" />
                 </div>
                 <div>
-                   <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">{m.title}</h3>
-                   <div className="flex gap-3 mt-1">
+                   <div className="flex items-center gap-2 mb-1">
+                      <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] font-black uppercase">FREE ACCESS</Badge>
                       <Badge className="bg-white/5 text-muted-foreground border-none text-[8px] font-black uppercase">{m.type}</Badge>
-                      {m.isPremium && <Badge className="bg-amber-500/20 text-amber-500 border-none text-[8px] font-black uppercase italic">Elite Resource</Badge>}
                    </div>
+                   <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">{m.title}</h3>
+                   {m.isPremium && <p className="text-[9px] text-amber-500 font-bold uppercase tracking-widest mt-1">⭐ Unlock with 1 Ad</p>}
                 </div>
               </div>
               <Button 
                 onClick={() => handleMaterialClick(m.url)}
                 className="w-full md:w-auto h-16 px-10 bg-primary hover:bg-primary/90 font-black uppercase italic rounded-2xl shadow-xl shadow-primary/20"
               >
-                OPEN RESOURCE <Download className="ml-3 h-5 w-5" />
+                READ FOR FREE <Download className="ml-3 h-5 w-5" />
               </Button>
             </Card>
           ))}
@@ -117,9 +122,9 @@ export default function SubjectMaterialScreen() {
                  </div>
 
                  <div className="space-y-4">
-                    <h3 className="text-3xl font-black uppercase italic tracking-tighter">Initializing <span className="text-primary">Resource...</span></h3>
+                    <h3 className="text-3xl font-black uppercase italic tracking-tighter">Preparing <span className="text-primary">Free Access...</span></h3>
                     <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                       Sponsor signal analysis in progress. Access granted after decryption protocol.
+                       Sponsor signal analysis in progress. Free access granted after decryption protocol.
                     </p>
                  </div>
 
@@ -133,7 +138,7 @@ export default function SubjectMaterialScreen() {
                         adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce" : "bg-white/5 text-white/20 border border-white/10"
                       )}
                     >
-                       {adCountdown === 0 ? "ACCESS GRANTED" : "VERIFYING SIGNAL..."}
+                       {adCountdown === 0 ? "ACCESS GRANTED" : "VERIFYING FREE SIGNAL..."}
                     </Button>
                  </div>
               </div>
