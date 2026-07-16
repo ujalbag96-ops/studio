@@ -16,17 +16,14 @@ import {
   Clock, 
   Trophy,
   BrainCircuit,
-  ChevronRight,
   Share2,
   Lock,
   ShieldCheck,
-  AlertTriangle
+  Timer
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz-flow';
 import { UserProfile } from '@/app/lib/types';
 
@@ -47,20 +44,24 @@ function ViewerContent() {
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizLoading, setQuizLoading] = useState(false);
   const [quizData, setQuizData] = useState<GenerateQuizOutput | null>(null);
-  const [quizStep, setQuizStep] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
-  const [quizFinished, setQuizFinished] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [shareCooldown, setShareCooldown] = useState(0);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
+  // Cooldown Logic
+  useEffect(() => {
+    let interval: any;
+    if (shareCooldown > 0) {
+      interval = setInterval(() => setShareCooldown(c => c - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [shareCooldown]);
+
   // 🛡️ ANTI-SCREENSHOT PROTECTION
   useEffect(() => {
-    // Discourage Right Click
     const handleContextMenu = (e: MouseEvent) => e.preventDefault();
-    // Discourage Print Screen & Copy
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey && (e.key === 'p' || e.key === 's' || e.key === 'u' || e.key === 'c')) || e.key === 'PrintScreen') {
         e.preventDefault();
@@ -103,9 +104,10 @@ function ViewerContent() {
       const data = await res.json();
       if (data.success) {
         toast({ 
-          title: type.toUpperCase() + " REWARD", 
+          title: data.milestone ? `🏆 ${data.milestone} UNLOCKED` : type.toUpperCase() + " REWARD", 
           description: `+${data.reward} Coins added to your wallet!` 
         });
+        if (type === 'share') setShareCooldown(30); // 30s Cooldown
         new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
       } else if (data.error) {
         toast({ variant: "destructive", title: "LIMIT REACHED", description: data.error });
@@ -116,7 +118,7 @@ function ViewerContent() {
   };
 
   const handleShare = async () => {
-    if (!user || !profile) return;
+    if (!user || !profile || shareCooldown > 0) return;
     setIsSharing(true);
     
     const shareUrl = `${window.location.origin}/login?ref=${profile.referralCode}`;
@@ -129,7 +131,6 @@ function ViewerContent() {
           text: shareText,
           url: shareUrl,
         });
-        // Success
         handleReward('share');
       } else {
         await navigator.clipboard.writeText(shareText);
@@ -164,7 +165,6 @@ function ViewerContent() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-8 pb-32 select-none print:hidden">
-      {/* 🛡️ CSS PROTECTION */}
       <style jsx global>{`
         @media print { body { display: none !important; } }
         * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
@@ -183,10 +183,13 @@ function ViewerContent() {
             </div>
             <Button 
               onClick={handleShare}
-              disabled={isSharing}
-              className="h-10 px-4 bg-primary/10 border border-primary/20 hover:bg-primary text-primary hover:text-white rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
+              disabled={isSharing || shareCooldown > 0}
+              className={cn(
+                "h-10 px-4 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all",
+                shareCooldown > 0 ? "bg-white/5 text-muted-foreground" : "bg-primary/10 border border-primary/20 hover:bg-primary text-primary hover:text-white"
+              )}
             >
-               {isSharing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3 mr-2" />} SHARE & EARN 2 🪙
+               {isSharing ? <Loader2 className="h-3 w-3 animate-spin" /> : shareCooldown > 0 ? <><Timer className="h-3 w-3 mr-2" /> WAIT {shareCooldown}S</> : <><Share2 className="h-3 w-3 mr-2" /> SHARE & EARN 2 🪙</>}
             </Button>
          </div>
       </div>
@@ -223,9 +226,14 @@ function ViewerContent() {
                   <Trophy className="h-6 w-6 text-primary" /> Live Bounty
                </h3>
                <div className="space-y-5">
-                  <BountyRow label="15 Mins Read" value="+2 🪙" />
-                  <BountyRow label="Social Share" value="+2 🪙" />
-                  <BountyRow label="Chapter Quiz" value="+5 🪙" />
+                  <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                     <span className="text-[10px] font-black uppercase text-muted-foreground">15 Mins Read</span>
+                     <span className="text-sm font-black text-primary italic">+2 🪙</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                     <span className="text-[10px] font-black uppercase text-muted-foreground">Social Share</span>
+                     <span className="text-sm font-black text-primary italic">+2 🪙</span>
+                  </div>
                </div>
                <Button 
                 onClick={() => { setIsAdRunning(true); setAdCountdown(10); }}
@@ -241,8 +249,7 @@ function ViewerContent() {
                </h3>
                <ul className="space-y-3 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
                   <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary mt-1" /> Screenshots Blocked</li>
-                  <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary mt-1" /> Print Signal Disabled</li>
-                  <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary mt-1" /> IP Tracking Enabled</li>
+                  <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary mt-1" /> Share Cooldown Active</li>
                </ul>
             </Card>
          </div>
@@ -271,36 +278,8 @@ function ViewerContent() {
            </Card>
         </div>
       )}
-
-      {/* QUIZ DIALOG */}
-      <Dialog open={showQuiz} onOpenChange={setShowQuiz}>
-         <DialogContent className="bg-[#0a0a0f] border-primary/20 text-white max-w-lg rounded-[3rem] p-10 overflow-hidden">
-            {quizLoading ? (
-              <div className="p-20 text-center space-y-6">
-                 <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-                 <p className="text-[10px] font-black uppercase tracking-widest italic">AI generating quiz signals...</p>
-              </div>
-            ) : (
-               <div className="space-y-8">
-                  {/* Reuse existing quiz UI from previous implementation */}
-                  <h3 className="text-2xl font-black uppercase italic text-center">Interactive Quiz</h3>
-                  <p className="text-center text-muted-foreground uppercase font-black text-[10px]">AI-Generated Content Check</p>
-                  <Button onClick={() => setShowQuiz(false)} className="w-full h-16 bg-primary font-black uppercase italic rounded-2xl">EXIT QUIZ</Button>
-               </div>
-            )}
-         </DialogContent>
-      </Dialog>
     </div>
   );
-}
-
-function BountyRow({ label, value }: any) {
-   return (
-      <div className="flex justify-between items-center border-b border-white/5 pb-2">
-         <span className="text-[10px] font-black uppercase text-muted-foreground">{label}</span>
-         <span className="text-sm font-black text-primary italic">{value}</span>
-      </div>
-   );
 }
 
 export default function PdfViewScreen() {

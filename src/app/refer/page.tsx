@@ -2,33 +2,32 @@
 'use client';
 
 import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, setDoc, query, collection, where } from 'firebase/firestore';
+import { doc, query, collection, where } from 'firebase/firestore';
 import { 
   Users, 
   Copy, 
   Share2, 
-  Gift, 
   Zap, 
   Loader2,
   Trophy,
-  Crown,
-  CheckCircle2,
   BarChart3,
-  Mail,
-  Smartphone
+  CheckCircle2,
+  ArrowRight,
+  TrendingUp,
+  Award
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { UserProfile } from '@/app/lib/types';
 import { Badge } from '@/components/ui/badge';
-import { useEffect, useState } from 'react';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 export default function ReferPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [isCopying, setIsCopying] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
@@ -46,6 +45,19 @@ export default function ReferPage() {
   const referralLink = typeof window !== 'undefined' 
     ? `${window.location.origin}/login?ref=${profile?.referralCode || ''}` 
     : '';
+
+  const totalShares = profile?.totalPagesShared || 0;
+  
+  // Milestone Definitions
+  const milestones = [
+    { count: 10, reward: 10, name: 'Bronze' },
+    { count: 25, reward: 25, name: 'Silver' },
+    { count: 50, reward: 50, name: 'Gold' },
+    { count: 100, reward: 100, name: 'Elite' }
+  ];
+
+  const nextMilestone = milestones.find(m => totalShares < m.count) || milestones[milestones.length - 1];
+  const progress = Math.min((totalShares / nextMilestone.count) * 100, 100);
 
   const handleShare = async () => {
     if (!profile?.referralCode) return;
@@ -68,13 +80,28 @@ export default function ReferPage() {
         
         <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8 text-center lg:text-left">
-            <Badge className="bg-primary/20 text-primary uppercase font-black px-4 py-1 tracking-widest text-[10px]">VIRAL HUB</Badge>
+            <Badge className="bg-primary/20 text-primary uppercase font-black px-4 py-1 tracking-widest text-[10px]">REWARD MILESTONES ACTIVE</Badge>
             <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase italic leading-none text-white">
-              Invite <br />
-              <span className="text-primary">& Prosper</span>
+              Share <br />
+              <span className="text-primary">& Unlock</span>
             </h1>
             
             <div className="p-8 bg-white/5 border border-white/10 rounded-[2.5rem] space-y-6">
+              {/* Progress Tracker */}
+              <div className="space-y-4">
+                 <div className="flex justify-between items-end">
+                    <div className="space-y-1">
+                       <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Next Milestone: {nextMilestone.name}</p>
+                       <p className="text-2xl font-black text-white italic">{totalShares} / {nextMilestone.count} Shares</p>
+                    </div>
+                    <Badge className="bg-green-500/10 text-green-500 border-none uppercase font-black text-[9px] px-3 py-1">BONUS: {nextMilestone.reward} 🪙</Badge>
+                 </div>
+                 <Progress value={progress} className="h-3 bg-white/5" />
+                 <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest text-center">
+                    {nextMilestone.count - totalShares} more shares for the {nextMilestone.name} reward!
+                 </p>
+              </div>
+
               <div className="flex items-center justify-between gap-4">
                  <div className="flex-1 bg-black/60 border border-white/10 h-16 rounded-2xl flex items-center justify-center text-3xl font-black tracking-[0.2em] text-primary uppercase">
                     {profile?.referralCode || '...'}
@@ -89,13 +116,29 @@ export default function ReferPage() {
             </div>
           </div>
 
-          <div className="space-y-6">
-             <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><BarChart3 className="text-primary" /> Invite Stats</h3>
-             <div className="grid grid-cols-2 gap-4">
-                <StatsMiniCard label="Total Shares" value={profile?.totalPagesShared || 0} icon={<Share2 />} />
-                <StatsMiniCard label="Share Earnings" value={`${profile?.shareRewardsEarned || 0} 🪙`} icon={<Zap />} />
-                <StatsMiniCard label="Active Refs" value={invitedUsers?.length || 0} icon={<Users />} />
-                <StatsMiniCard label="Total Ref Earned" value="0 🪙" icon={<Trophy />} />
+          <div className="space-y-8">
+             <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Award className="text-primary" /> Achievement Tiers</h3>
+             <div className="grid gap-4">
+                {milestones.map((m) => (
+                   <div key={m.name} className={cn(
+                     "p-5 rounded-2xl flex items-center justify-between transition-all",
+                     totalShares >= m.count ? "bg-green-500/10 border border-green-500/20" : "bg-white/5 border border-white/5 opacity-40"
+                   )}>
+                      <div className="flex items-center gap-4">
+                         <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", totalShares >= m.count ? "text-green-500" : "text-muted-foreground")}>
+                            <TrendingUp className="h-5 w-5" />
+                         </div>
+                         <div>
+                            <p className="text-xs font-black uppercase italic">{m.name} Milestone</p>
+                            <p className="text-[9px] font-bold uppercase text-muted-foreground">{m.count} Total Shares Required</p>
+                         </div>
+                      </div>
+                      <div className="text-right">
+                         <p className="text-lg font-black text-primary">+{m.reward} 🪙</p>
+                         {totalShares >= m.count && <CheckCircle2 className="h-4 w-4 text-green-500 ml-auto mt-1" />}
+                      </div>
+                   </div>
+                ))}
              </div>
           </div>
         </div>
@@ -130,18 +173,6 @@ export default function ReferPage() {
             </div>
          </Card>
       </div>
-    </div>
-  );
-}
-
-function StatsMiniCard({ label, value, icon }: any) {
-  return (
-    <div className="p-6 bg-white/5 border border-white/10 rounded-3xl space-y-3">
-       <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">{icon}</div>
-       <div>
-          <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">{label}</p>
-          <p className="text-lg font-black text-white italic">{value}</p>
-       </div>
     </div>
   );
 }
