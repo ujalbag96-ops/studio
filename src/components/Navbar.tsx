@@ -1,8 +1,7 @@
-
 'use client';
 
 import Link from 'next/link';
-import { Home, Zap, Wallet, User, LogOut, Shield, Activity, Radio, ShoppingBag, Trophy, Target, Bell, Gamepad2, TrendingUp, Dices, Film, CloudRain } from 'lucide-react';
+import { Home, Zap, Wallet, User, LogOut, Shield, Activity, GraduationCap, Library, Bell, BookOpen, Trophy } from 'lucide-react';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -40,18 +39,17 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto h-full px-8 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center shadow-lg">
-              <Zap className="h-5 w-5 text-white" />
+              <GraduationCap className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-black italic text-white uppercase tracking-tighter">WIN<span className="text-primary">ZO</span></span>
+            <span className="text-xl font-black italic text-white uppercase tracking-tighter">CAMPUS<span className="text-primary">COMPANION</span></span>
           </Link>
 
           <div className="flex items-center gap-8">
             <NavLink href="/" label="Home" active={pathname === '/'} />
+            <NavLink href="/campus" label="Resource Locker" active={pathname.startsWith('/campus')} />
+            <NavLink href="/earning-hub" label="Earning Hub" active={pathname === '/earning-hub'} />
             <NavLink href="/movies" label="Cinema" active={pathname === '/movies'} />
-            <NavLink href="/esports-live" label="E-Sports" active={pathname === '/esports-live'} />
-            <NavLink href="/lottery" label="Jackpot" active={pathname === '/lottery'} />
-            <NavLink href="/predictions/weather" label="Weather" active={pathname === '/predictions/weather'} />
-            <NavLink href="/predictions" label="Polls" active={pathname === '/predictions'} />
+            <NavLink href="/leaderboard" label="Hall of Fame" active={pathname === '/leaderboard'} />
             {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-amber-500 italic flex items-center gap-1.5 animate-pulse"><Shield className="h-3 w-3" /> Admin Hub</Link>}
           </div>
 
@@ -69,7 +67,7 @@ export default function Navbar() {
               </>
             ) : (
               <Button asChild className="bg-primary font-black rounded-xl px-8 h-10 uppercase text-[11px]">
-                <Link href="/login">Join Arena</Link>
+                <Link href="/login">Join Hub</Link>
               </Button>
             )}
           </div>
@@ -79,10 +77,10 @@ export default function Navbar() {
       {/* Mobile Nav Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#0a0a0f] border-t border-white/5 flex items-center justify-around px-2">
         <MobileNavItem active={pathname === '/'} icon={<Home />} label="Home" href="/" />
-        <MobileNavItem active={pathname === '/movies'} icon={<Film />} label="Cinema" href="/movies" />
-        <MobileNavItem active={pathname === '/predictions/weather'} icon={<CloudRain />} label="Weather" href="/predictions/weather" />
-        <MobileNavItem active={pathname === '/lottery'} icon={<Trophy />} label="Jackpot" href="/lottery" />
-        <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="Profile" href="/dashboard" />
+        <MobileNavItem active={pathname.startsWith('/campus')} icon={<Library />} label="Locker" href="/campus" />
+        <MobileNavItem active={pathname === '/earning-hub'} icon={<Zap />} label="Earn" href="/earning-hub" />
+        <MobileNavItem active={pathname === '/leaderboard'} icon={<Trophy />} label="Ranks" href="/leaderboard" />
+        <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="Portfolio" href="/dashboard" />
       </nav>
     </>
   );
@@ -107,14 +105,10 @@ function UserMenu({ user, isAdmin, onLogout }: any) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-[#121216] border-white/10 text-white rounded-xl w-56 shadow-2xl">
-        <DropdownMenuLabel className="p-4 text-[10px] font-bold uppercase text-muted-foreground">Warrior Account</DropdownMenuLabel>
+        <DropdownMenuLabel className="p-4 text-[10px] font-bold uppercase text-muted-foreground">Student Identity</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-white/5" />
         <DropdownMenuItem asChild className="focus:bg-white/5 h-11 cursor-pointer"><Link href="/dashboard" className="w-full flex items-center gap-3 font-bold uppercase text-[10px]"><User className="h-4 w-4" /> Portfolio</Link></DropdownMenuItem>
-        <DropdownMenuItem asChild className="focus:bg-white/5 h-11 cursor-pointer"><Link href="/inbox" className="w-full flex items-center gap-3 font-bold uppercase text-[10px]"><Bell className="h-4 w-4" /> My Inbox</Link></DropdownMenuItem>
-        <DropdownMenuItem asChild className="focus:bg-white/5 h-11 cursor-pointer"><Link href="/shop" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] text-primary"><ShoppingBag className="h-4 w-4" /> WinZO Shop</Link></DropdownMenuItem>
-        {isAdmin && (
-          <DropdownMenuItem asChild className="focus:bg-primary/20 h-11 cursor-pointer"><Link href="/admin" className="w-full flex items-center gap-3 font-bold uppercase text-[10px] text-amber-500 italic"><Shield className="h-4 w-4" /> Admin Hub</Link></DropdownMenuItem>
-        )}
+        <DropdownMenuItem asChild className="focus:bg-white/5 h-11 cursor-pointer"><Link href="/inbox" className="w-full flex items-center gap-3 font-bold uppercase text-[10px]"><Bell className="h-4 w-4" /> Notifications</Link></DropdownMenuItem>
         <DropdownMenuSeparator className="bg-white/5" />
         <DropdownMenuItem onSelect={onLogout} className="h-11 text-red-500 font-bold uppercase text-[10px] cursor-pointer px-4"><LogOut className="h-4 w-4 mr-3" /> Terminate Session</DropdownMenuItem>
       </DropdownMenuContent>

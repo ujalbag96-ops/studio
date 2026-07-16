@@ -1,51 +1,29 @@
-
 {
   "entities": {
     "UserProfile": {
       "title": "UserProfile",
-      "description": "User profile with MLM referral hierarchy and multi-tier balances.",
+      "description": "User profile with academic focus and earnings.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "email": { "type": "string" },
-        "depositBalance": { "type": "number" },
-        "winningBalance": { "type": "number" },
-        "bonusBalance": { "type": "number" },
-        "taskBalance": { "type": "number" },
-        "referralCommissionBalance": { "type": "number" },
         "coins": { "type": "number" },
-        "walletBalanceINR": { "type": "number" },
-        "referralCode": { "type": "string" },
-        "referredBy": { "type": "string" },
-        "referredByL2": { "type": "string" },
-        "mlmLevel": { "type": "number" },
-        "tasksCompletedCount": { "type": "number" },
-        "isAccountActivated": { "type": "boolean" },
-        "lastIp": { "type": "string" },
-        "country": { "type": "string" },
+        "department": { "type": "string" },
+        "semester": { "type": "number" },
         "riskNoticeAccepted": { "type": "boolean" }
       }
     },
-    "WeatherLog": {
-      "title": "WeatherLog",
-      "description": "Daily official weather condition for Sambalpur",
+    "StudyMaterial": {
+      "title": "StudyMaterial",
+      "description": "Educational resources for students",
       "type": "object",
       "properties": {
-        "date": { "type": "string" },
-        "condition": { "type": "string" },
-        "temperature": { "type": "number" },
-        "timestamp": { "type": "string" }
-      }
-    },
-    "WeatherVote": {
-      "title": "WeatherVote",
-      "description": "User prediction for daily weather",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "vote": { "type": "string", "enum": ["YES", "NO"] },
-        "status": { "type": "string", "enum": ["pending", "settled"] },
-        "timestamp": { "type": "string" }
+        "title": { "type": "string" },
+        "department": { "type": "string" },
+        "semester": { "type": "number" },
+        "type": { "type": "string", "enum": ["Notes", "PYQ", "Syllabus"] },
+        "url": { "type": "string" },
+        "isPremium": { "type": "boolean" }
       }
     }
   },
@@ -55,15 +33,11 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "Master user profiles"
+      "description": "User account data"
     },
-    "/weather_logs/{logId}": {
-      "schema": "WeatherLog",
-      "description": "Daily official weather records"
-    },
-    "/weather_votes/{voteId}": {
-      "schema": "WeatherVote",
-      "description": "User predictions for weather"
+    "/study_materials/{materialId}": {
+      "schema": "StudyMaterial",
+      "description": "Library of notes and papers"
     }
   }
 }
