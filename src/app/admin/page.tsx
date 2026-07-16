@@ -53,17 +53,20 @@ export default function AdminDashboard() {
   const { data: moviesData } = useCollection<any>(moviesQuery);
 
   const handleAddMovie = async () => {
-    if (!firestore || !movieForm.title || !movieForm.videoUrl) return;
+    if (!firestore || !movieForm.title || !movieForm.videoUrl) {
+      toast({ variant: "destructive", title: "FIELDS REQUIRED" });
+      return;
+    }
     setIsProcessing('add_movie');
     try {
       await addDoc(collection(firestore, 'movies'), {
         ...movieForm,
         createdAt: new Date().toISOString()
       });
-      toast({ title: "MOVIE ADDED", description: `${movieForm.title} is now live in the library.` });
+      toast({ title: "MOVIE SIGNAL DEPLOYED", description: `${movieForm.title} is now active.` });
       setMovieForm({ title: '', poster: '', videoUrl: '', category: 'Action' });
     } catch (e) {
-      toast({ variant: "destructive", title: "Add Failed" });
+      toast({ variant: "destructive", title: "Deployment Failed" });
     } finally {
       setIsProcessing(null);
     }
@@ -71,10 +74,10 @@ export default function AdminDashboard() {
 
   const handleDeleteMovie = async (id: string) => {
     if (!firestore) return;
-    if (!confirm("Are you sure? This will remove the stream signal.")) return;
+    if (!confirm("Are you sure? This will purge the stream signal from the arena.")) return;
     try {
       await deleteDoc(doc(firestore, 'movies', id));
-      toast({ title: "MOVIE PURGED" });
+      toast({ title: "SIGNAL PURGED" });
     } catch (e) {
       toast({ variant: "destructive", title: "Purge Failed" });
     }
@@ -88,13 +91,13 @@ export default function AdminDashboard() {
       <aside className="w-72 bg-[#0a0a0f] border-r border-white/5 flex flex-col fixed inset-y-0 z-50">
         <div className="p-8 flex items-center gap-4 border-b border-white/5 bg-primary/5">
           <ShieldCheck className="h-7 w-7 text-primary" />
-          <span className="font-black text-xl italic uppercase tracking-tighter">ARENA <span className="text-primary">ADMIN</span></span>
+          <span className="font-black text-xl italic uppercase tracking-tighter">ARENA <span className="text-primary">MASTER</span></span>
         </div>
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
-          <AdminLink active={activeTab === 'movies'} icon={<Film />} label="Movie Library" onClick={() => setActiveTab('movies')} />
-          <AdminLink active={activeTab === 'settlements'} icon={<Gavel />} label="Live Over Sync" onClick={() => setActiveTab('settlements')} />
-          <AdminLink active={activeTab === 'lottery'} icon={<Dices />} label="Jackpot Draw" onClick={() => setActiveTab('lottery')} />
-          <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Hub" onClick={() => setActiveTab('withdrawals')} />
+          <AdminLink active={activeTab === 'movies'} icon={<Film />} label="Movie Intelligence" onClick={() => setActiveTab('movies')} />
+          <AdminLink active={activeTab === 'settlements'} icon={<Gavel />} label="Match Settlements" onClick={() => setActiveTab('settlements')} />
+          <AdminLink active={activeTab === 'lottery'} icon={<Dices />} label="Jackpot Control" onClick={() => setActiveTab('lottery')} />
+          <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Terminal" onClick={() => setActiveTab('withdrawals')} />
         </nav>
       </aside>
 
@@ -102,7 +105,7 @@ export default function AdminDashboard() {
         <header className="flex items-center justify-between">
            <div>
               <h1 className="text-4xl font-black uppercase italic tracking-tighter">Command <span className="text-primary">Center</span></h1>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] mt-1">Operational Control Active</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] mt-1">Industrial Operational Control</p>
            </div>
         </header>
 
@@ -111,24 +114,24 @@ export default function AdminDashboard() {
              <Card className="bg-[#0a0a0f] border-primary/20 border-2 rounded-[2.5rem] p-8 shadow-2xl">
                 <div className="flex items-center gap-3 mb-8">
                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20"><Plus className="text-primary" /></div>
-                   <h3 className="text-2xl font-black uppercase italic">Add Movie Signal</h3>
+                   <h3 className="text-2xl font-black uppercase italic text-white">Add Movie Signal</h3>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Movie Title</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Signal Title</Label>
                       <Input value={movieForm.title} onChange={e => setMovieForm({...movieForm, title: e.target.value})} className="h-14 bg-black border-white/10 rounded-xl font-bold" placeholder="e.g. Inception 4K" />
                    </div>
                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Category</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Strategic Category</Label>
                       <Input value={movieForm.category} onChange={e => setMovieForm({...movieForm, category: e.target.value})} className="h-14 bg-black border-white/10 rounded-xl font-bold" placeholder="e.g. Action, Sci-Fi" />
                    </div>
                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Poster URL</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Poster Signal URL</Label>
                       <Input value={movieForm.poster} onChange={e => setMovieForm({...movieForm, poster: e.target.value})} className="h-14 bg-black border-white/10 rounded-xl font-mono text-xs" placeholder="https://..." />
                    </div>
                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Stream URL (.mp4 or .m3u8)</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Stream Signal URL (.mp4/.m3u8)</Label>
                       <Input value={movieForm.videoUrl} onChange={e => setMovieForm({...movieForm, videoUrl: e.target.value})} className="h-14 bg-black border-white/10 rounded-xl font-mono text-xs" placeholder="https://..." />
                    </div>
                 </div>
@@ -139,15 +142,15 @@ export default function AdminDashboard() {
              </Card>
 
              <div className="space-y-6">
-                <h3 className="text-xl font-black uppercase italic">Current Library <span className="text-primary">Inventory</span></h3>
+                <h3 className="text-xl font-black uppercase italic">Active Cinema <span className="text-primary">Inventory</span></h3>
                 <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
                    <Table>
                       <TableHeader className="bg-white/5">
                          <TableRow className="border-white/5">
-                            <TableHead className="text-[9px] font-black uppercase">Poster</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase">Title</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase">Category</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase text-right">Actions</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase tracking-widest">Poster</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase tracking-widest">Title</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase tracking-widest">Category</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase tracking-widest text-right">Actions</TableHead>
                          </TableRow>
                       </TableHeader>
                       <TableBody>

@@ -18,9 +18,11 @@ import {
   Video,
   PauseCircle,
   Sun,
-  Globe,
+  Volume2,
+  RotateCcw,
+  RotateCw,
   Maximize,
-  Volume2
+  VolumeX
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, notFound } from 'next/navigation';
@@ -40,6 +42,8 @@ export default function MoviePlayerPage() {
   const [adCountdown, setAdCountdown] = useState(8);
   const [isPlaying, setIsPlaying] = useState(false);
   const [brightness, setBrightness] = useState(100);
+  const [volume, setVolume] = useState(100);
+  const [isMuted, setIsMuted] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -52,8 +56,6 @@ export default function MoviePlayerPage() {
     let interval: any;
     if (showInterstitial && adCountdown > 0) {
       interval = setInterval(() => setAdCountdown(c => c - 1), 1000);
-    } else if (adCountdown === 0) {
-      // Auto close ad after countdown
     }
     return () => clearInterval(interval);
   }, [showInterstitial, adCountdown]);
@@ -72,7 +74,11 @@ export default function MoviePlayerPage() {
 
     if (source.includes('.m3u8') || source.includes('.m3u')) {
       if (Hls.isSupported()) {
-        const hls = new Hls();
+        const hls = new Hls({
+          capLevelToPlayerSize: true,
+          autoStartLoad: true,
+          enableWorker: true,
+        });
         hls.loadSource(source);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -98,6 +104,12 @@ export default function MoviePlayerPage() {
     }
   }, [isPlaying]);
 
+  const skipTime = (seconds: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime += seconds;
+    }
+  };
+
   if (isUserLoading || movieLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin text-primary h-12 w-12" /></div>;
   if (!movie) notFound();
 
@@ -105,44 +117,67 @@ export default function MoviePlayerPage() {
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-10 pb-32 bg-background">
       <div className="flex items-center justify-between">
          <Link href="/movies" className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground hover:text-white transition-colors">
-            <ArrowLeft className="h-3 w-3" /> Library
+            <ArrowLeft className="h-3 w-3" /> All Cinema
          </Link>
          <div className="flex items-center gap-3">
-            <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1.5 italic">STREAM: {movie.title}</Badge>
-            <Badge variant="outline" className="border-white/10 text-[9px] font-black text-muted-foreground uppercase">{movie.category}</Badge>
+            <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1.5 italic">NOW STREAMING: {movie.title}</Badge>
          </div>
       </div>
 
-      <div className="relative rounded-[3rem] overflow-hidden bg-black aspect-video border-4 border-white/5 shadow-[0_0_80px_rgba(0,0,0,0.8)] group">
+      <div className="relative rounded-[3rem] overflow-hidden bg-black aspect-video border-4 border-white/5 shadow-[0_0_100px_rgba(0,0,0,0.8)] group">
          
-         {/* CINEMA CONTROLS */}
-         {isPlaying && !showInterstitial && (
-           <div className="absolute left-8 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-6 bg-black/40 backdrop-blur-xl p-5 rounded-[2rem] border border-white/10 animate-in fade-in slide-in-from-left-4">
-              <Sun className="h-5 w-5 text-primary animate-pulse" />
-              <div className="h-40 flex items-center">
-                 <Slider 
-                  value={[brightness]} 
-                  onValueChange={(val) => setBrightness(val[0])} 
-                  max={150} min={40} step={1} orientation="vertical"
-                  className="h-full"
-                 />
+         {/* INDUSTRIAL OVERLAY CONTROLS */}
+         {!showInterstitial && (
+           <>
+              {/* Brightness (Left Zone) */}
+              <div className="absolute left-8 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-6 bg-black/40 backdrop-blur-xl p-5 rounded-[2rem] border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <Sun className="h-5 w-5 text-primary animate-pulse" />
+                 <div className="h-40 flex items-center">
+                    <Slider 
+                      value={[brightness]} 
+                      onValueChange={(val) => setBrightness(val[0])} 
+                      max={150} min={40} step={1} orientation="vertical"
+                      className="h-full"
+                    />
+                 </div>
+                 <span className="text-[9px] font-black text-white">{brightness}%</span>
               </div>
-              <span className="text-[9px] font-black text-white">{brightness}%</span>
-           </div>
-         )}
 
-         {/* PLAYER OVERLAY */}
-         {!isPlaying && !showInterstitial && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm space-y-6">
-               <button onClick={() => setIsPlaying(true)} className="h-24 w-24 rounded-full bg-primary flex items-center justify-center shadow-[0_0_50px_rgba(255,123,0,0.5)] hover:scale-110 transition-transform">
-                  <PlayCircle className="h-12 w-12 text-white fill-white" />
-               </button>
-            </div>
+              {/* Volume (Right Zone) */}
+              <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-6 bg-black/40 backdrop-blur-xl p-5 rounded-[2rem] border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <button onClick={() => setIsMuted(!isMuted)}>
+                    {isMuted ? <VolumeX className="h-5 w-5 text-red-500" /> : <Volume2 className="h-5 w-5 text-primary" />}
+                 </button>
+                 <div className="h-40 flex items-center">
+                    <Slider 
+                      value={[volume]} 
+                      onValueChange={(val) => { setVolume(val[0]); if(videoRef.current) videoRef.current.volume = val[0]/100; setIsMuted(false); }} 
+                      max={100} min={0} step={1} orientation="vertical"
+                      className="h-full"
+                    />
+                 </div>
+                 <span className="text-[9px] font-black text-white">{volume}%</span>
+              </div>
+
+              {/* Seek Overlay */}
+              <div className="absolute inset-x-0 bottom-10 z-50 flex justify-center items-center gap-12 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <button onClick={() => skipTime(-10)} className="h-16 w-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10">
+                    <RotateCcw className="h-8 w-8 text-white" />
+                 </button>
+                 <button onClick={() => setIsPlaying(!isPlaying)} className="h-20 w-20 rounded-full bg-primary flex items-center justify-center shadow-xl">
+                    {isPlaying ? <PauseCircle className="h-10 w-10 text-white fill-white" /> : <PlayCircle className="h-10 w-10 text-white fill-white" />}
+                 </button>
+                 <button onClick={() => skipTime(10)} className="h-16 w-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10">
+                    <RotateCw className="h-8 w-8 text-white" />
+                 </button>
+              </div>
+           </>
          )}
 
          <video 
             ref={videoRef}
-            className={cn("w-full h-full object-cover transition-all duration-700", isPlaying ? "opacity-100" : "opacity-40")}
+            muted={isMuted}
+            className={cn("w-full h-full object-contain transition-all duration-700", isPlaying ? "opacity-100" : "opacity-40")}
             style={{ filter: `brightness(${brightness}%)` }}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
@@ -164,9 +199,9 @@ export default function MoviePlayerPage() {
                     </div>
 
                     <div className="space-y-4">
-                       <h3 className="text-3xl font-black uppercase italic tracking-tighter">Preparing <span className="text-primary">Stream...</span></h3>
+                       <h3 className="text-3xl font-black uppercase italic tracking-tighter">Initializing <span className="text-primary">Stream...</span></h3>
                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                          Synchronizing with high-bandwidth industrial video node. Signal lock in progress.
+                          Industrial signal lock in progress. High-bandwidth connection protocol active.
                        </p>
                     </div>
 
@@ -180,12 +215,12 @@ export default function MoviePlayerPage() {
                            adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce" : "bg-white/5 text-white/20 border border-white/10"
                          )}
                        >
-                          {adCountdown === 0 ? "START STREAMING" : "VERIFYING SIGNAL..."}
+                          {adCountdown === 0 ? "START MOVIE" : "DECRYPTING SIGNAL..."}
                        </Button>
                     </div>
                  </div>
                  <div className="bg-white/5 p-4 text-center">
-                    <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Sponsored Revenue Pipeline v6.2 Active</p>
+                    <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Premium Ad Yield v9.2 Operational</p>
                  </div>
               </Card>
            </div>
@@ -197,25 +232,25 @@ export default function MoviePlayerPage() {
             <h2 className="text-4xl font-black uppercase italic tracking-tighter">{movie.title}</h2>
             <div className="flex gap-4">
                <Badge className="bg-white/5 text-muted-foreground border-none font-black px-4 py-1.5 uppercase italic">{movie.category}</Badge>
-               <Badge className="bg-secondary/10 text-secondary border-none font-black px-4 py-1.5 uppercase italic">4K HDR</Badge>
+               <Badge className="bg-secondary/10 text-secondary border-none font-black px-4 py-1.5 uppercase italic">4K ULTRA HD</Badge>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed font-medium uppercase tracking-tight opacity-80 pt-4">
-               High-definition signal streaming directly from our decentralized content delivery network. Encrypted via AES-256 for maximum viewer integrity.
+               Tactical content delivery network active. This stream is encrypted via industrial AES-256 protocols. No download signal available to maintain viewer integrity.
             </p>
          </div>
 
          <div className="space-y-8">
-            <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-8 space-y-6 shadow-2xl overflow-hidden relative">
+            <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-8 space-y-6 shadow-2xl relative overflow-hidden">
                <div className="absolute -top-10 -right-10 opacity-5">
                   <ShieldCheck className="h-40 w-40 text-primary" />
                </div>
                <h3 className="text-xl font-black uppercase italic flex items-center gap-3">
-                  <ShieldCheck className="text-primary h-6 w-6" /> Quality Intel
+                  <ShieldCheck className="text-primary h-6 w-6" /> Quality Hub
                </h3>
                <ul className="space-y-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest relative z-10">
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Low Latency Node</li>
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Multi-Language Audio</li>
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Dolby Atmos Calibration</li>
+                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Dynamic Bitrate Scaling</li>
+                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Industrial Buffer v4.0</li>
+                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Dolby Atmos Audio</li>
                </ul>
             </Card>
          </div>
