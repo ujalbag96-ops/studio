@@ -5,7 +5,7 @@ import { doc, updateDoc, increment, collection, addDoc, getDoc, writeBatch } fro
 
 /**
  * Defensive MLM CPA Postback Webhook
- * Includes Anti-Fraud Device & IP Validation + VIP Bonus Logic.
+ * Includes Anti-Fraud Device & IP Validation + VIP Bonus Logic + Active Leader Validation.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -42,7 +42,6 @@ export async function GET(request: Request) {
 
     if (newVipLevel === 'VIP 0' && currentTasks >= 10) {
        newVipLevel = 'VIP 1';
-       // Initial VIP 1 Notification
        await addDoc(collection(firestore, 'notifications'), {
           userId: userId,
           title: '🔥 VIP 1 ACTIVATED',
@@ -75,7 +74,7 @@ export async function GET(request: Request) {
       description: `CPA Reward: ${appName} Verified ${vipBonus > 0 ? '(Includes 5% VIP 1 Bonus)' : ''}`
     });
 
-    // 3. MLM Anti-Fraud Logic
+    // 3. MLM Anti-Fraud & Milestone Logic
     const uplineIds = [userData.referredBy, userData.referredByL2].filter(Boolean);
 
     for (const parentId of uplineIds) {
@@ -107,20 +106,30 @@ export async function GET(request: Request) {
         const commRate = isL1 ? 0.20 : 0.10;
         const commAmount = rewardAmount * commRate;
 
+        // Condition: Leader must have 5 personal tasks and 5 direct referrals to UNLOCK money
+        const isActiveLeader = (pData.tasksCompletedCount || 0) >= 5 && (pData.totalReferrals || 0) >= 5;
+
+        // Always update milestone count for visibility
         batch.update(parentRef, {
-          referralCommissionBalance: increment(commAmount),
-          coins: increment(commAmount),
           networkTaskCompletions: increment(1),
           totalNetworkRevenue: increment(rewardAmount)
         });
 
-        batch.set(doc(collection(firestore, 'users', parentId, 'ledger')), {
-          type: 'referral_comm',
-          amount: commAmount,
-          date: dateStr,
-          status: 'completed',
-          description: `MLM ${isL1 ? 'L1' : 'L2'} Bonus: Real User activity detected`
-        });
+        // Only give COINS if they are an Active Leader
+        if (isActiveLeader) {
+          batch.update(parentRef, {
+            referralCommissionBalance: increment(commAmount),
+            coins: increment(commAmount),
+          });
+
+          batch.set(doc(collection(firestore, 'users', parentId, 'ledger')), {
+            type: 'referral_comm',
+            amount: commAmount,
+            date: dateStr,
+            status: 'completed',
+            description: `MLM ${isL1 ? 'L1' : 'L2'} Bonus: Real User activity detected`
+          });
+        }
       }
     }
 

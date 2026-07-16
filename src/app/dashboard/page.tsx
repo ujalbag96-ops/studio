@@ -36,7 +36,9 @@ import {
   CheckCircle2,
   ShieldAlert,
   Sparkles,
-  ChevronUp
+  ChevronUp,
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +57,7 @@ import LiveCricketWidget from '@/components/LiveCricketWidget';
 import ActivationGateway from '@/components/ActivationGateway';
 import ViralLeaderboard from '@/components/ViralLeaderboard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -104,6 +107,13 @@ export default function UserDashboard() {
   const milestoneProgress = Math.min(((profile?.networkTaskCompletions || 0) / milestoneGoal) * 100, 100);
   const isMilestoneHit = (profile?.networkTaskCompletions || 0) >= milestoneGoal;
 
+  // Active Leader Condition
+  const personalTasks = profile?.tasksCompletedCount || 0;
+  const directRefs = profile?.totalReferrals || 0;
+  const hasMinPersonalTasks = personalTasks >= 5;
+  const hasMinReferrals = directRefs >= 5;
+  const isActiveLeader = hasMinPersonalTasks && hasMinReferrals;
+
   const vipGoal = 10;
   const vipProgress = Math.min(((profile?.tasksCompletedCount || 0) / vipGoal) * 100, 100);
   const isVip1 = (profile?.vipLevel === 'VIP 1');
@@ -135,7 +145,6 @@ export default function UserDashboard() {
 
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
       
-      {/* VIP 1 UPGRADE MODAL */}
       <Dialog open={showVipModal} onOpenChange={setShowVipModal}>
          <DialogContent className="bg-[#0a0a0f] border-primary/20 text-white max-w-sm rounded-[2.5rem] p-8 shadow-[0_0_100px_rgba(255,123,0,0.15)]">
             <DialogHeader className="space-y-4 text-center">
@@ -154,16 +163,6 @@ export default function UserDashboard() {
                      <span className="text-primary">{profile?.tasksCompletedCount || 0} / 10 Tasks</span>
                   </div>
                   <Progress value={vipProgress} className="h-3 bg-white/5" />
-               </div>
-               <div className="grid gap-3">
-                  <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
-                     <Zap className="h-5 w-5 text-primary" />
-                     <p className="text-[10px] font-black uppercase italic">5% Permanent Revenue Bonus</p>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
-                     <CheckCircle2 className="h-5 w-5 text-secondary" />
-                     <p className="text-[10px] font-black uppercase italic">Priority Withdrawal Logic</p>
-                  </div>
                </div>
             </div>
             <DialogFooter>
@@ -217,14 +216,12 @@ export default function UserDashboard() {
                       </Button>
                    </Card>
                    
-                   {/* NEON VIP UPGRADE COMPONENT */}
                    {!isVip1 ? (
                       <button 
                        onClick={() => setShowVipModal(true)}
                        className="group relative h-16 px-8 rounded-2xl bg-black border-2 border-primary/40 flex items-center gap-4 overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,123,0,0.15)]"
                       >
                          <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                         <div className="absolute top-0 left-0 w-full h-full border-2 border-primary/20 rounded-2xl animate-pulse" />
                          <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:shadow-[0_0_15px_rgba(255,123,0,0.5)] transition-shadow">
                             <Crown className="h-5 w-5" />
                          </div>
@@ -256,7 +253,7 @@ export default function UserDashboard() {
               </div>
             </header>
 
-            {/* MLM Milestone Prize Tracker */}
+            {/* MLM Milestone Prize Tracker with Active Leader Condition */}
             <Card className="bg-amber-500/5 border-amber-500/20 border-2 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl animate-in slide-in-from-top-4 duration-700">
                <div className="absolute top-0 right-0 p-8 opacity-5">
                   <Trophy className="h-40 w-48 text-amber-500" />
@@ -270,23 +267,47 @@ export default function UserDashboard() {
                         <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Elite Network Milestone</h3>
                      </div>
                      <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-lg">
-                        Reach <span className="text-white font-bold">1000 Verified Network Tasks</span> to claim your 30% Master Revenue Share. Fraudulent activity detected by IP/Device signatures is excluded.
+                        Reach <span className="text-white font-bold">1000 Verified Network Tasks</span> to claim your 30% Master Revenue Share. 
                      </p>
+                     
+                     {/* Condition Indicators */}
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className={cn("p-4 rounded-2xl border flex items-center gap-3 transition-all", hasMinPersonalTasks ? "bg-green-500/10 border-green-500/30 text-green-500" : "bg-red-500/10 border-red-500/30 text-red-500")}>
+                           {hasMinPersonalTasks ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                           <p className="text-[10px] font-black uppercase">5 Personal Tasks ({personalTasks}/5)</p>
+                        </div>
+                        <div className={cn("p-4 rounded-2xl border flex items-center gap-3 transition-all", hasMinReferrals ? "bg-green-500/10 border-green-500/30 text-green-500" : "bg-red-500/10 border-red-500/30 text-red-500")}>
+                           {hasMinReferrals ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                           <p className="text-[10px] font-black uppercase">5 Direct Invites ({directRefs}/5)</p>
+                        </div>
+                     </div>
+
                      <div className="space-y-3">
                         <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                           <span className="text-muted-foreground">Clean Network Progress</span>
+                           <span className="text-muted-foreground">Team Network Progress</span>
                            <span className="text-amber-400">{profile?.networkTaskCompletions || 0} / 1000 Tasks Completed</span>
                         </div>
                         <Progress value={milestoneProgress} className="h-3 bg-white/5" />
                      </div>
                   </div>
+                  
                   <div className="w-full md:w-auto flex flex-col gap-3">
-                     <div className="p-6 bg-black/40 rounded-2xl border border-white/5 text-center">
+                     <div className="p-6 bg-black/40 rounded-2xl border border-white/5 text-center relative group">
                         <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Potential Payout</p>
                         <p className="text-3xl font-black text-amber-500 italic">{( (profile?.totalNetworkRevenue || 0) * 0.3 ).toFixed(1)} 🪙</p>
+                        {!isActiveLeader && (
+                           <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center p-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-help">
+                              <Lock className="h-5 w-5 text-red-500 mb-1" />
+                              <p className="text-[8px] font-black uppercase text-white leading-tight">Payout Frozen: Complete Leader Conditions to unlock</p>
+                           </div>
+                        )}
                      </div>
-                     {isMilestoneHit && (
+                     {isMilestoneHit && isActiveLeader ? (
                         <Badge className="bg-green-500 text-black font-black uppercase italic px-4 py-2 mx-auto">Milestone Hit! Payout Active</Badge>
+                     ) : isMilestoneHit && (
+                        <Badge className="bg-red-600 text-white font-black uppercase italic px-4 py-2 mx-auto animate-pulse flex items-center gap-2">
+                           <Info className="h-4 w-4" /> Conditions Pending
+                        </Badge>
                      )}
                   </div>
                </div>

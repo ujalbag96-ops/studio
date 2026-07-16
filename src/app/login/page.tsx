@@ -6,10 +6,8 @@ import { useUser, useFirestore, useAuth } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  GoogleAuthProvider,
-  signInWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs, limit, addDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, limit, addDoc, increment } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +35,6 @@ function LoginContent() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
-  // Support State
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportData, setSupportData] = useState({ contact: '', issue: '' });
 
@@ -79,6 +76,9 @@ function LoginContent() {
             const l1Data = uplineSnap.docs[0].data();
             l1Upline = uplineSnap.docs[0].id;
             l2Upline = l1Data.referredBy || '';
+            
+            // Increment parent's referral count
+            await setDoc(doc(firestore, 'users', l1Upline), { totalReferrals: increment(1) }, { merge: true });
           }
         }
 
@@ -99,6 +99,9 @@ function LoginContent() {
           referredByL2: l2Upline,
           mlmLevel: 0,
           tasksCompletedCount: 0,
+          totalReferrals: 0,
+          networkTaskCompletions: 0,
+          totalNetworkRevenue: 0,
           isAccountActivated: false,
           deviceId: deviceId,
           lastIp: ipData.ip,
@@ -222,11 +225,6 @@ function LoginContent() {
             </DialogFooter>
          </DialogContent>
       </Dialog>
-
-      <Button onClick={() => {}} disabled={isLoading} variant="outline" className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-3">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="h-5 w-5" alt="Google" />
-        Connect Google Identity
-      </Button>
     </div>
   );
 }
