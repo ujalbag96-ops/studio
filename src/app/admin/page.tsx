@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, addDoc, increment, query, orderBy, deleteDoc, writeBatch, getDocs, where, limit, onSnapshot } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, addDoc, increment, query, orderBy, deleteDoc, writeBatch, getDocs, where, limit, onSnapshot, runTransaction } from 'firebase/firestore';
 import { 
   Users as UsersIcon, 
   Settings, 
@@ -39,7 +39,8 @@ import {
   Ticket,
   Send,
   MessageSquare,
-  LifeBuoy
+  LifeBuoy,
+  AlertTriangle
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -67,17 +69,19 @@ export default function AdminDashboard() {
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [replyInput, setReplyInput] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
+  const [disputes, setDisputes] = useState<any[]>([]);
+  const [showReceiptModal, setShowReceiptModal] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   const ticketsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'support_tickets'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
-  const globalConfigRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'app_settings', 'global_config') : null, [firestore, isAdminUser]);
+  const disputesQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payment_disputes'), where('status', '==', 'pending')) : null, [firestore, isAdminUser]);
   
   const { data: payoutsData } = useCollection<any>(payoutsQuery);
   const { data: ticketsData } = useCollection<any>(ticketsQuery);
-  const { data: globalConfig } = useDoc<any>(globalConfigRef);
+  const { data: disputesData } = useCollection<any>(disputesQuery);
 
   // Real-time chat listener for selected ticket
   useEffect(() => {
@@ -115,25 +119,48 @@ export default function AdminDashboard() {
     toast({ title: "TICKET RESOLVED" });
   };
 
-  const handleManualCredit = async (userId: string, amount: number) => {
-     if (!firestore || !userId) return;
-     setIsProcessing('credit');
+  const handleManualCreditDispute = async (dispute: any) => {
+     if (!firestore || !dispute || isProcessing) return;
+     setIsProcessing(dispute.id);
+     
      try {
-        const userRef = doc(firestore, 'users', userId);
-        await updateDoc(userRef, {
-           depositBalance: increment(amount * 10),
-           coins: increment(amount * 10)
+        await runTransaction(firestore, async (transaction) => {
+           const userRef = doc(firestore, 'users', dispute.userId);
+           const userSnap = await transaction.get(userRef);
+           if (!userSnap.exists()) throw "User Missing";
+
+           const coinAmount = dispute.amount * 10;
+           
+           // 1. Update Wallet
+           transaction.update(userRef, {
+              depositBalance: increment(coinAmount),
+              coins: increment(coinAmount)
+           });
+
+           // 2. Log Ledger
+           const ledgerRef = doc(collection(firestore, 'users', dispute.userId, 'ledger'));
+           transaction.set(ledgerRef, {
+              type: 'deposit',
+              amount: coinAmount,
+              date: new Date().toISOString().split('T')[0],
+              status: 'completed',
+              description: `Admin Verified Dispute: UTR ${dispute.utrId}`
+           });
+
+           // 3. Resolve Dispute Status
+           const disputeRef = doc(firestore, 'payment_disputes', dispute.id);
+           transaction.update(disputeRef, { status: 'approved' });
+
+           // 4. Update linked ticket if any
+           if (selectedTicket && selectedTicket.userId === dispute.userId) {
+              const ticketRef = doc(firestore, 'support_tickets', selectedTicket.id);
+              transaction.update(ticketRef, { status: 'resolved' });
+           }
         });
-        await addDoc(collection(firestore, 'users', userId, 'ledger'), {
-           type: 'deposit',
-           amount: amount * 10,
-           date: new Date().toISOString().split('T')[0],
-           status: 'completed',
-           description: `Admin Manual Credit: Dispute Settled`
-        });
-        toast({ title: "WALLET UPDATED", description: `Credited ${amount * 10} Coins.` });
-     } catch(e) {
-        toast({ variant: "destructive", title: "Sync Error" });
+
+        toast({ title: "BALANCE CREDITED", description: "Transaction verified and assets synced." });
+     } catch (e) {
+        toast({ variant: "destructive", title: "Sync Failure", description: String(e) });
      } finally {
         setIsProcessing(null);
      }
@@ -167,30 +194,52 @@ export default function AdminDashboard() {
 
         {activeTab === 'support' && (
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 animate-in fade-in duration-500 h-[70vh]">
-              <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden flex flex-col">
-                 <div className="p-6 bg-white/5 border-b border-white/5">
-                    <h3 className="text-sm font-black uppercase italic flex items-center gap-2"><LifeBuoy className="h-4 w-4 text-primary" /> Active Tickets</h3>
-                 </div>
-                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                    {ticketsData?.map(t => (
-                       <button 
-                        key={t.id} 
-                        onClick={() => setSelectedTicket(t)}
-                        className={cn(
-                          "w-full text-left p-4 rounded-xl border transition-all space-y-2",
-                          selectedTicket?.id === t.id ? "bg-primary/10 border-primary/40 shadow-lg" : "bg-black/40 border-white/5 hover:bg-white/5"
-                        )}
-                       >
-                          <div className="flex justify-between items-start">
-                             <Badge className={cn("text-[8px] font-black uppercase", t.status === 'open' ? "bg-green-500/20 text-green-500" : "bg-muted text-muted-foreground")}>{t.status}</Badge>
-                             <span className="text-[8px] font-bold text-muted-foreground">{new Date(t.timestamp).toLocaleTimeString()}</span>
-                          </div>
-                          <p className="text-[10px] font-black text-white truncate uppercase">{t.userContact || 'Anonymous Warrior'}</p>
-                          <p className="text-[9px] text-muted-foreground line-clamp-1">{t.description}</p>
-                       </button>
-                    ))}
-                 </div>
-              </Card>
+              <div className="flex flex-col gap-6">
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden flex flex-col h-1/2">
+                   <div className="p-6 bg-white/5 border-b border-white/5">
+                      <h3 className="text-sm font-black uppercase italic flex items-center gap-2"><LifeBuoy className="h-4 w-4 text-primary" /> Active Tickets</h3>
+                   </div>
+                   <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                      {ticketsData?.map(t => (
+                         <button 
+                          key={t.id} 
+                          onClick={() => setSelectedTicket(t)}
+                          className={cn(
+                            "w-full text-left p-4 rounded-xl border transition-all space-y-2",
+                            selectedTicket?.id === t.id ? "bg-primary/10 border-primary/40 shadow-lg" : "bg-black/40 border-white/5 hover:bg-white/5"
+                          )}
+                         >
+                            <div className="flex justify-between items-start">
+                               <Badge className={cn("text-[8px] font-black uppercase", t.status === 'open' ? "bg-green-500/20 text-green-500" : "bg-muted text-muted-foreground")}>{t.status}</Badge>
+                               <span className="text-[8px] font-bold text-muted-foreground">{new Date(t.timestamp).toLocaleTimeString()}</span>
+                            </div>
+                            <p className="text-[10px] font-black text-white truncate uppercase">{t.userContact || 'Anonymous Warrior'}</p>
+                            <p className="text-[9px] text-muted-foreground line-clamp-1">{t.description}</p>
+                         </button>
+                      ))}
+                   </div>
+                </Card>
+
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden flex flex-col h-1/2">
+                   <div className="p-6 bg-amber-500/10 border-b border-white/5">
+                      <h3 className="text-sm font-black uppercase italic flex items-center gap-2 text-amber-500"><AlertTriangle className="h-4 w-4" /> UPI Disputes</h3>
+                   </div>
+                   <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                      {disputesData?.map(d => (
+                         <div key={d.id} className="w-full text-left p-4 rounded-xl border border-white/5 bg-black/40 space-y-3">
+                            <div className="flex justify-between items-start">
+                               <p className="text-[10px] font-black text-white uppercase italic">₹{d.amount}</p>
+                               <button onClick={() => setShowReceiptModal(d.receiptDataUri)} className="text-[8px] font-black text-primary uppercase hover:underline">View Receipt</button>
+                            </div>
+                            <p className="text-[9px] font-bold text-muted-foreground uppercase">UTR: {d.utrId}</p>
+                            <Button onClick={() => handleManualCreditDispute(d)} disabled={!!isProcessing} className="w-full h-8 bg-amber-500 hover:bg-amber-600 text-black font-black text-[8px] uppercase rounded-lg">
+                               {isProcessing === d.id ? <Loader2 className="animate-spin h-3 w-3" /> : 'MANUALLY CREDIT BALANCE'}
+                            </Button>
+                         </div>
+                      ))}
+                   </div>
+                </Card>
+              </div>
 
               <div className="lg:col-span-2 flex flex-col gap-6">
                  {selectedTicket ? (
@@ -201,11 +250,6 @@ export default function AdminDashboard() {
                              <p className="text-[9px] font-bold text-muted-foreground uppercase">{selectedTicket.type === 'recovery' ? 'IDENTITY RECOVERY' : 'DISPUTE RESOLUTION'}</p>
                           </div>
                           <div className="flex gap-2">
-                             {selectedTicket.userId && (
-                               <Button onClick={() => handleManualCredit(selectedTicket.userId, 100)} disabled={!!isProcessing} variant="outline" className="h-10 border-primary/20 text-primary font-black text-[10px] uppercase">
-                                  Manual Credit (100)
-                               </Button>
-                             )}
                              <Button onClick={() => handleResolveTicket(selectedTicket.id)} variant="ghost" className="h-10 text-green-500 hover:bg-green-500/10 font-black text-[10px] uppercase">Mark Resolved</Button>
                           </div>
                        </div>
@@ -236,6 +280,17 @@ export default function AdminDashboard() {
               </div>
            </div>
         )}
+
+        <Dialog open={!!showReceiptModal} onOpenChange={() => setShowReceiptModal(null)}>
+           <DialogContent className="bg-black border-white/10 max-w-2xl">
+              <DialogHeader>
+                 <DialogTitle className="text-white uppercase italic font-black">Digital Receipt Evidence</DialogTitle>
+              </DialogHeader>
+              <div className="p-4 flex items-center justify-center">
+                 {showReceiptModal && <img src={showReceiptModal} className="max-h-[70vh] w-auto rounded-xl shadow-2xl" alt="Receipt" />}
+              </div>
+           </DialogContent>
+        </Dialog>
 
         {/* ... Other Tabs remain same as before ... */}
       </main>

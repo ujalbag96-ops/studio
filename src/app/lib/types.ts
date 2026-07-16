@@ -43,6 +43,17 @@ export interface UserProfile {
   riskNoticeAccepted?: boolean; // Risk Disclosure Consent
 }
 
+export interface PaymentDispute {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  utrId: string;
+  amount: number;
+  receiptDataUri: string;
+  status: 'pending' | 'approved' | 'rejected';
+  timestamp: string;
+}
+
 export interface UserLedgerEntry {
   id: string;
   userId?: string;

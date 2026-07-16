@@ -38,6 +38,19 @@
         "priority": { "type": "string", "enum": ["low", "medium", "high"] },
         "timestamp": { "type": "string" }
       }
+    },
+    "PaymentDispute": {
+      "title": "PaymentDispute",
+      "description": "UPI payment dispute with UTR and receipt proof",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "utrId": { "type": "string" },
+        "amount": { "type": "number" },
+        "receiptDataUri": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "timestamp": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -51,6 +64,10 @@
     "/support_tickets/{ticketId}": {
       "schema": "SupportTicket",
       "description": "Human support tickets"
+    },
+    "/payment_disputes/{disputeId}": {
+      "schema": "PaymentDispute",
+      "description": "UPI payment disputes and UTR audits"
     },
     "/app_settings/global_config": {
       "schema": "object",
