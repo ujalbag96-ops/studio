@@ -22,7 +22,9 @@ import {
   Search,
   Flame,
   CheckCircle2,
-  ShieldAlert
+  ShieldAlert,
+  ArrowUpRight,
+  TrendingDown
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +37,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { PayoutRequest, StudyMaterial, UserProfile } from '../lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -50,7 +53,7 @@ export default function AdminDashboard() {
 
   const matsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'study_materials'), orderBy('createdAt', 'desc'), limit(100)) : null, [firestore, isAdminUser]);
   const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc'), limit(50)) : null, [firestore, isAdminUser]);
-  const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), orderBy('totalNetworkReferrals', 'desc'), limit(200)) : null, [firestore, isAdminUser]);
+  const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), orderBy('tasksCompletedCount', 'desc'), limit(500)) : null, [firestore, isAdminUser]);
 
   const { data: materialsData } = useCollection<StudyMaterial>(matsQuery);
   const { data: payoutsData } = useCollection<PayoutRequest>(payoutsQuery);
@@ -89,9 +92,9 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
           <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Terminal" onClick={() => setActiveTab('withdrawals')} />
-          <AdminLink active={activeTab === 'milestones'} icon={<Flame />} label="Milestone Audit" onClick={() => setActiveTab('milestones')} />
           <AdminLink active={activeTab === 'growth'} icon={<TrendingUp />} label="Growth Matrix" onClick={() => setActiveTab('growth')} />
           <AdminLink active={activeTab === 'network'} icon={<Network />} label="Network Intel" onClick={() => setActiveTab('network')} />
+          <AdminLink active={activeTab === 'milestones'} icon={<Flame />} label="Milestone Audit" onClick={() => setActiveTab('milestones')} />
           <AdminLink active={activeTab === 'inventory'} icon={<FileText />} label="Resource Hub" onClick={() => setActiveTab('inventory')} />
         </nav>
       </aside>
@@ -149,69 +152,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'milestones' && (
-          <div className="space-y-10 animate-in fade-in duration-500">
-             <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black uppercase italic">Elite Milestone <span className="text-amber-500">Audit</span></h3>
-                <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-center gap-3">
-                   <ShieldAlert className="h-5 w-5 text-amber-500" />
-                   <p className="text-[8px] font-black uppercase text-amber-500 tracking-widest">Verify downline authenticity before reward dispatch</p>
-                </div>
-             </div>
-
-             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
-                <Table>
-                   <TableHeader className="bg-white/5">
-                      <TableRow className="border-white/5">
-                         <TableHead className="text-[9px] font-black uppercase">Affiliate Identity</TableHead>
-                         <TableHead className="text-[9px] font-black uppercase">Network Size (L1+L2)</TableHead>
-                         <TableHead className="text-[9px] font-black uppercase">Network Missions</TableHead>
-                         <TableHead className="text-[9px] font-black uppercase text-right">Status</TableHead>
-                      </TableRow>
-                   </TableHeader>
-                   <TableBody>
-                      {usersData?.filter(u => (u.totalNetworkReferrals || 0) >= 800).map(u => (
-                         <TableRow key={u.id} className="border-white/5 hover:bg-white/5">
-                            <TableCell>
-                               <div className="space-y-1">
-                                  <p className="font-bold text-xs">{u.email || u.id}</p>
-                                  <p className="text-[8px] text-muted-foreground uppercase">IP: {u.lastIp || 'N/A'}</p>
-                               </div>
-                            </TableCell>
-                            <TableCell>
-                               <div className="space-y-2 w-48">
-                                  <p className="font-black italic text-sm">{u.totalNetworkReferrals || 0} / 1000</p>
-                                  <Progress value={((u.totalNetworkReferrals || 0) / 1000) * 100} className="h-1 bg-white/5" />
-                               </div>
-                            </TableCell>
-                            <TableCell>
-                               <p className="font-black text-green-500 italic">{u.networkTaskCompletions || 0}</p>
-                               <p className="text-[8px] text-muted-foreground uppercase">Verified Transactions</p>
-                            </TableCell>
-                            <TableCell className="text-right">
-                               {u.isEliteAffiliate ? (
-                                  <Badge className="bg-amber-500 text-black font-black uppercase text-[8px] px-3">ELITE ACTIVE</Badge>
-                               ) : (
-                                  <Button variant="outline" className="border-amber-500/20 text-amber-500 hover:bg-amber-500/10 h-10 px-4 rounded-xl font-black uppercase text-[9px]">
-                                     AUDIT PENDING
-                                  </Button>
-                               )}
-                            </TableCell>
-                         </TableRow>
-                      ))}
-                      {(usersData?.filter(u => (u.totalNetworkReferrals || 0) >= 800).length === 0) && (
-                         <TableRow>
-                            <TableCell colSpan={4} className="py-20 text-center text-muted-foreground uppercase font-black text-xs italic">
-                               Zero candidates detected for Elite status
-                            </TableCell>
-                         </TableRow>
-                      )}
-                   </TableBody>
-                </Table>
-             </Card>
-          </div>
-        )}
-
         {activeTab === 'growth' && (
           <div className="space-y-12 animate-in fade-in duration-500">
              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -225,21 +165,67 @@ export default function AdminDashboard() {
                 <Card className="bg-[#0a0a0f] border-amber-500/20 p-8 rounded-[2.5rem] space-y-4">
                    <Crown className="h-10 w-10 text-amber-500" />
                    <div>
-                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">VIP Level 5+</p>
-                      <h4 className="text-4xl font-black italic text-amber-500">{usersData?.filter(u => u.vipLevel >= 5).length || 0}</h4>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Conversion (VIP 1+)</p>
+                      <h4 className="text-4xl font-black italic text-amber-500">
+                         {Math.round(((usersData?.filter(u => (u.vipLevel || 0) >= 1).length || 0) / (usersData?.length || 1)) * 100)}%
+                      </h4>
                    </div>
                 </Card>
                 <Card className="bg-[#0a0a0f] border-green-500/20 p-8 rounded-[2.5rem] space-y-4">
                    <Activity className="h-10 w-10 text-green-500" />
                    <div>
-                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Retention Anchor</p>
-                      <h4 className="text-2xl font-black uppercase italic text-green-500">Master Level</h4>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Master Tier (VIP 4+)</p>
+                      <h4 className="text-4xl font-black uppercase italic text-green-500">{usersData?.filter(u => (u.vipLevel || 0) >= 4).length || 0}</h4>
                    </div>
                 </Card>
              </div>
 
+             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6">
+                   <h3 className="text-sm font-black uppercase italic">VIP Distribution Analysis</h3>
+                   <div className="space-y-6">
+                      {[0,1,2,3,4,5].map(lvl => {
+                         const count = usersData?.filter(u => (u.vipLevel || 0) === lvl).length || 0;
+                         const pct = Math.round((count / (usersData?.length || 1)) * 100);
+                         return (
+                           <div key={lvl} className="space-y-2">
+                              <div className="flex justify-between text-[10px] font-black uppercase">
+                                 <span>VIP {lvl}</span>
+                                 <span className="text-primary">{count} Warriors ({pct}%)</span>
+                              </div>
+                              <Progress value={pct} className="h-1.5 bg-white/5" />
+                           </div>
+                         );
+                      })}
+                   </div>
+                </Card>
+
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6">
+                   <h3 className="text-sm font-black uppercase italic">Retention & Churn Risk</h3>
+                   <div className="space-y-4">
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                            <TrendingDown className="h-5 w-5 text-red-500" />
+                            <span className="text-[10px] font-black uppercase">Stuck at VIP 0</span>
+                         </div>
+                         <span className="text-lg font-black text-red-500">{usersData?.filter(u => (u.vipLevel || 0) === 0).length || 0}</span>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                            <ArrowUpRight className="h-5 w-5 text-green-500" />
+                            <span className="text-[10px] font-black uppercase">Active VIP 1+ Growth</span>
+                         </div>
+                         <span className="text-lg font-black text-green-500">{usersData?.filter(u => (u.vipLevel || 0) >= 1).length || 0}</span>
+                      </div>
+                   </div>
+                   <p className="text-[9px] font-bold text-muted-foreground uppercase italic leading-relaxed">
+                      Conversion Note: If "Stuck at VIP 0" count is high, consider reducing the Task 1 difficulty or increasing the reward to trigger VIP 1 faster.
+                   </p>
+                </Card>
+             </div>
+
              <div className="space-y-6">
-                <h3 className="text-xl font-black uppercase italic">User <span className="text-primary">Performance</span></h3>
+                <h3 className="text-xl font-black uppercase italic">Top <span className="text-primary">Performers</span></h3>
                 <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
                    <Table>
                       <TableHeader className="bg-white/5">
@@ -251,7 +237,7 @@ export default function AdminDashboard() {
                          </TableRow>
                       </TableHeader>
                       <TableBody>
-                         {usersData?.map(u => (
+                         {usersData?.slice(0, 50).map(u => (
                             <TableRow key={u.id} className="border-white/5 hover:bg-white/5">
                                <TableCell className="font-bold text-xs">{u.email || u.id}</TableCell>
                                <TableCell><Badge className="bg-primary/20 text-primary uppercase font-black text-[8px]">LEVEL {u.vipLevel || 0}</Badge></TableCell>

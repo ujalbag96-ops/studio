@@ -88,33 +88,26 @@ export default function UserDashboard() {
     }
   };
 
-  const copyUid = () => {
-    if (user?.uid) {
-      navigator.clipboard.writeText(user.uid);
-      toast({ title: "User ID Copied!" });
-    }
-  };
-
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!user) return <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
-  // VIP LOGIC
+  // --- REVISED VIP LOGIC (0-5) ---
   const vipTiers = [
     { tasks: 0, level: 0, name: 'Starter' },
     { tasks: 10, level: 1, name: 'Rookie' },
     { tasks: 30, level: 2, name: 'Warrior' },
-    { tasks: 60, level: 3, name: 'Pro' },
+    { tasks: 50, level: 3, name: 'Pro' },
     { tasks: 100, level: 4, name: 'Master' },
-    { tasks: 200, level: 5, name: 'Elite' },
-    { tasks: 500, level: 6, name: 'Legend' },
-    { tasks: 1000, level: 7, name: 'God Mode' }
+    { tasks: 200, level: 5, name: 'Elite' }
   ];
   const currentVip = profile?.vipLevel || 0;
   const tasksDone = profile?.tasksCompletedCount || 0;
   const nextTier = vipTiers.find(t => t.level === currentVip + 1) || vipTiers[vipTiers.length - 1];
   const prevTierTasks = vipTiers.find(t => t.level === currentVip)?.tasks || 0;
   
-  const vipProgress = currentVip === 7 ? 100 : Math.min(((tasksDone - prevTierTasks) / (nextTier.tasks - prevTierTasks)) * 100, 100);
+  const vipProgress = currentVip === 5 ? 100 : Math.min(((tasksDone - prevTierTasks) / (nextTier.tasks - prevTierTasks)) * 100, 100);
+
+  const vipLimitsINR: Record<number, number> = { 0: 0, 1: 500, 2: 1000, 3: 2500, 4: 5000, 5: 15000 };
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative">
@@ -166,14 +159,17 @@ export default function UserDashboard() {
                  </div>
                  <div className="space-y-4 relative z-10">
                     <div className="flex justify-between items-center">
-                       <p className="text-[10px] font-black uppercase text-amber-500 italic">VIP Growth Protocol</p>
+                       <p className="text-[10px] font-black uppercase text-amber-500 italic">VIP {currentVip} Status</p>
                        <span className="text-[9px] font-bold text-muted-foreground">{tasksDone} Missions Done</span>
                     </div>
-                    <h4 className="text-lg font-black uppercase italic">Next: {nextTier.name}</h4>
+                    <div className="flex justify-between items-end">
+                       <h4 className="text-lg font-black uppercase italic">{currentVip < 5 ? `Next: ${nextTier.name}` : 'MAX VIP REACHED'}</h4>
+                       <p className="text-[9px] font-black text-primary">LIMIT: ₹{vipLimitsINR[currentVip]}</p>
+                    </div>
                     <div className="space-y-2">
                        <Progress value={vipProgress} className="h-2 bg-white/5" />
                        <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-                          {currentVip === 7 ? 'MAX LEVEL REACHED' : `Just ${nextTier.tasks - tasksDone} more tasks to level up!`}
+                          {currentVip === 5 ? 'PLATFORM ELITE ACTIVE' : `Just ${nextTier.tasks - tasksDone} more tasks to level up!`}
                        </p>
                     </div>
                  </div>
@@ -259,10 +255,10 @@ export default function UserDashboard() {
                        <h4 className="text-sm font-black uppercase italic">Elite Status Perks</h4>
                     </div>
                     <ul className="space-y-3">
-                       <PerkItem active={currentVip >= 1} text="VIP 1: ₹500 Daily Limit" />
+                       <PerkItem active={currentVip >= 1} text="VIP 1: Withdrawal Unlocked" />
+                       <PerkItem active={currentVip >= 1} text="VIP 1: ₹15 High-Value Tasks" />
                        <PerkItem active={currentVip >= 3} text="VIP 3: ₹2,500 Daily Limit" />
                        <PerkItem active={currentVip >= 5} text="VIP 5: Priority 2H Payout" />
-                       <PerkItem active={currentVip >= 7} text="VIP 7: No Withdrawal Cap" />
                     </ul>
                  </Card>
                  <ViralLeaderboard />

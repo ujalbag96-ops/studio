@@ -4,7 +4,8 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, addDoc, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Postback-Enforced Reward Gateway with VIP Escalation, MLM Distribution & Mega Milestone Audit
+ * Postback-Enforced Reward Gateway with VIP Escalation & MLM Distribution
+ * VIP 0: 0-9 | VIP 1: 10-29 | VIP 2: 30-49 | VIP 3: 50-99 | VIP 4: 100-199 | VIP 5: 200+
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -35,16 +36,14 @@ export async function GET(request: Request) {
     const dateStr = new Date().toISOString().split('T')[0];
     const newTasksTotal = (userData.tasksCompletedCount || 0) + 1;
 
-    // --- VIP ESCALATION LOGIC ---
+    // --- NEW VIP ESCALATION LOGIC (0-5) ---
     let newVipLevel = userData.vipLevel || 0;
     const vipTiers = [
       { tasks: 10, level: 1, name: 'VIP 1: Rookie' },
       { tasks: 30, level: 2, name: 'VIP 2: Warrior' },
-      { tasks: 60, level: 3, name: 'VIP 3: Pro' },
+      { tasks: 50, level: 3, name: 'VIP 3: Pro' },
       { tasks: 100, level: 4, name: 'VIP 4: Master' },
-      { tasks: 200, level: 5, name: 'VIP 5: Elite' },
-      { tasks: 500, level: 6, name: 'VIP 6: Legend' },
-      { tasks: 1000, level: 7, name: 'VIP 7: God Mode' }
+      { tasks: 200, level: 5, name: 'VIP 5: Elite' }
     ];
 
     const nextTier = vipTiers.find(t => newTasksTotal >= t.tasks && newVipLevel < t.level);
@@ -53,16 +52,13 @@ export async function GET(request: Request) {
        await addDoc(collection(firestore, 'notifications'), {
           userId: userId,
           title: `🔥 PROMOTED TO ${nextTier.name.toUpperCase()}`,
-          body: `Mission mastery reached ${nextTier.tasks} tasks. Your withdrawal limits are now boosted!`,
+          body: `Missions reached ${nextTier.tasks}. Withdrawal access and high-value rewards unlocked!`,
           timestamp: new Date().toISOString(),
           type: 'milestone'
        });
     }
 
     // --- MLM COMMISSION DISTRIBUTION (2 LEVELS) ---
-    // Standard: L1: 5% | L2: 2%
-    // Elite Booster: L1: 7% | L2: 4%
-
     if (userData.referredBy) {
       const l1Ref = doc(firestore, 'users', userData.referredBy);
       const l1Snap = await getDoc(l1Ref);
@@ -84,14 +80,14 @@ export async function GET(request: Request) {
           batch.update(l1Ref, {
             isEliteAffiliate: true,
             megaMilestoneClaimed: true,
-            coins: increment(100000), // ₹1,000 Bonus
+            coins: increment(100000), 
             winningBalance: increment(100000),
-            vipLevel: 7 // Grand Prize Upgrade
+            vipLevel: 5 
           });
           await addDoc(collection(firestore, 'notifications'), {
             userId: userData.referredBy,
             title: `🏆 MEGA MILESTONE: ELITE AFFILIATE`,
-            body: `Incredible! You hit 1,000 downline. ₹1,000 Cash Bonus & Permanent VIP 7 Status unlocked.`,
+            body: `₹1,000 Bonus & Permanent VIP 5 Status unlocked.`,
             timestamp: new Date().toISOString(),
             type: 'milestone'
           });

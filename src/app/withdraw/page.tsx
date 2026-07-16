@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2, Clock, Zap, Timer, ShieldAlert, Star } from 'lucide-react';
+import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2, Clock, Zap, Timer, ShieldAlert, Star, Lock } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCurrencyData } from '@/lib/currency';
 import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
 
 const MIN_WITHDRAWAL = 50;
 const FEE_PERCENT = 0.02;
@@ -47,19 +48,19 @@ export default function WithdrawPage() {
   const localValue = parseFloat(amountLocal) || 0;
   const coinsRequired = localValue * currencyData.rateToCoins;
   
-  // --- VIP LIMIT VALIDATOR ---
+  // --- NEW VIP LIMIT VALIDATOR (0-5) ---
   const currentVip = profile?.vipLevel || 0;
+  const isWithdrawalEnabled = currentVip > 0;
+  
   const vipLimits: Record<number, number> = {
-    0: 100,
+    0: 0,
     1: 500,
     2: 1000,
     3: 2500,
     4: 5000,
-    5: 10000,
-    6: 25000,
-    7: 50000
+    5: 15000
   };
-  const currentLimit = vipLimits[currentVip];
+  const currentLimit = vipLimits[currentVip] || 0;
 
   const handleWithdraw = async () => {
     if (!user || !firestore || !profile || !userRef) return;
@@ -67,6 +68,11 @@ export default function WithdrawPage() {
     if (profile.isSuspended || profile.isVpnDetected) {
        setError("Identity Security Audit Failed. Protocol Locked.");
        return;
+    }
+
+    if (!isWithdrawalEnabled) {
+      setError("Withdrawal locked. Reach VIP Level 1 (10 Missions) to unlock.");
+      return;
     }
 
     if (!isWindowOpen) {
@@ -80,7 +86,7 @@ export default function WithdrawPage() {
     }
 
     if (localValue > currentLimit) {
-       setError(`VIP ${currentVip} limit exceeded. Maximum daily payout is ${currencyData.symbol}${currentLimit}. Upgrade to higher VIP level by completing more missions!`);
+       setError(`VIP ${currentVip} limit exceeded. Maximum daily payout is ${currencyData.symbol}${currentLimit}.`);
        return;
     }
 
@@ -108,7 +114,7 @@ export default function WithdrawPage() {
         status: 'pending',
         timestamp,
         vipLevel: currentVip,
-        isExpress: currentVip >= 5
+        isExpress: currentVip >= 4
       });
 
       await updateDoc(userRef, {
@@ -154,6 +160,13 @@ export default function WithdrawPage() {
           </div>
 
           <CardContent className="p-10 space-y-8">
+            {!isWithdrawalEnabled && (
+               <Alert variant="destructive" className="bg-amber-500/10 border-amber-500/20 text-amber-500 rounded-xl">
+                  <Lock className="h-4 w-4" />
+                  <AlertDescription className="font-bold">Withdrawal Locked: Reach VIP 1 (10 Tasks) to enable this protocol.</AlertDescription>
+               </Alert>
+            )}
+
             {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-500 rounded-xl"><AlertCircle className="h-4 w-4" /><AlertDescription className="font-bold">{error}</AlertDescription></Alert>}
             
             <div className="space-y-4">
@@ -161,12 +174,12 @@ export default function WithdrawPage() {
                   <span>Daily VIP Limit</span>
                   <span className="text-amber-500">{currencyData.symbol}{currentLimit}</span>
                </div>
-               <Progress value={(localValue / currentLimit) * 100} className="h-2 bg-white/5" />
+               <Progress value={currentLimit > 0 ? (localValue / currentLimit) * 100 : 0} className="h-2 bg-white/5" />
             </div>
 
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Transfer Gateway</Label>
-              <Select value={method} onValueChange={setMethod}>
+              <Select value={method} onValueChange={setMethod} disabled={!isWithdrawalEnabled}>
                 <SelectTrigger className="h-16 bg-white/5 border-white/10 rounded-xl font-black text-xs uppercase"><SelectValue placeholder="Protocol" /></SelectTrigger>
                 <SelectContent className="bg-[#0a0a0f] border-white/10">
                   <SelectItem value="UPI">UPI Industrial</SelectItem>
@@ -178,16 +191,29 @@ export default function WithdrawPage() {
 
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Amount ({currencyData.symbol})</Label>
-              <Input type="number" value={amountLocal} onChange={e => setAmountLocal(e.target.value)} placeholder={`Min ${MIN_WITHDRAWAL}`} className="h-16 bg-white/5 border-white/10 rounded-xl text-2xl font-black text-primary" />
+              <Input 
+                type="number" 
+                value={amountLocal} 
+                onChange={e => setAmountLocal(e.target.value)} 
+                placeholder={`Min ${MIN_WITHDRAWAL}`} 
+                disabled={!isWithdrawalEnabled}
+                className="h-16 bg-white/5 border-white/10 rounded-xl text-2xl font-black text-primary" 
+              />
             </div>
 
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Account ID / UPI VPA</Label>
-              <Input value={destinationId} onChange={e => setDestinationId(e.target.value)} placeholder="Destination Signal" className="h-16 bg-white/5 border-white/10 rounded-xl font-mono text-xs" />
+              <Input 
+                value={destinationId} 
+                onChange={e => setDestinationId(e.target.value)} 
+                placeholder="Destination Signal" 
+                disabled={!isWithdrawalEnabled}
+                className="h-16 bg-white/5 border-white/10 rounded-xl font-mono text-xs" 
+              />
             </div>
 
-            <Button onClick={handleWithdraw} disabled={isSubmitting || !amountLocal || !destinationId || !method} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
-               {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : "EXECUTE WITHDRAWAL"}
+            <Button onClick={handleWithdraw} disabled={isSubmitting || !amountLocal || !destinationId || !method || !isWithdrawalEnabled} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+               {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : isWithdrawalEnabled ? "EXECUTE WITHDRAWAL" : "PROTOCOL LOCKED"}
             </Button>
           </CardContent>
         </Card>
@@ -197,13 +223,14 @@ export default function WithdrawPage() {
               <div className="h-16 w-16 bg-amber-500/10 rounded-2xl flex items-center justify-center border border-amber-500/20 shadow-xl"><Star className="text-amber-500 h-8 w-8 fill-amber-500" /></div>
               <h3 className="text-2xl font-black uppercase italic tracking-tighter">VIP Limit Matrix</h3>
               <div className="space-y-4">
-                 <TierRow level={0} tasks={0} limit={100} current={currentVip === 0} />
+                 <TierRow level={0} tasks={0} limit={0} current={currentVip === 0} />
                  <TierRow level={1} tasks={10} limit={500} current={currentVip === 1} />
-                 <TierRow level={3} tasks={60} limit={2500} current={currentVip === 3} />
-                 <TierRow level={5} tasks={200} limit={10000} current={currentVip === 5} />
-                 <TierRow level={7} tasks={1000} limit={50000} current={currentVip === 7} />
+                 <TierRow level={2} tasks={30} limit={1000} current={currentVip === 2} />
+                 <TierRow level={3} tasks={50} limit={2500} current={currentVip === 3} />
+                 <TierRow level={4} tasks={100} limit={5000} current={currentVip === 4} />
+                 <TierRow level={5} tasks={200} limit={15000} current={currentVip === 5} />
               </div>
-              <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed text-center italic">Complete missions in Earning Hub to upgrade your limit instantly.</p>
+              <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed text-center italic">Complete missions to upgrade your limit instantly. VIP 1 required for any payout.</p>
            </Card>
         </div>
       </div>
@@ -218,7 +245,7 @@ function TierRow({ level, tasks, limit, current }: any) {
             <p className="text-[10px] font-black">LEVEL {level}</p>
             <p className="text-[8px] font-bold uppercase opacity-60">{tasks} Missions</p>
          </div>
-         <p className="font-black italic">₹{limit}</p>
+         <p className="font-black italic">{limit > 0 ? `₹${limit}` : 'LOCKED'}</p>
       </div>
    );
 }
