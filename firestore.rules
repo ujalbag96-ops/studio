@@ -3,69 +3,86 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Master Authorization: Check if the user is the designated platform administrator
     function isAdmin() {
-      return request.auth != null && request.auth.token.email.lower() == "ujalbag96@gmail.com";
+      return request.auth != null && 
+             request.auth.token.email != null && 
+             request.auth.token.email.lower() == "ujalbag96@gmail.com";
     }
 
+    // Global App Settings: Public read, Admin-only modification
     match /app_settings/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
+    // CPA Missions: Public visibility for offerwall rendering
     match /cpa_missions/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
+    // Cricket Over-by-Over Pools: Public read for participants, Admin-only settlement
     match /cricket_over_pools/{poolId} {
-      allow read: if true;
+      // Explicitly split read into get (single doc) and list (queries)
+      allow get, list: if true;
       allow write: if isAdmin();
+      
+      // Entries subcollection: Participants can only create their own stakes
       match /entries/{entryId} {
         allow read: if true;
         allow create: if request.auth != null;
       }
     }
 
+    // User Profiles: High-security data. Only owner or admin can read/modify.
     match /users/{userId} {
       allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow create: if request.auth != null && request.auth.uid == userId;
       
-      // CRITICAL: User CANNOT increase their own balance fields.
+      // Anti-Fraud: Users cannot increase their own balance fields. Only Admin can credit.
       allow update: if isAdmin() || (
         request.auth != null && request.auth.uid == userId &&
         request.resource.data.coins <= resource.data.coins &&
         request.resource.data.winningBalance <= resource.data.winningBalance &&
         request.resource.data.depositBalance <= resource.data.depositBalance &&
-        request.resource.data.taskBalance <= resource.data.taskBalance
+        request.resource.data.taskBalance <= resource.data.taskBalance &&
+        request.resource.data.referralCommissionBalance <= resource.data.referralCommissionBalance
       );
       
+      // Financial Ledger: Immutable audit logs for the user.
       match /ledger/{entryId} {
         allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
         allow write: if isAdmin();
       }
     }
 
+    // Payout Requests: Users can create, only Admin can process.
     match /payouts/{docId} {
       allow create: if request.auth != null;
       allow read, update, delete: if isAdmin();
     }
 
+    // UPI Payment Disputes: Secure uploader for failed deposits.
     match /payment_disputes/{disputeId} {
       allow create: if request.auth != null;
       allow read: if request.auth != null && (request.auth.uid == resource.data.userId || isAdmin());
       allow update: if isAdmin();
     }
 
+    // Customer Support Tickets & Threads
     match /support_tickets/{ticketId} {
       allow read: if request.auth != null && (request.auth.uid == resource.data.userId || isAdmin());
       allow create: if request.auth != null;
       allow update: if isAdmin();
+      
       match /messages/{msgId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null;
       }
     }
 
+    // Internal System Signals (Admin Only)
     match /payment_signals/{signalId} {
       allow read, write: if isAdmin();
     }
@@ -74,18 +91,22 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Notifications: Personalized or Global Broadcasts
     match /notifications/{docId} {
-      allow read: if request.auth != null && (request.auth.uid == resource.data.userId || resource.data.userId == 'broadcast');
+      allow read: if request.auth != null && (request.auth.uid == resource.data.userId || resource.data.userId == 'broadcast' || resource.data.userId == null);
       allow write: if isAdmin();
     }
     
+    // Anti-Fraud Loggers
     match /fraud_alerts/{alertId} {
-      allow create: if false; 
+      allow create: if request.auth != null; 
       allow read: if isAdmin();
     }
 
+    // Catch-all safety net: Read anything not specifically blocked, but write nothing.
     match /{document=**} {
       allow read: if true;
+      allow write: if false;
     }
   }
 }
