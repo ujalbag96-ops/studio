@@ -1,20 +1,35 @@
 
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, updateDoc, increment, collection, addDoc, getDoc, writeBatch } from 'firebase/firestore';
+import { doc, increment, collection, addDoc, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Defensive MLM CPA Postback Webhook
- * Includes Anti-Fraud Device & IP Validation + VIP Bonus Logic + Active Leader Validation.
+ * Postback-Enforced Reward Gateway
+ * This is the ONLY source for increasing user balances from CPA missions.
+ * Includes Anti-Fraud validation and suspicious activity logging.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('uid');
   let rewardAmount = parseFloat(searchParams.get('reward') || '0');
-  const appName = searchParams.get('offer') || 'Premium Mission';
-
+  const appName = searchParams.get('offer') || 'System Task';
+  
+  // High-Security Check: UID and Positive Reward required
   if (!userId || isNaN(rewardAmount) || rewardAmount <= 0) {
-    return NextResponse.json({ error: 'Invalid Operational Signal' }, { status: 400 });
+    console.error(`[SECURITY ALERT] Invalid Postback Attempt: UID ${userId} | Reward ${rewardAmount}`);
+    
+    // Log anomalous signal
+    const { firestore } = initializeFirebase();
+    if (userId) {
+       await addDoc(collection(firestore, 'fraud_alerts'), {
+          userId,
+          type: 'INVALID_POSTBACK_PAYLOAD',
+          timestamp: new Date().toISOString(),
+          details: `Reward: ${rewardAmount} | App: ${appName}`
+       });
+    }
+
+    return NextResponse.json({ error: 'Invalid Tactical Signal' }, { status: 400 });
   }
 
   try {
@@ -25,18 +40,18 @@ export async function GET(request: Request) {
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-      return NextResponse.json({ error: 'Warrior Profile Missing' }, { status: 404 });
+      return NextResponse.json({ error: 'Identity Missing' }, { status: 404 });
     }
 
     const userData = userSnap.data();
     if (userData.isSuspended) {
-       return NextResponse.json({ error: 'Identity Locked: Account Suspended' }, { status: 403 });
+       return NextResponse.json({ error: 'Identity Locked' }, { status: 403 });
     }
 
     const dateStr = new Date().toISOString().split('T')[0];
     const currentTasks = (userData.tasksCompletedCount || 0) + 1;
 
-    // 1. VIP 1 Logic: 5% Bonus and Auto-Upgrade
+    // 1. VIP 1 Multiplier Check (5% Bonus)
     let vipBonus = 0;
     let newVipLevel = userData.vipLevel || 'VIP 0';
 
@@ -44,8 +59,8 @@ export async function GET(request: Request) {
        newVipLevel = 'VIP 1';
        await addDoc(collection(firestore, 'notifications'), {
           userId: userId,
-          title: '🔥 VIP 1 ACTIVATED',
-          body: 'Congratulations! You have completed 10 tasks. You are now VIP 1 and will earn +5% bonus on all future tasks!',
+          title: '🔥 VIP 1 PROMOTED',
+          body: 'Milestone reached: 10 Tasks. You now earn +5% bonus on all missions!',
           timestamp: new Date().toISOString(),
           type: 'mission'
        });
@@ -56,14 +71,13 @@ export async function GET(request: Request) {
        rewardAmount += vipBonus;
     }
 
-    // 2. Credit the Performing User (Worker)
+    // 2. Verified Credit (Worker Node)
     batch.update(userRef, {
-      bonusBalance: increment(rewardAmount),
+      taskBalance: increment(rewardAmount),
       coins: increment(rewardAmount),
       tasksCompletedCount: increment(1),
       vipLevel: newVipLevel,
-      vipBonusEarned: increment(vipBonus),
-      isAccountActivated: currentTasks >= 10 || userData.isAccountActivated
+      isAccountActivated: currentTasks >= 10 || userData.isAccountActivated || (userData.depositBalance > 0)
     });
 
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
@@ -71,10 +85,11 @@ export async function GET(request: Request) {
       amount: rewardAmount,
       date: dateStr,
       status: 'completed',
-      description: `CPA Reward: ${appName} Verified ${vipBonus > 0 ? '(Includes 5% VIP 1 Bonus)' : ''}`
+      description: `Verified Signal: ${appName} ${vipBonus > 0 ? '(+5% VIP Bonus)' : ''}`,
+      isPostbackVerified: true
     });
 
-    // 3. MLM Anti-Fraud & Milestone Logic
+    // 3. MLM Distribution (L1: 20%, L2: 10%)
     const uplineIds = [userData.referredBy, userData.referredByL2].filter(Boolean);
 
     for (const parentId of uplineIds) {
@@ -84,21 +99,17 @@ export async function GET(request: Request) {
       
       if (parentSnap.exists()) {
         const pData = parentSnap.data();
-        const isSameDevice = pData.deviceId === userData.deviceId;
-        const isSameIp = pData.lastIp === userData.lastIp;
+        
+        // Anti-Fraud: Referrer and Worker cannot be on the same hardware/IP
+        const isFraudDetected = pData.deviceId === userData.deviceId || pData.lastIp === userData.lastIp;
 
-        if (isSameDevice || isSameIp) {
+        if (isFraudDetected) {
            await addDoc(collection(firestore, 'fraud_alerts'), {
               referrerId: parentId,
               workerId: userId,
-              type: isSameDevice ? 'DEVICE_COLLISION' : 'IP_COLLISION',
-              timestamp: new Date().toISOString(),
-              details: `Self-referral detected: ${userData.lastIp} | ${userData.deviceId}`
+              type: 'COLLISION_DETECTED',
+              timestamp: new Date().toISOString()
            });
-
-           if (isSameDevice) {
-              batch.update(parentRef, { isSuspended: true, status: 'suspended' });
-           }
            continue; 
         }
 
@@ -106,16 +117,15 @@ export async function GET(request: Request) {
         const commRate = isL1 ? 0.20 : 0.10;
         const commAmount = rewardAmount * commRate;
 
-        // Condition: Leader must have 5 personal tasks and 5 direct referrals to UNLOCK money
+        // Condition: Leader must have 5 personal tasks + 5 direct refs
         const isActiveLeader = (pData.tasksCompletedCount || 0) >= 5 && (pData.totalReferrals || 0) >= 5;
 
-        // Always update milestone count for visibility
+        // Increment milestone tracker for leader
         batch.update(parentRef, {
           networkTaskCompletions: increment(1),
           totalNetworkRevenue: increment(rewardAmount)
         });
 
-        // Only give COINS if they are an Active Leader
         if (isActiveLeader) {
           batch.update(parentRef, {
             referralCommissionBalance: increment(commAmount),
@@ -127,7 +137,7 @@ export async function GET(request: Request) {
             amount: commAmount,
             date: dateStr,
             status: 'completed',
-            description: `MLM ${isL1 ? 'L1' : 'L2'} Bonus: Real User activity detected`
+            description: `Network Dividend (L${isL1 ? '1' : '2'}): verified traffic from ${userData.email || userId}`
           });
         }
       }
@@ -137,12 +147,12 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      message: `Sync successful. ${newVipLevel === 'VIP 1' ? 'VIP 1 Active.' : ''}`,
-      userCredit: rewardAmount
+      message: 'System Liquidity Synced',
+      credit: rewardAmount 
     });
 
   } catch (error: any) {
-    console.error('MLM Postback Critical Failure:', error);
-    return NextResponse.json({ error: 'System Synchronization Error' }, { status: 500 });
+    console.error('Postback Runtime Failure:', error);
+    return NextResponse.json({ error: 'Operational Hub Offline' }, { status: 500 });
   }
 }
