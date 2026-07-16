@@ -90,6 +90,7 @@ export interface PayoutRequest {
   status: 'pending' | 'completed' | 'failed';
   timestamp: string;
   tasksCompleted?: number;
+  isExpress?: boolean; // Fast Payout Signal
 }
 
 export interface Movie {

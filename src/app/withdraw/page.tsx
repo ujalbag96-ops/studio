@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2, Clock } from 'lucide-react';
+import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2, Clock, Zap, Timer } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -16,8 +16,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCurrencyData } from '@/lib/currency';
+import { cn } from '@/lib/utils';
 
 const MIN_WITHDRAWAL = 50;
+const EXPRESS_LIMIT = 500;
 const FEE_PERCENT = 0.02; // 2% Industrial Tax
 
 export default function WithdrawPage() {
@@ -52,6 +54,8 @@ export default function WithdrawPage() {
   const fee = localValue * FEE_PERCENT;
   const netAmount = localValue - fee;
 
+  const isExpressEligible = localValue <= EXPRESS_LIMIT && localValue >= MIN_WITHDRAWAL;
+
   const handleWithdraw = async () => {
     if (!user || !firestore || !profile || !userRef) return;
     
@@ -76,7 +80,7 @@ export default function WithdrawPage() {
     try {
       const timestamp = new Date().toISOString();
 
-      // Payout Dispatcher
+      // Payout Dispatcher with Express Signal
       await addDoc(collection(firestore, 'payouts'), {
         userId: user.uid,
         userEmail: user.email,
@@ -89,7 +93,8 @@ export default function WithdrawPage() {
         timestamp: timestamp,
         country: profile.country || 'Global',
         currencyCode: currencyData.code,
-        tasksCompleted: profile.tasksCompletedCount || 0
+        tasksCompleted: profile.tasksCompletedCount || 0,
+        isExpress: isExpressEligible
       });
 
       // Atomic Balance Lock
@@ -104,11 +109,14 @@ export default function WithdrawPage() {
         amount: localValue,
         date: timestamp.split('T')[0],
         status: 'pending',
-        description: `Industrial Payout via ${method} (Net: ${currencyData.symbol}${netAmount.toFixed(2)})`,
+        description: `${isExpressEligible ? 'Express' : 'Standard'} Payout via ${method} (Net: ${currencyData.symbol}${netAmount.toFixed(2)})`,
         currencySymbol: currencyData.symbol
       });
 
-      toast({ title: "PAYOUT DISPATCHED", description: "Request queued for Sunday executive review." });
+      toast({ 
+        title: isExpressEligible ? "EXPRESS DISPATCHED" : "PAYOUT DISPATCHED", 
+        description: isExpressEligible ? "Fast payout signal locked. Verified in < 24h." : "Request queued for Sunday executive review." 
+      });
       router.push('/dashboard');
     } catch (err: any) {
       setError("System synchronization failure. Protocol halted.");
@@ -131,10 +139,19 @@ export default function WithdrawPage() {
       </div>
 
       {!isWindowOpen && (
-        <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-500 rounded-[2rem] p-6">
+        <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-500 rounded-[2.5rem] p-6">
            <Clock className="h-6 w-6" />
            <AlertDescription className="font-bold text-sm ml-2">
               SIGNAL OFFLINE: Withdrawal requests are only processed on <span className="text-white">Friday and Saturday</span>. Please return during the next payout cycle.
+           </AlertDescription>
+        </Alert>
+      )}
+
+      {isExpressEligible && isWindowOpen && (
+        <Alert className="bg-primary/10 border-primary/20 text-primary rounded-[2.5rem] p-6 animate-pulse">
+           <Zap className="h-6 w-6" />
+           <AlertDescription className="font-black text-sm ml-2 uppercase italic">
+              Express Channel Active: This withdrawal is eligible for Fast Processing (Verified in 24 Hours).
            </AlertDescription>
         </Alert>
       )}
@@ -183,13 +200,6 @@ export default function WithdrawPage() {
               </div>
             </div>
 
-            {localValue >= MIN_WITHDRAWAL && (
-              <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-xl space-y-1">
-                 <p className="text-[10px] font-black uppercase text-muted-foreground">Estimated Net Payout</p>
-                 <p className="text-xl font-black text-green-500 italic">{currencyData.symbol}{netAmount.toFixed(2)}</p>
-              </div>
-            )}
-
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">
                 {method === 'PayPal' ? 'PayPal Email Address' : 
@@ -200,7 +210,7 @@ export default function WithdrawPage() {
             </div>
 
             <Button onClick={handleWithdraw} disabled={isSubmitting || !amountLocal || !destinationId || !method || !isWindowOpen} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
-               {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : isWindowOpen ? "EXECUTE WITHDRAWAL" : "WINDOW CLOSED"}
+               {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : isWindowOpen ? (isExpressEligible ? "EXECUTE EXPRESS PAYOUT" : "EXECUTE WITHDRAWAL") : "WINDOW CLOSED"}
             </Button>
           </CardContent>
         </Card>
@@ -208,11 +218,11 @@ export default function WithdrawPage() {
         <Card className="bg-primary/5 border-primary/20 border-2 rounded-[2.5rem] p-10 space-y-8 flex flex-col justify-center">
            <div className="h-20 w-20 bg-primary/10 rounded-3xl flex items-center justify-center border border-primary/20 shadow-2xl animate-pulse"><ShieldCheck className="text-primary h-10 w-10" /></div>
            <h3 className="text-3xl font-black uppercase italic tracking-tighter">Security Protocol</h3>
-           <p className="text-[10px] font-black text-primary uppercase tracking-widest">Detected Location: {profile?.country || 'Scanning...'}</p>
+           <p className="text-[10px] font-black text-primary uppercase tracking-widest">Express Limit: {currencyData.symbol}{EXPRESS_LIMIT} Daily</p>
            <ul className="space-y-6 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">
               <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Processing Window: Friday - Saturday</li>
-              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Executive Audit: Sunday 10:00 AM IST</li>
-              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Verification: Tasks/Quizzes Audit Active</li>
+              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Fast Payouts: Settled in 24 Hours</li>
+              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Verification: Anti-Fraud Audit Active</li>
               <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Fee: 2% Platform Tax Applied</li>
            </ul>
         </Card>

@@ -26,7 +26,9 @@ import {
   CloudRain,
   RefreshCw,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Smartphone,
+  CheckSquare
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +39,7 @@ import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { PayoutRequest } from '../lib/types';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -57,7 +60,7 @@ export default function AdminDashboard() {
   const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc'), limit(50)) : null, [firestore, isAdminUser]);
 
   const { data: moviesData } = useCollection<any>(moviesQuery);
-  const { data: payoutsData } = useCollection<any>(payoutsQuery);
+  const { data: payoutsData } = useCollection<PayoutRequest>(payoutsQuery);
 
   const handleAddMovie = async () => {
     if (!firestore || !movieForm.title || !movieForm.videoUrl) {
@@ -79,20 +82,41 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleMarkPaid = async (payoutId: string) => {
+  const handleMarkPaid = async (payout: PayoutRequest) => {
     if (!firestore) return;
-    setIsProcessing(payoutId);
+    setIsProcessing(payout.id);
     try {
-      await updateDoc(doc(firestore, 'payouts', payoutId), {
+      await updateDoc(doc(firestore, 'payouts', payout.id), {
         status: 'completed',
         processedAt: new Date().toISOString()
       });
-      toast({ title: "PAYOUT VERIFIED", description: "Request marked as completed." });
+
+      // Send Success Notification to User
+      await addDoc(collection(firestore, 'notifications'), {
+        userId: payout.userId,
+        title: '💰 PAYMENT SUCCESSFUL',
+        body: `Your payout of ₹${payout.netAmount.toFixed(2)} via ${payout.method} has been verified and sent. Check your account.`,
+        timestamp: new Date().toISOString(),
+        type: 'payout'
+      });
+
+      toast({ title: "PAYOUT VERIFIED", description: "Request marked as completed and notification sent." });
     } catch (e) {
       toast({ variant: "destructive", title: "Sync Failed" });
     } finally {
       setIsProcessing(null);
     }
+  };
+
+  const openQuickPay = (payout: PayoutRequest) => {
+    if (payout.method !== 'UPI') {
+      toast({ title: "Only UPI supports Deep-Linking" });
+      return;
+    }
+    // Deep Link Logic: upi://pay?pa=[UPI_ID]&am=[AMOUNT]&tn=BracketBattlesPayout
+    const upiLink = `upi://pay?pa=${payout.destination}&am=${payout.netAmount.toFixed(2)}&tn=BracketBattlesPayout`;
+    window.open(upiLink, '_blank');
+    toast({ title: "UPI App Triggered", description: "Processing fast payment link." });
   };
 
   const handleDeleteMovie = async (id: string) => {
@@ -137,26 +161,35 @@ export default function AdminDashboard() {
           <div className="space-y-8 animate-in fade-in duration-500">
              <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-black uppercase italic tracking-tight">Withdrawal <span className="text-primary">Requests</span></h3>
-                <Badge className="bg-primary/20 text-primary border-none text-[9px] font-black uppercase px-4">Cycle: Sunday Audit</Badge>
+                <div className="flex gap-2">
+                   <Badge className="bg-primary/20 text-primary border-none text-[9px] font-black uppercase px-4">Cycle: Sunday Audit</Badge>
+                   <Badge className="bg-green-500/20 text-green-500 border-none text-[9px] font-black uppercase px-4">Express: Verified 24h</Badge>
+                </div>
              </div>
 
              <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
-                         <TableHead className="text-[9px] font-black uppercase">User Info</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase">User Info / Priority</TableHead>
                          <TableHead className="text-[9px] font-black uppercase">Method/Destination</TableHead>
-                         <TableHead className="text-[9px] font-black uppercase text-center">Task Verification</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase text-center">Security Check</TableHead>
                          <TableHead className="text-[9px] font-black uppercase text-right">Net Amount</TableHead>
                          <TableHead className="text-[9px] font-black uppercase text-right">Actions</TableHead>
                       </TableRow>
                    </TableHeader>
                    <TableBody>
                       {payoutsData?.map(p => (
-                         <TableRow key={p.id} className="border-white/5 hover:bg-white/5">
+                         <TableRow key={p.id} className={cn("border-white/5 hover:bg-white/5", p.isExpress && "bg-primary/5")}>
                             <TableCell>
-                               <p className="text-sm font-black text-white">{p.userEmail?.split('@')[0]}</p>
-                               <p className="text-[9px] text-muted-foreground font-mono">{p.userId.substring(0,8)}...</p>
+                               <div className="space-y-1">
+                                  <p className="text-sm font-black text-white">{p.userEmail?.split('@')[0]}</p>
+                                  {p.isExpress ? (
+                                     <Badge className="bg-primary text-white text-[7px] font-black uppercase italic px-2">⚡ EXPRESS SIGNAL</Badge>
+                                  ) : (
+                                     <Badge variant="outline" className="text-[7px] border-white/10 font-black uppercase px-2">STANDARD</Badge>
+                                  )}
+                               </div>
                             </TableCell>
                             <TableCell>
                                <Badge variant="outline" className="text-[9px] border-white/10 uppercase font-black mb-1">{p.method}</Badge>
@@ -167,7 +200,7 @@ export default function AdminDashboard() {
                                   <Badge className={cn("text-[9px] border-none", (p.tasksCompleted || 0) >= 5 ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500")}>
                                      Tasks: {p.tasksCompleted || 0}
                                   </Badge>
-                                  {(p.tasksCompleted || 0) < 5 && <p className="text-[8px] font-black text-red-400 uppercase italic">Revenue Check Needed</p>}
+                                  {(p.tasksCompleted || 0) < 5 && <p className="text-[8px] font-black text-red-400 uppercase italic">Revenue High Risk</p>}
                                </div>
                             </TableCell>
                             <TableCell className="text-right">
@@ -176,13 +209,24 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell className="text-right">
                                {p.status === 'pending' ? (
-                                  <Button 
-                                    onClick={() => handleMarkPaid(p.id)} 
-                                    disabled={isProcessing === p.id}
-                                    className="h-10 px-6 bg-primary hover:bg-primary/90 rounded-xl font-black text-[9px] uppercase"
-                                  >
-                                     {isProcessing === p.id ? <Loader2 className="animate-spin h-3 w-3" /> : "MARK PAID"}
-                                  </Button>
+                                  <div className="flex justify-end gap-2">
+                                     {p.method === 'UPI' && (
+                                        <Button 
+                                          variant="outline"
+                                          onClick={() => openQuickPay(p)}
+                                          className="h-10 px-4 border-primary/20 text-primary hover:bg-primary/10 rounded-xl font-black text-[9px] uppercase"
+                                        >
+                                           <Smartphone className="h-3 w-3 mr-1.5" /> QUICK PAY
+                                        </Button>
+                                     )}
+                                     <Button 
+                                       onClick={() => handleMarkPaid(p)} 
+                                       disabled={isProcessing === p.id}
+                                       className="h-10 px-6 bg-primary hover:bg-primary/90 rounded-xl font-black text-[9px] uppercase"
+                                     >
+                                        {isProcessing === p.id ? <Loader2 className="animate-spin h-3 w-3" /> : "MARK PAID"}
+                                     </Button>
+                                  </div>
                                ) : (
                                   <div className="flex items-center justify-end gap-2 text-green-500">
                                      <CheckCircle2 className="h-4 w-4" />
