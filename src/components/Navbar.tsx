@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -47,7 +48,7 @@ export default function Navbar() {
           <div className="flex items-center gap-8">
             <NavLink href="/" label="Home" active={pathname === '/'} />
             <NavLink href="/campus" label="Resource Locker" active={pathname.startsWith('/campus')} />
-            <NavLink href="/earning-hub" label="Earning Hub" active={pathname === '/earning-hub'} />
+            <NavLink href="/earning-hub" label="Ad Rewards" active={pathname === '/earning-hub'} />
             <NavLink href="/movies" label="Cinema" active={pathname === '/movies'} />
             <NavLink href="/leaderboard" label="Hall of Fame" active={pathname === '/leaderboard'} />
             {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-amber-500 italic flex items-center gap-1.5 animate-pulse"><Shield className="h-3 w-3" /> Admin Hub</Link>}
@@ -78,7 +79,7 @@ export default function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#0a0a0f] border-t border-white/5 flex items-center justify-around px-2">
         <MobileNavItem active={pathname === '/'} icon={<Home />} label="Home" href="/" />
         <MobileNavItem active={pathname.startsWith('/campus')} icon={<Library />} label="Locker" href="/campus" />
-        <MobileNavItem active={pathname === '/earning-hub'} icon={<Zap />} label="Earn" href="/earning-hub" />
+        <MobileNavItem active={pathname === '/earning-hub'} icon={<Zap />} label="Ads" href="/earning-hub" />
         <MobileNavItem active={pathname === '/leaderboard'} icon={<Trophy />} label="Ranks" href="/leaderboard" />
         <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="Portfolio" href="/dashboard" />
       </nav>

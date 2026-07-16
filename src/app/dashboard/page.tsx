@@ -54,7 +54,6 @@ import { useRouter } from 'next/navigation';
 import WalletModal from '@/components/WalletModal';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
 import { useToast } from '@/hooks/use-toast';
-import OfferWall from '@/components/OfferWall';
 import LiveCricketWidget from '@/components/LiveCricketWidget';
 import ActivationGateway from '@/components/ActivationGateway';
 import ViralLeaderboard from '@/components/ViralLeaderboard';
@@ -202,7 +201,7 @@ export default function UserDashboard() {
           <SidebarItem active={activeNav === 'mlm'} icon={<Network />} label="MLM Network" onClick={() => setActiveNav('mlm')} />
           <SidebarItem active={false} icon={<Mail />} label="My Inbox" href="/inbox" />
           <SidebarItem active={activeNav === 'video'} icon={<PlayCircle />} label="Watch & Earn" onClick={() => setActiveNav('video')} />
-          <SidebarItem active={activeNav === 'offers'} icon={<Zap />} label="CPA Missions" onClick={() => setActiveNav('offers')} />
+          <SidebarItem active={activeNav === 'offers'} icon={<Zap />} label="Ad Rewards" onClick={() => setActiveNav('offers')} />
           <SidebarItem active={false} icon={<Flag />} label="Cricket Hub" href="/cricket" />
           <SidebarItem active={false} icon={<ShoppingBag />} label="In-App Shop" href="/shop" />
         </nav>
@@ -448,10 +447,26 @@ export default function UserDashboard() {
         {activeNav === 'offers' && (
            <div className="space-y-10">
               <div className="space-y-4">
-                 <h1 className="text-5xl font-black uppercase italic tracking-tighter">CPA <span className="text-primary">Missions</span></h1>
-                 <p className="text-muted-foreground max-w-xl">Fulfill strategic goals to earn bonus coins directly in your wallet.</p>
+                 <h1 className="text-5xl font-black uppercase italic tracking-tighter">Ad <span className="text-primary">Rewards</span></h1>
+                 <p className="text-muted-foreground max-w-xl">Watch short sponsor signals to earn coins directly in your wallet. No tasks required.</p>
               </div>
-              <OfferWall />
+              <div className="grid md:grid-cols-2 gap-8">
+                 <Card className="bg-[#0a0a0f] border-primary/20 border-2 p-10 rounded-[3rem] text-center space-y-6">
+                    <Zap className="h-12 w-12 text-primary mx-auto animate-pulse" />
+                    <h3 className="text-2xl font-black uppercase italic">Video Stream Hub</h3>
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Earn up to 50 coins per signal.</p>
+                    <Button asChild className="w-full h-16 bg-primary font-black uppercase italic rounded-2xl">
+                       <Link href="/earning-hub">ACCESS AD HUB</Link>
+                    </Button>
+                 </Card>
+                 <Card className="bg-white/5 border-white/10 p-10 rounded-[3rem] flex flex-col justify-center items-center text-center space-y-4">
+                    <Activity className="h-10 w-10 text-muted-foreground opacity-20" />
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em]">Passive Signal Node</p>
+                    <p className="text-xs text-muted-foreground font-medium uppercase leading-relaxed">
+                       Sponsor banner payouts reflect automatically in bonus balance during activity.
+                    </p>
+                 </Card>
+              </div>
            </div>
         )}
 
@@ -466,7 +481,7 @@ export default function UserDashboard() {
                     <Video className="h-12 w-12 text-primary" />
                  </div>
                  <h3 className="text-3xl font-black uppercase italic">Deployment Area</h3>
-                 <p className="text-muted-foreground text-sm font-bold uppercase">Earn 2 Bonus Coins per signal watched.</p>
+                 <p className="text-muted-foreground text-sm font-bold uppercase">Earn massive coins per cinematic signal watched.</p>
                  <Button asChild className="h-20 px-12 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
                     <Link href="/earning-hub">GO TO HUB</Link>
                  </Button>
