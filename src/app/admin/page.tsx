@@ -22,7 +22,9 @@ import {
   Save,
   Megaphone,
   LifeBuoy,
-  Gavel
+  Gavel,
+  CloudRain,
+  RefreshCw
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,7 +43,7 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'withdrawals' | 'movies' | 'settlements' | 'lottery'>('movies');
+  const [activeTab, setActiveTab] = useState<'withdrawals' | 'movies' | 'settlements' | 'lottery' | 'weather'>('movies');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
   // Movie Form State
@@ -72,6 +74,32 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSyncWeather = async () => {
+    setIsProcessing('weather');
+    try {
+      const res = await fetch('/api/weather/sync');
+      const data = await res.json();
+      toast({ title: "WEATHER SYNCED", description: `Today's condition: ${data.condition}` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Sync Failed" });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleWeatherPayout = async () => {
+    setIsProcessing('payout');
+    try {
+      const res = await fetch('/api/weather/payout', { method: 'POST' });
+      const data = await res.json();
+      toast({ title: "PAYOUT SUCCESS", description: `Settled ${data.settledCount} votes. Winners: ${data.winners}` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Payout Failed" });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
   const handleDeleteMovie = async (id: string) => {
     if (!firestore) return;
     if (!confirm("Are you sure? This will purge the stream signal from the arena.")) return;
@@ -95,6 +123,7 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
           <AdminLink active={activeTab === 'movies'} icon={<Film />} label="Movie Intelligence" onClick={() => setActiveTab('movies')} />
+          <AdminLink active={activeTab === 'weather'} icon={<CloudRain />} label="Weather Station" onClick={() => setActiveTab('weather')} />
           <AdminLink active={activeTab === 'settlements'} icon={<Gavel />} label="Match Settlements" onClick={() => setActiveTab('settlements')} />
           <AdminLink active={activeTab === 'lottery'} icon={<Dices />} label="Jackpot Control" onClick={() => setActiveTab('lottery')} />
           <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Terminal" onClick={() => setActiveTab('withdrawals')} />
@@ -108,6 +137,38 @@ export default function AdminDashboard() {
               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] mt-1">Industrial Operational Control</p>
            </div>
         </header>
+
+        {activeTab === 'weather' && (
+           <div className="space-y-12 animate-in fade-in duration-500">
+              <div className="grid md:grid-cols-2 gap-8">
+                 <Card className="bg-[#0a0a0f] border-primary/20 border-2 rounded-[2.5rem] p-8 space-y-6">
+                    <div className="flex items-center gap-3">
+                       <RefreshCw className={cn("text-primary h-6 w-6", isProcessing === 'weather' && "animate-spin")} />
+                       <h3 className="text-xl font-black uppercase italic text-white">Manual Condition Sync</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">
+                       Trigger this to fetch and log the current weather for Sambalpur instantly.
+                    </p>
+                    <Button onClick={handleSyncWeather} disabled={isProcessing === 'weather'} className="w-full h-14 bg-white/5 border border-white/10 hover:bg-primary font-black uppercase italic">
+                       {isProcessing === 'weather' ? <Loader2 className="animate-spin" /> : "SYNC WEATHER SIGNAL"}
+                    </Button>
+                 </Card>
+
+                 <Card className="bg-[#0a0a0f] border-green-500/20 border-2 rounded-[2.5rem] p-8 space-y-6">
+                    <div className="flex items-center gap-3">
+                       <Zap className="text-green-500 h-6 w-6" />
+                       <h3 className="text-xl font-black uppercase italic text-white">Execution: Weather Payout</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">
+                       Trigger this after sync to settle all pending YES/NO votes for today.
+                    </p>
+                    <Button onClick={handleWeatherPayout} disabled={isProcessing === 'payout'} className="w-full h-14 bg-green-500/10 border border-green-500/20 hover:bg-green-500 hover:text-black font-black uppercase italic">
+                       {isProcessing === 'payout' ? <Loader2 className="animate-spin" /> : "EXECUTE PAYOUT PROTOCOL"}
+                    </Button>
+                 </Card>
+              </div>
+           </div>
+        )}
 
         {activeTab === 'movies' && (
           <div className="space-y-12 animate-in fade-in duration-500">

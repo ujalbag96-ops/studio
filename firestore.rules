@@ -15,6 +15,17 @@ service cloud.firestore {
       allow update: if isAdmin() || (request.auth != null && request.auth.uid == userId);
     }
 
+    match /weather_logs/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /weather_votes/{docId} {
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+    }
+
     match /movies/{movieId} {
       allow read: if true;
       allow write: if isAdmin();

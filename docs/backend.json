@@ -26,25 +26,25 @@
         "riskNoticeAccepted": { "type": "boolean" }
       }
     },
-    "Movie": {
-      "title": "Movie",
-      "description": "Premium cinematic content for streaming",
+    "WeatherLog": {
+      "title": "WeatherLog",
+      "description": "Daily official weather condition for Sambalpur",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "poster": { "type": "string" },
-        "videoUrl": { "type": "string" },
-        "category": { "type": "string" },
-        "createdAt": { "type": "string" }
+        "date": { "type": "string" },
+        "condition": { "type": "string" },
+        "temperature": { "type": "number" },
+        "timestamp": { "type": "string" }
       }
     },
-    "LotteryEntry": {
-      "title": "LotteryEntry",
-      "description": "Daily lottery participant entry",
+    "WeatherVote": {
+      "title": "WeatherVote",
+      "description": "User prediction for daily weather",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "selectedNumber": { "type": "number" },
+        "vote": { "type": "string", "enum": ["YES", "NO"] },
+        "status": { "type": "string", "enum": ["pending", "settled"] },
         "timestamp": { "type": "string" }
       }
     }
@@ -57,21 +57,13 @@
       "schema": "UserProfile",
       "description": "Master user profiles"
     },
-    "/movies/{movieId}": {
-      "schema": "Movie",
-      "description": "Streaming movie library"
+    "/weather_logs/{logId}": {
+      "schema": "WeatherLog",
+      "description": "Daily official weather records"
     },
-    "/lottery_entries/{entryId}": {
-      "schema": "LotteryEntry",
-      "description": "Active daily lottery entries"
-    },
-    "/lottery_results/{resultId}": {
-      "schema": "object",
-      "description": "Draw history and winner logs"
-    },
-    "/daily_pool/config": {
-      "schema": "object",
-      "description": "Real-time pool participant tracker"
+    "/weather_votes/{voteId}": {
+      "schema": "WeatherVote",
+      "description": "User predictions for weather"
     }
   }
 }

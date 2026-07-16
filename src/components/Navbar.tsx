@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Zap, Wallet, User, LogOut, Shield, Activity, Radio, ShoppingBag, Trophy, Target, Bell, Gamepad2, TrendingUp, Dices, Film } from 'lucide-react';
+import { Home, Zap, Wallet, User, LogOut, Shield, Activity, Radio, ShoppingBag, Trophy, Target, Bell, Gamepad2, TrendingUp, Dices, Film, CloudRain } from 'lucide-react';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -50,7 +50,7 @@ export default function Navbar() {
             <NavLink href="/movies" label="Cinema" active={pathname === '/movies'} />
             <NavLink href="/esports-live" label="E-Sports" active={pathname === '/esports-live'} />
             <NavLink href="/lottery" label="Jackpot" active={pathname === '/lottery'} />
-            <NavLink href="/cricket" label="Cricket" active={pathname === '/cricket'} />
+            <NavLink href="/predictions/weather" label="Weather" active={pathname === '/predictions/weather'} />
             <NavLink href="/predictions" label="Polls" active={pathname === '/predictions'} />
             {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-amber-500 italic flex items-center gap-1.5 animate-pulse"><Shield className="h-3 w-3" /> Admin Hub</Link>}
           </div>
@@ -80,8 +80,8 @@ export default function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#0a0a0f] border-t border-white/5 flex items-center justify-around px-2">
         <MobileNavItem active={pathname === '/'} icon={<Home />} label="Home" href="/" />
         <MobileNavItem active={pathname === '/movies'} icon={<Film />} label="Cinema" href="/movies" />
+        <MobileNavItem active={pathname === '/predictions/weather'} icon={<CloudRain />} label="Weather" href="/predictions/weather" />
         <MobileNavItem active={pathname === '/lottery'} icon={<Trophy />} label="Jackpot" href="/lottery" />
-        <MobileNavItem active={pathname === '/esports-live'} icon={<Radio />} label="E-Sports" href="/esports-live" />
         <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="Profile" href="/dashboard" />
       </nav>
     </>
