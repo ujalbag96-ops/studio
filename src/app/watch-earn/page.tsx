@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -39,12 +38,12 @@ const WATCH_DURATION_SECONDS = 600; // 10 Minutes for Full Session Reward
 
 /**
  * Industrial Video Source Mapping
- * Maps language IDs to specific streaming URLs.
+ * Updated with user-provided IPTV and Sample links.
  */
 const LANGUAGE_SOURCES: Record<string, string> = {
-  en: "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
-  hi: "https://www.w3schools.com/html/mov_bbb.mp4",
-  es: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+  hi: "https://iptv-org.github.io/iptv/countries/in.m3u",
+  en: "https://www.w3schools.com/html/movie.mp4",
+  es: "" // Empty as requested
 };
 
 export default function WatchToEarnMovie() {
@@ -138,9 +137,9 @@ export default function WatchToEarnMovie() {
                           <SelectValue placeholder="Language" />
                        </SelectTrigger>
                        <SelectContent className="bg-[#0a0a0f] border-white/10 text-white">
-                          <SelectItem value="en">English Original</SelectItem>
-                          <SelectItem value="hi">Hindi Dubbed</SelectItem>
-                          <SelectItem value="es">Spanish Audio</SelectItem>
+                          <SelectItem value="hi">Hindi (IPTV)</SelectItem>
+                          <SelectItem value="en">English (Sample)</SelectItem>
+                          <SelectItem value="es">Spanish (Null)</SelectItem>
                        </SelectContent>
                     </Select>
                  </div>
@@ -204,17 +203,26 @@ export default function WatchToEarnMovie() {
                )}
 
                {/* Video Element with Dynamic Source Reload */}
-               <video 
-                key={language}
-                src={LANGUAGE_SOURCES[language]} 
-                className={cn("w-full h-full object-cover transition-all duration-700", isPlaying ? "opacity-100" : "opacity-40")}
-                style={{ filter: `brightness(${brightness}%)` }}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                autoPlay={isPlaying}
-                controls={false}
-                playsInline
-               />
+               {LANGUAGE_SOURCES[language] ? (
+                 <video 
+                  key={language}
+                  src={LANGUAGE_SOURCES[language]} 
+                  className={cn("w-full h-full object-cover transition-all duration-700", isPlaying ? "opacity-100" : "opacity-40")}
+                  style={{ filter: `brightness(${brightness}%)` }}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  autoPlay={isPlaying}
+                  controls={false}
+                  playsInline
+                 />
+               ) : (
+                 <div className="w-full h-full flex items-center justify-center bg-[#050508]">
+                    <div className="text-center space-y-4">
+                       <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto opacity-20" />
+                       <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">No Stream Detected</p>
+                    </div>
+                 </div>
+               )}
 
                {/* Reward Progress Bar */}
                <div className="absolute bottom-0 left-0 right-0 h-2 bg-white/5 z-30">
