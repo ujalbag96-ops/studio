@@ -45,48 +45,10 @@ export interface UserProfile {
   riskNoticeAccepted?: boolean; // Risk Disclosure Consent
 }
 
-export interface CricketOverPool {
-  id: string;
-  matchId: string;
-  overNumber: number;
-  question: string;
-  yesPool: number;
-  noPool: number;
-  totalPool: number;
-  status: 'pending' | 'settling' | 'settled';
-  result?: 'YES' | 'NO';
-  liveStats?: {
-    runs: number;
-    wickets: number;
-    text: string;
-  };
-  timestamp: string;
-}
-
-export interface CricketOverEntry {
-  id: string;
-  poolId: string;
-  userId: string;
-  choice: 'YES' | 'NO';
-  amount: number;
-  timestamp: string;
-}
-
-export interface PaymentDispute {
-  id: string;
-  userId: string;
-  userEmail?: string;
-  utrId: string;
-  amount: number;
-  receiptDataUri: string;
-  status: 'pending' | 'approved' | 'rejected';
-  timestamp: string;
-}
-
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake' | 'esports_stake' | 'referral_comm' | 'mlm_joining' | 'vip_bonus';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake' | 'esports_stake' | 'referral_comm' | 'mlm_joining' | 'vip_bonus' | 'game_fee';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';
@@ -95,32 +57,6 @@ export interface UserLedgerEntry {
   utrId?: string;
   isAutoVerified?: boolean;
   voucherCode?: string; // Digital code for shop redemptions
-}
-
-export interface AppSettings {
-  maintenanceMode: boolean;
-  offerWallEnabled: boolean;
-  videoWallEnabled: boolean;
-  referralRewardCoins: number;
-  cpaLeadUrl: string;
-  coinValuePerDollar: number;
-  adminProfitPercentage: number;
-  withdrawalFeePercent: number;
-  conversionFeePercent: number;
-  telegramUrl: string;
-  heroBannerUrl?: string;
-  cricketApiKey?: string;
-  adminUpiId?: string;
-  depositTelegramUrl?: string;
-  automaticGatewayEnabled?: boolean;
-  adMobAppId?: string;
-  adMobBannerId?: string;
-  adMobInterstitialId?: string;
-  appLovinSdkKey?: string;
-  appLovinZoneId?: string;
-  earningBannerUrl?: string;
-  earningBannerLink?: string;
-  earningBannerReward?: number;
 }
 
 export interface Tournament {
@@ -139,15 +75,6 @@ export interface Tournament {
   };
 }
 
-export interface Registration {
-  id: string;
-  userId: string;
-  tournamentId: string;
-  gameId: string;
-  joinedAt: string;
-  feePaid: number;
-}
-
 export interface Match {
   id: string;
   tournamentId: string;
@@ -159,84 +86,4 @@ export interface Match {
   description: string;
   votesA?: number;
   votesB?: number;
-}
-
-export interface PredictionPoll {
-  id: string;
-  question: string;
-  optionA: string;
-  optionB: string;
-  entryFee: number;
-  totalPool: number;
-  category: string;
-  expiry: string;
-  timestamp: string;
-}
-
-export interface ESportsMatch {
-  id: string;
-  title: string;
-  game: 'BGMI' | 'Free Fire' | 'Valorant';
-  streamUrl?: string;
-  status: 'live' | 'upcoming' | 'completed';
-  timestamp: string;
-}
-
-export interface ESportsPoll {
-  id: string;
-  matchId: string;
-  question: string;
-  optionA: string;
-  optionB: string;
-  entryFee: number;
-  totalPool: number;
-  status: 'open' | 'closed';
-}
-
-export interface CricketMatch {
-  id: string;
-  teamA: string;
-  teamB: string;
-  teamALogo: string;
-  teamBLogo: string;
-  startTime: string;
-  status: 'live' | 'upcoming' | 'completed';
-  series: string;
-  liveScore?: {
-    runsA: string;
-    runsB: string;
-    overs: string;
-    target?: string;
-    lastBalls?: string[];
-  };
-  winner?: string;
-}
-
-export interface SystemNotification {
-  id: string;
-  title: string;
-  body: string;
-  imageUrl?: string;
-  timestamp: string;
-  type: 'broadcast' | 'payout' | 'mission';
-  voucherCode?: string;
-}
-
-export interface SupportMessage {
-  id: string;
-  userId: string;
-  message: string;
-  aiResponse?: string;
-  isFlagged?: boolean;
-  status: 'open' | 'resolved';
-  timestamp: string;
-}
-
-export interface ShopItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  category: string;
 }
