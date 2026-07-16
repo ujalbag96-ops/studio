@@ -16,7 +16,7 @@ export interface UserProfile {
   referredBy?: string;
   referredByL2?: string;
   mlmLevel?: number;
-  vipLevel?: 'VIP 0' | 'VIP 1' | 'VIP 2';
+  vipLevel: number; // 0 to 7
   deviceId?: string;
   lastIp?: string;
   country?: string;
@@ -33,6 +33,8 @@ export interface UserProfile {
   lastShareDate?: string;
   dailyShareCount?: number;
   unlockedMilestones?: string[];
+  // Analytics
+  lastSpinTimestamp?: string;
 }
 
 export interface Movie {
@@ -52,6 +54,7 @@ export interface UserLedgerEntry {
   date: string;
   status: 'pending' | 'completed' | 'failed';
   description?: string;
+  currencySymbol?: string;
 }
 
 export interface Tournament {
@@ -63,4 +66,75 @@ export interface Tournament {
   entryFee: number;
   startDate: string;
   banner: string;
+  streamUrl?: string;
+  roomCredentials?: {
+    roomId?: string;
+    roomPassword?: string;
+  };
+}
+
+export interface Registration {
+  id: string;
+  userId: string;
+  tournamentId: string;
+  gameId: string;
+  joinedAt: string;
+  feePaid: number;
+}
+
+export interface ShopItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  imageUrl: string;
+}
+
+export interface SystemNotification {
+  id: string;
+  userId?: string;
+  title: string;
+  body: string;
+  localizedBody?: string;
+  timestamp: string;
+  type: 'broadcast' | 'payout' | 'mission' | 'milestone';
+  imageUrl?: string;
+  voucherCode?: string;
+}
+
+export interface AppSettings {
+  maintenanceMode: boolean;
+  adminUpiId: string;
+  automaticGatewayEnabled: boolean;
+  conversionFeePercent: number;
+}
+
+export interface CricketMatch {
+  id: string;
+  teamA: string;
+  teamB: string;
+  teamALogo: string;
+  teamBLogo: string;
+  startTime: string;
+  status: 'live' | 'upcoming' | 'completed';
+  series: string;
+  liveScore?: {
+    runsA: string;
+    runsB: string;
+    overs: string;
+    target?: string;
+    lastBalls?: string[];
+  };
+  winner?: string;
+}
+
+export interface PredictionPoll {
+  id: string;
+  question: string;
+  category: string;
+  totalPool: number;
+  entryFee: number;
+  expiry: string;
+  timestamp: string;
 }

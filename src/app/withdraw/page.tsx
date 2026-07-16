@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2, Clock, Zap, Timer, ShieldAlert } from 'lucide-react';
+import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2, Clock, Zap, Timer, ShieldAlert, Star } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -19,8 +19,7 @@ import { getCurrencyData } from '@/lib/currency';
 import { cn } from '@/lib/utils';
 
 const MIN_WITHDRAWAL = 50;
-const EXPRESS_LIMIT = 500;
-const FEE_PERCENT = 0.02; // 2% Industrial Tax
+const FEE_PERCENT = 0.02;
 
 export default function WithdrawPage() {
   const { user } = useUser();
@@ -39,39 +38,39 @@ export default function WithdrawPage() {
   const { data: profile } = useDoc<UserProfile>(userRef);
 
   useEffect(() => {
-    // Payout window: Friday (5) and Saturday (6)
     const day = new Date().getDay();
-    if (day === 5 || day === 6) {
-      setIsWindowOpen(true);
-    } else {
-      setIsWindowOpen(false);
-    }
+    if (day === 5 || day === 6) setIsWindowOpen(true);
+    else setIsWindowOpen(false);
   }, []);
 
   const currencyData = getCurrencyData(profile?.country);
   const localValue = parseFloat(amountLocal) || 0;
   const coinsRequired = localValue * currencyData.rateToCoins;
-  const fee = localValue * FEE_PERCENT;
-  const netAmount = localValue - fee;
-
-  const isExpressEligible = localValue <= EXPRESS_LIMIT && localValue >= MIN_WITHDRAWAL;
+  
+  // --- VIP LIMIT VALIDATOR ---
+  const currentVip = profile?.vipLevel || 0;
+  const vipLimits: Record<number, number> = {
+    0: 100,
+    1: 500,
+    2: 1000,
+    3: 2500,
+    4: 5000,
+    5: 10000,
+    6: 25000,
+    7: 50000
+  };
+  const currentLimit = vipLimits[currentVip];
 
   const handleWithdraw = async () => {
     if (!user || !firestore || !profile || !userRef) return;
     
-    // 🕵️ ANTI-FRAUD: Rooted/Emulator/VPN Check
-    if (profile.isSuspended || profile.isVpnDetected || profile.isEmulator) {
-       setError("Account Security Audit Failed. Withdrawal protocol locked.");
+    if (profile.isSuspended || profile.isVpnDetected) {
+       setError("Identity Security Audit Failed. Protocol Locked.");
        return;
     }
 
     if (!isWindowOpen) {
-      setError("Withdrawal window is closed. Request cycles are only open Friday-Saturday.");
-      return;
-    }
-
-    if (coinsRequired > (profile.winningBalance || 0)) {
-      setError("Insufficient winning assets in wallet.");
+      setError("Withdrawal window is Friday-Saturday only.");
       return;
     }
 
@@ -80,170 +79,146 @@ export default function WithdrawPage() {
       return;
     }
 
+    if (localValue > currentLimit) {
+       setError(`VIP ${currentVip} limit exceeded. Maximum daily payout is ${currencyData.symbol}${currentLimit}. Upgrade to higher VIP level by completing more missions!`);
+       return;
+    }
+
+    if (coinsRequired > (profile.winningBalance || 0)) {
+      setError("Insufficient winning assets.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
     try {
       const timestamp = new Date().toISOString();
+      const fee = localValue * FEE_PERCENT;
+      const netAmount = localValue - fee;
 
-      // Payout Dispatcher with Express Signal
       await addDoc(collection(firestore, 'payouts'), {
         userId: user.uid,
         userEmail: user.email,
         amount: localValue,
-        fee: fee,
-        netAmount: netAmount,
-        method: method,
+        fee,
+        netAmount,
+        method,
         destination: destinationId,
         status: 'pending',
-        timestamp: timestamp,
-        country: profile.country || 'Global',
-        currencyCode: currencyData.code,
-        tasksCompleted: profile.tasksCompletedCount || 0,
-        isExpress: isExpressEligible,
-        isFlagged: false // Default to unflagged, admin can flag manually
+        timestamp,
+        vipLevel: currentVip,
+        isExpress: currentVip >= 5
       });
 
-      // Atomic Balance Lock
       await updateDoc(userRef, {
         winningBalance: increment(-coinsRequired),
         coins: increment(-coinsRequired)
       });
 
-      // Ledger Receipt
       await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
         type: 'withdrawal',
         amount: localValue,
         date: timestamp.split('T')[0],
         status: 'pending',
-        description: `${isExpressEligible ? 'Express' : 'Standard'} Payout via ${method} (Net: ${currencyData.symbol}${netAmount.toFixed(2)})`,
+        description: `VIP ${currentVip} Payout via ${method}`,
         currencySymbol: currencyData.symbol
       });
 
-      toast({ 
-        title: isExpressEligible ? "EXPRESS DISPATCHED" : "PAYOUT DISPATCHED", 
-        description: isExpressEligible ? "Fast payout signal locked. Verified in < 24h." : "Request queued for Sunday executive review." 
-      });
+      toast({ title: "DISPATCHED", description: "Request queued for industrial audit." });
       router.push('/dashboard');
     } catch (err: any) {
-      setError("System synchronization failure. Protocol halted.");
+      setError("Sync Failure.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!user) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
-
-  const isInternational = profile?.country && profile.country !== 'India';
+  if (!user) return <div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-10 space-y-12 pb-32">
+    <div className="max-w-4xl mx-auto p-4 md:p-10 space-y-10 pb-32">
       <div className="flex items-center gap-6 pt-10">
-        <Button variant="ghost" asChild className="h-12 w-12 rounded-xl p-0 hover:bg-white/5 border border-white/5">
-          <Link href="/dashboard"><ArrowLeft /></Link>
-        </Button>
+        <Button variant="ghost" asChild className="h-12 w-12 rounded-xl p-0 border border-white/5"><Link href="/dashboard"><ArrowLeft /></Link></Button>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter">Withdraw <span className="text-primary">Terminal</span></h1>
       </div>
 
-      {/* 🕵️ ANTI-FRAUD: Security Alert */}
-      {(profile?.isSuspended || profile?.isVpnDetected) && (
-        <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-500 rounded-[2.5rem] p-6 animate-pulse">
-           <ShieldAlert className="h-6 w-6" />
-           <AlertDescription className="font-black text-sm ml-2 uppercase italic">
-              SECURITY LOCK: Your account is under manual audit for policy violations (VPN/Proxy). Withdrawal is disabled.
-           </AlertDescription>
-        </Alert>
-      )}
-
-      {!isWindowOpen && (
-        <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-500 rounded-[2.5rem] p-6">
-           <Clock className="h-6 w-6" />
-           <AlertDescription className="font-bold text-sm ml-2">
-              SIGNAL OFFLINE: Withdrawal requests are only processed on <span className="text-white">Friday and Saturday</span>. Please return during the next payout cycle.
-           </AlertDescription>
-        </Alert>
-      )}
-
-      {isExpressEligible && isWindowOpen && !profile?.isSuspended && (
-        <Alert className="bg-primary/10 border-primary/20 text-primary rounded-[2.5rem] p-6 animate-pulse">
-           <Zap className="h-6 w-6" />
-           <AlertDescription className="font-black text-sm ml-2 uppercase italic">
-              Express Channel Active: This withdrawal is eligible for Fast Processing (Verified in 24 Hours).
-           </AlertDescription>
-        </Alert>
-      )}
-
       <div className="grid lg:grid-cols-2 gap-10">
         <Card className="bg-[#0a0a0f] border-white/5 shadow-2xl rounded-[2.5rem] overflow-hidden">
-          <div className="bg-primary/10 p-10 border-b border-white/5 text-center">
-             <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2 italic">Available Liquid Assets</p>
-             <h2 className="text-6xl font-black text-white italic">{profile?.winningBalance?.toFixed(0) || 0} <span className="text-2xl opacity-30">🪙</span></h2>
-             <p className="text-sm text-muted-foreground font-black uppercase mt-3">≈ {currencyData.symbol}{( (profile?.winningBalance || 0) / currencyData.rateToCoins ).toFixed(2)}</p>
+          <div className="bg-primary/10 p-10 border-b border-white/5 text-center relative">
+             <div className="absolute top-4 right-6">
+                <Badge className="bg-amber-500 text-black font-black uppercase text-[8px] italic">VIP LEVEL {currentVip}</Badge>
+             </div>
+             <p className="text-[10px] font-black uppercase text-primary mb-2 italic">Withdrawable Assets</p>
+             <h2 className="text-6xl font-black text-white italic">{profile?.winningBalance?.toFixed(0) || 0} 🪙</h2>
           </div>
 
           <CardContent className="p-10 space-y-8">
             {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-500 rounded-xl"><AlertCircle className="h-4 w-4" /><AlertDescription className="font-bold">{error}</AlertDescription></Alert>}
             
+            <div className="space-y-4">
+               <div className="flex justify-between items-center text-[10px] font-black uppercase text-muted-foreground px-1">
+                  <span>Daily VIP Limit</span>
+                  <span className="text-amber-500">{currencyData.symbol}{currentLimit}</span>
+               </div>
+               <Progress value={(localValue / currentLimit) * 100} className="h-2 bg-white/5" />
+            </div>
+
             <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Network Gateway ({isInternational ? 'International' : 'Domestic'})</Label>
-              <Select value={method} onValueChange={setMethod} disabled={profile?.isSuspended}>
-                <SelectTrigger className="h-16 bg-white/5 border-white/10 rounded-xl font-black text-xs uppercase">
-                  <SelectValue placeholder="Select Protocol" />
-                </SelectTrigger>
+              <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Transfer Gateway</Label>
+              <Select value={method} onValueChange={setMethod}>
+                <SelectTrigger className="h-16 bg-white/5 border-white/10 rounded-xl font-black text-xs uppercase"><SelectValue placeholder="Protocol" /></SelectTrigger>
                 <SelectContent className="bg-[#0a0a0f] border-white/10">
-                  {isInternational ? (
-                    <>
-                      <SelectItem value="PayPal">PayPal Global</SelectItem>
-                      <SelectItem value="Binance">Binance Pay (USDT)</SelectItem>
-                      <SelectItem value="Coinbase">Coinbase Commerce</SelectItem>
-                    </>
-                  ) : (
-                    <>
-                      <SelectItem value="UPI">UPI Industrial</SelectItem>
-                      <SelectItem value="Paytm">Paytm Terminal</SelectItem>
-                      <SelectItem value="Bank">IMPS Transfer</SelectItem>
-                    </>
-                  )}
+                  <SelectItem value="UPI">UPI Industrial</SelectItem>
+                  <SelectItem value="Paytm">Paytm Terminal</SelectItem>
+                  <SelectItem value="Bank">IMPS Transfer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Transfer Amount ({currencyData.symbol})</Label>
-              <Input type="number" value={amountLocal} onChange={e => setAmountLocal(e.target.value)} disabled={profile?.isSuspended} placeholder={`Min ${MIN_WITHDRAWAL}`} className="h-16 bg-white/5 border-white/10 rounded-xl text-2xl font-black text-primary" />
-              <div className="flex justify-between px-1">
-                 <p className="text-[9px] text-muted-foreground font-bold uppercase">Rate: 1 {currencyData.code} = {currencyData.rateToCoins} Coins</p>
-                 <p className="text-[9px] text-red-400 font-bold uppercase">Industrial Fee: 2%</p>
-              </div>
+              <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Amount ({currencyData.symbol})</Label>
+              <Input type="number" value={amountLocal} onChange={e => setAmountLocal(e.target.value)} placeholder={`Min ${MIN_WITHDRAWAL}`} className="h-16 bg-white/5 border-white/10 rounded-xl text-2xl font-black text-primary" />
             </div>
 
             <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">
-                {method === 'PayPal' ? 'PayPal Email Address' : 
-                 method === 'Binance' ? 'BEP-20 / USDT Address' : 
-                 isInternational ? 'Payment Destination ID' : 'Account ID / UPI VPA'}
-              </Label>
-              <Input value={destinationId} onChange={e => setDestinationId(e.target.value)} disabled={profile?.isSuspended} placeholder={method === 'PayPal' ? 'user@example.com' : 'Enter Address/ID'} className="h-16 bg-white/5 border-white/10 rounded-xl font-mono text-xs" />
+              <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Account ID / UPI VPA</Label>
+              <Input value={destinationId} onChange={e => setDestinationId(e.target.value)} placeholder="Destination Signal" className="h-16 bg-white/5 border-white/10 rounded-xl font-mono text-xs" />
             </div>
 
-            <Button onClick={handleWithdraw} disabled={isSubmitting || !amountLocal || !destinationId || !method || !isWindowOpen || profile?.isSuspended} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
-               {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : profile?.isSuspended ? "PROTOCOL LOCKED" : isWindowOpen ? (isExpressEligible ? "EXECUTE EXPRESS PAYOUT" : "EXECUTE WITHDRAWAL") : "WINDOW CLOSED"}
+            <Button onClick={handleWithdraw} disabled={isSubmitting || !amountLocal || !destinationId || !method} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+               {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : "EXECUTE WITHDRAWAL"}
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="bg-primary/5 border-primary/20 border-2 rounded-[2.5rem] p-10 space-y-8 flex flex-col justify-center">
-           <div className="h-20 w-20 bg-primary/10 rounded-3xl flex items-center justify-center border border-primary/20 shadow-2xl animate-pulse"><ShieldCheck className="text-primary h-10 w-10" /></div>
-           <h3 className="text-3xl font-black uppercase italic tracking-tighter">Security Protocol</h3>
-           <p className="text-[10px] font-black text-primary uppercase tracking-widest">Express Limit: {currencyData.symbol}{EXPRESS_LIMIT} Daily</p>
-           <ul className="space-y-6 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">
-              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Processing Window: Friday - Saturday</li>
-              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Fast Payouts: Settled in 24 Hours</li>
-              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Verification: Anti-Fraud Audit Active</li>
-              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Fee: 2% Platform Tax Applied</li>
-           </ul>
-        </Card>
+        <div className="space-y-6">
+           <Card className="bg-amber-500/5 border-amber-500/20 border-2 rounded-[2.5rem] p-10 flex flex-col justify-center space-y-6">
+              <div className="h-16 w-16 bg-amber-500/10 rounded-2xl flex items-center justify-center border border-amber-500/20 shadow-xl"><Star className="text-amber-500 h-8 w-8 fill-amber-500" /></div>
+              <h3 className="text-2xl font-black uppercase italic tracking-tighter">VIP Limit Matrix</h3>
+              <div className="space-y-4">
+                 <TierRow level={0} tasks={0} limit={100} current={currentVip === 0} />
+                 <TierRow level={1} tasks={10} limit={500} current={currentVip === 1} />
+                 <TierRow level={3} tasks={60} limit={2500} current={currentVip === 3} />
+                 <TierRow level={5} tasks={200} limit={10000} current={currentVip === 5} />
+                 <TierRow level={7} tasks={1000} limit={50000} current={currentVip === 7} />
+              </div>
+              <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed text-center italic">Complete missions in Earning Hub to upgrade your limit instantly.</p>
+           </Card>
+        </div>
       </div>
     </div>
   );
+}
+
+function TierRow({ level, tasks, limit, current }: any) {
+   return (
+      <div className={cn("flex justify-between items-center p-3 rounded-xl border transition-all", current ? "bg-amber-500/10 border-amber-500 text-white" : "border-white/5 opacity-40")}>
+         <div>
+            <p className="text-[10px] font-black">LEVEL {level}</p>
+            <p className="text-[8px] font-bold uppercase opacity-60">{tasks} Missions</p>
+         </div>
+         <p className="font-black italic">₹{limit}</p>
+      </div>
+   );
 }

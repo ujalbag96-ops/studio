@@ -2,32 +2,21 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, addDoc, query, orderBy, deleteDoc, limit, where } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, deleteDoc, limit, where } from 'firebase/firestore';
 import { 
-  Users as UsersIcon, 
-  Settings, 
-  Loader2,
-  ShieldCheck,
-  Wallet,
-  Zap,
-  Plus,
-  Trash2,
-  Trophy,
-  Dices,
-  Film,
-  Video,
-  FileText,
-  Download,
-  Layout,
-  ExternalLink,
-  Save,
-  Megaphone,
-  LifeBuoy,
-  Gavel,
-  CloudRain,
-  Smartphone,
-  CheckCircle2,
-  AlertCircle
+  ShieldCheck, 
+  Loader2, 
+  Wallet, 
+  FileText, 
+  Plus, 
+  Trash2, 
+  Download, 
+  CloudRain, 
+  TrendingUp, 
+  Users as UsersIcon,
+  Crown,
+  Activity,
+  Zap
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { PayoutRequest, StudyMaterial } from '../lib/types';
+import { PayoutRequest, StudyMaterial, UserProfile } from '../lib/types';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -47,49 +36,24 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'withdrawals' | 'inventory' | 'movies' | 'weather'>('withdrawals');
+  const [activeTab, setActiveTab] = useState<'withdrawals' | 'inventory' | 'growth' | 'weather'>('withdrawals');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
-  // Material Form State
-  const [matForm, setMatForm] = useState({ title: '', dept: 'engineering', sem: '1', type: 'Notes', url: '' });
-
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const matsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'study_materials'), orderBy('createdAt', 'desc'), limit(100)) : null, [firestore, isAdminUser]);
   const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc'), limit(50)) : null, [firestore, isAdminUser]);
+  const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), orderBy('vipLevel', 'desc'), limit(100)) : null, [firestore, isAdminUser]);
 
   const { data: materialsData } = useCollection<StudyMaterial>(matsQuery);
   const { data: payoutsData } = useCollection<PayoutRequest>(payoutsQuery);
+  const { data: usersData } = useCollection<UserProfile>(usersQuery);
 
-  const handleAddMaterial = async () => {
-    if (!firestore || !matForm.title || !matForm.url) {
-      toast({ variant: "destructive", title: "FIELDS REQUIRED" });
-      return;
-    }
-    setIsProcessing('add_mat');
-    try {
-      await addDoc(collection(firestore, 'study_materials'), {
-        title: matForm.title,
-        department: matForm.dept,
-        semester: parseInt(matForm.sem),
-        type: matForm.type,
-        url: matForm.url,
-        createdAt: new Date().toISOString()
-      });
-      toast({ title: "MATERIAL DEPLOYED", description: `${matForm.title} is now active.` });
-      setMatForm({ ...matForm, title: '', url: '' });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Deployment Failed" });
-    } finally {
-      setIsProcessing(null);
-    }
-  };
-
-  const handleMarkPaid = async (payout: PayoutRequest) => {
+  const handleMarkPaid = async (payoutId: string) => {
     if (!firestore) return;
-    setIsProcessing(payout.id);
+    setIsProcessing(payoutId);
     try {
-      await updateDoc(doc(firestore, 'payouts', payout.id), {
+      await updateDoc(doc(firestore, 'payouts', payoutId), {
         status: 'completed',
         processedAt: new Date().toISOString()
       });
@@ -113,8 +77,8 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
           <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Terminal" onClick={() => setActiveTab('withdrawals')} />
+          <AdminLink active={activeTab === 'growth'} icon={<TrendingUp />} label="Growth Matrix" onClick={() => setActiveTab('growth')} />
           <AdminLink active={activeTab === 'inventory'} icon={<FileText />} label="Resource Hub" onClick={() => setActiveTab('inventory')} />
-          <AdminLink active={activeTab === 'movies'} icon={<Film />} label="Movie Intel" onClick={() => setActiveTab('movies')} />
           <AdminLink active={activeTab === 'weather'} icon={<CloudRain />} label="Weather Station" onClick={() => setActiveTab('weather')} />
         </nav>
       </aside>
@@ -124,76 +88,93 @@ export default function AdminDashboard() {
            <h1 className="text-4xl font-black uppercase italic tracking-tighter">Command <span className="text-primary">Center</span></h1>
         </header>
 
-        {activeTab === 'inventory' && (
-          <div className="space-y-12 animate-in fade-in duration-500">
-             <Card className="bg-[#0a0a0f] border-primary/20 border-2 rounded-[2.5rem] p-8 shadow-2xl">
-                <div className="flex items-center gap-3 mb-8">
-                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20"><Plus className="text-primary" /></div>
-                   <h3 className="text-2xl font-black uppercase italic text-white">Deploy Study Material</h3>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Title</Label>
-                      <Input value={matForm.title} onChange={e => setMatForm({...matForm, title: e.target.value})} className="h-14 bg-black border-white/10 rounded-xl" placeholder="e.g. Maths-I Notes" />
-                   </div>
-                   <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Dept</Label>
-                      <select value={matForm.dept} onChange={e => setMatForm({...matForm, dept: e.target.value})} className="w-full h-14 bg-black border-white/10 rounded-xl px-4 text-sm font-bold">
-                         <option value="engineering">Engineering</option>
-                         <option value="science">Science</option>
-                         <option value="arts">Arts</option>
-                      </select>
-                   </div>
-                   <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Semester</Label>
-                      <Input type="number" min="1" max="8" value={matForm.sem} onChange={e => setMatForm({...matForm, sem: e.target.value})} className="h-14 bg-black border-white/10 rounded-xl" />
-                   </div>
-                   <div className="space-y-2 lg:col-span-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">URL (Drive/Direct)</Label>
-                      <Input value={matForm.url} onChange={e => setMatForm({...matForm, url: e.target.value})} className="h-14 bg-black border-white/10 rounded-xl" placeholder="https://..." />
-                   </div>
-                   <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Type</Label>
-                      <select value={matForm.type} onChange={e => setMatForm({...matForm, type: e.target.value as any})} className="w-full h-14 bg-black border-white/10 rounded-xl px-4 text-sm font-bold">
-                         <option value="Notes">Notes</option>
-                         <option value="PYQ">PYQ</option>
-                         <option value="Syllabus">Syllabus</option>
-                      </select>
-                   </div>
-                </div>
-
-                <Button onClick={handleAddMaterial} disabled={isProcessing === 'add_mat'} className="w-full h-16 mt-8 bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase italic text-lg shadow-xl">
-                   {isProcessing === 'add_mat' ? <Loader2 className="animate-spin" /> : "DEPLOY RESOURCE SIGNAL"}
-                </Button>
+        {activeTab === 'withdrawals' && (
+          <div className="space-y-6 animate-in fade-in duration-500">
+             <h3 className="text-xl font-black uppercase italic">Pending <span className="text-primary">Payouts</span></h3>
+             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden">
+                <Table>
+                   <TableHeader className="bg-white/5">
+                      <TableRow className="border-white/5">
+                         <TableHead className="text-[9px] font-black uppercase">User / VIP</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase">Amount / Fee</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase">Missions</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase text-right">Action</TableHead>
+                      </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                      {payoutsData?.filter(p => p.status === 'pending').map(p => (
+                         <TableRow key={p.id} className="border-white/5 hover:bg-white/5">
+                            <TableCell>
+                               <div className="space-y-1">
+                                  <p className="font-bold text-xs">{p.userEmail}</p>
+                                  <Badge className="bg-amber-500 text-black text-[8px] font-black px-2">VIP {p.vipLevel || 0}</Badge>
+                               </div>
+                            </TableCell>
+                            <TableCell>
+                               <p className="font-black text-white italic">₹{p.netAmount.toFixed(2)}</p>
+                               <p className="text-[8px] text-muted-foreground uppercase">Fee: ₹{p.fee?.toFixed(2)}</p>
+                            </TableCell>
+                            <TableCell>
+                               <Badge variant="outline" className="text-[10px] border-primary/20 text-primary">{p.tasksCompleted || 0} Tasks</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                               <Button onClick={() => handleMarkPaid(p.id)} disabled={isProcessing === p.id} className="bg-green-600 hover:bg-green-500 h-10 px-6 rounded-xl font-black uppercase text-[9px]">
+                                  {isProcessing === p.id ? <Loader2 className="animate-spin" /> : 'MARK PAID'}
+                               </Button>
+                            </TableCell>
+                         </TableRow>
+                      ))}
+                   </TableBody>
+                </Table>
              </Card>
+          </div>
+        )}
+
+        {activeTab === 'growth' && (
+          <div className="space-y-12 animate-in fade-in duration-500">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <Card className="bg-[#0a0a0f] border-primary/20 p-8 rounded-[2.5rem] space-y-4">
+                   <UsersIcon className="h-10 w-10 text-primary" />
+                   <div>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Total Warriors</p>
+                      <h4 className="text-4xl font-black italic">{usersData?.length || 0}</h4>
+                   </div>
+                </Card>
+                <Card className="bg-[#0a0a0f] border-amber-500/20 p-8 rounded-[2.5rem] space-y-4">
+                   <Crown className="h-10 w-10 text-amber-500" />
+                   <div>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">VIP Level 5+</p>
+                      <h4 className="text-4xl font-black italic text-amber-500">{usersData?.filter(u => u.vipLevel >= 5).length || 0}</h4>
+                   </div>
+                </Card>
+                <Card className="bg-[#0a0a0f] border-green-500/20 p-8 rounded-[2.5rem] space-y-4">
+                   <Activity className="h-10 w-10 text-green-500" />
+                   <div>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Retention Anchor</p>
+                      <h4 className="text-2xl font-black uppercase italic text-green-500">Master Level</h4>
+                   </div>
+                </Card>
+             </div>
 
              <div className="space-y-6">
-                <h3 className="text-xl font-black uppercase italic">Active Resource <span className="text-primary">Inventory</span></h3>
+                <h3 className="text-xl font-black uppercase italic">User <span className="text-primary">Performance</span></h3>
                 <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
                    <Table>
                       <TableHeader className="bg-white/5">
                          <TableRow className="border-white/5">
-                            <TableHead className="text-[9px] font-black uppercase">Title</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase">Dept/Sem</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase text-right">Actions</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">Warrior</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">VIP Tier</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">Missions Done</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase text-right">Net Assets</TableHead>
                          </TableRow>
                       </TableHeader>
                       <TableBody>
-                         {materialsData?.map(m => (
-                            <TableRow key={m.id} className="border-white/5 hover:bg-white/5">
-                               <TableCell className="font-black uppercase italic text-sm">{m.title}</TableCell>
-                               <TableCell>
-                                  <Badge className="bg-white/5 text-muted-foreground border-none text-[8px] uppercase">{m.department} - S{m.semester}</Badge>
-                               </TableCell>
-                               <TableCell className="text-right flex justify-end gap-3">
-                                  <Button asChild variant="ghost" size="icon" className="text-primary hover:bg-primary/10 h-10 w-10 rounded-xl">
-                                     <a href={m.url} target="_blank"><Download className="h-4 w-4" /></a>
-                                  </Button>
-                                  <Button onClick={() => deleteDoc(doc(firestore, 'study_materials', m.id))} variant="ghost" size="icon" className="text-red-500 hover:bg-red-500/10 h-10 w-10 rounded-xl">
-                                     <Trash2 className="h-4 w-4" />
-                                  </Button>
-                               </TableCell>
+                         {usersData?.map(u => (
+                            <TableRow key={u.id} className="border-white/5 hover:bg-white/5">
+                               <TableCell className="font-bold text-xs">{u.email || u.id}</TableCell>
+                               <TableCell><Badge className="bg-primary/20 text-primary uppercase font-black text-[8px]">LEVEL {u.vipLevel || 0}</Badge></TableCell>
+                               <TableCell className="font-black italic text-sm">{u.tasksCompletedCount || 0}</TableCell>
+                               <TableCell className="text-right font-black text-green-500 italic">{u.coins?.toLocaleString() || 0} 🪙</TableCell>
                             </TableRow>
                          ))}
                       </TableBody>
@@ -202,8 +183,6 @@ export default function AdminDashboard() {
              </div>
           </div>
         )}
-
-        {/* Existing tabs follow... */}
       </main>
     </div>
   );

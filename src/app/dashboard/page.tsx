@@ -36,12 +36,9 @@ import {
   CheckCircle2,
   ShieldAlert,
   Sparkles,
-  ChevronUp,
-  AlertTriangle,
-  Info,
-  Languages,
-  Globe,
-  BadgeIndianRupee
+  Star,
+  Flame,
+  ArrowUp
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,16 +47,12 @@ import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { UserProfile, UserLedgerEntry } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import WalletModal from '@/components/WalletModal';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
 import { useToast } from '@/hooks/use-toast';
-import LiveCricketWidget from '@/components/LiveCricketWidget';
-import ActivationGateway from '@/components/ActivationGateway';
 import ViralLeaderboard from '@/components/ViralLeaderboard';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -69,8 +62,6 @@ export default function UserDashboard() {
   const { toast } = useToast();
   const [activeNav, setActiveNav] = useState<'overview' | 'offers' | 'video' | 'mlm'>('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
-  const [showVipModal, setShowVipModal] = useState(false);
-  const [isUpdatingLang, setIsUpdatingLang] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
@@ -86,19 +77,8 @@ export default function UserDashboard() {
     );
   }, [firestore, user]);
 
-  const payoutsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'payouts'),
-      where('userId', '==', user.uid),
-      orderBy('timestamp', 'desc'),
-      limit(1)
-    );
-  }, [firestore, user]);
-
   const { data: profile } = useDoc<UserProfile>(userProfileRef);
   const { data: recentActivity, isLoading: isActivityLoading } = useCollection<UserLedgerEntry>(ledgerQuery);
-  const { data: lastPayout } = useCollection<any>(payoutsQuery);
 
   const handleLogout = async () => {
     if (auth) {
@@ -114,55 +94,29 @@ export default function UserDashboard() {
     }
   };
 
-  const handleLanguageToggle = async (lang: 'en' | 'or') => {
-    if (!userProfileRef) return;
-    setIsUpdatingLang(true);
-    try {
-      await updateDoc(userProfileRef, { preferredLanguage: lang });
-      toast({ title: lang === 'or' ? "ଓଡ଼ିଆ ସେଟ୍ ହୋଇଛି" : "Language Set to English", description: "Your intelligence preference has been updated." });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Update Failed" });
-    } finally {
-      setIsUpdatingLang(false);
-    }
-  };
-
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!user) return <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
-  const personalTasks = profile?.tasksCompletedCount || 0;
-  const vipGoal = 10;
-  const vipProgress = Math.min((personalTasks / vipGoal) * 100, 100);
-
-  const latestPayout = lastPayout?.[0];
+  // VIP LOGIC
+  const vipTiers = [
+    { tasks: 0, level: 0, name: 'Starter' },
+    { tasks: 10, level: 1, name: 'Rookie' },
+    { tasks: 30, level: 2, name: 'Warrior' },
+    { tasks: 60, level: 3, name: 'Pro' },
+    { tasks: 100, level: 4, name: 'Master' },
+    { tasks: 200, level: 5, name: 'Elite' },
+    { tasks: 500, level: 6, name: 'Legend' },
+    { tasks: 1000, level: 7, name: 'God Mode' }
+  ];
+  const currentVip = profile?.vipLevel || 0;
+  const tasksDone = profile?.tasksCompletedCount || 0;
+  const nextTier = vipTiers.find(t => t.level === currentVip + 1) || vipTiers[vipTiers.length - 1];
+  const prevTierTasks = vipTiers.find(t => t.level === currentVip)?.tasks || 0;
+  
+  const vipProgress = currentVip === 7 ? 100 : Math.min(((tasksDone - prevTierTasks) / (nextTier.tasks - prevTierTasks)) * 100, 100);
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative">
-      {/* 🔐 SECURITY LOCK OVERLAY */}
-      {(profile?.isSuspended || profile?.isVpnDetected) && (
-        <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 text-center">
-           <div className="max-w-md space-y-8 animate-in zoom-in-95 duration-500">
-              <div className="h-32 w-32 bg-red-600/20 rounded-[3rem] border-2 border-red-600 flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(220,38,38,0.3)]">
-                 <ShieldAlert className="h-16 w-16 text-red-600 animate-pulse" />
-              </div>
-              <div className="space-y-4">
-                 <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Identity <span className="text-red-600">Locked</span></h2>
-                 <p className="text-muted-foreground font-medium leading-relaxed">
-                    {profile?.isVpnDetected 
-                      ? "VPN or Proxy signal detected! Please disable any secure tunnels to continue accessing the arena."
-                      : "Our anti-fraud engine has detected a security violation originating from this hardware signature. Your account is locked pending manual audit."}
-                 </p>
-                 <div className="p-4 bg-red-600/10 border border-red-600/20 rounded-xl">
-                    <p className="text-[10px] font-black uppercase text-red-400">Violation: {profile?.isVpnDetected ? 'VPN_PROXY_ACTIVE' : 'HARDWARE_COLLISION_PATTERN'}</p>
-                 </div>
-              </div>
-              <Button asChild variant="outline" className="h-14 px-10 border-white/10 text-white font-black uppercase">
-                 <a href="https://t.me/bracketbattles_support" target="_blank">APPEAL SUSPENSION</a>
-              </Button>
-           </div>
-        </div>
-      )}
-
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
       
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
@@ -171,7 +125,7 @@ export default function UserDashboard() {
             <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center shadow-xl">
               <Activity className="h-6 w-6 text-white" />
             </div>
-            <span className="font-black uppercase tracking-tighter text-2xl italic">MY <span className="text-primary">PORTFOLIO</span></span>
+            <span className="font-black uppercase tracking-tighter text-2xl italic">MY <span className="text-primary">ARENA</span></span>
           </Link>
         </div>
 
@@ -181,12 +135,11 @@ export default function UserDashboard() {
           <SidebarItem active={false} icon={<Mail />} label="My Inbox" href="/inbox" />
           <SidebarItem active={activeNav === 'video'} icon={<PlayCircle />} label="Watch & Earn" onClick={() => setActiveNav('video')} />
           <SidebarItem active={activeNav === 'offers'} icon={<Zap />} label="Ad Rewards" onClick={() => setActiveNav('offers')} />
-          <SidebarItem active={false} icon={<Flag />} label="Cricket Hub" href="/cricket" />
         </nav>
 
         <div className="p-8 border-t border-white/5">
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all font-black uppercase text-xs italic">
-            <LogOut className="h-5 w-5" /> Logout Account
+            <LogOut className="h-5 w-5" /> Terminate Session
           </button>
         </div>
       </aside>
@@ -194,80 +147,49 @@ export default function UserDashboard() {
       <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-10 pb-32">
         {activeNav === 'overview' && (
           <>
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-10">
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                    <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Student Warrior</Badge>
-                   {profile?.isEmulator && <Badge className="bg-amber-500/20 text-amber-500 border-none uppercase font-black px-4 py-1 text-[10px]">Emulator Mode</Badge>}
+                   <Badge className="bg-amber-500/20 text-amber-500 border-none uppercase font-black px-4 py-1 text-[10px] flex items-center gap-1.5">
+                      <Star className="h-3 w-3 fill-amber-500" /> VIP LEVEL {currentVip}
+                   </Badge>
                 </div>
                 <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Student <span className="text-primary">Vault</span></h1>
-                <div className="flex flex-wrap items-center gap-4">
-                   <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
-                      <div className="truncate">
-                         <p className="text-[10px] font-bold text-muted-foreground uppercase">User ID (UID)</p>
-                         <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
-                      </div>
-                      <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 shrink-0">
-                         <Copy className="h-4 w-4" />
-                      </Button>
-                   </Card>
-                </div>
               </div>
-              <div className="flex items-center gap-4">
-                <Button 
-                  onClick={() => setIsConnectOpen(true)} 
-                  className="bg-white/5 border border-white/10 h-16 px-8 rounded-xl text-lg font-black uppercase italic"
-                >
-                  Add Cash <ArrowUpRight className="ml-2 h-5 w-5 text-primary" />
-                </Button>
-                <WalletModal>
-                  <Button variant="outline" className="border-primary/20 h-16 px-8 rounded-xl text-lg font-black uppercase italic text-primary">
-                    View Wallet
-                  </Button>
-                </WalletModal>
-              </div>
-            </header>
 
-            {/* Payout Status Tracker */}
-            {latestPayout && (
-              <Card className="bg-[#0a0a0f] border-white/5 border-2 rounded-[2rem] p-8 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl animate-in fade-in slide-in-from-right-4 duration-700">
-                 <div className="flex items-center gap-6">
-                    <div className={cn(
-                      "h-16 w-16 rounded-2xl flex items-center justify-center border transition-all",
-                      latestPayout.status === 'completed' ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-primary/10 border-primary/20 text-primary animate-pulse"
-                    )}>
-                       {latestPayout.status === 'completed' ? <CheckCircle2 className="h-8 w-8" /> : <Loader2 className="h-8 w-8 animate-spin" />}
-                    </div>
-                    <div>
-                       <h3 className="text-xl font-black uppercase italic text-white">Payout Pulse</h3>
-                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
-                          Amount: ₹{latestPayout.netAmount.toFixed(2)} • Destination: {latestPayout.method}
-                       </p>
-                    </div>
+              {/* VIP PROGRESS HOOK */}
+              <Card className="bg-[#121216] border-amber-500/20 border-2 rounded-[2rem] p-6 w-full max-w-sm relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                    <Crown className="h-20 w-20 text-amber-500" />
                  </div>
-                 <div className="flex items-center gap-4">
-                    <div className="text-right">
-                       <p className="text-[9px] font-black uppercase text-muted-foreground">Current State</p>
-                       <p className={cn("text-lg font-black uppercase italic", latestPayout.status === 'completed' ? "text-green-500" : "text-primary")}>
-                          {latestPayout.status === 'completed' ? 'DELIVERED' : 'AUDIT PENDING'}
+                 <div className="space-y-4 relative z-10">
+                    <div className="flex justify-between items-center">
+                       <p className="text-[10px] font-black uppercase text-amber-500 italic">VIP Growth Protocol</p>
+                       <span className="text-[9px] font-bold text-muted-foreground">{tasksDone} Missions Done</span>
+                    </div>
+                    <h4 className="text-lg font-black uppercase italic">Next: {nextTier.name}</h4>
+                    <div className="space-y-2">
+                       <Progress value={vipProgress} className="h-2 bg-white/5" />
+                       <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+                          {currentVip === 7 ? 'MAX LEVEL REACHED' : `Just ${nextTier.tasks - tasksDone} more tasks to level up!`}
                        </p>
                     </div>
-                    {latestPayout.status === 'pending' && <Badge className="bg-amber-500 text-black font-black uppercase text-[8px] px-3 py-1">SUNDAY DISPATCH</Badge>}
                  </div>
               </Card>
-            )}
+            </header>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} color="green" />
               <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} color="blue" />
               <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} color="amber" />
-              <WalletCard label="Pocket Rewards" value={profile?.referralCommissionBalance || 0} icon={<BadgeIndianRupee />} color="primary" />
+              <WalletCard label="Network Commission" value={profile?.referralCommissionBalance || 0} icon={<Network />} color="primary" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
               <div className="xl:col-span-2 space-y-8">
                 <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic">
-                  <History className="h-6 w-6 text-primary" /> Recent Signals
+                  <History className="h-6 w-6 text-primary" /> Operational Ledger
                 </h3>
                 <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
                   {isActivityLoading ? (
@@ -298,15 +220,18 @@ export default function UserDashboard() {
               </div>
 
               <div className="space-y-8">
-                 <div className="p-6 bg-primary/10 border border-primary/20 rounded-[2rem] space-y-4">
+                 <Card className="bg-primary/5 border-primary/20 rounded-[2rem] p-8 space-y-4">
                     <div className="flex items-center gap-3">
-                       <Trophy className="h-5 w-5 text-primary" />
-                       <h4 className="text-sm font-black uppercase italic">Weekly Bounty</h4>
+                       <Zap className="h-5 w-5 text-primary animate-pulse" />
+                       <h4 className="text-sm font-black uppercase italic">Elite Status Perks</h4>
                     </div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase leading-relaxed">
-                       The <span className="text-white font-bold">Top 3 Earners</span> of the week automatically receive a <span className="text-primary">₹50 Extra Bonus</span> in their Sunday Payout.
-                    </p>
-                 </div>
+                    <ul className="space-y-3">
+                       <PerkItem active={currentVip >= 1} text="VIP 1: ₹500 Daily Limit" />
+                       <PerkItem active={currentVip >= 3} text="VIP 3: ₹2,500 Daily Limit" />
+                       <PerkItem active={currentVip >= 5} text="VIP 5: Priority 2H Payout" />
+                       <PerkItem active={currentVip >= 7} text="VIP 7: No Withdrawal Cap" />
+                    </ul>
+                 </Card>
                  <ViralLeaderboard />
               </div>
             </div>
@@ -315,6 +240,15 @@ export default function UserDashboard() {
       </main>
     </div>
   );
+}
+
+function PerkItem({ active, text }: { active: boolean, text: string }) {
+   return (
+      <li className={cn("flex items-center gap-3 text-[9px] font-bold uppercase tracking-widest transition-all", active ? "text-white" : "text-muted-foreground opacity-30")}>
+         {active ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Lock className="h-3 w-3" />}
+         {text}
+      </li>
+   );
 }
 
 function SidebarItem({ active, icon, label, onClick, href }: any) {
