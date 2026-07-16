@@ -38,6 +38,9 @@ export interface UserProfile {
   lastShareDate?: string;
   dailyShareCount?: number;
   unlockedMilestones?: string[];
+  // Elite Affiliate System
+  isEliteAffiliate?: boolean;
+  megaMilestoneClaimed?: boolean;
   // Analytics
   lastSpinTimestamp?: string;
   isAccountActivated?: boolean;

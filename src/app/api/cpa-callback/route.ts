@@ -4,7 +4,7 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, addDoc, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Postback-Enforced Reward Gateway with VIP Escalation & MLM Distribution
+ * Postback-Enforced Reward Gateway with VIP Escalation, MLM Distribution & Mega Milestone Audit
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -60,42 +60,76 @@ export async function GET(request: Request) {
     }
 
     // --- MLM COMMISSION DISTRIBUTION (2 LEVELS) ---
-    // Level 1: 5% | Level 2: 2%
-    const commL1 = rewardAmount * 0.05;
-    const commL2 = rewardAmount * 0.02;
+    // Standard: L1: 5% | L2: 2%
+    // Elite Booster: L1: 7% | L2: 4%
 
     if (userData.referredBy) {
       const l1Ref = doc(firestore, 'users', userData.referredBy);
-      batch.update(l1Ref, {
-        referralCommissionBalance: increment(commL1),
-        totalNetworkRevenue: increment(commL1),
-        networkTaskCompletions: increment(1),
-        coins: increment(commL1)
-      });
-      batch.set(doc(collection(firestore, 'users', userData.referredBy, 'ledger')), {
-        type: 'referral_comm',
-        amount: commL1,
-        date: dateStr,
-        status: 'completed',
-        description: `Team Commission (L1) from ${userData.email || userData.id}`
-      });
+      const l1Snap = await getDoc(l1Ref);
+      if (l1Snap.exists()) {
+        const l1Data = l1Snap.data();
+        const commRate = l1Data.isEliteAffiliate ? 0.07 : 0.05;
+        const commAmount = rewardAmount * commRate;
+        
+        batch.update(l1Ref, {
+          referralCommissionBalance: increment(commAmount),
+          totalNetworkRevenue: increment(commAmount),
+          networkTaskCompletions: increment(1),
+          coins: increment(commAmount)
+        });
+
+        // MEGA MILESTONE CHECK: 1000 Downline
+        const totalNet = (l1Data.totalNetworkReferrals || 0);
+        if (totalNet >= 1000 && !l1Data.megaMilestoneClaimed) {
+          batch.update(l1Ref, {
+            isEliteAffiliate: true,
+            megaMilestoneClaimed: true,
+            coins: increment(100000), // ₹1,000 Bonus
+            winningBalance: increment(100000),
+            vipLevel: 7 // Grand Prize Upgrade
+          });
+          await addDoc(collection(firestore, 'notifications'), {
+            userId: userData.referredBy,
+            title: `🏆 MEGA MILESTONE: ELITE AFFILIATE`,
+            body: `Incredible! You hit 1,000 downline. ₹1,000 Cash Bonus & Permanent VIP 7 Status unlocked.`,
+            timestamp: new Date().toISOString(),
+            type: 'milestone'
+          });
+        }
+
+        batch.set(doc(collection(firestore, 'users', userData.referredBy, 'ledger')), {
+          type: 'referral_comm',
+          amount: commAmount,
+          date: dateStr,
+          status: 'completed',
+          description: `Team Commission (L1) from ${userData.email || userData.id}`
+        });
+      }
     }
 
     if (userData.referredByL2) {
       const l2Ref = doc(firestore, 'users', userData.referredByL2);
-      batch.update(l2Ref, {
-        referralCommissionBalance: increment(commL2),
-        totalNetworkRevenue: increment(commL2),
-        networkTaskCompletions: increment(1),
-        coins: increment(commL2)
-      });
-      batch.set(doc(collection(firestore, 'users', userData.referredByL2, 'ledger')), {
-        type: 'referral_comm',
-        amount: commL2,
-        date: dateStr,
-        status: 'completed',
-        description: `Team Commission (L2) from downline activity`
-      });
+      const l2Snap = await getDoc(l2Ref);
+      if (l2Snap.exists()) {
+        const l2Data = l2Snap.data();
+        const commRate = l2Data.isEliteAffiliate ? 0.04 : 0.02;
+        const commAmount = rewardAmount * commRate;
+
+        batch.update(l2Ref, {
+          referralCommissionBalance: increment(commAmount),
+          totalNetworkRevenue: increment(commAmount),
+          networkTaskCompletions: increment(1),
+          coins: increment(commAmount)
+        });
+
+        batch.set(doc(collection(firestore, 'users', userData.referredByL2, 'ledger')), {
+          type: 'referral_comm',
+          amount: commAmount,
+          date: dateStr,
+          status: 'completed',
+          description: `Team Commission (L2) from downline activity`
+        });
+      }
     }
 
     // Main Reward Credit

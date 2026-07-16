@@ -19,7 +19,10 @@ import {
   Zap,
   Network,
   BarChart3,
-  Search
+  Search,
+  Flame,
+  CheckCircle2,
+  ShieldAlert
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,14 +43,14 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'withdrawals' | 'inventory' | 'growth' | 'network' | 'weather'>('withdrawals');
+  const [activeTab, setActiveTab] = useState<'withdrawals' | 'inventory' | 'growth' | 'network' | 'milestones'>('withdrawals');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const matsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'study_materials'), orderBy('createdAt', 'desc'), limit(100)) : null, [firestore, isAdminUser]);
   const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc'), limit(50)) : null, [firestore, isAdminUser]);
-  const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), orderBy('vipLevel', 'desc'), limit(200)) : null, [firestore, isAdminUser]);
+  const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), orderBy('totalNetworkReferrals', 'desc'), limit(200)) : null, [firestore, isAdminUser]);
 
   const { data: materialsData } = useCollection<StudyMaterial>(matsQuery);
   const { data: payoutsData } = useCollection<PayoutRequest>(payoutsQuery);
@@ -86,10 +89,10 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
           <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Terminal" onClick={() => setActiveTab('withdrawals')} />
+          <AdminLink active={activeTab === 'milestones'} icon={<Flame />} label="Milestone Audit" onClick={() => setActiveTab('milestones')} />
           <AdminLink active={activeTab === 'growth'} icon={<TrendingUp />} label="Growth Matrix" onClick={() => setActiveTab('growth')} />
           <AdminLink active={activeTab === 'network'} icon={<Network />} label="Network Intel" onClick={() => setActiveTab('network')} />
           <AdminLink active={activeTab === 'inventory'} icon={<FileText />} label="Resource Hub" onClick={() => setActiveTab('inventory')} />
-          <AdminLink active={activeTab === 'weather'} icon={<CloudRain />} label="Weather Station" onClick={() => setActiveTab('weather')} />
         </nav>
       </aside>
 
@@ -140,6 +143,69 @@ export default function AdminDashboard() {
                             </TableCell>
                          </TableRow>
                       ))}
+                   </TableBody>
+                </Table>
+             </Card>
+          </div>
+        )}
+
+        {activeTab === 'milestones' && (
+          <div className="space-y-10 animate-in fade-in duration-500">
+             <div className="flex items-center justify-between">
+                <h3 className="text-xl font-black uppercase italic">Elite Milestone <span className="text-amber-500">Audit</span></h3>
+                <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-center gap-3">
+                   <ShieldAlert className="h-5 w-5 text-amber-500" />
+                   <p className="text-[8px] font-black uppercase text-amber-500 tracking-widest">Verify downline authenticity before reward dispatch</p>
+                </div>
+             </div>
+
+             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
+                <Table>
+                   <TableHeader className="bg-white/5">
+                      <TableRow className="border-white/5">
+                         <TableHead className="text-[9px] font-black uppercase">Affiliate Identity</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase">Network Size (L1+L2)</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase">Network Missions</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase text-right">Status</TableHead>
+                      </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                      {usersData?.filter(u => (u.totalNetworkReferrals || 0) >= 800).map(u => (
+                         <TableRow key={u.id} className="border-white/5 hover:bg-white/5">
+                            <TableCell>
+                               <div className="space-y-1">
+                                  <p className="font-bold text-xs">{u.email || u.id}</p>
+                                  <p className="text-[8px] text-muted-foreground uppercase">IP: {u.lastIp || 'N/A'}</p>
+                               </div>
+                            </TableCell>
+                            <TableCell>
+                               <div className="space-y-2 w-48">
+                                  <p className="font-black italic text-sm">{u.totalNetworkReferrals || 0} / 1000</p>
+                                  <Progress value={((u.totalNetworkReferrals || 0) / 1000) * 100} className="h-1 bg-white/5" />
+                               </div>
+                            </TableCell>
+                            <TableCell>
+                               <p className="font-black text-green-500 italic">{u.networkTaskCompletions || 0}</p>
+                               <p className="text-[8px] text-muted-foreground uppercase">Verified Transactions</p>
+                            </TableCell>
+                            <TableCell className="text-right">
+                               {u.isEliteAffiliate ? (
+                                  <Badge className="bg-amber-500 text-black font-black uppercase text-[8px] px-3">ELITE ACTIVE</Badge>
+                               ) : (
+                                  <Button variant="outline" className="border-amber-500/20 text-amber-500 hover:bg-amber-500/10 h-10 px-4 rounded-xl font-black uppercase text-[9px]">
+                                     AUDIT PENDING
+                                  </Button>
+                               )}
+                            </TableCell>
+                         </TableRow>
+                      ))}
+                      {(usersData?.filter(u => (u.totalNetworkReferrals || 0) >= 800).length === 0) && (
+                         <TableRow>
+                            <TableCell colSpan={4} className="py-20 text-center text-muted-foreground uppercase font-black text-xs italic">
+                               Zero candidates detected for Elite status
+                            </TableCell>
+                         </TableRow>
+                      )}
                    </TableBody>
                 </Table>
              </Card>
@@ -220,8 +286,8 @@ export default function AdminDashboard() {
                 <Card className="bg-green-500/5 border-green-500/20 p-8 rounded-[2.5rem] space-y-4">
                    <BarChart3 className="h-10 w-10 text-green-500" />
                    <div>
-                      <p className="text-[10px] font-black uppercase text-muted-foreground">Network Depth</p>
-                      <h4 className="text-2xl font-black uppercase italic">2 Levels Active</h4>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Elite Affiliates</p>
+                      <h4 className="text-4xl font-black italic">{usersData?.filter(u => u.isEliteAffiliate).length || 0}</h4>
                    </div>
                 </Card>
              </div>
@@ -234,17 +300,23 @@ export default function AdminDashboard() {
                          <TableRow className="border-white/5">
                             <TableHead className="text-[9px] font-black uppercase">Recruiter</TableHead>
                             <TableHead className="text-[9px] font-black uppercase">L1 Team</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase">Team Missions</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase text-right">Commission Earned</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">Network Size</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase text-right">Elite Status</TableHead>
                          </TableRow>
                       </TableHeader>
                       <TableBody>
-                         {usersData?.sort((a,b) => (b.totalReferrals || 0) - (a.totalReferrals || 0)).slice(0, 50).map(u => (
+                         {usersData?.sort((a,b) => (b.totalNetworkReferrals || 0) - (a.totalNetworkReferrals || 0)).slice(0, 50).map(u => (
                             <TableRow key={u.id} className="border-white/5 hover:bg-white/5">
                                <TableCell className="font-bold text-xs">{u.email || u.id}</TableCell>
                                <TableCell><Badge variant="outline" className="border-primary/20 text-primary font-black uppercase text-[8px]">{u.totalReferrals || 0} L1</Badge></TableCell>
-                               <TableCell className="font-black italic text-sm">{u.networkTaskCompletions || 0}</TableCell>
-                               <TableCell className="text-right font-black text-amber-500 italic">{u.referralCommissionBalance?.toLocaleString() || 0} 🪙</TableCell>
+                               <TableCell className="font-black italic text-sm">{u.totalNetworkReferrals || 0}</TableCell>
+                               <TableCell className="text-right">
+                                  {u.isEliteAffiliate ? (
+                                     <Badge className="bg-amber-500 text-black font-black uppercase text-[8px]">ELITE</Badge>
+                                  ) : (
+                                     <Badge variant="ghost" className="text-muted-foreground opacity-30 text-[8px] uppercase">Standard</Badge>
+                                  )}
+                               </TableCell>
                             </TableRow>
                          ))}
                       </TableBody>

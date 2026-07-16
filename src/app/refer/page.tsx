@@ -18,7 +18,10 @@ import {
   Network,
   Activity,
   History,
-  Info
+  Info,
+  Crown,
+  Star,
+  Flame
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +63,7 @@ export default function ReferPage() {
     : '';
 
   const totalShares = profile?.totalPagesShared || 0;
+  const totalNetwork = profile?.totalNetworkReferrals || 0;
   
   // Milestone Definitions
   const milestones = [
@@ -71,6 +75,9 @@ export default function ReferPage() {
 
   const nextMilestone = milestones.find(m => totalShares < m.count) || milestones[milestones.length - 1];
   const progress = Math.min((totalShares / nextMilestone.count) * 100, 100);
+
+  const megaGoal = 1000;
+  const megaProgress = Math.min((totalNetwork / megaGoal) * 100, 100);
 
   const handleShare = async () => {
     if (!profile?.referralCode) return;
@@ -94,7 +101,7 @@ export default function ReferPage() {
       </div>
 
       {activeTab === 'invite' ? (
-        <>
+        <div className="space-y-12">
           <section className="relative overflow-hidden rounded-[3rem] bg-[#0a0a0f] border border-white/5 p-8 md:p-16 shadow-2xl animate-in fade-in duration-700">
             <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[120px] -mr-48 -mt-48" />
             
@@ -116,9 +123,6 @@ export default function ReferPage() {
                         <Badge className="bg-green-500/10 text-green-500 border-none uppercase font-black text-[9px] px-3 py-1">BONUS: {nextMilestone.reward} 🪙</Badge>
                     </div>
                     <Progress value={progress} className="h-3 bg-white/5" />
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest text-center">
-                        {nextMilestone.count - totalShares} more shares for the {nextMilestone.name} reward!
-                    </p>
                   </div>
 
                   <div className="flex items-center justify-between gap-4">
@@ -162,7 +166,75 @@ export default function ReferPage() {
               </div>
             </div>
           </section>
-        </>
+
+          {/* MEGA MILESTONE SECTION */}
+          <section className="space-y-8 animate-in slide-in-from-bottom-6 duration-1000">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                   <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                      <Crown className="h-6 w-6 text-amber-500 animate-bounce" />
+                   </div>
+                   <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">Mega <span className="text-amber-500">Arena Prize</span></h2>
+                </div>
+                {profile?.isEliteAffiliate && <Badge className="bg-amber-500 text-black font-black uppercase italic px-4 py-1.5 animate-pulse shadow-[0_0_20px_rgba(245,158,11,0.5)]">ELITE AFFILIATE ACTIVE</Badge>}
+             </div>
+
+             <Card className={cn(
+                "bg-gradient-to-br from-[#1a1a24] to-black border-amber-500/20 border-2 rounded-[3rem] p-10 md:p-16 relative overflow-hidden group",
+                profile?.isEliteAffiliate && "border-amber-500 shadow-[0_0_80px_rgba(245,158,11,0.15)]"
+             )}>
+                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:rotate-12 transition-transform duration-1000">
+                   <Trophy className="h-64 w-64 text-amber-500" />
+                </div>
+
+                <div className="relative z-10 grid lg:grid-cols-3 gap-12 items-center">
+                   <div className="lg:col-span-2 space-y-10">
+                      <div className="space-y-4">
+                         <h3 className="text-4xl font-black uppercase italic text-white leading-none">1,000 Downline <span className="text-amber-500">Mastery</span></h3>
+                         <p className="text-muted-foreground text-sm font-medium leading-relaxed max-w-xl">
+                            Build an industrial-scale network. Reach 1,000 members in your team (L1 + L2) and unlock the Ultimate Arena Bundle.
+                         </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                         <PrizeItem icon={<Coins />} label="Cash" value="₹1,000" />
+                         <PrizeItem icon={<Star />} label="Status" value="VIP 7" />
+                         <PrizeItem icon={<Zap />} label="Booster" value="+2% Comm" />
+                         <PrizeItem icon={<Award />} label="Badge" value="ELITE" />
+                      </div>
+
+                      <div className="space-y-4">
+                         <div className="flex justify-between text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+                            <span>Arena Progress</span>
+                            <span className="text-amber-500">{totalNetwork} / 1000 Warriors</span>
+                         </div>
+                         <Progress value={megaProgress} className="h-4 bg-white/5 border border-white/5" />
+                         <p className="text-[9px] font-bold text-muted-foreground uppercase text-center italic">
+                            {profile?.isEliteAffiliate ? 'GRAND PRIZE CLAIMED' : `Enlist ${1000 - totalNetwork} more warriors to claim the jackpot.`}
+                         </p>
+                      </div>
+                   </div>
+
+                   <div className="bg-black/40 border border-white/10 rounded-[2.5rem] p-8 space-y-6 text-center shadow-inner">
+                      <div className="h-24 w-24 rounded-full bg-amber-500/10 border-2 border-amber-500/20 flex items-center justify-center mx-auto shadow-2xl">
+                         <Flame className="h-10 w-10 text-amber-500 animate-pulse" />
+                      </div>
+                      <div className="space-y-1">
+                         <p className="text-[10px] font-black text-muted-foreground uppercase">Network Yield</p>
+                         <h4 className="text-2xl font-black italic text-white">PRO AFFILIATE</h4>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-xl border border-white/5">
+                         <p className="text-[8px] font-bold text-muted-foreground uppercase mb-1">Commission Rate</p>
+                         <p className="text-xl font-black text-amber-500 italic">{profile?.isEliteAffiliate ? '7% (L1) / 4% (L2)' : '5% (L1) / 2% (L2)'}</p>
+                      </div>
+                      <p className="text-[8px] text-muted-foreground uppercase font-bold italic leading-relaxed">
+                        Fraud prevention audit active. Active user logic applies to milestone count.
+                      </p>
+                   </div>
+                </div>
+             </Card>
+          </section>
+        </div>
       ) : (
         <div className="space-y-12 animate-in slide-in-from-bottom-4 duration-700">
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -175,7 +247,9 @@ export default function ReferPage() {
               <div className="xl:col-span-2 space-y-6">
                  <div className="flex items-center justify-between">
                     <h3 className="text-2xl font-black uppercase italic tracking-tighter">Network <span className="text-primary">Breakdown</span></h3>
-                    <Badge variant="outline" className="border-white/10 uppercase text-[9px] font-black py-1.5 px-3">L1: 5% | L2: 2%</Badge>
+                    <Badge variant="outline" className="border-white/10 uppercase text-[9px] font-black py-1.5 px-3">
+                       {profile?.isEliteAffiliate ? 'ELITE: L1: 7% | L2: 4%' : 'STD: L1: 5% | L2: 2%'}
+                    </Badge>
                  </div>
                  
                  <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
@@ -201,16 +275,26 @@ export default function ReferPage() {
                        <Info className="h-6 w-6 text-primary" />
                     </div>
                     <ul className="space-y-4">
-                       <PolicyItem text="5% Commission on all L1 mission completions" />
-                       <PolicyItem text="2% Commission on all L2 mission completions" />
+                       <PolicyItem text={profile?.isEliteAffiliate ? "Elite: 7% Commission on all L1 missions" : "Standard: 5% Commission on all L1 missions"} />
+                       <PolicyItem text={profile?.isEliteAffiliate ? "Elite: 4% Commission on all L2 missions" : "Standard: 2% Commission on all L2 missions"} />
                        <PolicyItem text="Commissions are credited instantly to Winning Balance" />
-                       <PolicyItem text="VIP Level 3+ required for L2 payout eligibility" />
+                       <PolicyItem text="Hit 1,000 network members for Grand Prize Bundle" />
                     </ul>
                  </Card>
               </div>
            </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PrizeItem({ icon, label, value }: any) {
+  return (
+    <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center space-y-1 group-hover:border-amber-500/40 transition-all">
+       <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto mb-2">{icon}</div>
+       <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">{label}</p>
+       <p className="text-xs font-black text-white italic">{value}</p>
     </div>
   );
 }
