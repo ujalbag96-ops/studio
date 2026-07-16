@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview Hyper-Local Notification Translation Engine.
- * Translates and adapts notification messages based on user's specific city/region.
+ * Translates and adapts notification messages based on user's specific city/region and preference.
  */
 
 import { ai } from '@/ai/genkit';
@@ -13,6 +13,7 @@ const LocalizeNotificationInputSchema = z.object({
   city: z.string().describe('The user\'s city.'),
   region: z.string().describe('The user\'s state or region.'),
   country: z.string().describe('The user\'s country.'),
+  preferredLanguage: z.enum(['en', 'or']).optional().describe('The user\'s preferred language (en for English, or for Odia).'),
 });
 export type LocalizeNotificationInput = z.infer<typeof LocalizeNotificationInputSchema>;
 
@@ -35,13 +36,14 @@ const localizeNotificationPrompt = ai.definePrompt({
 Goal: Rewrite the given notification message in a "Near Language" or local dialect that feels personal and natural for someone living in {{{city}}}, {{{region}}}, {{{country}}}.
 
 Guidelines:
-- If the city is in India (e.g., Sambalpur, Mumbai, Ludhiana), use a mix of Hindi and the prominent regional language (Odia, Marathi, Punjabi, etc.) that sounds like a local friend talking.
+- If preferredLanguage is 'or' or the region is 'Odisha', use ଓଡ଼ିଆ (Odia). If from Sambalpur, use a touch of Sambalpuri dialect.
+- For other Indian regions, use a mix of Hindi and the prominent regional language.
+- The tone should be like a local friend (e.g., "Namaskar", "Ki haal aa", "Kemitichha").
 - If it's a "Weather Win", mention the city explicitly to increase trust.
 - Keep it concise (max 2 sentences).
-- Use local slang or inflections if appropriate (e.g., "Ki haal aa" for Punjab, "Namaskar" for Maharashtra).
 
 Input Message: {{{message}}}
-User Context: {{{city}}}, {{{region}}}
+User Context: {{{city}}}, {{{region}}}, {{{preferredLanguage}}}
 
 Return a JSON object with 'localizedMessage' and 'detectedNearLanguage'.`,
 });

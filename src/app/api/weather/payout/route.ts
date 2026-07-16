@@ -52,12 +52,13 @@ export async function POST() {
         
         let localizedBody = baseMessage;
         try {
-           // Fetch local dialect from Genkit
+           // Fetch local dialect from Genkit with preferred language signal
            const aiResult = await localizeNotification({
               message: baseMessage,
               city: userData.city || 'Sambalpur',
               region: userData.region || 'Odisha',
-              country: userData.country || 'India'
+              country: userData.country || 'India',
+              preferredLanguage: userData.preferredLanguage || 'en'
            });
            localizedBody = aiResult.localizedMessage;
         } catch (e) {

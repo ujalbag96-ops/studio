@@ -29,6 +29,7 @@ export interface UserProfile {
   country?: string;
   region?: string; // State/Region
   city?: string; // City Level Targeting
+  preferredLanguage?: 'en' | 'or'; // English or Odia
   rank: UserRank;
   isAdmin?: boolean;
   isSuspended?: boolean; // Fraud Lock

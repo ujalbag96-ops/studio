@@ -38,7 +38,9 @@ import {
   Sparkles,
   ChevronUp,
   AlertTriangle,
-  Info
+  Info,
+  Languages,
+  Globe
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,6 +70,7 @@ export default function UserDashboard() {
   const [activeNav, setActiveNav] = useState<'overview' | 'offers' | 'video' | 'mlm'>('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
   const [showVipModal, setShowVipModal] = useState(false);
+  const [isUpdatingLang, setIsUpdatingLang] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
@@ -97,6 +100,19 @@ export default function UserDashboard() {
     if (user?.uid) {
       navigator.clipboard.writeText(user.uid);
       toast({ title: "User ID Copied!" });
+    }
+  };
+
+  const handleLanguageToggle = async (lang: 'en' | 'or') => {
+    if (!userProfileRef) return;
+    setIsUpdatingLang(true);
+    try {
+      await updateDoc(userProfileRef, { preferredLanguage: lang });
+      toast({ title: lang === 'or' ? "ଓଡ଼ିଆ ସେଟ୍ ହୋଇଛି" : "Language Set to English", description: "Your intelligence preference has been updated." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setIsUpdatingLang(false);
     }
   };
 
@@ -252,6 +268,37 @@ export default function UserDashboard() {
                 </WalletModal>
               </div>
             </header>
+
+            {/* Language Intelligence Toggle */}
+            <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+               <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 text-primary">
+                     <Languages className="h-6 w-6" />
+                  </div>
+                  <div>
+                     <h3 className="text-lg font-black uppercase italic tracking-tight">Intelligence Language</h3>
+                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Customize notification & content bhasha</p>
+                  </div>
+               </div>
+               <div className="flex items-center gap-2 p-1 bg-black rounded-xl border border-white/5">
+                  <Button 
+                    onClick={() => handleLanguageToggle('en')}
+                    disabled={isUpdatingLang}
+                    variant={profile?.preferredLanguage === 'en' || !profile?.preferredLanguage ? 'secondary' : 'ghost'} 
+                    className="h-10 rounded-lg text-[9px] font-black uppercase px-6"
+                  >
+                    English
+                  </Button>
+                  <Button 
+                    onClick={() => handleLanguageToggle('or')}
+                    disabled={isUpdatingLang}
+                    variant={profile?.preferredLanguage === 'or' ? 'secondary' : 'ghost'} 
+                    className="h-10 rounded-lg text-[9px] font-black uppercase px-6"
+                  >
+                    ଓଡ଼ିଆ (Local)
+                  </Button>
+               </div>
+            </Card>
 
             {/* MLM Milestone Prize Tracker with Active Leader Condition */}
             <Card className="bg-amber-500/5 border-amber-500/20 border-2 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl animate-in slide-in-from-top-4 duration-700">
