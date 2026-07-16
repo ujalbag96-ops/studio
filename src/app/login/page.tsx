@@ -5,7 +5,8 @@ import { useState, useEffect, Suspense } from 'react';
 import { useUser, useFirestore, useAuth } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, query, where, getDocs, limit, addDoc, increment } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldCheck, Eye, EyeOff, LifeBuoy } from 'lucide-react';
+import { Loader2, ShieldCheck, Eye, EyeOff, LifeBuoy, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -137,6 +138,33 @@ function LoginContent() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!auth || !email) {
+      toast({ 
+        variant: "destructive", 
+        title: "Email Missing", 
+        description: "Please enter your email address in the input field first." 
+      });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      toast({ 
+        title: "RESET LINK DISPATCHED", 
+        description: `A password recovery email has been sent to ${email}. Check your spam folder if not found.` 
+      });
+    } catch (e: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Reset Failed", 
+        description: e.message 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSupportSubmit = async () => {
     if (!firestore || !supportData.contact || !supportData.issue) return;
     setIsLoading(true);
@@ -186,18 +214,31 @@ function LoginContent() {
               <div className="space-y-2">
                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Access Pass</Label>
                  <div className="relative">
-                    <Input required type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl pr-12 font-mono" />
+                    <Input required={authMode === 'login'} type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl pr-12 font-mono" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                  </div>
               </div>
+
+              {authMode === 'login' && (
+                <div className="flex justify-end px-1">
+                   <button 
+                    type="button" 
+                    onClick={handleResetPassword}
+                    className="text-[9px] font-black uppercase text-primary hover:underline flex items-center gap-1.5"
+                   >
+                      <KeyRound className="h-3 w-3" /> Forgot Password?
+                   </button>
+                </div>
+              )}
+
               <Button type="submit" disabled={isLoading} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl shadow-xl">
                 {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (authMode === 'login' ? 'INITIATE LOGIN' : 'CREATE ACCOUNT')}
               </Button>
               <div className="text-center">
                  <button type="button" onClick={() => setShowSupportModal(true)} className="text-[10px] font-black uppercase text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-2 mx-auto">
-                    <LifeBuoy className="h-3 w-3" /> Forgot Access / Support
+                    <LifeBuoy className="h-3 w-3" /> Manual Recovery / Support
                  </button>
               </div>
             </Card>
