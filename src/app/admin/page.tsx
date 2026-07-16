@@ -24,7 +24,9 @@ import {
   LifeBuoy,
   Gavel,
   CloudRain,
-  RefreshCw
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,7 +45,7 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'withdrawals' | 'movies' | 'settlements' | 'lottery' | 'weather'>('movies');
+  const [activeTab, setActiveTab] = useState<'withdrawals' | 'movies' | 'settlements' | 'lottery' | 'weather'>('withdrawals');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
   // Movie Form State
@@ -52,7 +54,10 @@ export default function AdminDashboard() {
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const moviesQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'movies'), orderBy('createdAt', 'desc')) : null, [firestore, isAdminUser]);
+  const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc'), limit(50)) : null, [firestore, isAdminUser]);
+
   const { data: moviesData } = useCollection<any>(moviesQuery);
+  const { data: payoutsData } = useCollection<any>(payoutsQuery);
 
   const handleAddMovie = async () => {
     if (!firestore || !movieForm.title || !movieForm.videoUrl) {
@@ -74,27 +79,17 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSyncWeather = async () => {
-    setIsProcessing('weather');
+  const handleMarkPaid = async (payoutId: string) => {
+    if (!firestore) return;
+    setIsProcessing(payoutId);
     try {
-      const res = await fetch('/api/weather/sync');
-      const data = await res.json();
-      toast({ title: "WEATHER SYNCED", description: `Today's condition: ${data.condition}` });
+      await updateDoc(doc(firestore, 'payouts', payoutId), {
+        status: 'completed',
+        processedAt: new Date().toISOString()
+      });
+      toast({ title: "PAYOUT VERIFIED", description: "Request marked as completed." });
     } catch (e) {
       toast({ variant: "destructive", title: "Sync Failed" });
-    } finally {
-      setIsProcessing(null);
-    }
-  };
-
-  const handleWeatherPayout = async () => {
-    setIsProcessing('payout');
-    try {
-      const res = await fetch('/api/weather/payout', { method: 'POST' });
-      const data = await res.json();
-      toast({ title: "PAYOUT SUCCESS", description: `Settled ${data.settledCount} votes. Winners: ${data.winners}` });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Payout Failed" });
     } finally {
       setIsProcessing(null);
     }
@@ -122,11 +117,11 @@ export default function AdminDashboard() {
           <span className="font-black text-xl italic uppercase tracking-tighter">ARENA <span className="text-primary">MASTER</span></span>
         </div>
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
+          <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Terminal" onClick={() => setActiveTab('withdrawals')} />
           <AdminLink active={activeTab === 'movies'} icon={<Film />} label="Movie Intelligence" onClick={() => setActiveTab('movies')} />
           <AdminLink active={activeTab === 'weather'} icon={<CloudRain />} label="Weather Station" onClick={() => setActiveTab('weather')} />
           <AdminLink active={activeTab === 'settlements'} icon={<Gavel />} label="Match Settlements" onClick={() => setActiveTab('settlements')} />
           <AdminLink active={activeTab === 'lottery'} icon={<Dices />} label="Jackpot Control" onClick={() => setActiveTab('lottery')} />
-          <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Terminal" onClick={() => setActiveTab('withdrawals')} />
         </nav>
       </aside>
 
@@ -138,36 +133,77 @@ export default function AdminDashboard() {
            </div>
         </header>
 
-        {activeTab === 'weather' && (
-           <div className="space-y-12 animate-in fade-in duration-500">
-              <div className="grid md:grid-cols-2 gap-8">
-                 <Card className="bg-[#0a0a0f] border-primary/20 border-2 rounded-[2.5rem] p-8 space-y-6">
-                    <div className="flex items-center gap-3">
-                       <RefreshCw className={cn("text-primary h-6 w-6", isProcessing === 'weather' && "animate-spin")} />
-                       <h3 className="text-xl font-black uppercase italic text-white">Manual Condition Sync</h3>
-                    </div>
-                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">
-                       Trigger this to fetch and log the current weather for Sambalpur instantly.
-                    </p>
-                    <Button onClick={handleSyncWeather} disabled={isProcessing === 'weather'} className="w-full h-14 bg-white/5 border border-white/10 hover:bg-primary font-black uppercase italic">
-                       {isProcessing === 'weather' ? <Loader2 className="animate-spin" /> : "SYNC WEATHER SIGNAL"}
-                    </Button>
-                 </Card>
+        {activeTab === 'withdrawals' && (
+          <div className="space-y-8 animate-in fade-in duration-500">
+             <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-black uppercase italic tracking-tight">Withdrawal <span className="text-primary">Requests</span></h3>
+                <Badge className="bg-primary/20 text-primary border-none text-[9px] font-black uppercase px-4">Cycle: Sunday Audit</Badge>
+             </div>
 
-                 <Card className="bg-[#0a0a0f] border-green-500/20 border-2 rounded-[2.5rem] p-8 space-y-6">
-                    <div className="flex items-center gap-3">
-                       <Zap className="text-green-500 h-6 w-6" />
-                       <h3 className="text-xl font-black uppercase italic text-white">Execution: Weather Payout</h3>
-                    </div>
-                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">
-                       Trigger this after sync to settle all pending YES/NO votes for today.
-                    </p>
-                    <Button onClick={handleWeatherPayout} disabled={isProcessing === 'payout'} className="w-full h-14 bg-green-500/10 border border-green-500/20 hover:bg-green-500 hover:text-black font-black uppercase italic">
-                       {isProcessing === 'payout' ? <Loader2 className="animate-spin" /> : "EXECUTE PAYOUT PROTOCOL"}
-                    </Button>
-                 </Card>
-              </div>
-           </div>
+             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
+                <Table>
+                   <TableHeader className="bg-white/5">
+                      <TableRow className="border-white/5">
+                         <TableHead className="text-[9px] font-black uppercase">User Info</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase">Method/Destination</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase text-center">Task Verification</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase text-right">Net Amount</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase text-right">Actions</TableHead>
+                      </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                      {payoutsData?.map(p => (
+                         <TableRow key={p.id} className="border-white/5 hover:bg-white/5">
+                            <TableCell>
+                               <p className="text-sm font-black text-white">{p.userEmail?.split('@')[0]}</p>
+                               <p className="text-[9px] text-muted-foreground font-mono">{p.userId.substring(0,8)}...</p>
+                            </TableCell>
+                            <TableCell>
+                               <Badge variant="outline" className="text-[9px] border-white/10 uppercase font-black mb-1">{p.method}</Badge>
+                               <p className="text-[10px] font-bold text-primary truncate max-w-[150px]">{p.destination}</p>
+                            </TableCell>
+                            <TableCell className="text-center">
+                               <div className="flex flex-col items-center gap-1">
+                                  <Badge className={cn("text-[9px] border-none", (p.tasksCompleted || 0) >= 5 ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500")}>
+                                     Tasks: {p.tasksCompleted || 0}
+                                  </Badge>
+                                  {(p.tasksCompleted || 0) < 5 && <p className="text-[8px] font-black text-red-400 uppercase italic">Revenue Check Needed</p>}
+                               </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                               <p className="text-lg font-black text-white italic">₹{p.netAmount.toFixed(2)}</p>
+                               <p className="text-[9px] text-muted-foreground uppercase">Fee: ₹{p.fee?.toFixed(2) || '0.00'}</p>
+                            </TableCell>
+                            <TableCell className="text-right">
+                               {p.status === 'pending' ? (
+                                  <Button 
+                                    onClick={() => handleMarkPaid(p.id)} 
+                                    disabled={isProcessing === p.id}
+                                    className="h-10 px-6 bg-primary hover:bg-primary/90 rounded-xl font-black text-[9px] uppercase"
+                                  >
+                                     {isProcessing === p.id ? <Loader2 className="animate-spin h-3 w-3" /> : "MARK PAID"}
+                                  </Button>
+                               ) : (
+                                  <div className="flex items-center justify-end gap-2 text-green-500">
+                                     <CheckCircle2 className="h-4 w-4" />
+                                     <span className="text-[9px] font-black uppercase">SETTLED</span>
+                                  </div>
+                               )}
+                            </TableCell>
+                         </TableRow>
+                      ))}
+                      {(!payoutsData || payoutsData.length === 0) && (
+                        <TableRow>
+                           <TableCell colSpan={5} className="py-20 text-center">
+                              <AlertCircle className="h-12 w-12 text-muted-foreground opacity-10 mx-auto mb-4" />
+                              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">No payout requests in current queue.</p>
+                           </TableCell>
+                        </TableRow>
+                      )}
+                   </TableBody>
+                </Table>
+             </Card>
+          </div>
         )}
 
         {activeTab === 'movies' && (

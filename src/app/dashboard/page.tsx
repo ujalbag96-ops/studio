@@ -40,7 +40,8 @@ import {
   AlertTriangle,
   Info,
   Languages,
-  Globe
+  Globe,
+  BadgeIndianRupee
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -85,8 +86,19 @@ export default function UserDashboard() {
     );
   }, [firestore, user]);
 
+  const payoutsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+      collection(firestore, 'payouts'),
+      where('userId', '==', user.uid),
+      orderBy('timestamp', 'desc'),
+      limit(1)
+    );
+  }, [firestore, user]);
+
   const { data: profile } = useDoc<UserProfile>(userProfileRef);
   const { data: recentActivity, isLoading: isActivityLoading } = useCollection<UserLedgerEntry>(ledgerQuery);
+  const { data: lastPayout } = useCollection<any>(payoutsQuery);
 
   const handleLogout = async () => {
     if (auth) {
@@ -120,9 +132,7 @@ export default function UserDashboard() {
 
   const milestoneGoal = 1000;
   const milestoneProgress = Math.min(((profile?.networkTaskCompletions || 0) / milestoneGoal) * 100, 100);
-  const isMilestoneHit = (profile?.networkTaskCompletions || 0) >= milestoneGoal;
-
-  // Active Leader Condition
+  
   const personalTasks = profile?.tasksCompletedCount || 0;
   const directRefs = profile?.totalReferrals || 0;
   const hasMinPersonalTasks = personalTasks >= 5;
@@ -132,6 +142,8 @@ export default function UserDashboard() {
   const vipGoal = 10;
   const vipProgress = Math.min(((profile?.tasksCompletedCount || 0) / vipGoal) * 100, 100);
   const isVip1 = (profile?.vipLevel === 'VIP 1');
+
+  const latestPayout = lastPayout?.[0];
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative">
@@ -192,7 +204,7 @@ export default function UserDashboard() {
             <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center shadow-xl">
               <Activity className="h-6 w-6 text-white" />
             </div>
-            <span className="font-black uppercase tracking-tighter text-2xl italic">MY <span className="text-primary">WALLET</span></span>
+            <span className="font-black uppercase tracking-tighter text-2xl italic">MY <span className="text-primary">PORTFOLIO</span></span>
           </Link>
         </div>
 
@@ -218,8 +230,8 @@ export default function UserDashboard() {
           <>
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
               <div className="space-y-4">
-                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Warrior</Badge>
-                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Portfolio</span></h1>
+                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Student Warrior</Badge>
+                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Student <span className="text-primary">Vault</span></h1>
                 <div className="flex flex-wrap items-center gap-4">
                    <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
                       <div className="truncate">
@@ -230,27 +242,6 @@ export default function UserDashboard() {
                          <Copy className="h-4 w-4" />
                       </Button>
                    </Card>
-                   
-                   {!isVip1 ? (
-                      <button 
-                       onClick={() => setShowVipModal(true)}
-                       className="group relative h-16 px-8 rounded-2xl bg-black border-2 border-primary/40 flex items-center gap-4 overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,123,0,0.15)]"
-                      >
-                         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                         <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:shadow-[0_0_15px_rgba(255,123,0,0.5)] transition-shadow">
-                            <Crown className="h-5 w-5" />
-                         </div>
-                         <div className="text-left">
-                            <p className="text-[10px] font-black uppercase italic text-primary group-hover:text-white transition-colors">Upgrade to VIP 1</p>
-                            <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">+5% REVENUE BONUS</p>
-                         </div>
-                         <ChevronUp className="h-4 w-4 text-primary ml-2 animate-bounce" />
-                      </button>
-                   ) : (
-                      <Badge className="h-16 px-8 rounded-2xl bg-primary/10 border-2 border-primary text-primary flex items-center gap-4 font-black uppercase italic text-lg shadow-[0_0_30px_rgba(255,123,0,0.2)]">
-                         <Sparkles className="h-6 w-6" /> VIP 1 ACTIVE
-                      </Badge>
-                   )}
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -268,110 +259,46 @@ export default function UserDashboard() {
               </div>
             </header>
 
-            {/* Language Intelligence Toggle */}
-            <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-               <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 text-primary">
-                     <Languages className="h-6 w-6" />
-                  </div>
-                  <div>
-                     <h3 className="text-lg font-black uppercase italic tracking-tight">Intelligence Language</h3>
-                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Customize notification & content bhasha</p>
-                  </div>
-               </div>
-               <div className="flex items-center gap-2 p-1 bg-black rounded-xl border border-white/5">
-                  <Button 
-                    onClick={() => handleLanguageToggle('en')}
-                    disabled={isUpdatingLang}
-                    variant={profile?.preferredLanguage === 'en' || !profile?.preferredLanguage ? 'secondary' : 'ghost'} 
-                    className="h-10 rounded-lg text-[9px] font-black uppercase px-6"
-                  >
-                    English
-                  </Button>
-                  <Button 
-                    onClick={() => handleLanguageToggle('or')}
-                    disabled={isUpdatingLang}
-                    variant={profile?.preferredLanguage === 'or' ? 'secondary' : 'ghost'} 
-                    className="h-10 rounded-lg text-[9px] font-black uppercase px-6"
-                  >
-                    ଓଡ଼ିଆ (Local)
-                  </Button>
-               </div>
-            </Card>
-
-            {/* MLM Milestone Prize Tracker with Active Leader Condition */}
-            <Card className="bg-amber-500/5 border-amber-500/20 border-2 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl animate-in slide-in-from-top-4 duration-700">
-               <div className="absolute top-0 right-0 p-8 opacity-5">
-                  <Trophy className="h-40 w-48 text-amber-500" />
-               </div>
-               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
-                  <div className="space-y-6 flex-1 text-center md:text-left">
-                     <div className="flex items-center justify-center md:justify-start gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-500 animate-pulse">
-                           <Users />
-                        </div>
-                        <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Elite Network Milestone</h3>
-                     </div>
-                     <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-lg">
-                        Reach <span className="text-white font-bold">1000 Verified Network Tasks</span> to claim your 30% Master Revenue Share. 
-                     </p>
-                     
-                     {/* Condition Indicators */}
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className={cn("p-4 rounded-2xl border flex items-center gap-3 transition-all", hasMinPersonalTasks ? "bg-green-500/10 border-green-500/30 text-green-500" : "bg-red-500/10 border-red-500/30 text-red-500")}>
-                           {hasMinPersonalTasks ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                           <p className="text-[10px] font-black uppercase">5 Personal Tasks ({personalTasks}/5)</p>
-                        </div>
-                        <div className={cn("p-4 rounded-2xl border flex items-center gap-3 transition-all", hasMinReferrals ? "bg-green-500/10 border-green-500/30 text-green-500" : "bg-red-500/10 border-red-500/30 text-red-500")}>
-                           {hasMinReferrals ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                           <p className="text-[10px] font-black uppercase">5 Direct Invites ({directRefs}/5)</p>
-                        </div>
-                     </div>
-
-                     <div className="space-y-3">
-                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                           <span className="text-muted-foreground">Team Network Progress</span>
-                           <span className="text-amber-400">{profile?.networkTaskCompletions || 0} / 1000 Tasks Completed</span>
-                        </div>
-                        <Progress value={milestoneProgress} className="h-3 bg-white/5" />
-                     </div>
-                  </div>
-                  
-                  <div className="w-full md:w-auto flex flex-col gap-3">
-                     <div className="p-6 bg-black/40 rounded-2xl border border-white/5 text-center relative group">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Potential Payout</p>
-                        <p className="text-3xl font-black text-amber-500 italic">{( (profile?.totalNetworkRevenue || 0) * 0.3 ).toFixed(1)} 🪙</p>
-                        {!isActiveLeader && (
-                           <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center p-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-help">
-                              <Lock className="h-5 w-5 text-red-500 mb-1" />
-                              <p className="text-[8px] font-black uppercase text-white leading-tight">Payout Frozen: Complete Leader Conditions to unlock</p>
-                           </div>
-                        )}
-                     </div>
-                     {isMilestoneHit && isActiveLeader ? (
-                        <Badge className="bg-green-500 text-black font-black uppercase italic px-4 py-2 mx-auto">Milestone Hit! Payout Active</Badge>
-                     ) : isMilestoneHit && (
-                        <Badge className="bg-red-600 text-white font-black uppercase italic px-4 py-2 mx-auto animate-pulse flex items-center gap-2">
-                           <Info className="h-4 w-4" /> Conditions Pending
-                        </Badge>
-                     )}
-                  </div>
-               </div>
-            </Card>
+            {/* Payout Status Tracker */}
+            {latestPayout && (
+              <Card className="bg-[#0a0a0f] border-white/5 border-2 rounded-[2rem] p-8 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl animate-in fade-in slide-in-from-right-4 duration-700">
+                 <div className="flex items-center gap-6">
+                    <div className={cn(
+                      "h-16 w-16 rounded-2xl flex items-center justify-center border transition-all",
+                      latestPayout.status === 'completed' ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-primary/10 border-primary/20 text-primary animate-pulse"
+                    )}>
+                       {latestPayout.status === 'completed' ? <CheckCircle2 className="h-8 w-8" /> : <RefreshCw className="h-8 w-8" />}
+                    </div>
+                    <div>
+                       <h3 className="text-xl font-black uppercase italic text-white">Payout Pulse</h3>
+                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
+                          Amount: ₹{latestPayout.netAmount.toFixed(2)} • Destination: {latestPayout.method}
+                       </p>
+                    </div>
+                 </div>
+                 <div className="flex items-center gap-4">
+                    <div className="text-right">
+                       <p className="text-[9px] font-black uppercase text-muted-foreground">Current State</p>
+                       <p className={cn("text-lg font-black uppercase italic", latestPayout.status === 'completed' ? "text-green-500" : "text-primary")}>
+                          {latestPayout.status === 'completed' ? 'DELIVERED' : 'AUDIT PENDING'}
+                       </p>
+                    </div>
+                    {latestPayout.status === 'pending' && <Badge className="bg-amber-500 text-black font-black uppercase text-[8px] px-3 py-1">SUNDAY DISPATCH</Badge>}
+                 </div>
+              </Card>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} color="green" />
               <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} color="blue" />
               <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} color="amber" />
-              <WalletCard label="Network Commission" value={profile?.referralCommissionBalance || 0} icon={<Network />} color="primary" />
+              <WalletCard label="Pocket Rewards" value={profile?.referralCommissionBalance || 0} icon={<BadgeIndianRupee />} color="primary" />
             </div>
-
-            <LiveCricketWidget />
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
               <div className="xl:col-span-2 space-y-8">
                 <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic">
-                  <History className="h-6 w-6 text-primary" /> Recent Activity
+                  <History className="h-6 w-6 text-primary" /> Recent Signals
                 </h3>
                 <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
                   {isActivityLoading ? (
@@ -402,91 +329,19 @@ export default function UserDashboard() {
               </div>
 
               <div className="space-y-8">
-                 <h3 className="text-2xl font-black uppercase italic flex items-center gap-3">
-                   <Zap className="h-6 w-6 text-primary" /> Viral Growth
-                 </h3>
+                 <div className="p-6 bg-primary/10 border border-primary/20 rounded-[2rem] space-y-4">
+                    <div className="flex items-center gap-3">
+                       <Trophy className="h-5 w-5 text-primary" />
+                       <h4 className="text-sm font-black uppercase italic">Weekly Bounty</h4>
+                    </div>
+                    <p className="text-xs text-muted-foreground font-medium uppercase leading-relaxed">
+                       The <span className="text-white font-bold">Top 3 Earners</span> of the week automatically receive a <span className="text-primary">₹50 Extra Bonus</span> in their Sunday Payout.
+                    </p>
+                 </div>
                  <ViralLeaderboard />
               </div>
             </div>
           </>
-        )}
-
-        {activeNav === 'mlm' && (
-           <div className="space-y-12">
-              <div className="space-y-4">
-                 <h1 className="text-5xl font-black uppercase italic tracking-tighter">Network <span className="text-primary">Intelligence</span></h1>
-                 <p className="text-muted-foreground">Monitor your tiered downline and milestone prize pool.</p>
-              </div>
-              
-              <div className="grid md:grid-cols-3 gap-6">
-                 <Card className="bg-white/5 border-white/10 p-8 rounded-[2rem] space-y-4">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground">Downline Tasks</p>
-                    <h3 className="text-3xl font-black italic">{profile?.networkTaskCompletions || 0} / 1000</h3>
-                    <Progress value={milestoneProgress} className="h-2 bg-white/5" />
-                 </Card>
-                 <Card className="bg-white/5 border-white/10 p-8 rounded-[2rem] space-y-4">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground">Total Revenue Share</p>
-                    <h3 className="text-3xl font-black italic text-primary">{((profile?.totalNetworkRevenue || 0) * 0.3).toFixed(2)} 🪙</h3>
-                 </Card>
-                 <Card className="bg-primary/10 border-primary/20 p-8 rounded-[2rem] space-y-4">
-                    <p className="text-[10px] font-black uppercase text-primary">Withdrawable Comm</p>
-                    <h3 className="text-3xl font-black italic text-white">{profile?.referralCommissionBalance?.toFixed(2) || 0} 🪙</h3>
-                 </Card>
-              </div>
-
-              <div className="space-y-6">
-                 <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Network className="text-primary" /> Milestone Payout Protocol</h3>
-                 <div className="grid md:grid-cols-2 gap-8">
-                    <MlmRule icon={<Zap />} title="30% Network Prize" desc="When 1000 tasks are completed in your network, you are eligible for 30% of that total revenue as a master prize." />
-                    <MlmRule icon={<Users />} title="Tiered Hierarchy" desc="Commission is split between L1 (20%) and L2 (10%) parents in real-time." />
-                 </div>
-              </div>
-           </div>
-        )}
-
-        {activeNav === 'offers' && (
-           <div className="space-y-10">
-              <div className="space-y-4">
-                 <h1 className="text-5xl font-black uppercase italic tracking-tighter">Ad <span className="text-primary">Rewards</span></h1>
-                 <p className="text-muted-foreground max-w-xl">Watch short sponsor signals to earn coins directly in your wallet. No tasks required.</p>
-              </div>
-              <div className="grid md:grid-cols-2 gap-8">
-                 <Card className="bg-[#0a0a0f] border-primary/20 border-2 p-10 rounded-[3rem] text-center space-y-6">
-                    <Zap className="h-12 w-12 text-primary mx-auto animate-pulse" />
-                    <h3 className="text-2xl font-black uppercase italic">Video Stream Hub</h3>
-                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Earn up to 50 coins per signal.</p>
-                    <Button asChild className="w-full h-16 bg-primary font-black uppercase italic rounded-2xl">
-                       <Link href="/earning-hub">ACCESS AD HUB</Link>
-                    </Button>
-                 </Card>
-                 <Card className="bg-white/5 border-white/10 p-10 rounded-[3rem] flex flex-col justify-center items-center text-center space-y-4">
-                    <Activity className="h-10 w-10 text-muted-foreground opacity-20" />
-                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em]">Passive Signal Node</p>
-                    <p className="text-xs text-muted-foreground font-medium uppercase leading-relaxed">
-                       Sponsor banner payouts reflect automatically in bonus balance during activity.
-                    </p>
-                 </Card>
-              </div>
-           </div>
-        )}
-
-        {activeNav === 'video' && (
-           <div className="space-y-10">
-              <div className="space-y-4">
-                 <h1 className="text-5xl font-black uppercase italic tracking-tighter">Watch <span className="text-primary">& Earn</span></h1>
-                 <p className="text-muted-foreground max-w-xl">Analyze sponsored video signals to claim instant rewards.</p>
-              </div>
-              <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-12 text-center space-y-8">
-                 <div className="h-24 w-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto border border-primary/20">
-                    <Video className="h-12 w-12 text-primary" />
-                 </div>
-                 <h3 className="text-3xl font-black uppercase italic">Deployment Area</h3>
-                 <p className="text-muted-foreground text-sm font-bold uppercase">Earn massive coins per cinematic signal watched.</p>
-                 <Button asChild className="h-20 px-12 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
-                    <Link href="/earning-hub">GO TO HUB</Link>
-                 </Button>
-              </Card>
-           </div>
         )}
       </main>
     </div>
@@ -534,19 +389,5 @@ function WalletCard({ label, value, icon, color }: any) {
         </div>
       </div>
     </Card>
-  );
-}
-
-function MlmRule({ icon, title, desc }: any) {
-  return (
-    <div className="flex items-start gap-4">
-       <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 text-primary shrink-0">
-          {icon}
-       </div>
-       <div>
-          <h4 className="text-sm font-black uppercase italic text-white">{title}</h4>
-          <p className="text-[11px] text-muted-foreground font-bold leading-relaxed">{desc}</p>
-       </div>
-    </div>
   );
 }

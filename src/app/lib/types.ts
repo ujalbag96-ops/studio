@@ -78,6 +78,20 @@ export interface UserLedgerEntry {
   voucherCode?: string; // Digital code for shop redemptions
 }
 
+export interface PayoutRequest {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  amount: number;
+  fee: number;
+  netAmount: number;
+  method: string;
+  destination: string;
+  status: 'pending' | 'completed' | 'failed';
+  timestamp: string;
+  tasksCompleted?: number;
+}
+
 export interface Movie {
   id: string;
   title: string;

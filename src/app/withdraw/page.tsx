@@ -8,14 +8,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2, Clock } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCurrencyData } from '@/lib/currency';
+
+const MIN_WITHDRAWAL = 50;
+const FEE_PERCENT = 0.02; // 2% Industrial Tax
 
 export default function WithdrawPage() {
   const { user } = useUser();
@@ -28,24 +31,42 @@ export default function WithdrawPage() {
   const [destinationId, setDestinationId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isWindowOpen, setIsWindowOpen] = useState(false);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
+  useEffect(() => {
+    // Payout window: Friday (5) and Saturday (6)
+    const day = new Date().getDay();
+    if (day === 5 || day === 6) {
+      setIsWindowOpen(true);
+    } else {
+      setIsWindowOpen(false);
+    }
+  }, []);
+
   const currencyData = getCurrencyData(profile?.country);
   const localValue = parseFloat(amountLocal) || 0;
   const coinsRequired = localValue * currencyData.rateToCoins;
+  const fee = localValue * FEE_PERCENT;
+  const netAmount = localValue - fee;
 
   const handleWithdraw = async () => {
     if (!user || !firestore || !profile || !userRef) return;
     
+    if (!isWindowOpen) {
+      setError("Withdrawal window is closed. Request cycles are only open Friday-Saturday.");
+      return;
+    }
+
     if (coinsRequired > (profile.winningBalance || 0)) {
       setError("Insufficient winning assets in wallet.");
       return;
     }
 
-    if (localValue < 10) {
-      setError(`Minimum threshold: ${currencyData.symbol}10 required.`);
+    if (localValue < MIN_WITHDRAWAL) {
+      setError(`Minimum threshold: ${currencyData.symbol}${MIN_WITHDRAWAL} required.`);
       return;
     }
 
@@ -60,12 +81,15 @@ export default function WithdrawPage() {
         userId: user.uid,
         userEmail: user.email,
         amount: localValue,
+        fee: fee,
+        netAmount: netAmount,
         method: method,
         destination: destinationId,
         status: 'pending',
         timestamp: timestamp,
         country: profile.country || 'Global',
-        currencyCode: currencyData.code
+        currencyCode: currencyData.code,
+        tasksCompleted: profile.tasksCompletedCount || 0
       });
 
       // Atomic Balance Lock
@@ -80,11 +104,11 @@ export default function WithdrawPage() {
         amount: localValue,
         date: timestamp.split('T')[0],
         status: 'pending',
-        description: `Industrial Payout via ${method} to ${destinationId}`,
+        description: `Industrial Payout via ${method} (Net: ${currencyData.symbol}${netAmount.toFixed(2)})`,
         currencySymbol: currencyData.symbol
       });
 
-      toast({ title: "PAYOUT DISPATCHED", description: "Request queued for executive review." });
+      toast({ title: "PAYOUT DISPATCHED", description: "Request queued for Sunday executive review." });
       router.push('/dashboard');
     } catch (err: any) {
       setError("System synchronization failure. Protocol halted.");
@@ -105,6 +129,15 @@ export default function WithdrawPage() {
         </Button>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter">Withdraw <span className="text-primary">Terminal</span></h1>
       </div>
+
+      {!isWindowOpen && (
+        <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-500 rounded-[2rem] p-6">
+           <Clock className="h-6 w-6" />
+           <AlertDescription className="font-bold text-sm ml-2">
+              SIGNAL OFFLINE: Withdrawal requests are only processed on <span className="text-white">Friday and Saturday</span>. Please return during the next payout cycle.
+           </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-10">
         <Card className="bg-[#0a0a0f] border-white/5 shadow-2xl rounded-[2.5rem] overflow-hidden">
@@ -143,9 +176,19 @@ export default function WithdrawPage() {
 
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Transfer Amount ({currencyData.symbol})</Label>
-              <Input type="number" value={amountLocal} onChange={e => setAmountLocal(e.target.value)} placeholder="Min 10" className="h-16 bg-white/5 border-white/10 rounded-xl text-2xl font-black text-primary" />
-              <p className="text-[9px] text-muted-foreground font-bold uppercase ml-1">Rate: 1 {currencyData.code} = {currencyData.rateToCoins} Coins</p>
+              <Input type="number" value={amountLocal} onChange={e => setAmountLocal(e.target.value)} placeholder={`Min ${MIN_WITHDRAWAL}`} className="h-16 bg-white/5 border-white/10 rounded-xl text-2xl font-black text-primary" />
+              <div className="flex justify-between px-1">
+                 <p className="text-[9px] text-muted-foreground font-bold uppercase">Rate: 1 {currencyData.code} = {currencyData.rateToCoins} Coins</p>
+                 <p className="text-[9px] text-red-400 font-bold uppercase">Industrial Fee: 2%</p>
+              </div>
             </div>
+
+            {localValue >= MIN_WITHDRAWAL && (
+              <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-xl space-y-1">
+                 <p className="text-[10px] font-black uppercase text-muted-foreground">Estimated Net Payout</p>
+                 <p className="text-xl font-black text-green-500 italic">{currencyData.symbol}{netAmount.toFixed(2)}</p>
+              </div>
+            )}
 
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">
@@ -156,8 +199,8 @@ export default function WithdrawPage() {
               <Input value={destinationId} onChange={e => setDestinationId(e.target.value)} placeholder={method === 'PayPal' ? 'user@example.com' : 'Enter Address/ID'} className="h-16 bg-white/5 border-white/10 rounded-xl font-mono text-xs" />
             </div>
 
-            <Button onClick={handleWithdraw} disabled={isSubmitting || !amountLocal || !destinationId || !method} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
-               {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : "EXECUTE WITHDRAWAL"}
+            <Button onClick={handleWithdraw} disabled={isSubmitting || !amountLocal || !destinationId || !method || !isWindowOpen} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+               {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : isWindowOpen ? "EXECUTE WITHDRAWAL" : "WINDOW CLOSED"}
             </Button>
           </CardContent>
         </Card>
@@ -167,10 +210,10 @@ export default function WithdrawPage() {
            <h3 className="text-3xl font-black uppercase italic tracking-tighter">Security Protocol</h3>
            <p className="text-[10px] font-black text-primary uppercase tracking-widest">Detected Location: {profile?.country || 'Scanning...'}</p>
            <ul className="space-y-6 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">
-              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Processing: 2-24 Hours Industrial SLA</li>
-              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Local Market Rates Applied Automatically</li>
-              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Multi-Tier Wallet Audit Active</li>
-              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Audit: Cross-border compliance verified</li>
+              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Processing Window: Friday - Saturday</li>
+              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Executive Audit: Sunday 10:00 AM IST</li>
+              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Verification: Tasks/Quizzes Audit Active</li>
+              <li className="flex gap-4"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> Fee: 2% Platform Tax Applied</li>
            </ul>
         </Card>
       </div>
