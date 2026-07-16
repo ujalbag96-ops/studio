@@ -16,15 +16,32 @@ import {
   ArrowLeft,
   Loader2,
   Video,
-  PauseCircle
+  PauseCircle,
+  Sun,
+  Globe,
+  Settings
 } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Slider } from '@/components/ui/slider';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const REWARD_AMOUNT = 300;
 const WATCH_DURATION_SECONDS = 600; // 10 Minutes for Full Session Reward
+
+const LANGUAGE_SOURCES: Record<string, string> = {
+  en: "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
+  hi: "https://www.w3schools.com/html/mov_bbb.mp4",
+  es: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+};
 
 export default function WatchToEarnMovie() {
   const { user, isUserLoading } = useUser();
@@ -35,6 +52,10 @@ export default function WatchToEarnMovie() {
   const [secondsWatched, setSecondsWatched] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Custom Controls State
+  const [brightness, setBrightness] = useState(100);
+  const [language, setLanguage] = useState('en');
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
@@ -103,6 +124,43 @@ export default function WatchToEarnMovie() {
          <div className="lg:col-span-2 space-y-8">
             {/* Main Video Context */}
             <div className="relative rounded-[2.5rem] overflow-hidden bg-black aspect-video border-4 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)] group">
+               
+               {/* Language Selector Overlay */}
+               {!isCompleted && (
+                 <div className="absolute top-6 right-6 z-50">
+                    <Select value={language} onValueChange={setLanguage}>
+                       <SelectTrigger className="w-[140px] h-10 bg-black/40 backdrop-blur-md border-white/10 text-white font-black text-[10px] uppercase rounded-xl">
+                          <Globe className="h-3 w-3 mr-2 text-primary" />
+                          <SelectValue placeholder="Language" />
+                       </SelectTrigger>
+                       <SelectContent className="bg-[#0a0a0f] border-white/10 text-white">
+                          <SelectItem value="en">English Track</SelectItem>
+                          <SelectItem value="hi">Hindi Audio</SelectItem>
+                          <SelectItem value="es">Spanish Dub</SelectItem>
+                       </SelectContent>
+                    </Select>
+                 </div>
+               )}
+
+               {/* Brightness Controller Overlay */}
+               {isPlaying && !isCompleted && (
+                 <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-4 bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/10 animate-in fade-in slide-in-from-left-4 duration-300">
+                    <Sun className="h-4 w-4 text-primary animate-pulse" />
+                    <div className="h-32 flex items-center">
+                       <Slider 
+                        value={[brightness]} 
+                        onValueChange={(val) => setBrightness(val[0])} 
+                        max={150} 
+                        min={30} 
+                        step={1} 
+                        orientation="vertical"
+                        className="h-full"
+                       />
+                    </div>
+                    <span className="text-[8px] font-black text-white">{brightness}%</span>
+                 </div>
+               )}
+
                {!isPlaying && !isCompleted && (
                   <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm space-y-6">
                      <button onClick={() => setIsPlaying(true)} className="h-24 w-24 rounded-full bg-primary flex items-center justify-center shadow-[0_0_50px_rgba(255,123,0,0.5)] hover:scale-110 transition-transform">
@@ -116,7 +174,7 @@ export default function WatchToEarnMovie() {
                )}
 
                {isPlaying && (
-                  <div className="absolute top-6 right-6 z-30 animate-in fade-in">
+                  <div className="absolute bottom-6 right-6 z-30 animate-in fade-in">
                      <button onClick={() => setIsPlaying(false)} className="bg-black/40 backdrop-blur-md p-3 rounded-xl border border-white/10 hover:bg-black/60 transition-all">
                         <PauseCircle className="h-6 w-6 text-white" />
                      </button>
@@ -142,10 +200,13 @@ export default function WatchToEarnMovie() {
                )}
 
                <video 
-                src="https://media.w3.org/2010/05/sintel/trailer_hd.mp4" 
-                className={cn("w-full h-full object-cover transition-opacity duration-700", isPlaying ? "opacity-100" : "opacity-40")}
+                key={language}
+                src={LANGUAGE_SOURCES[language]} 
+                className={cn("w-full h-full object-cover transition-all duration-700", isPlaying ? "opacity-100" : "opacity-40")}
+                style={{ filter: `brightness(${brightness}%)` }}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
+                autoPlay={isPlaying}
                />
 
                {/* Reward Progress Bar */}
@@ -165,7 +226,6 @@ export default function WatchToEarnMovie() {
                   <p className="text-sm font-black uppercase italic text-white/20 tracking-[0.4em] text-center px-10">
                      Sponsored revenue stream generated while session is active.
                   </p>
-                  {/* External Ad Network Integration Placeholder */}
                </div>
             </Card>
 
