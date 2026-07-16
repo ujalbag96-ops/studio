@@ -33,6 +33,9 @@ export interface UserProfile {
   rank: UserRank;
   isAdmin?: boolean;
   isSuspended?: boolean; // Fraud Lock
+  isVpnDetected?: boolean; // VPN Flag
+  isEmulator?: boolean; // Emulator Flag
+  adLoadFailCount?: number; // Ad-blocker tracker
   status?: 'active' | 'suspended';
   lastSpinTimestamp?: string;
   vipStatus?: VIPStatus;
@@ -91,6 +94,7 @@ export interface PayoutRequest {
   timestamp: string;
   tasksCompleted?: number;
   isExpress?: boolean; // Fast Payout Signal
+  isFlagged?: boolean; // Security Flag
 }
 
 export interface Movie {

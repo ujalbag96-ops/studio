@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldCheck, Eye, EyeOff, LifeBuoy, KeyRound, Smartphone, Mail, Hash } from 'lucide-react';
+import { Loader2, ShieldCheck, Eye, EyeOff, LifeBuoy, KeyRound, Smartphone, Mail, Hash, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -69,8 +69,13 @@ function LoginContent() {
         localStorage.setItem('bb_device_id', deviceId);
       }
 
-      // Hyper-Local Geo-IP Integration
-      let ipData = { ip: 'Unknown', country: 'Global', region: 'Unknown', city: 'Unknown' };
+      // 🕵️ ANTI-FRAUD: Device Integrity Check
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isEmulator = userAgent.includes('sdk') || userAgent.includes('google_sdk') || userAgent.includes('droid4x');
+      const isBot = (navigator as any).webdriver;
+
+      // 🕵️ ANTI-FRAUD: IP & VPN Check
+      let ipData = { ip: 'Unknown', country: 'Global', region: 'Unknown', city: 'Unknown', proxy: false };
       try {
          const res = await fetch('https://ipapi.co/json/');
          const data = await res.json();
@@ -78,7 +83,8 @@ function LoginContent() {
            ip: data.ip, 
            country: data.country_name,
            region: data.region,
-           city: data.city
+           city: data.city,
+           proxy: data.security?.vpn || data.security?.proxy || false
          };
       } catch(e) {
          console.error("Geo-IP node unreachable");
@@ -127,17 +133,34 @@ function LoginContent() {
           country: ipData.country,
           region: ipData.region,
           city: ipData.city,
-          status: 'active',
-          isSuspended: false,
+          status: (ipData.proxy || isEmulator || isBot) ? 'suspended' : 'active',
+          isSuspended: (ipData.proxy || isEmulator || isBot),
+          isEmulator,
+          isVpnDetected: ipData.proxy,
           joinedAt: new Date().toISOString()
         });
+
+        if (ipData.proxy || isEmulator || isBot) {
+           await addDoc(collection(firestore, 'fraud_alerts'), {
+              userId: firebaseUser.uid,
+              type: ipData.proxy ? 'VPN_DETECTED' : isEmulator ? 'EMULATOR_DETECTED' : 'BOT_DETECTED',
+              ip: ipData.ip,
+              userAgent,
+              timestamp: new Date().toISOString()
+           });
+        }
       } else {
+        const existingData = snap.data();
+        const vpnStatus = ipData.proxy || existingData.isVpnDetected;
+        
         await setDoc(userDocRef, { 
           lastIp: ipData.ip, 
           deviceId: deviceId, 
           country: ipData.country,
           region: ipData.region,
-          city: ipData.city
+          city: ipData.city,
+          isVpnDetected: vpnStatus,
+          isSuspended: vpnStatus || existingData.isSuspended || isEmulator
         }, { merge: true });
       }
     } catch (err) {

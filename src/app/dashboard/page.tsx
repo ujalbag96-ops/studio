@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
-import { collection, doc, query, limit, orderBy, updateDoc, increment, addDoc } from 'firebase/firestore';
+import { collection, doc, query, limit, orderBy, updateDoc, increment, addDoc, where } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   LayoutDashboard,
@@ -130,25 +130,16 @@ export default function UserDashboard() {
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!user) return <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
-  const milestoneGoal = 1000;
-  const milestoneProgress = Math.min(((profile?.networkTaskCompletions || 0) / milestoneGoal) * 100, 100);
-  
   const personalTasks = profile?.tasksCompletedCount || 0;
-  const directRefs = profile?.totalReferrals || 0;
-  const hasMinPersonalTasks = personalTasks >= 5;
-  const hasMinReferrals = directRefs >= 5;
-  const isActiveLeader = hasMinPersonalTasks && hasMinReferrals;
-
   const vipGoal = 10;
-  const vipProgress = Math.min(((profile?.tasksCompletedCount || 0) / vipGoal) * 100, 100);
-  const isVip1 = (profile?.vipLevel === 'VIP 1');
+  const vipProgress = Math.min((personalTasks / vipGoal) * 100, 100);
 
   const latestPayout = lastPayout?.[0];
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative">
-      {/* SECURITY LOCK OVERLAY */}
-      {profile?.isSuspended && (
+      {/* 🔐 SECURITY LOCK OVERLAY */}
+      {(profile?.isSuspended || profile?.isVpnDetected) && (
         <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 text-center">
            <div className="max-w-md space-y-8 animate-in zoom-in-95 duration-500">
               <div className="h-32 w-32 bg-red-600/20 rounded-[3rem] border-2 border-red-600 flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(220,38,38,0.3)]">
@@ -157,10 +148,12 @@ export default function UserDashboard() {
               <div className="space-y-4">
                  <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Identity <span className="text-red-600">Locked</span></h2>
                  <p className="text-muted-foreground font-medium leading-relaxed">
-                    Our anti-fraud engine has detected multiple accounts originating from this hardware signature. Your account has been suspended pending manual audit.
+                    {profile?.isVpnDetected 
+                      ? "VPN or Proxy signal detected! Please disable any secure tunnels to continue accessing the arena."
+                      : "Our anti-fraud engine has detected a security violation originating from this hardware signature. Your account is locked pending manual audit."}
                  </p>
                  <div className="p-4 bg-red-600/10 border border-red-600/20 rounded-xl">
-                    <p className="text-[10px] font-black uppercase text-red-400">Violation: Device Collision Pattern</p>
+                    <p className="text-[10px] font-black uppercase text-red-400">Violation: {profile?.isVpnDetected ? 'VPN_PROXY_ACTIVE' : 'HARDWARE_COLLISION_PATTERN'}</p>
                  </div>
               </div>
               <Button asChild variant="outline" className="h-14 px-10 border-white/10 text-white font-black uppercase">
@@ -172,32 +165,6 @@ export default function UserDashboard() {
 
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
       
-      <Dialog open={showVipModal} onOpenChange={setShowVipModal}>
-         <DialogContent className="bg-[#0a0a0f] border-primary/20 text-white max-w-sm rounded-[2.5rem] p-8 shadow-[0_0_100px_rgba(255,123,0,0.15)]">
-            <DialogHeader className="space-y-4 text-center">
-               <div className="h-20 w-20 rounded-3xl bg-primary/10 border-2 border-primary/40 flex items-center justify-center mx-auto animate-float">
-                  <Crown className="h-10 w-10 text-primary" />
-               </div>
-               <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Elite <span className="text-primary">VIP 1</span></DialogTitle>
-               <DialogDescription className="text-xs font-bold text-muted-foreground uppercase leading-relaxed">
-                  Complete 10 tasks to automatically unlock VIP 1 status and instantly earn an additional 5% bonus on your task revenues!
-               </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-6 py-6">
-               <div className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-black uppercase italic">
-                     <span>Current Progress</span>
-                     <span className="text-primary">{profile?.tasksCompletedCount || 0} / 10 Tasks</span>
-                  </div>
-                  <Progress value={vipProgress} className="h-3 bg-white/5" />
-               </div>
-            </div>
-            <DialogFooter>
-               <Button onClick={() => { setShowVipModal(false); setActiveNav('offers'); }} className="w-full h-16 bg-primary font-black uppercase italic rounded-2xl shadow-xl shadow-primary/20">GO TO MISSIONS</Button>
-            </DialogFooter>
-         </DialogContent>
-      </Dialog>
-
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-10 border-b border-white/5">
           <Link href="/" className="flex items-center gap-4 group">
@@ -215,7 +182,6 @@ export default function UserDashboard() {
           <SidebarItem active={activeNav === 'video'} icon={<PlayCircle />} label="Watch & Earn" onClick={() => setActiveNav('video')} />
           <SidebarItem active={activeNav === 'offers'} icon={<Zap />} label="Ad Rewards" onClick={() => setActiveNav('offers')} />
           <SidebarItem active={false} icon={<Flag />} label="Cricket Hub" href="/cricket" />
-          <SidebarItem active={false} icon={<ShoppingBag />} label="In-App Shop" href="/shop" />
         </nav>
 
         <div className="p-8 border-t border-white/5">
@@ -230,7 +196,10 @@ export default function UserDashboard() {
           <>
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
               <div className="space-y-4">
-                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Student Warrior</Badge>
+                <div className="flex items-center gap-3">
+                   <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Student Warrior</Badge>
+                   {profile?.isEmulator && <Badge className="bg-amber-500/20 text-amber-500 border-none uppercase font-black px-4 py-1 text-[10px]">Emulator Mode</Badge>}
+                </div>
                 <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Student <span className="text-primary">Vault</span></h1>
                 <div className="flex flex-wrap items-center gap-4">
                    <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
@@ -267,7 +236,7 @@ export default function UserDashboard() {
                       "h-16 w-16 rounded-2xl flex items-center justify-center border transition-all",
                       latestPayout.status === 'completed' ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-primary/10 border-primary/20 text-primary animate-pulse"
                     )}>
-                       {latestPayout.status === 'completed' ? <CheckCircle2 className="h-8 w-8" /> : <RefreshCw className="h-8 w-8" />}
+                       {latestPayout.status === 'completed' ? <CheckCircle2 className="h-8 w-8" /> : <Loader2 className="h-8 w-8 animate-spin" />}
                     </div>
                     <div>
                        <h3 className="text-xl font-black uppercase italic text-white">Payout Pulse</h3>

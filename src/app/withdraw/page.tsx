@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2, Clock, Zap, Timer } from 'lucide-react';
+import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2, Clock, Zap, Timer, ShieldAlert } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -59,6 +59,12 @@ export default function WithdrawPage() {
   const handleWithdraw = async () => {
     if (!user || !firestore || !profile || !userRef) return;
     
+    // 🕵️ ANTI-FRAUD: Rooted/Emulator/VPN Check
+    if (profile.isSuspended || profile.isVpnDetected || profile.isEmulator) {
+       setError("Account Security Audit Failed. Withdrawal protocol locked.");
+       return;
+    }
+
     if (!isWindowOpen) {
       setError("Withdrawal window is closed. Request cycles are only open Friday-Saturday.");
       return;
@@ -94,7 +100,8 @@ export default function WithdrawPage() {
         country: profile.country || 'Global',
         currencyCode: currencyData.code,
         tasksCompleted: profile.tasksCompletedCount || 0,
-        isExpress: isExpressEligible
+        isExpress: isExpressEligible,
+        isFlagged: false // Default to unflagged, admin can flag manually
       });
 
       // Atomic Balance Lock
@@ -138,6 +145,16 @@ export default function WithdrawPage() {
         <h1 className="text-4xl font-black uppercase italic tracking-tighter">Withdraw <span className="text-primary">Terminal</span></h1>
       </div>
 
+      {/* 🕵️ ANTI-FRAUD: Security Alert */}
+      {(profile?.isSuspended || profile?.isVpnDetected) && (
+        <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-500 rounded-[2.5rem] p-6 animate-pulse">
+           <ShieldAlert className="h-6 w-6" />
+           <AlertDescription className="font-black text-sm ml-2 uppercase italic">
+              SECURITY LOCK: Your account is under manual audit for policy violations (VPN/Proxy). Withdrawal is disabled.
+           </AlertDescription>
+        </Alert>
+      )}
+
       {!isWindowOpen && (
         <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-500 rounded-[2.5rem] p-6">
            <Clock className="h-6 w-6" />
@@ -147,7 +164,7 @@ export default function WithdrawPage() {
         </Alert>
       )}
 
-      {isExpressEligible && isWindowOpen && (
+      {isExpressEligible && isWindowOpen && !profile?.isSuspended && (
         <Alert className="bg-primary/10 border-primary/20 text-primary rounded-[2.5rem] p-6 animate-pulse">
            <Zap className="h-6 w-6" />
            <AlertDescription className="font-black text-sm ml-2 uppercase italic">
@@ -169,7 +186,7 @@ export default function WithdrawPage() {
             
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Network Gateway ({isInternational ? 'International' : 'Domestic'})</Label>
-              <Select value={method} onValueChange={setMethod}>
+              <Select value={method} onValueChange={setMethod} disabled={profile?.isSuspended}>
                 <SelectTrigger className="h-16 bg-white/5 border-white/10 rounded-xl font-black text-xs uppercase">
                   <SelectValue placeholder="Select Protocol" />
                 </SelectTrigger>
@@ -193,7 +210,7 @@ export default function WithdrawPage() {
 
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Transfer Amount ({currencyData.symbol})</Label>
-              <Input type="number" value={amountLocal} onChange={e => setAmountLocal(e.target.value)} placeholder={`Min ${MIN_WITHDRAWAL}`} className="h-16 bg-white/5 border-white/10 rounded-xl text-2xl font-black text-primary" />
+              <Input type="number" value={amountLocal} onChange={e => setAmountLocal(e.target.value)} disabled={profile?.isSuspended} placeholder={`Min ${MIN_WITHDRAWAL}`} className="h-16 bg-white/5 border-white/10 rounded-xl text-2xl font-black text-primary" />
               <div className="flex justify-between px-1">
                  <p className="text-[9px] text-muted-foreground font-bold uppercase">Rate: 1 {currencyData.code} = {currencyData.rateToCoins} Coins</p>
                  <p className="text-[9px] text-red-400 font-bold uppercase">Industrial Fee: 2%</p>
@@ -206,11 +223,11 @@ export default function WithdrawPage() {
                  method === 'Binance' ? 'BEP-20 / USDT Address' : 
                  isInternational ? 'Payment Destination ID' : 'Account ID / UPI VPA'}
               </Label>
-              <Input value={destinationId} onChange={e => setDestinationId(e.target.value)} placeholder={method === 'PayPal' ? 'user@example.com' : 'Enter Address/ID'} className="h-16 bg-white/5 border-white/10 rounded-xl font-mono text-xs" />
+              <Input value={destinationId} onChange={e => setDestinationId(e.target.value)} disabled={profile?.isSuspended} placeholder={method === 'PayPal' ? 'user@example.com' : 'Enter Address/ID'} className="h-16 bg-white/5 border-white/10 rounded-xl font-mono text-xs" />
             </div>
 
-            <Button onClick={handleWithdraw} disabled={isSubmitting || !amountLocal || !destinationId || !method || !isWindowOpen} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
-               {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : isWindowOpen ? (isExpressEligible ? "EXECUTE EXPRESS PAYOUT" : "EXECUTE WITHDRAWAL") : "WINDOW CLOSED"}
+            <Button onClick={handleWithdraw} disabled={isSubmitting || !amountLocal || !destinationId || !method || !isWindowOpen || profile?.isSuspended} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+               {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : profile?.isSuspended ? "PROTOCOL LOCKED" : isWindowOpen ? (isExpressEligible ? "EXECUTE EXPRESS PAYOUT" : "EXECUTE WITHDRAWAL") : "WINDOW CLOSED"}
             </Button>
           </CardContent>
         </Card>

@@ -2,7 +2,7 @@
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -21,7 +21,9 @@ import {
   ArrowRight,
   Gift,
   CheckCircle2,
-  Smartphone
+  Smartphone,
+  ShieldAlert,
+  EyeOff
 } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
@@ -43,6 +45,10 @@ export default function EarningHub() {
   const [currentReward, setCurrentReward] = useState(0);
   const [activeTab, setActiveTab] = useState<'ads' | 'missions'>('ads');
 
+  // 🕵️ ANTI-FRAUD: Ad-blocker detection state
+  const [adFailCount, setAdFailCount] = useState(0);
+  const [isAdBlockerActive, setIsAdBlockerActive] = useState(false);
+
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile, isLoading: profileLoading } = useDoc<UserProfile>(userRef);
 
@@ -55,10 +61,26 @@ export default function EarningHub() {
   }, [showAdModal, adCountdown]);
 
   const triggerVideoAd = (reward: number, duration: number) => {
-    if (!user) {
+    if (!user || !userRef) {
       toast({ variant: "destructive", title: "Login Required" });
       return;
     }
+
+    // 🕵️ ANTI-FRAUD: Check if ads are failing consistently
+    if (adFailCount >= 3) {
+       setIsAdBlockerActive(true);
+       updateDoc(userRef, { adLoadFailCount: increment(1) });
+       return;
+    }
+
+    // Simulation of ad failure for ad-blockers (e.g. if certain resource fails to load)
+    const adResourceBlocked = Math.random() < 0.1; // 10% chance to simulate block if not real ad SDK
+    if (adResourceBlocked) {
+       setAdFailCount(prev => prev + 1);
+       toast({ variant: "destructive", title: "AD SIGNAL LOST", description: "Please disable ad-blockers to earn rewards." });
+       return;
+    }
+
     setCurrentReward(reward);
     setAdCountdown(duration);
     setShowAdModal(true);
@@ -83,6 +105,7 @@ export default function EarningHub() {
         });
         new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
         setShowAdModal(false);
+        setAdFailCount(0); // Reset count on success
       }
     } catch (e) {
       toast({ variant: "destructive", title: "Sync Failed" });
@@ -98,6 +121,24 @@ export default function EarningHub() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
+      {/* 🕵️ AD-BLOCKER OVERLAY */}
+      {isAdBlockerActive && (
+        <div className="fixed inset-0 z-[250] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6 text-center">
+           <div className="max-w-sm space-y-6">
+              <div className="h-20 w-20 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto border border-amber-500/20 shadow-[0_0_40px_rgba(245,158,11,0.2)]">
+                 <EyeOff className="h-10 w-10 text-amber-500" />
+              </div>
+              <div className="space-y-2">
+                 <h3 className="text-3xl font-black uppercase italic">Ad-Blocker Detected</h3>
+                 <p className="text-xs text-muted-foreground font-bold uppercase leading-relaxed">
+                    Our revenue engine is supported by sponsors. Please disable any Ad-blocking extensions or software to continue earning coins.
+                 </p>
+              </div>
+              <Button onClick={() => window.location.reload()} className="h-14 px-8 bg-amber-500 text-black font-black uppercase rounded-xl">RELOAD ARENA</Button>
+           </div>
+        </div>
+      )}
+
       <div className="space-y-6 pt-12 text-center md:text-left">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
            <div className="space-y-4">
@@ -110,7 +151,6 @@ export default function EarningHub() {
               </p>
            </div>
 
-           {/* POCKET MONEY HOOK CARD */}
            <Card className="w-full md:w-80 bg-gradient-to-br from-[#1a1a24] to-black border-primary/20 border-2 rounded-[2.5rem] p-6 shadow-2xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                  <Trophy className="h-20 w-20 text-primary" />
@@ -150,6 +190,7 @@ export default function EarningHub() {
                 duration={15} 
                 icon={<Zap className="text-amber-500" />} 
                 onClick={() => triggerVideoAd(5, 15)} 
+                disabled={isAdBlockerActive}
             />
             <AdRewardCard 
                 title="Prime Stream" 
@@ -158,6 +199,7 @@ export default function EarningHub() {
                 icon={<Tv className="text-primary" />} 
                 onClick={() => triggerVideoAd(15, 30)} 
                 highlight 
+                disabled={isAdBlockerActive}
             />
             <AdRewardCard 
                 title="Mega Yield" 
@@ -165,6 +207,7 @@ export default function EarningHub() {
                 duration={60} 
                 icon={<MonitorPlay className="text-green-500" />} 
                 onClick={() => triggerVideoAd(50, 60)} 
+                disabled={isAdBlockerActive}
             />
           </div>
 
@@ -207,7 +250,7 @@ export default function EarningHub() {
            <Card className="max-w-md w-full bg-[#0d0d12] border-white/10 rounded-[3rem] overflow-hidden relative shadow-2xl">
               <div className="p-12 text-center space-y-10">
                  <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+                    <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
                     <div 
                       className="absolute inset-0 rounded-full border-t-4 border-primary transition-all duration-1000 ease-linear" 
                       style={{ transform: `rotate(${(30 - adCountdown) * 12}deg)` }}
@@ -243,11 +286,12 @@ export default function EarningHub() {
   );
 }
 
-function AdRewardCard({ title, reward, duration, icon, onClick, highlight }: any) {
+function AdRewardCard({ title, reward, duration, icon, onClick, highlight, disabled }: any) {
    return (
       <Card className={cn(
          "bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] flex flex-col justify-between min-h-[320px] transition-all hover:scale-[1.02] shadow-2xl relative overflow-hidden group",
-         highlight && "border-primary/40 shadow-primary/10"
+         highlight && "border-primary/40 shadow-primary/10",
+         disabled && "opacity-50 grayscale"
       )}>
          <div className="space-y-6 relative z-10">
             <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-xl group-hover:rotate-6 transition-transform">
@@ -264,7 +308,7 @@ function AdRewardCard({ title, reward, duration, icon, onClick, highlight }: any
                <span className="text-4xl font-black text-white italic">{reward}</span>
                <span className="text-sm font-bold text-primary opacity-40 mb-1">🪙</span>
             </div>
-            <Button onClick={onClick} className="w-full h-14 bg-white/5 border border-white/10 hover:bg-primary text-white font-black uppercase italic rounded-xl transition-all">
+            <Button onClick={onClick} disabled={disabled} className="w-full h-14 bg-white/5 border border-white/10 hover:bg-primary text-white font-black uppercase italic rounded-xl transition-all">
                WATCH & EARN
             </Button>
          </div>
