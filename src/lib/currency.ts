@@ -8,9 +8,10 @@ export interface CurrencyData {
 }
 
 /**
- * Industrial Currency Calibration
- * India: 100 Coins = 1 INR (User request: 300 coins = 3 INR)
- * Global/US: 1000 Coins = 1 USD (User request: 300 coins = 0.30 USD)
+ * Industrial Currency & Exchange Calibration
+ * Multi-Currency Sync Logic for Distributed Engine:
+ * - India: 100 Coins = 1 INR (Reward 300 = 3 INR)
+ * - Global: 1000 Coins = 1 USD (Reward 300 = 0.30 USD)
  */
 export const CURRENCY_MAP: Record<string, CurrencyData> = {
   'India': { symbol: '₹', code: 'INR', rateToCoins: 100 },
@@ -32,4 +33,14 @@ export function getCurrencyData(country?: string): CurrencyData {
 export function formatCurrency(amount: number, country?: string): string {
   const data = getCurrencyData(country);
   return `${data.symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/**
+ * Distributed Revenue Calculator
+ * Converts arbitrary coin amounts to local market cash value.
+ */
+export function calculateCashValue(coins: number, country?: string): string {
+  const data = getCurrencyData(country);
+  const cash = coins / data.rateToCoins;
+  return `${data.symbol}${cash.toFixed(2)}`;
 }
