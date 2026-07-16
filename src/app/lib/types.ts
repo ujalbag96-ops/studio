@@ -21,6 +21,8 @@ export interface UserProfile {
   referredBy?: string; // L1 Upline
   referredByL2?: string; // L2 Upline
   mlmLevel?: number; // 0, 1000, 3000, 5000, 10000
+  vipLevel?: 'VIP 0' | 'VIP 1' | 'VIP 2'; // Tier System
+  vipBonusEarned?: number;
   deviceId?: string; // Hardware Fingerprint
   lastIp?: string;
   country?: string;
@@ -57,7 +59,7 @@ export interface PaymentDispute {
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
-  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake' | 'esports_stake' | 'referral_comm' | 'mlm_joining';
+  type: 'deposit' | 'withdrawal' | 'income' | 'entry_fee' | 'referral' | 'conversion' | 'vip_purchase' | 'prediction_fee' | 'prediction_win' | 'video_reward' | 'shop_redemption' | 'cricket_stake' | 'esports_stake' | 'referral_comm' | 'mlm_joining' | 'vip_bonus';
   amount: number;
   date: string;
   status: 'pending' | 'completed' | 'failed';

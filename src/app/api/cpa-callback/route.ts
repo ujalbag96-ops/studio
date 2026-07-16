@@ -5,12 +5,12 @@ import { doc, updateDoc, increment, collection, addDoc, getDoc, writeBatch } fro
 
 /**
  * Defensive MLM CPA Postback Webhook
- * Includes Anti-Fraud Device & IP Validation.
+ * Includes Anti-Fraud Device & IP Validation + VIP Bonus Logic.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('uid');
-  const rewardAmount = parseFloat(searchParams.get('reward') || '0');
+  let rewardAmount = parseFloat(searchParams.get('reward') || '0');
   const appName = searchParams.get('offer') || 'Premium Mission';
 
   if (!userId || isNaN(rewardAmount) || rewardAmount <= 0) {
@@ -34,13 +34,37 @@ export async function GET(request: Request) {
     }
 
     const dateStr = new Date().toISOString().split('T')[0];
+    const currentTasks = (userData.tasksCompletedCount || 0) + 1;
 
-    // 1. Credit the Performing User (Worker)
+    // 1. VIP 1 Logic: 5% Bonus and Auto-Upgrade
+    let vipBonus = 0;
+    let newVipLevel = userData.vipLevel || 'VIP 0';
+
+    if (newVipLevel === 'VIP 0' && currentTasks >= 10) {
+       newVipLevel = 'VIP 1';
+       // Initial VIP 1 Notification
+       await addDoc(collection(firestore, 'notifications'), {
+          userId: userId,
+          title: '🔥 VIP 1 ACTIVATED',
+          body: 'Congratulations! You have completed 10 tasks. You are now VIP 1 and will earn +5% bonus on all future tasks!',
+          timestamp: new Date().toISOString(),
+          type: 'mission'
+       });
+    }
+
+    if (newVipLevel === 'VIP 1') {
+       vipBonus = rewardAmount * 0.05;
+       rewardAmount += vipBonus;
+    }
+
+    // 2. Credit the Performing User (Worker)
     batch.update(userRef, {
       bonusBalance: increment(rewardAmount),
       coins: increment(rewardAmount),
       tasksCompletedCount: increment(1),
-      isAccountActivated: (userData.tasksCompletedCount || 0) + 1 >= 10
+      vipLevel: newVipLevel,
+      vipBonusEarned: increment(vipBonus),
+      isAccountActivated: currentTasks >= 10 || userData.isAccountActivated
     });
 
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
@@ -48,11 +72,10 @@ export async function GET(request: Request) {
       amount: rewardAmount,
       date: dateStr,
       status: 'completed',
-      description: `CPA Reward: ${appName} Verified`
+      description: `CPA Reward: ${appName} Verified ${vipBonus > 0 ? '(Includes 5% VIP 1 Bonus)' : ''}`
     });
 
-    // 2. MLM Anti-Fraud Logic
-    // Fetch uplines to distribute commission AND check for device/IP collisions
+    // 3. MLM Anti-Fraud Logic
     const uplineIds = [userData.referredBy, userData.referredByL2].filter(Boolean);
 
     for (const parentId of uplineIds) {
@@ -62,13 +85,10 @@ export async function GET(request: Request) {
       
       if (parentSnap.exists()) {
         const pData = parentSnap.data();
-        
-        // Anti-Fraud check: Compare Device ID and IP
         const isSameDevice = pData.deviceId === userData.deviceId;
         const isSameIp = pData.lastIp === userData.lastIp;
 
         if (isSameDevice || isSameIp) {
-           // FLAG FOR FRAUD - Do not increment milestone for this task
            await addDoc(collection(firestore, 'fraud_alerts'), {
               referrerId: parentId,
               workerId: userId,
@@ -77,15 +97,12 @@ export async function GET(request: Request) {
               details: `Self-referral detected: ${userData.lastIp} | ${userData.deviceId}`
            });
 
-           // Strictly lock milestone progress if extreme fraud pattern
            if (isSameDevice) {
               batch.update(parentRef, { isSuspended: true, status: 'suspended' });
            }
-           
-           continue; // Skip reward for this specific fraudulent referral link
+           continue; 
         }
 
-        // Clean Transaction: Distribute Commission & Milestone
         const isL1 = parentId === userData.referredBy;
         const commRate = isL1 ? 0.20 : 0.10;
         const commAmount = rewardAmount * commRate;
@@ -111,7 +128,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Atomic MLM distribution and Milestone sync successful.',
+      message: `Sync successful. ${newVipLevel === 'VIP 1' ? 'VIP 1 Active.' : ''}`,
       userCredit: rewardAmount
     });
 

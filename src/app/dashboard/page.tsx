@@ -34,7 +34,9 @@ import {
   Network,
   Users,
   CheckCircle2,
-  ShieldAlert
+  ShieldAlert,
+  Sparkles,
+  ChevronUp
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,6 +54,7 @@ import OfferWall from '@/components/OfferWall';
 import LiveCricketWidget from '@/components/LiveCricketWidget';
 import ActivationGateway from '@/components/ActivationGateway';
 import ViralLeaderboard from '@/components/ViralLeaderboard';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -61,6 +64,7 @@ export default function UserDashboard() {
   const { toast } = useToast();
   const [activeNav, setActiveNav] = useState<'overview' | 'offers' | 'video' | 'mlm'>('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
+  const [showVipModal, setShowVipModal] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
@@ -100,6 +104,10 @@ export default function UserDashboard() {
   const milestoneProgress = Math.min(((profile?.networkTaskCompletions || 0) / milestoneGoal) * 100, 100);
   const isMilestoneHit = (profile?.networkTaskCompletions || 0) >= milestoneGoal;
 
+  const vipGoal = 10;
+  const vipProgress = Math.min(((profile?.tasksCompletedCount || 0) / vipGoal) * 100, 100);
+  const isVip1 = (profile?.vipLevel === 'VIP 1');
+
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative">
       {/* SECURITY LOCK OVERLAY */}
@@ -127,6 +135,43 @@ export default function UserDashboard() {
 
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
       
+      {/* VIP 1 UPGRADE MODAL */}
+      <Dialog open={showVipModal} onOpenChange={setShowVipModal}>
+         <DialogContent className="bg-[#0a0a0f] border-primary/20 text-white max-w-sm rounded-[2.5rem] p-8 shadow-[0_0_100px_rgba(255,123,0,0.15)]">
+            <DialogHeader className="space-y-4 text-center">
+               <div className="h-20 w-20 rounded-3xl bg-primary/10 border-2 border-primary/40 flex items-center justify-center mx-auto animate-float">
+                  <Crown className="h-10 w-10 text-primary" />
+               </div>
+               <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Elite <span className="text-primary">VIP 1</span></DialogTitle>
+               <DialogDescription className="text-xs font-bold text-muted-foreground uppercase leading-relaxed">
+                  Complete 10 tasks to automatically unlock VIP 1 status and instantly earn an additional 5% bonus on your task revenues!
+               </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-6">
+               <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] font-black uppercase italic">
+                     <span>Current Progress</span>
+                     <span className="text-primary">{profile?.tasksCompletedCount || 0} / 10 Tasks</span>
+                  </div>
+                  <Progress value={vipProgress} className="h-3 bg-white/5" />
+               </div>
+               <div className="grid gap-3">
+                  <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
+                     <Zap className="h-5 w-5 text-primary" />
+                     <p className="text-[10px] font-black uppercase italic">5% Permanent Revenue Bonus</p>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
+                     <CheckCircle2 className="h-5 w-5 text-secondary" />
+                     <p className="text-[10px] font-black uppercase italic">Priority Withdrawal Logic</p>
+                  </div>
+               </div>
+            </div>
+            <DialogFooter>
+               <Button onClick={() => { setShowVipModal(false); setActiveNav('offers'); }} className="w-full h-16 bg-primary font-black uppercase italic rounded-2xl shadow-xl shadow-primary/20">GO TO MISSIONS</Button>
+            </DialogFooter>
+         </DialogContent>
+      </Dialog>
+
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-10 border-b border-white/5">
           <Link href="/" className="flex items-center gap-4 group">
@@ -161,15 +206,40 @@ export default function UserDashboard() {
               <div className="space-y-4">
                 <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Warrior</Badge>
                 <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">My <span className="text-primary">Portfolio</span></h1>
-                <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
-                   <div className="truncate">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">User ID (UID)</p>
-                      <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
-                   </div>
-                   <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 shrink-0">
-                      <Copy className="h-4 w-4" />
-                   </Button>
-                </Card>
+                <div className="flex flex-wrap items-center gap-4">
+                   <Card className="bg-white/5 border-white/10 p-4 rounded-xl flex items-center justify-between gap-4 max-w-sm">
+                      <div className="truncate">
+                         <p className="text-[10px] font-bold text-muted-foreground uppercase">User ID (UID)</p>
+                         <p className="text-sm font-mono font-black text-primary truncate mt-1">{user.uid}</p>
+                      </div>
+                      <Button onClick={copyUid} variant="ghost" size="icon" className="h-10 w-10 shrink-0">
+                         <Copy className="h-4 w-4" />
+                      </Button>
+                   </Card>
+                   
+                   {/* NEON VIP UPGRADE COMPONENT */}
+                   {!isVip1 ? (
+                      <button 
+                       onClick={() => setShowVipModal(true)}
+                       className="group relative h-16 px-8 rounded-2xl bg-black border-2 border-primary/40 flex items-center gap-4 overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,123,0,0.15)]"
+                      >
+                         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                         <div className="absolute top-0 left-0 w-full h-full border-2 border-primary/20 rounded-2xl animate-pulse" />
+                         <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:shadow-[0_0_15px_rgba(255,123,0,0.5)] transition-shadow">
+                            <Crown className="h-5 w-5" />
+                         </div>
+                         <div className="text-left">
+                            <p className="text-[10px] font-black uppercase italic text-primary group-hover:text-white transition-colors">Upgrade to VIP 1</p>
+                            <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">+5% REVENUE BONUS</p>
+                         </div>
+                         <ChevronUp className="h-4 w-4 text-primary ml-2 animate-bounce" />
+                      </button>
+                   ) : (
+                      <Badge className="h-16 px-8 rounded-2xl bg-primary/10 border-2 border-primary text-primary flex items-center gap-4 font-black uppercase italic text-lg shadow-[0_0_30px_rgba(255,123,0,0.2)]">
+                         <Sparkles className="h-6 w-6" /> VIP 1 ACTIVE
+                      </Badge>
+                   )}
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 <Button 
