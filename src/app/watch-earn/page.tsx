@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,7 +19,6 @@ import {
   PauseCircle,
   Sun,
   Globe,
-  Settings
 } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile } from '@/app/lib/types';
@@ -32,18 +32,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Hls from 'hls.js';
 
 const REWARD_AMOUNT = 300;
-const WATCH_DURATION_SECONDS = 600; // 10 Minutes for Full Session Reward
+const WATCH_DURATION_SECONDS = 600;
 
-/**
- * Industrial Video Source Mapping
- * Updated with user-provided IPTV and Sample links.
- */
 const LANGUAGE_SOURCES: Record<string, string> = {
   hi: "https://iptv-org.github.io/iptv/countries/in.m3u",
   en: "https://www.w3schools.com/html/movie.mp4",
-  es: "" // Empty as requested
+  es: "" 
 };
 
 export default function WatchToEarnMovie() {
@@ -56,14 +53,15 @@ export default function WatchToEarnMovie() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Custom Controls State
   const [brightness, setBrightness] = useState(100);
   const [language, setLanguage] = useState('en');
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
-  // Runtime Reward Tracker Stream
   useEffect(() => {
     let interval: any;
     if (isPlaying && secondsWatched < WATCH_DURATION_SECONDS) {
@@ -76,6 +74,51 @@ export default function WatchToEarnMovie() {
     return () => clearInterval(interval);
   }, [isPlaying, secondsWatched, isCompleted]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    const source = LANGUAGE_SOURCES[language];
+    
+    if (!video || !source) return;
+
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    if (source.includes('.m3u') || source.includes('.m3u8')) {
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(source);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (isPlaying) video.play().catch(() => {});
+        });
+        hlsRef.current = hls;
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = source;
+      }
+    } else {
+      video.src = source;
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [language]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.play().catch(() => setIsPlaying(false));
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [isPlaying]);
+
   const handleClaimReward = async () => {
     if (!user || isCompleted || isProcessing) return;
     
@@ -84,7 +127,6 @@ export default function WatchToEarnMovie() {
     setIsProcessing(true);
 
     try {
-      // Secure Backend Postback Simulation
       const res = await fetch('/api/watch-reward', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,10 +167,8 @@ export default function WatchToEarnMovie() {
 
       <div className="grid lg:grid-cols-3 gap-10">
          <div className="lg:col-span-2 space-y-8">
-            {/* Main Video Context */}
             <div className="relative rounded-[2.5rem] overflow-hidden bg-black aspect-video border-4 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)] group">
                
-               {/* Language Selector Overlay */}
                {!isCompleted && (
                  <div className="absolute top-6 right-6 z-50">
                     <Select value={language} onValueChange={setLanguage}>
@@ -145,7 +185,6 @@ export default function WatchToEarnMovie() {
                  </div>
                )}
 
-               {/* Brightness Controller Overlay */}
                {isPlaying && !isCompleted && (
                  <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-4 bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/10 animate-in fade-in slide-in-from-left-4 duration-300">
                     <Sun className="h-4 w-4 text-primary animate-pulse" />
@@ -202,17 +241,13 @@ export default function WatchToEarnMovie() {
                   </div>
                )}
 
-               {/* Video Element with Dynamic Source Reload */}
                {LANGUAGE_SOURCES[language] ? (
                  <video 
-                  key={language}
-                  src={LANGUAGE_SOURCES[language]} 
+                  ref={videoRef}
                   className={cn("w-full h-full object-cover transition-all duration-700", isPlaying ? "opacity-100" : "opacity-40")}
                   style={{ filter: `brightness(${brightness}%)` }}
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
-                  autoPlay={isPlaying}
-                  controls={false}
                   playsInline
                  />
                ) : (
@@ -224,13 +259,11 @@ export default function WatchToEarnMovie() {
                  </div>
                )}
 
-               {/* Reward Progress Bar */}
                <div className="absolute bottom-0 left-0 right-0 h-2 bg-white/5 z-30">
                   <div className="h-full bg-primary transition-all duration-1000 ease-linear shadow-[0_0_20px_rgba(255,123,0,0.8)]" style={{ width: `${progress}%` }} />
                </div>
             </div>
 
-            {/* AD PERSISTENCE YIELD */}
             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden group border-2 border-dashed">
                <div className="h-40 w-full bg-gradient-to-br from-primary/5 to-transparent flex flex-col items-center justify-center relative">
                   <div className="absolute top-4 right-6 flex items-center gap-2">
@@ -257,7 +290,6 @@ export default function WatchToEarnMovie() {
             </div>
          </div>
 
-         {/* Sidebar Stats & Rules */}
          <div className="space-y-8">
             <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-10 space-y-8 shadow-2xl relative overflow-hidden">
                <div className="absolute -top-10 -right-10 opacity-5">
