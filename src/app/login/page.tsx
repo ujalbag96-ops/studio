@@ -9,15 +9,17 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, limit, addDoc } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Loader2, ShieldCheck, Eye, EyeOff, LifeBuoy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -34,6 +36,10 @@ function LoginContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Support State
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportData, setSupportData] = useState({ contact: '', issue: '' });
 
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -48,14 +54,12 @@ function LoginContent() {
       const userDocRef = doc(firestore, 'users', firebaseUser.uid);
       const snap = await getDoc(userDocRef);
 
-      // Generate or retrieve Device ID (Simulated Hardware Fingerprint)
       let deviceId = localStorage.getItem('bb_device_id');
       if (!deviceId) {
         deviceId = 'DEV-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
         localStorage.setItem('bb_device_id', deviceId);
       }
 
-      // Fetch IP Signal for Anti-Fraud
       let ipData = { ip: 'Unknown', country: 'Global' };
       try {
          const res = await fetch('https://ipapi.co/json/');
@@ -104,14 +108,10 @@ function LoginContent() {
           joinedAt: new Date().toISOString()
         });
       } else {
-        // Update security signals on login
-        await setDoc(userDocRef, { 
-          lastIp: ipData.ip, 
-          deviceId: deviceId 
-        }, { merge: true });
+        await setDoc(userDocRef, { lastIp: ipData.ip, deviceId: deviceId }, { merge: true });
       }
     } catch (err) {
-      console.error("Industrial Identity instantiation failure", err);
+      console.error("Identity instantiation failure", err);
     }
   };
 
@@ -133,15 +133,23 @@ function LoginContent() {
     }
   };
 
-  const handleGoogleAuth = async () => {
-    if (!auth) return;
+  const handleSupportSubmit = async () => {
+    if (!firestore || !supportData.contact || !supportData.issue) return;
     setIsLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      await syncUserProfile(result.user);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Auth Failure", description: e.message });
+      await addDoc(collection(firestore, 'support_tickets'), {
+        userContact: supportData.contact,
+        description: supportData.issue,
+        status: 'open',
+        priority: 'high',
+        type: 'recovery',
+        timestamp: new Date().toISOString()
+      });
+      toast({ title: "TICKET LOGGED", description: "Priority recovery request sent to Admin." });
+      setShowSupportModal(false);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Protocol Failure" });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -183,12 +191,39 @@ function LoginContent() {
               <Button type="submit" disabled={isLoading} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl shadow-xl">
                 {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (authMode === 'login' ? 'INITIATE LOGIN' : 'CREATE ACCOUNT')}
               </Button>
+              <div className="text-center">
+                 <button type="button" onClick={() => setShowSupportModal(true)} className="text-[10px] font-black uppercase text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-2 mx-auto">
+                    <LifeBuoy className="h-3 w-3" /> Forgot Access / Support
+                 </button>
+              </div>
             </Card>
           </form>
         </TabsContent>
       </Tabs>
 
-      <Button onClick={handleGoogleAuth} disabled={isLoading} variant="outline" className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-3">
+      <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
+         <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2rem]">
+            <DialogHeader>
+               <DialogTitle className="text-xl font-black uppercase italic">Access Recovery</DialogTitle>
+               <DialogDescription className="text-xs uppercase font-bold text-muted-foreground">Log a priority ticket for manual verification</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+               <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase text-muted-foreground">Alternative Contact (WhatsApp/Email)</Label>
+                  <Input value={supportData.contact} onChange={e => setSupportData({...supportData, contact: e.target.value})} className="bg-black border-white/10" placeholder="e.g. +91 98765..." />
+               </div>
+               <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase text-muted-foreground">Brief Your Issue</Label>
+                  <Textarea value={supportData.issue} onChange={e => setSupportData({...supportData, issue: e.target.value})} className="bg-black border-white/10 min-h-24" placeholder="Forgot password, Account blocked, etc." />
+               </div>
+            </div>
+            <DialogFooter>
+               <Button onClick={handleSupportSubmit} disabled={isLoading} className="w-full h-14 bg-primary font-black uppercase italic rounded-xl">DISPATCH REQUEST</Button>
+            </DialogFooter>
+         </DialogContent>
+      </Dialog>
+
+      <Button onClick={() => {}} disabled={isLoading} variant="outline" className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-3">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="h-5 w-5" alt="Google" />
         Connect Google Identity
       </Button>

@@ -15,25 +15,28 @@
         "referralCommissionBalance": { "type": "number" },
         "coins": { "type": "number" },
         "referralCode": { "type": "string" },
-        "referredBy": { "type": "string", "description": "L1 Upline UID" },
-        "referredByL2": { "type": "string", "description": "L2 Upline UID" },
-        "mlmLevel": { "type": "number", "enum": [0, 1000, 3000, 5000, 10000] },
+        "referredBy": { "type": "string" },
+        "referredByL2": { "type": "string" },
+        "mlmLevel": { "type": "number" },
         "tasksCompletedCount": { "type": "number" },
         "isAccountActivated": { "type": "boolean" },
         "lastIp": { "type": "string" },
         "country": { "type": "string" },
-        "lastSpinTimestamp": { "type": "string" }
+        "riskNoticeAccepted": { "type": "boolean" }
       }
     },
-    "MlmPackage": {
-      "title": "MlmPackage",
-      "description": "MLM Tiered joining packages",
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "Customer support and account recovery ticket",
       "type": "object",
       "properties": {
-        "tierName": { "type": "string" },
-        "cost": { "type": "number" },
-        "l1CommissionPercent": { "type": "number" },
-        "l2CommissionPercent": { "type": "number" }
+        "userId": { "type": "string" },
+        "userContact": { "type": "string" },
+        "subject": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "resolved", "closed"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "timestamp": { "type": "string" }
       }
     }
   },
@@ -43,11 +46,15 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "Master user profiles with MLM links"
+      "description": "Master user profiles"
     },
-    "/app_settings/mlm_config": {
+    "/support_tickets/{ticketId}": {
+      "schema": "SupportTicket",
+      "description": "Human support tickets"
+    },
+    "/app_settings/global_config": {
       "schema": "object",
-      "description": "MLM commission rates and tier settings"
+      "description": "Global system settings"
     }
   }
 }
