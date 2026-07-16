@@ -45,6 +45,33 @@ export interface UserProfile {
   riskNoticeAccepted?: boolean; // Risk Disclosure Consent
 }
 
+export interface CricketOverPool {
+  id: string;
+  matchId: string;
+  overNumber: number;
+  question: string;
+  yesPool: number;
+  noPool: number;
+  totalPool: number;
+  status: 'pending' | 'settling' | 'settled';
+  result?: 'YES' | 'NO';
+  liveStats?: {
+    runs: number;
+    wickets: number;
+    text: string;
+  };
+  timestamp: string;
+}
+
+export interface CricketOverEntry {
+  id: string;
+  poolId: string;
+  userId: string;
+  choice: 'YES' | 'NO';
+  amount: number;
+  timestamp: string;
+}
+
 export interface PaymentDispute {
   id: string;
   userId: string;
