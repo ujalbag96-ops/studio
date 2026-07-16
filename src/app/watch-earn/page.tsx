@@ -37,6 +37,10 @@ import {
 const REWARD_AMOUNT = 300;
 const WATCH_DURATION_SECONDS = 600; // 10 Minutes for Full Session Reward
 
+/**
+ * Industrial Video Source Mapping
+ * Maps language IDs to specific streaming URLs.
+ */
 const LANGUAGE_SOURCES: Record<string, string> = {
   en: "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
   hi: "https://www.w3schools.com/html/mov_bbb.mp4",
@@ -129,14 +133,14 @@ export default function WatchToEarnMovie() {
                {!isCompleted && (
                  <div className="absolute top-6 right-6 z-50">
                     <Select value={language} onValueChange={setLanguage}>
-                       <SelectTrigger className="w-[140px] h-10 bg-black/40 backdrop-blur-md border-white/10 text-white font-black text-[10px] uppercase rounded-xl">
+                       <SelectTrigger className="w-[160px] h-10 bg-black/40 backdrop-blur-md border-white/10 text-white font-black text-[10px] uppercase rounded-xl">
                           <Globe className="h-3 w-3 mr-2 text-primary" />
                           <SelectValue placeholder="Language" />
                        </SelectTrigger>
                        <SelectContent className="bg-[#0a0a0f] border-white/10 text-white">
-                          <SelectItem value="en">English Track</SelectItem>
-                          <SelectItem value="hi">Hindi Audio</SelectItem>
-                          <SelectItem value="es">Spanish Dub</SelectItem>
+                          <SelectItem value="en">English Original</SelectItem>
+                          <SelectItem value="hi">Hindi Dubbed</SelectItem>
+                          <SelectItem value="es">Spanish Audio</SelectItem>
                        </SelectContent>
                     </Select>
                  </div>
@@ -199,6 +203,7 @@ export default function WatchToEarnMovie() {
                   </div>
                )}
 
+               {/* Video Element with Dynamic Source Reload */}
                <video 
                 key={language}
                 src={LANGUAGE_SOURCES[language]} 
@@ -207,6 +212,8 @@ export default function WatchToEarnMovie() {
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 autoPlay={isPlaying}
+                controls={false}
+                playsInline
                />
 
                {/* Reward Progress Bar */}
@@ -215,7 +222,7 @@ export default function WatchToEarnMovie() {
                </div>
             </div>
 
-            {/* AD PERSISTENCE YIELD: STRUCTURAL BANNER AD PLACEMENT */}
+            {/* AD PERSISTENCE YIELD */}
             <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden group border-2 border-dashed">
                <div className="h-40 w-full bg-gradient-to-br from-primary/5 to-transparent flex flex-col items-center justify-center relative">
                   <div className="absolute top-4 right-6 flex items-center gap-2">
