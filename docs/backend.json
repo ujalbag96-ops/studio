@@ -26,6 +26,18 @@
         "riskNoticeAccepted": { "type": "boolean" }
       }
     },
+    "Movie": {
+      "title": "Movie",
+      "description": "Premium cinematic content for streaming",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "poster": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
     "LotteryEntry": {
       "title": "LotteryEntry",
       "description": "Daily lottery participant entry",
@@ -35,33 +47,26 @@
         "selectedNumber": { "type": "number" },
         "timestamp": { "type": "string" }
       }
-    },
-    "LotteryResult": {
-      "title": "LotteryResult",
-      "description": "Historical lottery draw outcomes",
-      "type": "object",
-      "properties": {
-        "winningNumber": { "type": "number" },
-        "winners": { "type": "array" },
-        "poolAmount": { "type": "number" },
-        "timestamp": { "type": "string" }
-      }
     }
   },
   "auth": {
-    "providers": ["password", "google"]
+    "providers": ["password", "google", "phone"]
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
       "description": "Master user profiles"
     },
+    "/movies/{movieId}": {
+      "schema": "Movie",
+      "description": "Streaming movie library"
+    },
     "/lottery_entries/{entryId}": {
       "schema": "LotteryEntry",
       "description": "Active daily lottery entries"
     },
     "/lottery_results/{resultId}": {
-      "schema": "LotteryResult",
+      "schema": "object",
       "description": "Draw history and winner logs"
     },
     "/daily_pool/config": {

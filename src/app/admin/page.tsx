@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, addDoc, increment, query, orderBy, deleteDoc, writeBatch, getDocs, where, limit, onSnapshot, runTransaction } from 'firebase/firestore';
+import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, doc, updateDoc, setDoc, addDoc, increment, query, orderBy, deleteDoc, writeBatch, getDocs, where, limit, runTransaction } from 'firebase/firestore';
 import { 
   Users as UsersIcon, 
   Settings, 
@@ -10,40 +10,19 @@ import {
   ShieldCheck,
   Wallet,
   Zap,
-  Smartphone,
-  Trash2,
   Plus,
-  RefreshCw,
-  Eye,
-  Flag,
-  Target,
-  Monitor,
-  Layout,
-  Disc,
-  ShieldAlert,
-  Power,
-  Gamepad2,
-  Server,
-  Lock,
-  ExternalLink,
-  CreditCard,
-  Image as ImageIcon,
-  Video,
-  Fingerprint,
-  CheckCircle2,
-  Activity,
-  Search,
-  Megaphone,
-  Mail,
-  Copy,
-  Ticket,
-  Send,
-  MessageSquare,
-  LifeBuoy,
-  AlertTriangle,
-  Gavel,
+  Trash2,
   Trophy,
-  Dices
+  Dices,
+  Film,
+  Video,
+  ImageIcon,
+  Layout,
+  ExternalLink,
+  Save,
+  Megaphone,
+  LifeBuoy,
+  Gavel
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,12 +30,9 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -65,102 +41,42 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'withdrawals' | 'support' | 'settlements' | 'broadcast' | 'settings' | 'lottery'>('settlements');
+  const [activeTab, setActiveTab] = useState<'withdrawals' | 'movies' | 'settlements' | 'lottery'>('movies');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
-  // Support State
-  const [selectedTicket, setSelectedTicket] = useState<any>(null);
-  const [replyInput, setReplyInput] = useState('');
-  const [messages, setMessages] = useState<any[]>([]);
-  const [showReceiptModal, setShowReceiptModal] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // Movie Form State
+  const [movieForm, setMovieForm] = useState({ title: '', poster: '', videoUrl: '', category: 'Action' });
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
-  const ticketsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'support_tickets'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
-  const settlementsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'cricket_over_pools'), where('status', '==', 'pending'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
-  const lotteryResultsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'lottery_results'), orderBy('timestamp', 'desc'), limit(10)) : null, [firestore, isAdminUser]);
-  
-  const { data: payoutsData } = useCollection<any>(payoutsQuery);
-  const { data: ticketsData } = useCollection<any>(ticketsQuery);
-  const { data: settlementsData } = useCollection<any>(settlementsQuery);
-  const { data: lotteryResults } = useCollection<any>(lotteryResultsQuery);
+  const moviesQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'movies'), orderBy('createdAt', 'desc')) : null, [firestore, isAdminUser]);
+  const { data: moviesData } = useCollection<any>(moviesQuery);
 
-  const handleRunLotteryDraw = async () => {
-    setIsProcessing('lottery');
+  const handleAddMovie = async () => {
+    if (!firestore || !movieForm.title || !movieForm.videoUrl) return;
+    setIsProcessing('add_movie');
     try {
-      const res = await fetch('/api/lottery/draw', { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        toast({ title: "JACKPOT DRAWN", description: `Winning Number: ${data.winningNumber}. Prize: ₹${data.prizeDistributed}` });
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Draw Failed", description: e.message });
+      await addDoc(collection(firestore, 'movies'), {
+        ...movieForm,
+        createdAt: new Date().toISOString()
+      });
+      toast({ title: "MOVIE ADDED", description: `${movieForm.title} is now live in the library.` });
+      setMovieForm({ title: '', poster: '', videoUrl: '', category: 'Action' });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Add Failed" });
     } finally {
       setIsProcessing(null);
     }
   };
 
-  const handleSettleOver = async (poolId: string, result: 'YES' | 'NO') => {
-    if (!firestore || isProcessing) return;
-    setIsProcessing(poolId);
-
+  const handleDeleteMovie = async (id: string) => {
+    if (!firestore) return;
+    if (!confirm("Are you sure? This will remove the stream signal.")) return;
     try {
-      await runTransaction(firestore, async (transaction) => {
-        const poolRef = doc(firestore, 'cricket_over_pools', poolId);
-        const poolSnap = await transaction.get(poolRef);
-        if (!poolSnap.exists()) throw "Pool Missing";
-        const pool = poolSnap.data();
-
-        if (pool.status !== 'pending') throw "Already Settled";
-
-        const entriesQuery = query(collection(firestore, 'cricket_over_pools', poolId, 'entries'));
-        const entriesSnap = await getDocs(entriesQuery);
-
-        const totalPool = pool.totalPool;
-        const winnerPool = result === 'YES' ? pool.yesPool : pool.noPool;
-        const platformRake = 0.15;
-        const netPool = totalPool * (1 - platformRake);
-
-        if (winnerPool > 0) {
-          for (const entryDoc of entriesSnap.docs) {
-            const entry = entryDoc.data();
-            if (entry.choice === result) {
-              const winAmount = (entry.amount / winnerPool) * netPool;
-              const userRef = doc(firestore, 'users', entry.userId);
-              
-              transaction.update(userRef, {
-                winningBalance: increment(winAmount),
-                coins: increment(winAmount)
-              });
-
-              const ledgerRef = doc(collection(firestore, 'users', entry.userId, 'ledger'));
-              transaction.set(ledgerRef, {
-                type: 'prediction_win',
-                amount: winAmount,
-                date: new Date().toISOString().split('T')[0],
-                status: 'completed',
-                description: `Cricket Over Win: Over #${pool.overNumber}`
-              });
-            }
-          }
-        }
-
-        transaction.update(poolRef, { 
-          status: 'settled', 
-          result: result,
-          settledAt: new Date().toISOString()
-        });
-      });
-
-      toast({ title: "POOL SETTLED", description: `Result ${result} distributed with 15% platform rake.` });
+      await deleteDoc(doc(firestore, 'movies', id));
+      toast({ title: "MOVIE PURGED" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Settlement Error", description: String(e) });
-    } finally {
-      setIsProcessing(null);
+      toast({ variant: "destructive", title: "Purge Failed" });
     }
   };
 
@@ -175,12 +91,10 @@ export default function AdminDashboard() {
           <span className="font-black text-xl italic uppercase tracking-tighter">ARENA <span className="text-primary">ADMIN</span></span>
         </div>
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
+          <AdminLink active={activeTab === 'movies'} icon={<Film />} label="Movie Library" onClick={() => setActiveTab('movies')} />
           <AdminLink active={activeTab === 'settlements'} icon={<Gavel />} label="Live Over Sync" onClick={() => setActiveTab('settlements')} />
           <AdminLink active={activeTab === 'lottery'} icon={<Dices />} label="Jackpot Draw" onClick={() => setActiveTab('lottery')} />
-          <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout & Shop" onClick={() => setActiveTab('withdrawals')} />
-          <AdminLink active={activeTab === 'support'} icon={<LifeBuoy />} label="Support Node" onClick={() => setActiveTab('support')} />
-          <AdminLink active={activeTab === 'broadcast'} icon={<Megaphone />} label="Broadcast News" onClick={() => setActiveTab('broadcast')} />
-          <AdminLink active={activeTab === 'settings'} icon={<Settings />} label="Global System" onClick={() => setActiveTab('settings')} />
+          <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Hub" onClick={() => setActiveTab('withdrawals')} />
         </nav>
       </aside>
 
@@ -192,85 +106,68 @@ export default function AdminDashboard() {
            </div>
         </header>
 
-        {activeTab === 'lottery' && (
-           <div className="space-y-10 animate-in fade-in duration-500">
-              <Card className="bg-[#0a0a0f] border-amber-500/20 p-10 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8 border-2">
-                 <div className="space-y-4">
-                    <h3 className="text-3xl font-black uppercase italic">Lottery <span className="text-amber-500">Adjudicator</span></h3>
-                    <p className="text-sm text-muted-foreground font-medium max-w-md">
-                       Manually trigger the midnight jackpot draw. This will generate a winning number and distribute pool share.
-                    </p>
-                 </div>
-                 <Button 
-                   onClick={handleRunLotteryDraw} 
-                   disabled={isProcessing === 'lottery'}
-                   className="h-20 px-12 bg-amber-600 hover:bg-amber-500 text-white font-black uppercase italic text-lg rounded-2xl shadow-xl shadow-amber-600/20"
-                 >
-                    {isProcessing === 'lottery' ? <Loader2 className="animate-spin" /> : <><Trophy className="mr-3" /> EXECUTE DRAW</>}
-                 </Button>
-              </Card>
+        {activeTab === 'movies' && (
+          <div className="space-y-12 animate-in fade-in duration-500">
+             <Card className="bg-[#0a0a0f] border-primary/20 border-2 rounded-[2.5rem] p-8 shadow-2xl">
+                <div className="flex items-center gap-3 mb-8">
+                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20"><Plus className="text-primary" /></div>
+                   <h3 className="text-2xl font-black uppercase italic">Add Movie Signal</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Movie Title</Label>
+                      <Input value={movieForm.title} onChange={e => setMovieForm({...movieForm, title: e.target.value})} className="h-14 bg-black border-white/10 rounded-xl font-bold" placeholder="e.g. Inception 4K" />
+                   </div>
+                   <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Category</Label>
+                      <Input value={movieForm.category} onChange={e => setMovieForm({...movieForm, category: e.target.value})} className="h-14 bg-black border-white/10 rounded-xl font-bold" placeholder="e.g. Action, Sci-Fi" />
+                   </div>
+                   <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Poster URL</Label>
+                      <Input value={movieForm.poster} onChange={e => setMovieForm({...movieForm, poster: e.target.value})} className="h-14 bg-black border-white/10 rounded-xl font-mono text-xs" placeholder="https://..." />
+                   </div>
+                   <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Stream URL (.mp4 or .m3u8)</Label>
+                      <Input value={movieForm.videoUrl} onChange={e => setMovieForm({...movieForm, videoUrl: e.target.value})} className="h-14 bg-black border-white/10 rounded-xl font-mono text-xs" placeholder="https://..." />
+                   </div>
+                </div>
 
-              <div className="space-y-6">
-                 <h4 className="text-xl font-black uppercase italic tracking-tighter">Recent Draw <span className="text-primary">Archives</span></h4>
-                 <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
-                    <Table>
-                       <TableHeader className="bg-white/5">
-                          <TableRow className="border-white/5">
-                             <TableHead className="text-[9px] font-black uppercase">Draw Date</TableHead>
-                             <TableHead className="text-[9px] font-black uppercase text-center">Winning #</TableHead>
-                             <TableHead className="text-[9px] font-black uppercase text-center">Participants</TableHead>
-                             <TableHead className="text-[9px] font-black uppercase text-right">Pool Paid</TableHead>
-                          </TableRow>
-                       </TableHeader>
-                       <TableBody>
-                          {lotteryResults?.map(res => (
-                             <TableRow key={res.id} className="border-white/5 hover:bg-white/5">
-                                <TableCell className="text-xs font-bold">{new Date(res.timestamp).toLocaleDateString()}</TableCell>
-                                <TableCell className="text-center font-black text-amber-500 text-lg">{res.winningNumber}</TableCell>
-                                <TableCell className="text-center text-xs">{res.participants}</TableCell>
-                                <TableCell className="text-right font-black text-green-500">₹{res.poolAmount}</TableCell>
-                             </TableRow>
-                          ))}
-                       </TableBody>
-                    </Table>
-                 </Card>
-              </div>
-           </div>
-        )}
+                <Button onClick={handleAddMovie} disabled={isProcessing === 'add_movie'} className="w-full h-16 mt-8 bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase italic text-lg shadow-xl">
+                   {isProcessing === 'add_movie' ? <Loader2 className="animate-spin" /> : "DEPLOY MOVIE SIGNAL"}
+                </Button>
+             </Card>
 
-        {activeTab === 'settlements' && (
-          <div className="space-y-10 animate-in fade-in duration-500">
-             <div className="flex items-center gap-4">
-                <Badge className="bg-blue-600 text-white font-black italic px-4 py-1.5 rounded-lg animate-pulse">LIVE DATA FEED</Badge>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Over-by-over verification active</p>
-             </div>
-
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                {settlementsData?.map(pool => (
-                   <Card key={pool.id} className="bg-[#0a0a0f] border-white/10 rounded-[2.5rem] overflow-hidden group shadow-2xl transition-all hover:border-primary/40">
-                      <div className="p-8 space-y-6">
-                         <div className="flex justify-between items-start">
-                            <div>
-                               <h3 className="text-2xl font-black uppercase italic text-white">Over #{pool.overNumber}</h3>
-                               <p className="text-xs font-bold text-muted-foreground uppercase">{pool.question}</p>
-                            </div>
-                            <div className="text-right">
-                               <p className="text-[10px] font-black text-muted-foreground uppercase">Pool Volume</p>
-                               <p className="text-2xl font-black text-primary italic">{pool.totalPool} 🪙</p>
-                            </div>
-                         </div>
-                         {/* ... Action buttons same as before ... */}
-                         <div className="grid grid-cols-2 gap-4 pt-4">
-                            <Button onClick={() => handleSettleOver(pool.id, 'YES')} disabled={!!isProcessing} className="h-16 bg-green-600 hover:bg-green-500 text-white font-black uppercase italic rounded-2xl shadow-xl">
-                               APPROVE YES
-                            </Button>
-                            <Button onClick={() => handleSettleOver(pool.id, 'NO')} disabled={!!isProcessing} className="h-16 bg-red-600 hover:bg-red-500 text-white font-black uppercase italic rounded-2xl shadow-xl">
-                               APPROVE NO
-                            </Button>
-                         </div>
-                      </div>
-                   </Card>
-                ))}
+             <div className="space-y-6">
+                <h3 className="text-xl font-black uppercase italic">Current Library <span className="text-primary">Inventory</span></h3>
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
+                   <Table>
+                      <TableHeader className="bg-white/5">
+                         <TableRow className="border-white/5">
+                            <TableHead className="text-[9px] font-black uppercase">Poster</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">Title</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">Category</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase text-right">Actions</TableHead>
+                         </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                         {moviesData?.map(m => (
+                            <TableRow key={m.id} className="border-white/5 hover:bg-white/5">
+                               <TableCell>
+                                  <img src={m.poster} className="h-12 w-20 object-cover rounded-lg border border-white/10" alt="Poster" />
+                               </TableCell>
+                               <TableCell className="font-black uppercase italic text-sm">{m.title}</TableCell>
+                               <TableCell><Badge className="bg-white/5 text-muted-foreground border-none text-[8px]">{m.category}</Badge></TableCell>
+                               <TableCell className="text-right">
+                                  <Button onClick={() => handleDeleteMovie(m.id)} variant="ghost" size="icon" className="text-red-500 hover:bg-red-500/10 h-10 w-10 rounded-xl">
+                                     <Trash2 className="h-4 w-4" />
+                                  </Button>
+                               </TableCell>
+                            </TableRow>
+                         ))}
+                      </TableBody>
+                   </Table>
+                </Card>
              </div>
           </div>
         )}
