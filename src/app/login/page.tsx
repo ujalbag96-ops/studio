@@ -69,12 +69,17 @@ function LoginContent() {
         localStorage.setItem('bb_device_id', deviceId);
       }
 
-      // Geo-IP Integration
-      let ipData = { ip: 'Unknown', country: 'Global' };
+      // Hyper-Local Geo-IP Integration
+      let ipData = { ip: 'Unknown', country: 'Global', region: 'Unknown', city: 'Unknown' };
       try {
          const res = await fetch('https://ipapi.co/json/');
          const data = await res.json();
-         ipData = { ip: data.ip, country: data.country_name };
+         ipData = { 
+           ip: data.ip, 
+           country: data.country_name,
+           region: data.region,
+           city: data.city
+         };
       } catch(e) {
          console.error("Geo-IP node unreachable");
       }
@@ -120,12 +125,20 @@ function LoginContent() {
           deviceId: deviceId,
           lastIp: ipData.ip,
           country: ipData.country,
+          region: ipData.region,
+          city: ipData.city,
           status: 'active',
           isSuspended: false,
           joinedAt: new Date().toISOString()
         });
       } else {
-        await setDoc(userDocRef, { lastIp: ipData.ip, deviceId: deviceId, country: ipData.country }, { merge: true });
+        await setDoc(userDocRef, { 
+          lastIp: ipData.ip, 
+          deviceId: deviceId, 
+          country: ipData.country,
+          region: ipData.region,
+          city: ipData.city
+        }, { merge: true });
       }
     } catch (err) {
       console.error("Identity instantiation failure", err);
@@ -150,7 +163,6 @@ function LoginContent() {
     }
   };
 
-  // --- Phone Auth Logic ---
   const setupRecaptcha = () => {
     if (!auth) return;
     if (!(window as any).recaptchaVerifier) {

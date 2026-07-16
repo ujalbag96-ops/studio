@@ -5,10 +5,10 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebas
 import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Calendar, ChevronRight, Loader2, Mail, Ticket, Copy } from 'lucide-react';
+import { Bell, Calendar, ChevronRight, Loader2, Mail, Ticket, Copy, MapPin } from 'lucide-react';
 import { SystemNotification } from '../lib/types';
-import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export default function InboxPage() {
   const { user } = useUser();
@@ -55,18 +55,39 @@ export default function InboxPage() {
                 )}
                 <div className="p-8 space-y-4">
                   <div className="flex items-center justify-between">
-                     <Badge className={cn(
-                       "uppercase font-black text-[8px] border-none px-3",
-                       notif.type === 'payout' ? "bg-green-500/10 text-green-500" : "bg-primary/10 text-primary"
-                     )}>
-                        Protocol: {notif.type === 'payout' ? 'Delivery' : 'Broadcast'}
-                     </Badge>
+                     <div className="flex items-center gap-3">
+                        <Badge className={cn(
+                          "uppercase font-black text-[8px] border-none px-3",
+                          notif.type === 'payout' ? "bg-green-500/10 text-green-500" : "bg-primary/10 text-primary"
+                        )}>
+                           Protocol: {notif.type === 'payout' ? 'Delivery' : 'Broadcast'}
+                        </Badge>
+                        {notif.localizedBody && (
+                           <Badge variant="outline" className="border-primary/20 text-primary text-[8px] font-black uppercase px-2 italic flex items-center gap-1">
+                              <MapPin className="h-2 w-2" /> Regional
+                           </Badge>
+                        )}
+                     </div>
                      <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase">
                         <Calendar className="h-3 w-3" /> {new Date(notif.timestamp).toLocaleDateString()}
                      </div>
                   </div>
                   <h3 className="text-xl font-black uppercase italic group-hover:text-primary transition-colors">{notif.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed font-medium">{notif.body}</p>
+                  
+                  {/* AI Localization Toggle/Display */}
+                  <div className="space-y-4">
+                     {notif.localizedBody && (
+                        <div className="p-4 bg-primary/5 border-l-2 border-primary rounded-r-xl italic text-sm text-white font-medium leading-relaxed">
+                           "{notif.localizedBody}"
+                        </div>
+                     )}
+                     <p className={cn(
+                       "text-sm text-muted-foreground leading-relaxed font-medium",
+                       notif.localizedBody && "opacity-50 text-xs"
+                     )}>
+                       {notif.body}
+                     </p>
+                  </div>
                   
                   {notif.voucherCode && (
                     <div className="mt-6 p-6 bg-primary/5 border border-primary/20 rounded-2xl space-y-4">
@@ -80,7 +101,6 @@ export default function InboxPage() {
                              <Copy className="h-5 w-5" />
                           </button>
                        </div>
-                       <p className="text-[8px] font-bold text-muted-foreground uppercase text-center italic">Instruction: Enter this code in the official game redemption center.</p>
                     </div>
                   )}
                 </div>

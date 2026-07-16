@@ -27,6 +27,8 @@ export interface UserProfile {
   deviceId?: string; // Hardware Fingerprint
   lastIp?: string;
   country?: string;
+  region?: string; // State/Region
+  city?: string; // City Level Targeting
   rank: UserRank;
   isAdmin?: boolean;
   isSuspended?: boolean; // Fraud Lock
@@ -47,6 +49,18 @@ export interface UserProfile {
   matchLossCount?: number; // Tracking losses for Pity Mechanism
 }
 
+export interface SystemNotification {
+  id: string;
+  userId?: string;
+  title: string;
+  body: string;
+  localizedBody?: string; // AI Generated regional text
+  timestamp: string;
+  type: 'broadcast' | 'payout' | 'mission' | 'system';
+  imageUrl?: string;
+  voucherCode?: string;
+}
+
 export interface UserLedgerEntry {
   id: string;
   userId?: string;
@@ -61,31 +75,18 @@ export interface UserLedgerEntry {
   voucherCode?: string; // Digital code for shop redemptions
 }
 
-export interface Tournament {
+export interface Movie {
   id: string;
-  name: string;
-  status: TournamentStatus;
-  gameType: GameType;
-  prizePool: string;
-  entryFee: number;
-  startDate: string;
-  banner: string;
-  streamUrl?: string;
-  roomCredentials?: {
-    roomId?: string;
-    roomPassword?: string;
-  };
+  title: string;
+  poster: string;
+  videoUrl: string;
+  category: string;
+  createdAt: string;
 }
 
-export interface Match {
-  id: string;
-  tournamentId: string;
-  teamA: { name: string; logo: string };
-  teamB: { name: string; logo: string };
-  scoreA: number;
-  scoreB: number;
-  status: 'live' | 'scheduled' | 'completed';
-  description: string;
-  votesA?: number;
-  votesB?: number;
+export interface AppSettings {
+  adminUpiId: string;
+  maintenanceMode: boolean;
+  automaticGatewayEnabled: boolean;
+  conversionFeePercent: number;
 }
