@@ -1,8 +1,9 @@
+
 'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Target, Zap, Activity } from 'lucide-react';
+import { ShieldCheck, Target, Zap, Activity, Info } from 'lucide-react';
 import RiskDisclosureModal from './RiskDisclosureModal';
 
 export default function Footer() {
@@ -18,20 +19,26 @@ export default function Footer() {
             <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
               <Zap className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-black italic text-white uppercase tracking-tighter">WIN<span className="text-primary">ZO</span></span>
+            <span className="text-2xl font-black italic text-white uppercase tracking-tighter">CAMPUS<span className="text-primary">HUB</span></span>
           </Link>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest max-w-[200px]">
-            The industrial standard for E-Sports tournaments and strategic CPA missions. Play at your own risk.
-          </p>
+          <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-3">
+             <div className="flex items-center gap-2 text-primary">
+                <Info className="h-3 w-3" />
+                <span className="text-[8px] font-black uppercase tracking-widest">Legal Disclaimer</span>
+             </div>
+             <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">
+               This app is for educational purposes. All notes are user-contributed or collected from public domains.
+             </p>
+          </div>
         </div>
 
         <div className="space-y-6">
           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white italic">Arena Sectors</h4>
           <ul className="space-y-3">
-            <li><FooterLink href="/esports-live" label="Live E-Sports" /></li>
-            <li><FooterLink href="/cricket" label="Cricket Hub" /></li>
-            <li><FooterLink href="/predictions" label="Poll Arena" /></li>
+            <li><FooterLink href="/campus" label="Resource Locker" /></li>
             <li><FooterLink href="/earning-hub" label="Earning Hub" /></li>
+            <li><FooterLink href="/movies" label="Cinema Arena" /></li>
+            <li><FooterLink href="/leaderboard" label="Hall of Fame" /></li>
           </ul>
         </div>
 
@@ -62,7 +69,7 @@ export default function Footer() {
                 </span>
              </div>
              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-muted-foreground">Match Sync</span>
+                <span className="text-[9px] font-black uppercase text-muted-foreground">Library Sync</span>
                 <span className="flex items-center gap-1.5 text-[9px] font-black uppercase text-green-500">
                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Active
                 </span>
@@ -72,7 +79,7 @@ export default function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto px-8 mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">© 2024 WinZO Arena Industrial. All Tactical Rights Reserved.</p>
+        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">© 2024 CampusCompanion Industrial. All Rights Reserved.</p>
         <div className="flex items-center gap-4 opacity-30">
            <Activity className="h-4 w-4" />
            <ShieldCheck className="h-4 w-4" />

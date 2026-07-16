@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -10,7 +11,8 @@
         "coins": { "type": "number" },
         "department": { "type": "string" },
         "semester": { "type": "number" },
-        "riskNoticeAccepted": { "type": "boolean" }
+        "riskNoticeAccepted": { "type": "boolean" },
+        "preferredLanguage": { "type": "string", "enum": ["en", "or"] }
       }
     },
     "StudyMaterial": {
@@ -19,8 +21,6 @@
       "type": "object",
       "properties": {
         "title": { "type": "string" },
-        "department": { "type": "string" },
-        "semester": { "type": "number" },
         "type": { "type": "string", "enum": ["Notes", "PYQ", "Syllabus"] },
         "url": { "type": "string" },
         "isPremium": { "type": "boolean" }
@@ -35,9 +35,13 @@
       "schema": "UserProfile",
       "description": "User account data"
     },
+    "/departments/{deptId}/subjects/{subjectId}/materials/{materialId}": {
+      "schema": "StudyMaterial",
+      "description": "Nested hierarchy for academic resources"
+    },
     "/study_materials/{materialId}": {
       "schema": "StudyMaterial",
-      "description": "Library of notes and papers"
+      "description": "Flat index for global material search"
     }
   }
 }
