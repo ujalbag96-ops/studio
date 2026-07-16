@@ -4,7 +4,7 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, addDoc, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Postback-Enforced Reward Gateway with VIP Escalation
+ * Postback-Enforced Reward Gateway with VIP Escalation & MLM Distribution
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -50,7 +50,6 @@ export async function GET(request: Request) {
     const nextTier = vipTiers.find(t => newTasksTotal >= t.tasks && newVipLevel < t.level);
     if (nextTier) {
        newVipLevel = nextTier.level;
-       // Push milestone notification
        await addDoc(collection(firestore, 'notifications'), {
           userId: userId,
           title: `🔥 PROMOTED TO ${nextTier.name.toUpperCase()}`,
@@ -60,7 +59,46 @@ export async function GET(request: Request) {
        });
     }
 
-    // Reward Credit
+    // --- MLM COMMISSION DISTRIBUTION (2 LEVELS) ---
+    // Level 1: 5% | Level 2: 2%
+    const commL1 = rewardAmount * 0.05;
+    const commL2 = rewardAmount * 0.02;
+
+    if (userData.referredBy) {
+      const l1Ref = doc(firestore, 'users', userData.referredBy);
+      batch.update(l1Ref, {
+        referralCommissionBalance: increment(commL1),
+        totalNetworkRevenue: increment(commL1),
+        networkTaskCompletions: increment(1),
+        coins: increment(commL1)
+      });
+      batch.set(doc(collection(firestore, 'users', userData.referredBy, 'ledger')), {
+        type: 'referral_comm',
+        amount: commL1,
+        date: dateStr,
+        status: 'completed',
+        description: `Team Commission (L1) from ${userData.email || userData.id}`
+      });
+    }
+
+    if (userData.referredByL2) {
+      const l2Ref = doc(firestore, 'users', userData.referredByL2);
+      batch.update(l2Ref, {
+        referralCommissionBalance: increment(commL2),
+        totalNetworkRevenue: increment(commL2),
+        networkTaskCompletions: increment(1),
+        coins: increment(commL2)
+      });
+      batch.set(doc(collection(firestore, 'users', userData.referredByL2, 'ledger')), {
+        type: 'referral_comm',
+        amount: commL2,
+        date: dateStr,
+        status: 'completed',
+        description: `Team Commission (L2) from downline activity`
+      });
+    }
+
+    // Main Reward Credit
     batch.update(userRef, {
       taskBalance: increment(rewardAmount),
       coins: increment(rewardAmount),

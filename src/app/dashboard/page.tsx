@@ -38,7 +38,8 @@ import {
   Sparkles,
   Star,
   Flame,
-  ArrowUp
+  ArrowUp,
+  Globe
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,7 +48,7 @@ import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { UserProfile, UserLedgerEntry } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import WalletModal from '@/components/WalletModal';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
@@ -182,15 +183,21 @@ export default function UserDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} color="green" />
               <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} color="blue" />
-              <WalletCard label="Bonus Balance" value={profile?.bonusBalance || 0} icon={<Zap />} color="amber" />
+              <WalletCard label="Bonus Balance" value={profile?.taskBalance || 0} icon={<Zap />} color="amber" />
               <WalletCard label="Network Commission" value={profile?.referralCommissionBalance || 0} icon={<Network />} color="primary" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
               <div className="xl:col-span-2 space-y-8">
-                <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic">
-                  <History className="h-6 w-6 text-primary" /> Operational Ledger
-                </h3>
+                <div className="flex items-center justify-between">
+                   <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic">
+                     <History className="h-6 w-6 text-primary" /> Operational Ledger
+                   </h3>
+                   <Button asChild variant="link" className="text-primary font-black uppercase text-[10px] tracking-widest">
+                      <Link href="/ledger">Full History <ChevronRight className="h-3 w-3 ml-1" /></Link>
+                   </Button>
+                </div>
+                
                 <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
                   {isActivityLoading ? (
                     <div className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
@@ -220,6 +227,32 @@ export default function UserDashboard() {
               </div>
 
               <div className="space-y-8">
+                 {/* MLM Quick Stats */}
+                 <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2rem] p-8 space-y-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:rotate-12 transition-transform">
+                       <Network className="h-32 w-32 text-amber-500" />
+                    </div>
+                    <div className="flex items-center gap-3">
+                       <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                          <Users className="h-5 w-5 text-amber-500" />
+                       </div>
+                       <h4 className="text-sm font-black uppercase italic">Network Pulse</h4>
+                    </div>
+                    <div className="space-y-4 relative z-10">
+                       <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                          <span className="text-[10px] font-black uppercase text-muted-foreground">Team Size</span>
+                          <span className="text-sm font-black text-white">{profile?.totalNetworkReferrals || 0} Warriors</span>
+                       </div>
+                       <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                          <span className="text-[10px] font-black uppercase text-muted-foreground">Team Missions</span>
+                          <span className="text-sm font-black text-white">{profile?.networkTaskCompletions || 0} Done</span>
+                       </div>
+                       <Button asChild className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase text-[10px] rounded-xl mt-2">
+                          <Link href="/refer">MANAGE TEAM <ChevronRight className="h-3 w-3 ml-1" /></Link>
+                       </Button>
+                    </div>
+                 </Card>
+
                  <Card className="bg-primary/5 border-primary/20 rounded-[2rem] p-8 space-y-4">
                     <div className="flex items-center gap-3">
                        <Zap className="h-5 w-5 text-primary animate-pulse" />

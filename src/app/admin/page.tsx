@@ -16,7 +16,10 @@ import {
   Users as UsersIcon,
   Crown,
   Activity,
-  Zap
+  Zap,
+  Network,
+  BarChart3,
+  Search
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +31,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { PayoutRequest, StudyMaterial, UserProfile } from '../lib/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -36,14 +40,14 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'withdrawals' | 'inventory' | 'growth' | 'weather'>('withdrawals');
+  const [activeTab, setActiveTab] = useState<'withdrawals' | 'inventory' | 'growth' | 'network' | 'weather'>('withdrawals');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const matsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'study_materials'), orderBy('createdAt', 'desc'), limit(100)) : null, [firestore, isAdminUser]);
   const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc'), limit(50)) : null, [firestore, isAdminUser]);
-  const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), orderBy('vipLevel', 'desc'), limit(100)) : null, [firestore, isAdminUser]);
+  const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), orderBy('vipLevel', 'desc'), limit(200)) : null, [firestore, isAdminUser]);
 
   const { data: materialsData } = useCollection<StudyMaterial>(matsQuery);
   const { data: payoutsData } = useCollection<PayoutRequest>(payoutsQuery);
@@ -65,6 +69,11 @@ export default function AdminDashboard() {
     }
   };
 
+  const openQuickPay = (payout: PayoutRequest) => {
+     const upiUrl = `upi://pay?pa=${payout.destination}&am=${payout.netAmount}&tn=ArenaWithdrawal_${payout.id}`;
+     window.open(upiUrl, '_blank');
+  };
+
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black p-10 uppercase italic">Access Denied: Master Authorization Required</div>;
 
@@ -78,6 +87,7 @@ export default function AdminDashboard() {
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
           <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Terminal" onClick={() => setActiveTab('withdrawals')} />
           <AdminLink active={activeTab === 'growth'} icon={<TrendingUp />} label="Growth Matrix" onClick={() => setActiveTab('growth')} />
+          <AdminLink active={activeTab === 'network'} icon={<Network />} label="Network Intel" onClick={() => setActiveTab('network')} />
           <AdminLink active={activeTab === 'inventory'} icon={<FileText />} label="Resource Hub" onClick={() => setActiveTab('inventory')} />
           <AdminLink active={activeTab === 'weather'} icon={<CloudRain />} label="Weather Station" onClick={() => setActiveTab('weather')} />
         </nav>
@@ -97,7 +107,7 @@ export default function AdminDashboard() {
                       <TableRow className="border-white/5">
                          <TableHead className="text-[9px] font-black uppercase">User / VIP</TableHead>
                          <TableHead className="text-[9px] font-black uppercase">Amount / Fee</TableHead>
-                         <TableHead className="text-[9px] font-black uppercase">Missions</TableHead>
+                         <TableHead className="text-[9px] font-black uppercase">Method / Destination</TableHead>
                          <TableHead className="text-[9px] font-black uppercase text-right">Action</TableHead>
                       </TableRow>
                    </TableHeader>
@@ -115,12 +125,18 @@ export default function AdminDashboard() {
                                <p className="text-[8px] text-muted-foreground uppercase">Fee: ₹{p.fee?.toFixed(2)}</p>
                             </TableCell>
                             <TableCell>
-                               <Badge variant="outline" className="text-[10px] border-primary/20 text-primary">{p.tasksCompleted || 0} Tasks</Badge>
+                               <Badge variant="outline" className="text-[10px] border-primary/20 text-primary mb-1 uppercase">{p.method}</Badge>
+                               <p className="text-[10px] font-mono text-muted-foreground">{p.destination}</p>
                             </TableCell>
                             <TableCell className="text-right">
-                               <Button onClick={() => handleMarkPaid(p.id)} disabled={isProcessing === p.id} className="bg-green-600 hover:bg-green-500 h-10 px-6 rounded-xl font-black uppercase text-[9px]">
-                                  {isProcessing === p.id ? <Loader2 className="animate-spin" /> : 'MARK PAID'}
-                               </Button>
+                               <div className="flex justify-end gap-2">
+                                  <Button onClick={() => openQuickPay(p)} className="bg-primary hover:bg-primary/90 h-10 px-4 rounded-xl font-black uppercase text-[9px]">
+                                     QUICK PAY
+                                  </Button>
+                                  <Button onClick={() => handleMarkPaid(p.id)} disabled={isProcessing === p.id} className="bg-green-600 hover:bg-green-500 h-10 px-4 rounded-xl font-black uppercase text-[9px]">
+                                     {isProcessing === p.id ? <Loader2 className="animate-spin" /> : 'MARK PAID'}
+                                  </Button>
+                               </div>
                             </TableCell>
                          </TableRow>
                       ))}
@@ -175,6 +191,60 @@ export default function AdminDashboard() {
                                <TableCell><Badge className="bg-primary/20 text-primary uppercase font-black text-[8px]">LEVEL {u.vipLevel || 0}</Badge></TableCell>
                                <TableCell className="font-black italic text-sm">{u.tasksCompletedCount || 0}</TableCell>
                                <TableCell className="text-right font-black text-green-500 italic">{u.coins?.toLocaleString() || 0} 🪙</TableCell>
+                            </TableRow>
+                         ))}
+                      </TableBody>
+                   </Table>
+                </Card>
+             </div>
+          </div>
+        )}
+
+        {activeTab === 'network' && (
+          <div className="space-y-12 animate-in fade-in duration-500">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <Card className="bg-primary/5 border-primary/20 p-8 rounded-[2.5rem] space-y-4">
+                   <Network className="h-10 w-10 text-primary" />
+                   <div>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Total Referrals (All)</p>
+                      <h4 className="text-4xl font-black italic">{usersData?.reduce((acc, u) => acc + (u.totalReferrals || 0), 0)}</h4>
+                   </div>
+                </Card>
+                <Card className="bg-amber-500/5 border-amber-500/20 p-8 rounded-[2.5rem] space-y-4">
+                   <Zap className="h-10 w-10 text-amber-500" />
+                   <div>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Network Revenue Flow</p>
+                      <h4 className="text-4xl font-black italic">{(usersData?.reduce((acc, u) => acc + (u.referralCommissionBalance || 0), 0) || 0).toLocaleString()} 🪙</h4>
+                   </div>
+                </Card>
+                <Card className="bg-green-500/5 border-green-500/20 p-8 rounded-[2.5rem] space-y-4">
+                   <BarChart3 className="h-10 w-10 text-green-500" />
+                   <div>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Network Depth</p>
+                      <h4 className="text-2xl font-black uppercase italic">2 Levels Active</h4>
+                   </div>
+                </Card>
+             </div>
+
+             <div className="space-y-6">
+                <h3 className="text-xl font-black uppercase italic">Top <span className="text-primary">Recruiters</span></h3>
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
+                   <Table>
+                      <TableHeader className="bg-white/5">
+                         <TableRow className="border-white/5">
+                            <TableHead className="text-[9px] font-black uppercase">Recruiter</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">L1 Team</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">Team Missions</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase text-right">Commission Earned</TableHead>
+                         </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                         {usersData?.sort((a,b) => (b.totalReferrals || 0) - (a.totalReferrals || 0)).slice(0, 50).map(u => (
+                            <TableRow key={u.id} className="border-white/5 hover:bg-white/5">
+                               <TableCell className="font-bold text-xs">{u.email || u.id}</TableCell>
+                               <TableCell><Badge variant="outline" className="border-primary/20 text-primary font-black uppercase text-[8px]">{u.totalReferrals || 0} L1</Badge></TableCell>
+                               <TableCell className="font-black italic text-sm">{u.networkTaskCompletions || 0}</TableCell>
+                               <TableCell className="text-right font-black text-amber-500 italic">{u.referralCommissionBalance?.toLocaleString() || 0} 🪙</TableCell>
                             </TableRow>
                          ))}
                       </TableBody>
