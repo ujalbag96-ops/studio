@@ -31,7 +31,7 @@ export default function MultiplierGame() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const [betAmount, setBetAmount] = useState('10');
+  const [betAmount, setBetAmount] = useState('1');
   const [multiplier, setMultiplier] = useState('2.0');
   const [isRolling, setIsRolling] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
@@ -94,7 +94,7 @@ export default function MultiplierGame() {
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">High-Stakes Multiplier</span>
          </div>
          <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white">Multi <span className="text-primary">Win</span></h1>
-         <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-widest italic">Industrial Randomness Engine • 95% RTP</p>
+         <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-widest italic">Industrial Randomness Engine • ₹1 MIN BET • 95% RTP</p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -109,9 +109,11 @@ export default function MultiplierGame() {
                       value={betAmount} 
                       onChange={e => setBetAmount(e.target.value)} 
                       className="h-14 bg-black border-white/10 rounded-xl font-black text-xl text-primary pl-10" 
+                      min="1"
                      />
                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">₹</span>
                   </div>
+                  <p className="text-[8px] font-bold text-muted-foreground uppercase ml-1">Start from ₹1 minimum</p>
                </div>
 
                <div className="space-y-2">

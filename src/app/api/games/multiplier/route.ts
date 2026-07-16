@@ -11,8 +11,8 @@ export async function POST(request: Request) {
   try {
     const { userId, amountINR, multiplier } = await request.json();
 
-    if (!userId || !amountINR || !multiplier) {
-      return NextResponse.json({ error: 'Invalid Signal' }, { status: 400 });
+    if (!userId || isNaN(amountINR) || amountINR < 1 || isNaN(multiplier)) {
+      return NextResponse.json({ error: 'Invalid Signal: Minimum Bet ₹1 Required' }, { status: 400 });
     }
 
     const { firestore } = initializeFirebase();
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       const netWinCoins = profitCoins - betAmountCoins;
 
       batch.update(userRef, {
-        winningBalance: increment(netWinINR),
+        winningBalance: increment(netWinCoins), // Store winnings as coins
         coins: increment(netWinCoins),
         walletBalanceINR: increment(netWinINR)
       });
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       // LOSS
       batch.update(userRef, {
         coins: increment(-betAmountCoins),
-        depositBalance: increment(-amountINR),
+        depositBalance: increment(-betAmountCoins), // Deduct from deposit coins
         walletBalanceINR: increment(-amountINR)
       });
 
