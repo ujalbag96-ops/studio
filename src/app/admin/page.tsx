@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, addDoc, increment, query, orderBy, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, updateDoc, setDoc, addDoc, increment, query, orderBy, deleteDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
 import { 
   Users as UsersIcon, 
   Settings, 
@@ -34,7 +34,10 @@ import {
   Activity,
   Search,
   Megaphone,
-  Mail
+  Mail,
+  Copy,
+  Ticket,
+  Send
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,6 +60,7 @@ export default function AdminDashboard() {
   
   const [activeTab, setActiveTab] = useState<'withdrawals' | 'missions' | 'ads' | 'jili' | 'settings' | 'cricket' | 'polls' | 'broadcast'>('withdrawals');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [voucherInputs, setVoucherInputs] = useState<Record<string, string>>({});
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -64,12 +68,10 @@ export default function AdminDashboard() {
   const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   const missionsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'cpa_missions') : null, [firestore, isAdminUser]);
   const globalConfigRef = useMemoFirebase(() => (firestore && isAdminUser) ? doc(firestore, 'app_settings', 'global_config') : null, [firestore, isAdminUser]);
-  const paymentSignalsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payment_signals'), orderBy('timestamp', 'desc')) : null, [firestore, isAdminUser]);
   
   const { data: payoutsData } = useCollection<any>(payoutsQuery);
   const { data: missionsData } = useCollection<any>(missionsQuery);
   const { data: globalConfig } = useDoc<any>(globalConfigRef);
-  const { data: paymentSignals } = useCollection<any>(paymentSignalsQuery);
 
   // Broadcast state
   const [notif, setNotif] = useState({ title: '', body: '', imageUrl: '' });
@@ -147,6 +149,13 @@ export default function AdminDashboard() {
 
   const handlePayoutAction = async (payout: any, action: 'approved' | 'rejected') => {
     if (!firestore || !isAdminUser) return;
+    
+    const voucherCode = voucherInputs[payout.id] || '';
+    if (action === 'approved' && payout.type === 'shop' && !voucherCode) {
+      toast({ variant: "destructive", title: "Code Required", description: "Please enter the digital code to dispatch." });
+      return;
+    }
+
     setIsProcessing(payout.id);
     
     try {
@@ -155,7 +164,7 @@ export default function AdminDashboard() {
       const batch = writeBatch(firestore);
       
       if (action === 'rejected') {
-        const refundAmount = payout.amount * 10; 
+        const refundAmount = payout.amount; 
         batch.update(payoutRef, { status: 'rejected', processedAt: new Date().toISOString() });
         batch.update(userRef, {
           winningBalance: increment(refundAmount),
@@ -168,21 +177,55 @@ export default function AdminDashboard() {
           amount: refundAmount,
           date: new Date().toISOString().split('T')[0],
           status: 'completed',
-          description: `Payout Rejected: Automatic Refund [${refundAmount} 🪙]`
+          description: `Payout/Shop Rejected: Refunded [${refundAmount} 🪙]`
         });
 
         await batch.commit();
         toast({ title: "PROTOCOL: REFUNDED" });
       } else {
-        batch.update(payoutRef, { status: 'approved', processedAt: new Date().toISOString() });
+        // APPROVED / DISPATCHED
+        batch.update(payoutRef, { 
+          status: 'approved', 
+          processedAt: new Date().toISOString(),
+          voucherCode: voucherCode 
+        });
+
+        // Find and update the corresponding ledger entry if it was from the shop
+        const ledgerQ = query(collection(firestore, 'users', payout.userId, 'ledger'), where('payoutId', '==', payout.id), limit(1));
+        const ledgerSnap = await getDocs(ledgerQ);
+        if (!ledgerSnap.empty) {
+          batch.update(ledgerSnap.docs[0].ref, { 
+            status: 'completed',
+            voucherCode: voucherCode 
+          });
+        }
+
+        // Notify User
+        batch.set(doc(collection(firestore, 'notifications')), {
+          userId: payout.userId,
+          title: payout.type === 'shop' ? 'Voucher Dispatched!' : 'Payout Successful',
+          body: payout.type === 'shop' 
+            ? `Your ${payout.itemName} code has been delivered: ${voucherCode}`
+            : `Your withdrawal of ${payout.amount} has been processed.`,
+          timestamp: new Date().toISOString(),
+          type: 'payout',
+          voucherCode: voucherCode
+        });
+
         await batch.commit();
-        toast({ title: "PROTOCOL: SETTLED" });
+        toast({ title: payout.type === 'shop' ? "VOUCHER DISPATCHED" : "PAYOUT SETTLED" });
       }
     } catch (e) {
+      console.error(e);
       toast({ variant: "destructive", title: "Atomic Sync Error" });
     } finally {
       setIsProcessing(null);
     }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied to clipboard" });
   };
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
@@ -196,13 +239,10 @@ export default function AdminDashboard() {
           <span className="font-black text-xl italic uppercase tracking-tighter">ARENA <span className="text-primary">ADMIN</span></span>
         </div>
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
-          <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Ledger" onClick={() => setActiveTab('withdrawals')} />
+          <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout & Shop" onClick={() => setActiveTab('withdrawals')} />
           <AdminLink active={activeTab === 'broadcast'} icon={<Megaphone />} label="Broadcast News" onClick={() => setActiveTab('broadcast')} />
           <AdminLink active={activeTab === 'missions'} icon={<Smartphone />} label="CPA Missions" onClick={() => setActiveTab('missions')} />
           <AdminLink active={activeTab === 'ads'} icon={<Monitor />} label="Media & Ads" onClick={() => setActiveTab('ads')} />
-          <AdminLink active={activeTab === 'jili'} icon={<Gamepad2 />} label="JILI Games Hub" onClick={() => setActiveTab('jili')} />
-          <AdminLink active={activeTab === 'cricket'} icon={<Flag />} label="Cricket Arena" onClick={() => setActiveTab('cricket')} />
-          <AdminLink active={activeTab === 'polls'} icon={<Target />} label="Poll Manager" onClick={() => setActiveTab('polls')} />
           <AdminLink active={activeTab === 'settings'} icon={<Settings />} label="Global System" onClick={() => setActiveTab('settings')} />
         </nav>
       </aside>
@@ -218,20 +258,18 @@ export default function AdminDashboard() {
 
         {activeTab === 'withdrawals' && (
           <div className="space-y-12 animate-in fade-in duration-500">
-             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Wallet className="text-primary h-6 w-6" />
-                  <h2 className="text-2xl font-black uppercase italic">Withdrawal Queue</h2>
-                </div>
+             <div className="flex items-center gap-4">
+                <Wallet className="text-primary h-6 w-6" />
+                <h2 className="text-2xl font-black uppercase italic">Payout & Shop Queue</h2>
              </div>
              
              <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5">
-                        <TableHead className="px-10 py-6 text-[10px] uppercase font-black tracking-widest">Warrior Profile</TableHead>
-                        <TableHead className="text-[10px] uppercase font-black tracking-widest text-center">Volume (Local)</TableHead>
-                        <TableHead className="text-[10px] uppercase font-black tracking-widest text-right px-10">Decision Terminal</TableHead>
+                        <TableHead className="px-10 py-6 text-[10px] uppercase font-black tracking-widest">Requester / Item</TableHead>
+                        <TableHead className="text-[10px] uppercase font-black tracking-widest text-center">Identity / Game ID</TableHead>
+                        <TableHead className="text-[10px] uppercase font-black tracking-widest text-right px-10">Verification & Action</TableHead>
                       </TableRow>
                    </TableHeader>
                    <TableBody>
@@ -242,28 +280,47 @@ export default function AdminDashboard() {
                            <TableCell className="py-8 px-10">
                               <div className="flex items-center gap-3">
                                  <p className="text-sm font-black text-white">{p.userEmail || p.userId}</p>
-                                 {p.isAutoVerified && (
-                                   <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase px-2 py-0.5 flex items-center gap-1">
-                                      <CheckCircle2 className="h-2 w-2" /> Auto-Verified
-                                   </Badge>
-                                 )}
+                                 <Badge className={cn("text-[8px] font-black uppercase px-2 py-0.5", p.type === 'shop' ? "bg-purple-500/20 text-purple-500" : "bg-blue-500/20 text-blue-500")}>
+                                    {p.type === 'shop' ? 'Shop Item' : 'Cash Withdrawal'}
+                                 </Badge>
                               </div>
-                              <div className="flex items-center gap-3 mt-2">
-                                 <Badge variant="outline" className="text-[9px] font-black uppercase border-white/10 text-primary bg-primary/5">{p.method}</Badge>
-                                 <p className="text-[10px] text-muted-foreground font-bold font-mono">{p.destination}</p>
-                              </div>
+                              <p className="text-lg font-black text-primary italic mt-1">{p.type === 'shop' ? p.itemName : `₹${p.amount}`}</p>
                            </TableCell>
                            <TableCell className="text-center">
-                              <p className="text-3xl font-black text-green-500 italic tabular-nums">₹{p.amount}</p>
+                              <div className="flex flex-col items-center gap-2">
+                                 <p className="text-[9px] font-black text-muted-foreground uppercase">{p.type === 'shop' ? 'Target Character ID' : `Gateway: ${p.method}`}</p>
+                                 <div className="flex items-center gap-2 bg-black border border-white/10 px-4 py-2 rounded-xl">
+                                    <span className="font-mono text-xs font-black text-green-500">{p.destination}</span>
+                                    <button onClick={() => copyToClipboard(p.destination)} className="text-muted-foreground hover:text-white"><Copy className="h-3 w-3" /></button>
+                                 </div>
+                              </div>
                            </TableCell>
                            <TableCell className="text-right px-10">
                               {p.status === 'pending' ? (
-                                <div className="flex justify-end gap-4">
-                                   <Button onClick={() => handlePayoutAction(p, 'approved')} disabled={!!isProcessing} className="bg-green-600 hover:bg-green-500 h-12 px-8 font-black uppercase italic text-xs rounded-xl shadow-lg">Approve</Button>
-                                   <Button variant="destructive" onClick={() => handlePayoutAction(p, 'rejected')} disabled={!!isProcessing} className="h-12 px-8 font-black uppercase italic text-xs rounded-xl shadow-lg">Reject</Button>
+                                <div className="space-y-4">
+                                   {p.type === 'shop' && (
+                                     <div className="relative">
+                                       <Input 
+                                          placeholder="Enter Voucher / Txn Code" 
+                                          value={voucherInputs[p.id] || ''}
+                                          onChange={(e) => setVoucherInputs({...voucherInputs, [p.id]: e.target.value})}
+                                          className="bg-black border-white/10 h-10 font-mono text-[10px] text-primary pr-10"
+                                       />
+                                       <Ticket className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                                     </div>
+                                   )}
+                                   <div className="flex justify-end gap-3">
+                                      <Button onClick={() => handlePayoutAction(p, 'approved')} disabled={!!isProcessing} className="bg-green-600 hover:bg-green-500 h-10 px-6 font-black uppercase italic text-[10px] rounded-lg">
+                                         {p.type === 'shop' ? 'Dispatch' : 'Approve'}
+                                      </Button>
+                                      <Button variant="destructive" onClick={() => handlePayoutAction(p, 'rejected')} disabled={!!isProcessing} className="h-10 px-6 font-black uppercase italic text-[10px] rounded-lg">Reject</Button>
+                                   </div>
                                 </div>
                               ) : (
-                                <Badge className={cn("text-[10px] font-black uppercase italic px-6 py-2 rounded-lg", p.status === 'approved' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>{p.status}</Badge>
+                                <div className="flex flex-col items-end gap-1">
+                                   <Badge className={cn("text-[8px] font-black uppercase italic px-4 py-1", p.status === 'approved' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>{p.status}</Badge>
+                                   {p.voucherCode && <p className="text-[9px] font-mono text-muted-foreground">Code: {p.voucherCode}</p>}
+                                </div>
                               )}
                            </TableCell>
                         </TableRow>
@@ -338,6 +395,19 @@ export default function AdminDashboard() {
                     />
                  </Card>
               </div>
+
+              <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-t-4 border-t-blue-600">
+                 <div className="flex items-center gap-3">
+                    <Monitor className="h-5 w-5 text-blue-500" />
+                    <h3 className="text-lg font-black uppercase italic">Ad Intelligence (AdMob/AppLovin)</h3>
+                 </div>
+                 <div className="grid md:grid-cols-2 gap-6">
+                    <ConfigField label="AdMob App ID" value={systemConfig.adMobAppId} onChange={v => setSystemConfig({...systemConfig, adMobAppId: v})} />
+                    <ConfigField label="AdMob Banner ID" value={systemConfig.adMobBannerId} onChange={v => setSystemConfig({...systemConfig, adMobBannerId: v})} />
+                    <ConfigField label="AppLovin SDK Key" value={systemConfig.appLovinSdkKey} onChange={v => setSystemConfig({...systemConfig, appLovinSdkKey: v})} />
+                    <ConfigField label="AppLovin Zone ID" value={systemConfig.appLovinZoneId} onChange={v => setSystemConfig({...systemConfig, appLovinZoneId: v})} />
+                 </div>
+              </Card>
               
               <Button onClick={handleSaveSystem} disabled={isProcessing === 'save-system'} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-2xl transition-all">
                  {isProcessing === 'save-system' ? <Loader2 className="animate-spin" /> : "DEPLOY SYSTEM STATE"}

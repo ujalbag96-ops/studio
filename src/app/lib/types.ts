@@ -54,6 +54,7 @@ export interface UserLedgerEntry {
   currencySymbol?: string;
   utrId?: string;
   isAutoVerified?: boolean;
+  voucherCode?: string; // Digital code for shop redemptions
 }
 
 export interface AppSettings {
@@ -178,6 +179,7 @@ export interface SystemNotification {
   imageUrl?: string;
   timestamp: string;
   type: 'broadcast' | 'payout' | 'mission';
+  voucherCode?: string;
 }
 
 export interface SupportMessage {

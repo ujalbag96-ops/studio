@@ -2,15 +2,17 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { doc, updateDoc, increment, collection, addDoc, writeBatch } from 'firebase/firestore';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, Zap, CreditCard, Gift, Ticket, Loader2, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { ShoppingBag, Loader2, ShieldCheck, CheckCircle2, Copy, Gift, Ticket, Smartphone } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { UserProfile, ShopItem } from '@/app/lib/types';
-import Image from 'next/image';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 const MOCK_SHOP_ITEMS: ShopItem[] = [
   { id: 's1', name: '₹100 Google Play', description: 'Instant Digital Gift Code', price: 100, category: 'Redeem Code', imageUrl: 'https://picsum.photos/seed/googleplay/400/200' },
@@ -23,52 +25,75 @@ export default function ShopPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [isRedeeming, setIsRedeeming] = useState<string | null>(null);
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ShopItem | null>(null);
+  const [deliveryId, setDeliveryId] = useState('');
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
-  const handleRedeem = async (item: ShopItem) => {
-    if (!user || !firestore || !userRef || !profile) {
+  const handleRedeemInitiate = (item: ShopItem) => {
+    if (!user || !profile) {
       toast({ variant: "destructive", title: "Login Required" });
       return;
     }
-
     if (profile.winningBalance < item.price) {
-      toast({ 
-        variant: "destructive", 
-        title: "Insufficient Winnings", 
-        description: `You need ${item.price} winning coins to redeem this.` 
-      });
+      toast({ variant: "destructive", title: "Insufficient Winnings", description: `You need ${item.price} winning coins.` });
       return;
     }
+    setSelectedItem(item);
+  };
 
-    setIsRedeeming(item.id);
+  const handleConfirmRedeem = async () => {
+    if (!user || !firestore || !userRef || !profile || !selectedItem || !deliveryId.trim()) return;
+
+    setIsRedeeming(true);
     try {
-      // Professional Transaction Protocol
-      await updateDoc(userRef, {
-        winningBalance: increment(-item.price),
-        coins: increment(-item.price)
+      const batch = writeBatch(firestore);
+      const timestamp = new Date().toISOString();
+
+      // 1. Deduct Balance
+      batch.update(userRef, {
+        winningBalance: increment(-selectedItem.price),
+        coins: increment(-selectedItem.price)
       });
 
-      await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
-        type: 'shop_redemption',
-        amount: item.price,
-        date: new Date().toISOString().split('T')[0],
+      // 2. Create Payout Request for Admin
+      const payoutRef = doc(collection(firestore, 'payouts'));
+      batch.set(payoutRef, {
+        userId: user.uid,
+        userEmail: user.email,
+        amount: selectedItem.price,
+        method: 'Shop Redemption',
+        destination: deliveryId,
         status: 'pending',
-        description: `Purchased: ${item.name} (Awaiting Delivery)`
+        timestamp: timestamp,
+        type: 'shop',
+        itemName: selectedItem.name,
+        category: selectedItem.category
       });
 
-      toast({
-        title: "PURCHASE SUCCESSFUL",
-        description: "Your code will be delivered to your inbox within 24 hours.",
+      // 3. Ledger Receipt
+      const ledgerRef = doc(collection(firestore, 'users', user.uid, 'ledger'));
+      batch.set(ledgerRef, {
+        type: 'shop_redemption',
+        amount: selectedItem.price,
+        date: timestamp.split('T')[0],
+        status: 'pending',
+        description: `Purchased: ${selectedItem.name} [ID: ${deliveryId}]`,
+        payoutId: payoutRef.id
       });
-      
+
+      await batch.commit();
+
+      toast({ title: "REDEEM REQUEST SENT", description: "Voucher will be delivered to your inbox soon." });
+      setSelectedItem(null);
+      setDeliveryId('');
       new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
     } catch (e) {
       toast({ variant: "destructive", title: "Redemption Failed" });
     } finally {
-      setIsRedeeming(null);
+      setIsRedeeming(false);
     }
   };
 
@@ -108,17 +133,62 @@ export default function ShopPage() {
                     <span className="text-[10px] font-bold text-muted-foreground mb-1">🪙</span>
                  </div>
                  <Button 
-                   onClick={() => handleRedeem(item)}
-                   disabled={isRedeeming === item.id}
+                   onClick={() => handleRedeemInitiate(item)}
                    className="h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-primary text-white font-black text-[10px] uppercase tracking-widest px-6"
                  >
-                   {isRedeeming === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "REDEEM"}
+                   REDEEM
                  </Button>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Redemption Dialog */}
+      <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
+        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] p-8">
+           <DialogHeader className="space-y-4">
+              <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+                 <Ticket className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-black uppercase italic">Redeem Details</DialogTitle>
+                <DialogDescription className="text-xs uppercase font-bold text-muted-foreground tracking-widest">Provide delivery identification</DialogDescription>
+              </div>
+           </DialogHeader>
+
+           <div className="space-y-6 py-6">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
+                 <span className="text-[10px] font-black uppercase text-muted-foreground">Item Selected</span>
+                 <span className="text-sm font-black text-primary italic">{selectedItem?.name}</span>
+              </div>
+              <div className="space-y-3">
+                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">
+                    {selectedItem?.category === 'Game Credit' ? 'Game Character ID' : 'Email Address'}
+                 </Label>
+                 <Input 
+                   value={deliveryId} 
+                   onChange={e => setDeliveryId(e.target.value)} 
+                   placeholder={selectedItem?.category === 'Game Credit' ? 'Enter Game Player ID' : 'Enter recipient email'}
+                   className="h-14 bg-black border-white/10 rounded-xl font-black text-lg focus:ring-primary"
+                 />
+              </div>
+              <p className="text-[9px] text-muted-foreground uppercase font-bold italic leading-relaxed text-center">
+                 Voucher will be delivered to your in-app Inbox after industrial verification (2-24 Hours).
+              </p>
+           </div>
+
+           <DialogFooter>
+              <Button 
+                onClick={handleConfirmRedeem} 
+                disabled={isRedeeming || !deliveryId} 
+                className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl"
+              >
+                {isRedeeming ? <Loader2 className="animate-spin h-6 w-6" /> : "CONFIRM REDEMPTION"}
+              </Button>
+           </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <section className="pt-10">
          <Card className="bg-gradient-to-br from-[#1a1a24] to-[#0a0a0f] border-white/5 rounded-[3rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10">
