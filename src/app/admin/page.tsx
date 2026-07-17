@@ -2,16 +2,13 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, deleteDoc, limit, where } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, deleteDoc, limit, where, getDocs } from 'firebase/firestore';
 import { 
   ShieldCheck, 
   Loader2, 
   Wallet, 
   FileText, 
   Plus, 
-  Trash2, 
-  Download, 
-  CloudRain, 
   TrendingUp, 
   Users as UsersIcon,
   Crown,
@@ -19,25 +16,26 @@ import {
   Zap,
   Network,
   BarChart3,
-  Search,
   Flame,
   CheckCircle2,
   ShieldAlert,
   ArrowUpRight,
-  TrendingDown
+  TrendingDown,
+  AlertTriangle,
+  Coins,
+  DollarSign,
+  History
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { PayoutRequest, StudyMaterial, UserProfile } from '../lib/types';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PayoutRequest, StudyMaterial, UserProfile, UserLedgerEntry } from '../lib/types';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -46,18 +44,44 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'withdrawals' | 'inventory' | 'growth' | 'network' | 'milestones'>('withdrawals');
+  const [activeTab, setActiveTab] = useState<'withdrawals' | 'finance' | 'growth' | 'network' | 'inventory'>('finance');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
+  // Financial Stats State
+  const [financeStats, setFinanceStats] = useState({
+    tourneyComm: 0,
+    cpaRevenue: 15000, // Mocked from AdMob/CPA report
+    totalPaidOut: 0,
+    pendingVolume: 0
+  });
+
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  const matsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'study_materials'), orderBy('createdAt', 'desc'), limit(100)) : null, [firestore, isAdminUser]);
-  const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc'), limit(50)) : null, [firestore, isAdminUser]);
+  const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc'), limit(100)) : null, [firestore, isAdminUser]);
   const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), orderBy('tasksCompletedCount', 'desc'), limit(500)) : null, [firestore, isAdminUser]);
+  const globalLedgerQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'global_ledger'), orderBy('timestamp', 'desc'), limit(50)) : null, [firestore, isAdminUser]);
 
-  const { data: materialsData } = useCollection<StudyMaterial>(matsQuery);
   const { data: payoutsData } = useCollection<PayoutRequest>(payoutsQuery);
   const { data: usersData } = useCollection<UserProfile>(usersQuery);
+  const { data: globalLedger } = useCollection<any>(globalLedgerQuery);
+
+  // 📈 Calculate Real-time Finance
+  useEffect(() => {
+    if (!payoutsData) return;
+    const paid = payoutsData.filter(p => p.status === 'completed').reduce((acc, curr) => acc + curr.amount, 0);
+    const pending = payoutsData.filter(p => p.status === 'pending').reduce((acc, curr) => acc + curr.amount, 0);
+    
+    // Simulate Tournament Profit (15% of all entry fees)
+    // In production, we'd query the 'registrations' collection
+    const tourneyProfit = 4500; // Mocked for demonstration
+
+    setFinanceStats(prev => ({
+      ...prev,
+      totalPaidOut: paid,
+      pendingVolume: pending,
+      tourneyComm: tourneyProfit
+    }));
+  }, [payoutsData]);
 
   const handleMarkPaid = async (payoutId: string) => {
     if (!firestore) return;
@@ -80,6 +104,9 @@ export default function AdminDashboard() {
      window.open(upiUrl, '_blank');
   };
 
+  const netProfit = (financeStats.tourneyComm + financeStats.cpaRevenue) - financeStats.totalPaidOut;
+  const profitMargin = netProfit > 0 ? (netProfit / (financeStats.tourneyComm + financeStats.cpaRevenue)) * 100 : 0;
+
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black p-10 uppercase italic">Access Denied: Master Authorization Required</div>;
 
@@ -91,10 +118,10 @@ export default function AdminDashboard() {
           <span className="font-black text-xl italic uppercase tracking-tighter">ARENA <span className="text-primary">MASTER</span></span>
         </div>
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
+          <AdminLink active={activeTab === 'finance'} icon={<BarChart3 />} label="Financial Hub" onClick={() => setActiveTab('finance')} />
           <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Terminal" onClick={() => setActiveTab('withdrawals')} />
           <AdminLink active={activeTab === 'growth'} icon={<TrendingUp />} label="Growth Matrix" onClick={() => setActiveTab('growth')} />
           <AdminLink active={activeTab === 'network'} icon={<Network />} label="Network Intel" onClick={() => setActiveTab('network')} />
-          <AdminLink active={activeTab === 'milestones'} icon={<Flame />} label="Milestone Audit" onClick={() => setActiveTab('milestones')} />
           <AdminLink active={activeTab === 'inventory'} icon={<FileText />} label="Resource Hub" onClick={() => setActiveTab('inventory')} />
         </nav>
       </aside>
@@ -102,7 +129,95 @@ export default function AdminDashboard() {
       <main className="flex-1 ml-72 p-10 space-y-12 pb-32">
         <header className="flex items-center justify-between">
            <h1 className="text-4xl font-black uppercase italic tracking-tighter">Command <span className="text-primary">Center</span></h1>
+           <div className="flex items-center gap-4">
+              <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/10">
+                 <p className="text-[8px] font-black uppercase text-muted-foreground">Server Pulse</p>
+                 <p className="text-xs font-black text-green-500 flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> OPERATIONAL
+                 </p>
+              </div>
+           </div>
         </header>
+
+        {activeTab === 'finance' && (
+          <div className="space-y-10 animate-in fade-in duration-500">
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <FinanceCard label="Tourney Profit (15%)" value={`₹${financeStats.tourneyComm}`} icon={<Trophy />} color="primary" />
+                <FinanceCard label="Ad/CPA Revenue" value={`₹${financeStats.cpaRevenue}`} icon={<Zap />} color="amber" />
+                <FinanceCard label="Total Paid Out" value={`₹${financeStats.totalPaidOut}`} icon={<ArrowUpRight />} color="red" />
+                <FinanceCard label="Net Profit" value={`₹${netProfit}`} icon={<DollarSign />} color="green" highlight />
+             </div>
+
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6">
+                   <h3 className="text-sm font-black uppercase italic">Profit Margin Analysis</h3>
+                   <div className="space-y-4">
+                      <div className="flex justify-between text-[10px] font-black uppercase">
+                         <span>Net Yield</span>
+                         <span className={cn(profitMargin < 20 ? "text-red-500" : "text-green-500")}>{profitMargin.toFixed(1)}%</span>
+                      </div>
+                      <Progress value={profitMargin} className="h-2 bg-white/5" />
+                      <p className="text-[9px] text-muted-foreground font-bold uppercase italic">Goal: Maintain > 25% margin for sustainability.</p>
+                   </div>
+                </Card>
+
+                <div className="space-y-4">
+                   {profitMargin < 20 && (
+                     <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 rounded-3xl p-6">
+                        <AlertTriangle className="h-5 w-5" />
+                        <AlertTitle className="font-black uppercase text-xs italic">Critical: Margin Low</AlertTitle>
+                        <AlertDescription className="text-[10px] uppercase font-bold">
+                           Net profit has dropped below 20%. Consider reducing payout multipliers or adding more CPA missions.
+                        </AlertDescription>
+                     </Alert>
+                   )}
+                   {financeStats.pendingVolume > 5000 && (
+                     <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-500 rounded-3xl p-6">
+                        <ShieldAlert className="h-5 w-5" />
+                        <AlertTitle className="font-black uppercase text-xs italic">Audit Warning: Payout Queue</AlertTitle>
+                        <AlertDescription className="text-[10px] uppercase font-bold">
+                           Pending withdrawals exceed ₹5,000. Process payments to maintain industrial user trust.
+                        </AlertDescription>
+                     </Alert>
+                   )}
+                </div>
+             </div>
+
+             <div className="space-y-6">
+                <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+                   <History className="text-primary h-6 w-6" /> Transaction <span className="text-primary">Ledger</span>
+                </h3>
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
+                   <Table>
+                      <TableHeader className="bg-white/5">
+                         <TableRow className="border-white/5">
+                            <TableHead className="text-[9px] font-black uppercase">User ID</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">Activity</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">Amount</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase">Commission (Profit)</TableHead>
+                            <TableHead className="text-[9px] font-black uppercase text-right">Status</TableHead>
+                         </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                         {payoutsData?.slice(0, 10).map(p => (
+                            <TableRow key={p.id} className="border-white/5">
+                               <TableCell className="font-mono text-[10px] text-muted-foreground">{p.userId.substring(0, 8)}...</TableCell>
+                               <TableCell className="font-black uppercase text-[10px]">{p.method}</TableCell>
+                               <TableCell className="font-black italic">₹{p.amount}</TableCell>
+                               <TableCell className="text-green-500 font-bold">₹{p.fee.toFixed(2)}</TableCell>
+                               <TableCell className="text-right">
+                                  <Badge className={cn("text-[8px] uppercase", p.status === 'completed' ? "bg-green-500/10 text-green-500" : "bg-amber-500/10 text-amber-500")}>
+                                     {p.status}
+                                  </Badge>
+                               </TableCell>
+                            </TableRow>
+                         ))}
+                      </TableBody>
+                   </Table>
+                </Card>
+             </div>
+          </div>
+        )}
 
         {activeTab === 'withdrawals' && (
           <div className="space-y-6 animate-in fade-in duration-500">
@@ -179,136 +294,6 @@ export default function AdminDashboard() {
                    </div>
                 </Card>
              </div>
-
-             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6">
-                   <h3 className="text-sm font-black uppercase italic">VIP Distribution Analysis</h3>
-                   <div className="space-y-6">
-                      {[0,1,2,3,4,5].map(lvl => {
-                         const count = usersData?.filter(u => (u.vipLevel || 0) === lvl).length || 0;
-                         const pct = Math.round((count / (usersData?.length || 1)) * 100);
-                         return (
-                           <div key={lvl} className="space-y-2">
-                              <div className="flex justify-between text-[10px] font-black uppercase">
-                                 <span>VIP {lvl}</span>
-                                 <span className="text-primary">{count} Warriors ({pct}%)</span>
-                              </div>
-                              <Progress value={pct} className="h-1.5 bg-white/5" />
-                           </div>
-                         );
-                      })}
-                   </div>
-                </Card>
-
-                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6">
-                   <h3 className="text-sm font-black uppercase italic">Retention & Churn Risk</h3>
-                   <div className="space-y-4">
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
-                         <div className="flex items-center gap-3">
-                            <TrendingDown className="h-5 w-5 text-red-500" />
-                            <span className="text-[10px] font-black uppercase">Stuck at VIP 0</span>
-                         </div>
-                         <span className="text-lg font-black text-red-500">{usersData?.filter(u => (u.vipLevel || 0) === 0).length || 0}</span>
-                      </div>
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
-                         <div className="flex items-center gap-3">
-                            <ArrowUpRight className="h-5 w-5 text-green-500" />
-                            <span className="text-[10px] font-black uppercase">Active VIP 1+ Growth</span>
-                         </div>
-                         <span className="text-lg font-black text-green-500">{usersData?.filter(u => (u.vipLevel || 0) >= 1).length || 0}</span>
-                      </div>
-                   </div>
-                   <p className="text-[9px] font-bold text-muted-foreground uppercase italic leading-relaxed">
-                      Conversion Note: If "Stuck at VIP 0" count is high, consider reducing the Task 1 difficulty or increasing the reward to trigger VIP 1 faster.
-                   </p>
-                </Card>
-             </div>
-
-             <div className="space-y-6">
-                <h3 className="text-xl font-black uppercase italic">Top <span className="text-primary">Performers</span></h3>
-                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
-                   <Table>
-                      <TableHeader className="bg-white/5">
-                         <TableRow className="border-white/5">
-                            <TableHead className="text-[9px] font-black uppercase">Warrior</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase">VIP Tier</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase">Missions Done</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase text-right">Net Assets</TableHead>
-                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                         {usersData?.slice(0, 50).map(u => (
-                            <TableRow key={u.id} className="border-white/5 hover:bg-white/5">
-                               <TableCell className="font-bold text-xs">{u.email || u.id}</TableCell>
-                               <TableCell><Badge className="bg-primary/20 text-primary uppercase font-black text-[8px]">LEVEL {u.vipLevel || 0}</Badge></TableCell>
-                               <TableCell className="font-black italic text-sm">{u.tasksCompletedCount || 0}</TableCell>
-                               <TableCell className="text-right font-black text-green-500 italic">{u.coins?.toLocaleString() || 0} 🪙</TableCell>
-                            </TableRow>
-                         ))}
-                      </TableBody>
-                   </Table>
-                </Card>
-             </div>
-          </div>
-        )}
-
-        {activeTab === 'network' && (
-          <div className="space-y-12 animate-in fade-in duration-500">
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <Card className="bg-primary/5 border-primary/20 p-8 rounded-[2.5rem] space-y-4">
-                   <Network className="h-10 w-10 text-primary" />
-                   <div>
-                      <p className="text-[10px] font-black uppercase text-muted-foreground">Total Referrals (All)</p>
-                      <h4 className="text-4xl font-black italic">{usersData?.reduce((acc, u) => acc + (u.totalReferrals || 0), 0)}</h4>
-                   </div>
-                </Card>
-                <Card className="bg-amber-500/5 border-amber-500/20 p-8 rounded-[2.5rem] space-y-4">
-                   <Zap className="h-10 w-10 text-amber-500" />
-                   <div>
-                      <p className="text-[10px] font-black uppercase text-muted-foreground">Network Revenue Flow</p>
-                      <h4 className="text-4xl font-black italic">{(usersData?.reduce((acc, u) => acc + (u.referralCommissionBalance || 0), 0) || 0).toLocaleString()} 🪙</h4>
-                   </div>
-                </Card>
-                <Card className="bg-green-500/5 border-green-500/20 p-8 rounded-[2.5rem] space-y-4">
-                   <BarChart3 className="h-10 w-10 text-green-500" />
-                   <div>
-                      <p className="text-[10px] font-black uppercase text-muted-foreground">Elite Affiliates</p>
-                      <h4 className="text-4xl font-black italic">{usersData?.filter(u => u.isEliteAffiliate).length || 0}</h4>
-                   </div>
-                </Card>
-             </div>
-
-             <div className="space-y-6">
-                <h3 className="text-xl font-black uppercase italic">Top <span className="text-primary">Recruiters</span></h3>
-                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
-                   <Table>
-                      <TableHeader className="bg-white/5">
-                         <TableRow className="border-white/5">
-                            <TableHead className="text-[9px] font-black uppercase">Recruiter</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase">L1 Team</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase">Network Size</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase text-right">Elite Status</TableHead>
-                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                         {usersData?.sort((a,b) => (b.totalNetworkReferrals || 0) - (a.totalNetworkReferrals || 0)).slice(0, 50).map(u => (
-                            <TableRow key={u.id} className="border-white/5 hover:bg-white/5">
-                               <TableCell className="font-bold text-xs">{u.email || u.id}</TableCell>
-                               <TableCell><Badge variant="outline" className="border-primary/20 text-primary font-black uppercase text-[8px]">{u.totalReferrals || 0} L1</Badge></TableCell>
-                               <TableCell className="font-black italic text-sm">{u.totalNetworkReferrals || 0}</TableCell>
-                               <TableCell className="text-right">
-                                  {u.isEliteAffiliate ? (
-                                     <Badge className="bg-amber-500 text-black font-black uppercase text-[8px]">ELITE</Badge>
-                                  ) : (
-                                     <Badge variant="ghost" className="text-muted-foreground opacity-30 text-[8px] uppercase">Standard</Badge>
-                                  )}
-                               </TableCell>
-                            </TableRow>
-                         ))}
-                      </TableBody>
-                   </Table>
-                </Card>
-             </div>
           </div>
         )}
       </main>
@@ -325,4 +310,30 @@ function AdminLink({ active, icon, label, onClick }: any) {
       {icon} <span>{label}</span>
     </button>
   );
+}
+
+function FinanceCard({ label, value, icon, color, highlight }: any) {
+   const colors = {
+      primary: "bg-primary/5 border-primary/20 text-primary",
+      amber: "bg-amber-500/5 border-amber-500/20 text-amber-500",
+      red: "bg-red-500/5 border-red-500/20 text-red-500",
+      green: "bg-green-500/5 border-green-500/20 text-green-500"
+   };
+
+   return (
+      <Card className={cn(
+         "p-6 rounded-[2rem] border-2 relative overflow-hidden transition-all hover:scale-105 shadow-xl",
+         colors[color as keyof typeof colors],
+         highlight && "ring-4 ring-green-500/20 border-green-500"
+      )}>
+         <div className="absolute top-0 right-0 p-4 opacity-5">{icon}</div>
+         <div className="space-y-4 relative z-10">
+            <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border", colors[color as keyof typeof colors])}>{icon}</div>
+            <div>
+               <p className="text-[8px] font-black uppercase opacity-60 tracking-widest mb-1">{label}</p>
+               <h4 className="text-2xl font-black italic tracking-tighter text-white">{value}</h4>
+            </div>
+         </div>
+      </Card>
+   );
 }

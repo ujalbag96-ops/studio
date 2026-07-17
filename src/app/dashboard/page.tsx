@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
@@ -18,29 +19,21 @@ import {
   LogOut,
   CreditCard,
   Crown,
-  Copy,
   Coins,
   Gift,
   Target,
-  Smartphone,
   PlayCircle,
   Video,
-  AlertCircle,
-  ShoppingBag,
-  Flag,
   Lock,
-  Mail,
   Network,
   Users,
   CheckCircle2,
-  ShieldAlert,
-  Sparkles,
+  ShieldCheck,
   Star,
   Flame,
-  ArrowUp,
   Globe,
   Scale,
-  ShieldCheck
+  DollarSign
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,7 +44,6 @@ import { UserProfile, UserLedgerEntry } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import WalletModal from '@/components/WalletModal';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
 import { useToast } from '@/hooks/use-toast';
 import ViralLeaderboard from '@/components/ViralLeaderboard';
@@ -109,7 +101,8 @@ export default function UserDashboard() {
   
   const vipProgress = currentVip === 5 ? 100 : Math.min(((tasksDone - prevTierTasks) / (nextTier.tasks - prevTierTasks)) * 100, 100);
 
-  const vipLimitsINR: Record<number, number> = { 0: 0, 1: 500, 2: 1000, 3: 2500, 4: 5000, 5: 15000 };
+  const totalEarned = (recentActivity?.filter(a => a.amount > 0).reduce((acc, curr) => acc + curr.amount, 0) || 0);
+  const totalWithdrawn = (recentActivity?.filter(a => a.type === 'withdrawal' && a.status === 'completed').reduce((acc, curr) => acc + Math.abs(curr.amount), 0) || 0);
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative">
@@ -161,18 +154,15 @@ export default function UserDashboard() {
                  </div>
                  <div className="space-y-4 relative z-10">
                     <div className="flex justify-between items-center">
-                       <p className="text-[10px] font-black uppercase text-amber-500 italic">VIP {currentVip} Status</p>
-                       <span className="text-[9px] font-bold text-muted-foreground">{tasksDone} Missions Done</span>
-                    </div>
-                    <div className="flex justify-between items-end">
-                       <h4 className="text-lg font-black uppercase italic">{currentVip < 5 ? `Next: ${nextTier.name}` : 'MAX VIP REACHED'}</h4>
-                       <p className="text-[9px] font-black text-primary">LIMIT: ₹{vipLimitsINR[currentVip]}</p>
+                       <p className="text-[10px] font-black uppercase text-amber-500 italic">Weekly Goal Pulse</p>
+                       <span className="text-[9px] font-bold text-muted-foreground">{profile?.weeklyPointsEarned || 0} / 50 🪙</span>
                     </div>
                     <div className="space-y-2">
-                       <Progress value={vipProgress} className="h-2 bg-white/5" />
-                       <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-center">
-                          {currentVip === 5 ? 'PLATFORM ELITE ACTIVE' : `Progress Level: ${currentVip}`}
+                       <h4 className="text-lg font-black uppercase italic">₹{50 - (profile?.weeklyPointsEarned || 0)} More to Earn!</h4>
+                       <p className="text-[8px] font-bold text-muted-foreground uppercase leading-relaxed">
+                          Earn 50 coins total this week to unlock your Saturday payout protocol.
                        </p>
+                       <Progress value={((profile?.weeklyPointsEarned || 0) / 50) * 100} className="h-2 bg-white/5" />
                     </div>
                  </div>
               </Card>
@@ -181,15 +171,15 @@ export default function UserDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} color="green" />
               <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} color="blue" />
-              <WalletCard label="Bonus Balance" value={profile?.taskBalance || 0} icon={<Zap />} color="amber" />
-              <WalletCard label="Network Commission" value={profile?.referralCommissionBalance || 0} icon={<Network />} color="primary" />
+              <WalletCard label="Total Earned" value={totalEarned} icon={<TrendingUp />} color="amber" />
+              <WalletCard label="Total Withdrawn" value={totalWithdrawn} icon={<CheckCircle2 />} color="primary" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
               <div className="xl:col-span-2 space-y-8">
                 <div className="flex items-center justify-between">
                    <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic">
-                     <History className="h-6 w-6 text-primary" /> Operational Ledger
+                     <History className="h-6 w-6 text-primary" /> Earning Summary
                    </h3>
                    <Button asChild variant="link" className="text-primary font-black uppercase text-[10px] tracking-widest">
                       <Link href="/ledger">Full History <ChevronRight className="h-3 w-3 ml-1" /></Link>
@@ -205,57 +195,42 @@ export default function UserDashboard() {
                         <div key={activity.id} className="p-8 flex items-center justify-between hover:bg-white/5 transition-all">
                           <div className="flex items-center gap-6">
                              <div className="h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
-                                <TrendingUp className="h-5 w-5 text-primary" />
+                                <DollarSign className="h-5 w-5 text-primary" />
                              </div>
                              <div>
                                 <p className="text-sm font-bold uppercase text-white">{activity.description || activity.type}</p>
                                 <p className="text-[10px] text-muted-foreground font-bold uppercase">{activity.date}</p>
                              </div>
                           </div>
-                          <p className={cn("text-xl font-black", activity.amount < 0 ? "text-red-400" : "text-green-400")}>
-                            {activity.amount > 0 ? '+' : ''}{activity.amount} 🪙
-                          </p>
+                          <div className="text-right">
+                             <p className={cn("text-xl font-black", activity.amount < 0 ? "text-red-400" : "text-green-400")}>
+                               {activity.amount > 0 ? '+' : ''}{activity.amount} 🪙
+                             </p>
+                             <Badge variant="ghost" className="text-[8px] uppercase opacity-40">{activity.status}</Badge>
+                          </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="p-32 text-center text-muted-foreground uppercase font-black text-xs">No recent signals.</div>
+                    <div className="p-32 text-center text-muted-foreground uppercase font-black text-xs">No recent earnings detected.</div>
                   )}
                 </Card>
               </div>
 
               <div className="space-y-8">
-                 <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2.5rem] p-8 space-y-6 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:rotate-12 transition-transform">
-                       <Network className="h-32 w-32 text-amber-500" />
-                    </div>
-                    <div className="flex items-center gap-3">
-                       <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                          <Users className="h-5 w-5 text-amber-500" />
-                       </div>
-                       <h4 className="text-sm font-black uppercase italic">Network Pulse</h4>
-                    </div>
-                    <div className="space-y-4 relative z-10">
-                       <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                          <span className="text-[10px] font-black uppercase text-muted-foreground">Team Size</span>
-                          <span className="text-sm font-black text-white">{profile?.totalNetworkReferrals || 0} Warriors</span>
-                       </div>
-                       <Button asChild className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase text-[10px] rounded-xl mt-2">
-                          <Link href="/refer">MANAGE TEAM <ChevronRight className="h-3 w-3 ml-1" /></Link>
-                       </Button>
-                    </div>
-                 </Card>
-
-                 <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-8 space-y-4">
+                 <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-8 space-y-6">
                     <div className="flex items-center gap-3">
                        <ShieldCheck className="h-5 w-5 text-primary animate-pulse" />
-                       <h4 className="text-sm font-black uppercase italic">Identity Status</h4>
+                       <h4 className="text-sm font-black uppercase italic">Security Profile</h4>
                     </div>
                     <ul className="space-y-3">
-                       <PerkItem active={currentVip >= 1} text="VIP 1: Withdrawal Verified" />
-                       <PerkItem active={profile?.riskNoticeAccepted || false} text="Legal Terms Accepted" />
-                       <PerkItem active={!profile?.isSuspended} text="Security Audit Passed" />
+                       <PerkItem active={profile?.riskNoticeAccepted || false} text="Terms of Service Accepted" />
+                       <PerkItem active={currentVip >= 1} text="VIP 1: Withdrawal Protocol Active" />
+                       <PerkItem active={!profile?.isSuspended} text="Account Integrity Verified" />
                     </ul>
+                    <Button asChild variant="outline" className="w-full h-12 border-white/10 text-white font-black uppercase text-[10px] rounded-xl mt-4">
+                       <Link href="/withdraw">REQUEST PAYOUT <ArrowUpRight className="h-3 w-3 ml-2" /></Link>
+                    </Button>
                  </Card>
                  <ViralLeaderboard />
               </div>
