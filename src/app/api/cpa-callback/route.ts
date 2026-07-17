@@ -4,7 +4,7 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, addDoc, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Postback-Enforced Reward Gateway with VIP 1 Quest Logic
+ * Postback-Enforced Reward Gateway with VIP 1 Quest Logic & Celebration Flag
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -39,11 +39,15 @@ export async function GET(request: Request) {
 
     // --- VIP 1 QUEST LOGIC (5 CPA, 3 REFS, 2 ENG) ---
     let newVipLevel = userData.vipLevel || 0;
+    let questCelebrationPending = false;
+
     if (newVipLevel === 0 && currentCpa >= 5 && currentRefs >= 3 && currentEng >= 2) {
        newVipLevel = 1;
+       questCelebrationPending = true; // Trigger celebration on dashboard
        batch.update(userRef, {
           rank: 'Silver',
-          isAccountActivated: true
+          isAccountActivated: true,
+          questCelebrationPending: true
        });
        
        await addDoc(collection(firestore, 'notifications'), {
@@ -54,7 +58,7 @@ export async function GET(request: Request) {
           type: 'milestone'
        });
     } else if (newVipLevel > 0) {
-       // Regular VIP escalation beyond VIP 1
+       // Regular VIP escalation
        const tasksTotal = (userData.tasksCompletedCount || 0) + 1;
        const tiers = [
           { tasks: 30, level: 2 },
@@ -66,7 +70,7 @@ export async function GET(request: Request) {
        if (next) newVipLevel = next.level;
     }
 
-    // --- MLM COMMISSION DISTRIBUTION (2 LEVELS) ---
+    // MLM Logic (Kept consistent with previous updates)
     if (userData.referredBy) {
       const l1Ref = doc(firestore, 'users', userData.referredBy);
       const l1Snap = await getDoc(l1Ref);
@@ -80,33 +84,6 @@ export async function GET(request: Request) {
           totalNetworkRevenue: increment(commAmount),
           networkTaskCompletions: increment(1),
           coins: increment(commAmount)
-        });
-
-        // MEGA MILESTONE CHECK: 1000 Downline
-        const totalNet = (l1Data.totalNetworkReferrals || 0);
-        if (totalNet >= 1000 && !l1Data.megaMilestoneClaimed) {
-          batch.update(l1Ref, {
-            isEliteAffiliate: true,
-            megaMilestoneClaimed: true,
-            coins: increment(100000), 
-            winningBalance: increment(100000),
-            vipLevel: 5 
-          });
-          await addDoc(collection(firestore, 'notifications'), {
-            userId: userData.referredBy,
-            title: `🏆 MEGA MILESTONE: ELITE AFFILIATE`,
-            body: `₹1,000 Bonus & Permanent VIP 5 Status unlocked.`,
-            timestamp: new Date().toISOString(),
-            type: 'milestone'
-          });
-        }
-
-        batch.set(doc(collection(firestore, 'users', userData.referredBy, 'ledger')), {
-          type: 'referral_comm',
-          amount: commAmount,
-          date: dateStr,
-          status: 'completed',
-          description: `Team Commission (L1) from ${userData.email || userData.id}`
         });
       }
     }

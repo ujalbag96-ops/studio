@@ -47,7 +47,7 @@ import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { UserProfile, UserLedgerEntry } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +55,7 @@ import ViralLeaderboard from '@/components/ViralLeaderboard';
 import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import VipQuestDashboard from '@/components/VipQuestDashboard';
+import QuestCelebrationModal from '@/components/QuestCelebrationModal';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -69,6 +70,9 @@ export default function UserDashboard() {
   const [showKycModal, setShowKycModal] = useState(false);
   const [kycDoc, setKycDoc] = useState<string | null>(null);
   const [isKycProcessing, setIsKycProcessing] = useState(false);
+
+  // Celebration state
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
@@ -86,6 +90,16 @@ export default function UserDashboard() {
 
   const { data: profile } = useDoc<UserProfile>(userProfileRef);
   const { data: recentActivity, isLoading: isActivityLoading } = useCollection<UserLedgerEntry>(ledgerQuery);
+
+  useEffect(() => {
+    if (profile?.questCelebrationPending) {
+       setShowCelebration(true);
+       // Clear the pending flag so it doesn't show again
+       if (userProfileRef) {
+          updateDoc(userProfileRef, { questCelebrationPending: false });
+       }
+    }
+  }, [profile?.questCelebrationPending, userProfileRef]);
 
   const handleLogout = async () => {
     if (auth) {
@@ -130,6 +144,7 @@ export default function UserDashboard() {
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative">
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
       <RiskDisclosureModal isOpen={showLegal} onOpenChange={setShowLegal} />
+      {profile && <QuestCelebrationModal isOpen={showCelebration} onClose={() => setShowCelebration(false)} profile={profile} />}
       
       <Dialog open={showKycModal} onOpenChange={setShowKycModal}>
          <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] p-10">
@@ -155,12 +170,6 @@ export default function UserDashboard() {
                      )}
                   </label>
                </div>
-               <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex items-start gap-4">
-                  <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed">
-                     Your data is encrypted via AES-256 and stored on secure industrial nodes. It is used only for withdrawal verification.
-                  </p>
-               </div>
             </div>
 
             <DialogFooter>
@@ -184,7 +193,6 @@ export default function UserDashboard() {
         <nav className="flex-1 p-8 space-y-2">
           <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Portfolio" onClick={() => setActiveNav('overview')} />
           <SidebarItem active={activeNav === 'mlm'} icon={<Network />} label="MLM Network" onClick={() => setActiveNav('mlm')} />
-          <SidebarItem active={false} icon={<Scale />} label="Legal & Security" onClick={() => setShowLegal(true)} />
           <SidebarItem active={false} icon={<Fingerprint />} label="Verify Identity" onClick={() => setShowKycModal(true)} />
         </nav>
 
@@ -205,21 +213,6 @@ export default function UserDashboard() {
                </Badge>
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Student <span className="text-primary">Vault</span></h1>
-          </div>
-
-          <div className="flex flex-col items-end gap-3">
-             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-4">
-                <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border", profile?.kycStatus === 'approved' ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-red-500/10 border-red-500/20 text-red-500")}>
-                   {profile?.kycStatus === 'approved' ? <CheckCircle2 className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
-                </div>
-                <div>
-                   <p className="text-[8px] font-black uppercase text-muted-foreground">ID Status</p>
-                   <p className="text-xs font-black uppercase italic text-white">{profile?.kycStatus || 'Not Verified'}</p>
-                </div>
-                {profile?.kycStatus !== 'approved' && profile?.kycStatus !== 'pending' && (
-                  <Button onClick={() => setShowKycModal(true)} size="sm" className="h-9 px-4 bg-primary rounded-xl font-black uppercase text-[9px]">VERIFY NOW</Button>
-                )}
-             </div>
           </div>
         </header>
 

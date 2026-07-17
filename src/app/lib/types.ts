@@ -7,6 +7,7 @@ export type KycStatus = 'none' | 'pending' | 'approved' | 'rejected';
 export interface UserProfile {
   id: string;
   email?: string;
+  phoneNumber?: string;
   depositBalance: number;
   winningBalance: number;
   bonusBalance: number;
@@ -52,6 +53,7 @@ export interface UserProfile {
   megaMilestoneClaimed?: boolean;
   lastSpinTimestamp?: string;
   isAccountActivated?: boolean;
+  questCelebrationPending?: boolean; // New flag for celebration popup
 }
 
 export interface AppSettings {
@@ -60,6 +62,7 @@ export interface AppSettings {
   adminUpiId: string;
   automaticGatewayEnabled: boolean;
   conversionFeePercent: number;
+  minWithdrawalAmount: number;
 }
 
 export interface UserLedgerEntry {

@@ -6,22 +6,19 @@ import { useUser, useFirestore, useAuth } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs, limit, addDoc, increment } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, limit, increment, updateDoc } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldCheck, Eye, EyeOff, LifeBuoy, KeyRound, Smartphone, Mail, Hash, ShieldAlert, Scale } from 'lucide-react';
+import { Loader2, ShieldCheck, Eye, EyeOff, Smartphone, Mail, Hash, Scale } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
@@ -45,7 +42,6 @@ function LoginContent() {
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   
-  const [showSupportModal, setShowSupportModal] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
 
   useEffect(() => {
@@ -61,10 +57,11 @@ function LoginContent() {
       const userDocRef = doc(firestore, 'users', firebaseUser.uid);
       const snap = await getDoc(userDocRef);
 
-      let deviceId = localStorage.getItem('bb_device_id');
+      // --- INDUSTRIAL DEVICE FINGERPRINTING ---
+      let deviceId = localStorage.getItem('cc_device_id');
       if (!deviceId) {
-        deviceId = 'DEV-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
-        localStorage.setItem('bb_device_id', deviceId);
+        deviceId = 'NODE-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
+        localStorage.setItem('cc_device_id', deviceId);
       }
 
       let ipData = { ip: 'Unknown', country: 'Global', region: 'Unknown', city: 'Unknown', proxy: false };
@@ -91,15 +88,22 @@ function LoginContent() {
           const q = query(collection(firestore, 'users'), where('referralCode', '==', referralCodeFromUrl), limit(1));
           const uplineSnap = await getDocs(q);
           if (!uplineSnap.empty) {
-            const l1Data = uplineSnap.docs[0].data();
-            l1Upline = uplineSnap.docs[0].id;
-            l2Upline = l1Data.referredBy || '';
+            const l1Data = uplineSnap.docs[0].id;
+            const l1Payload = uplineSnap.docs[0].data();
+            l1Upline = l1Data;
+            l2Upline = l1Payload.referredBy || '';
             
             // Increment referral tasks for parent for VIP Quest
             await updateDoc(doc(firestore, 'users', l1Upline), { 
                totalReferrals: increment(1),
+               totalNetworkReferrals: increment(1),
                referralTasksCount: increment(1) 
             });
+            if (l2Upline) {
+               await updateDoc(doc(firestore, 'users', l2Upline), { 
+                  totalNetworkReferrals: increment(1)
+               });
+            }
           }
         }
 
@@ -126,18 +130,23 @@ function LoginContent() {
           engagementCount: 0,
           tasksCompletedCount: 0,
           totalReferrals: 0,
-          networkTaskCompletions: 0,
-          totalNetworkRevenue: 0,
+          totalNetworkReferrals: 0,
           isAccountActivated: false,
-          riskNoticeAccepted: true,
-          deviceId: deviceId,
+          riskNoticeAccepted: false,
+          deviceId: deviceId, // Secure Device Fingerprint
           lastIp: ipData.ip,
           country: ipData.country,
           region: ipData.region,
           city: ipData.city,
-          status: (ipData.proxy) ? 'suspended' : 'active',
+          kycStatus: 'none',
           isSuspended: (ipData.proxy),
           joinedAt: new Date().toISOString()
+        });
+      } else {
+        // Update security signals on existing login
+        await updateDoc(userDocRef, {
+           lastIp: ipData.ip,
+           deviceId: deviceId
         });
       }
     } catch (err) {
@@ -223,14 +232,14 @@ function LoginContent() {
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter">Warrior <span className="text-primary">Enlist</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Industrial Identity Protocol Active</p>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Secure Identity Gateway</p>
       </div>
 
       <Tabs value={authMode} onValueChange={(val) => setAuthMode(val as any)} className="w-full">
         <TabsList className="grid grid-cols-3 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
           <TabsTrigger value="login" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase"><Mail className="h-3 w-3 mr-1.5" /> Login</TabsTrigger>
           <TabsTrigger value="signup" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase"><Hash className="h-3 w-3 mr-1.5" /> Register</TabsTrigger>
-          <TabsTrigger value="phone" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase"><Smartphone className="h-3 w-3 mr-1.5" /> Phone</TabsTrigger>
+          <TabsTrigger value="phone" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase"><Smartphone className="h-3 w-3 mr-1.5" /> Phone OTP</TabsTrigger>
         </TabsList>
 
         <TabsContent value="login" className="mt-6">
@@ -266,12 +275,6 @@ function LoginContent() {
               <div className="space-y-2">
                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">New Access Pass</Label>
                  <Input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl font-mono" />
-              </div>
-              <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-start gap-3">
-                 <Scale className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                 <p className="text-[9px] font-black uppercase text-muted-foreground leading-relaxed">
-                   By clicking 'CREATE IDENTITY', you agree to our Terms of Service & Privacy Policy.
-                 </p>
               </div>
               <Button type="submit" disabled={isLoading} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl shadow-xl">
                 {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : 'CREATE IDENTITY'}
