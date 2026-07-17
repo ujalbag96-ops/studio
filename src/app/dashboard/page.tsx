@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
@@ -39,7 +38,9 @@ import {
   Star,
   Flame,
   ArrowUp,
-  Globe
+  Globe,
+  Scale,
+  ShieldCheck
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,7 @@ import WalletModal from '@/components/WalletModal';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
 import { useToast } from '@/hooks/use-toast';
 import ViralLeaderboard from '@/components/ViralLeaderboard';
+import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -63,6 +65,7 @@ export default function UserDashboard() {
   const { toast } = useToast();
   const [activeNav, setActiveNav] = useState<'overview' | 'offers' | 'video' | 'mlm'>('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
+  const [showLegal, setShowLegal] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
     (firestore && user) ? doc(firestore, 'users', user.uid) : null, 
@@ -91,7 +94,6 @@ export default function UserDashboard() {
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!user) return <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
-  // --- REVISED VIP LOGIC (0-5) ---
   const vipTiers = [
     { tasks: 0, level: 0, name: 'Starter' },
     { tasks: 10, level: 1, name: 'Rookie' },
@@ -112,6 +114,7 @@ export default function UserDashboard() {
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative">
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
+      <RiskDisclosureModal isOpen={showLegal} onOpenChange={setShowLegal} />
       
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-10 border-b border-white/5">
@@ -126,7 +129,7 @@ export default function UserDashboard() {
         <nav className="flex-1 p-8 space-y-2">
           <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Portfolio" onClick={() => setActiveNav('overview')} />
           <SidebarItem active={activeNav === 'mlm'} icon={<Network />} label="MLM Network" onClick={() => setActiveNav('mlm')} />
-          <SidebarItem active={false} icon={<Mail />} label="My Inbox" href="/inbox" />
+          <SidebarItem active={false} icon={<Scale />} label="Legal & Security" onClick={() => setShowLegal(true)} />
           <SidebarItem active={activeNav === 'video'} icon={<PlayCircle />} label="Watch & Earn" onClick={() => setActiveNav('video')} />
           <SidebarItem active={activeNav === 'offers'} icon={<Zap />} label="Ad Rewards" onClick={() => setActiveNav('offers')} />
         </nav>
@@ -152,7 +155,6 @@ export default function UserDashboard() {
                 <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Student <span className="text-primary">Vault</span></h1>
               </div>
 
-              {/* VIP PROGRESS HOOK */}
               <Card className="bg-[#121216] border-amber-500/20 border-2 rounded-[2rem] p-6 w-full max-w-sm relative overflow-hidden group">
                  <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                     <Crown className="h-20 w-20 text-amber-500" />
@@ -168,8 +170,8 @@ export default function UserDashboard() {
                     </div>
                     <div className="space-y-2">
                        <Progress value={vipProgress} className="h-2 bg-white/5" />
-                       <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-                          {currentVip === 5 ? 'PLATFORM ELITE ACTIVE' : `Just ${nextTier.tasks - tasksDone} more tasks to level up!`}
+                       <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-center">
+                          {currentVip === 5 ? 'PLATFORM ELITE ACTIVE' : `Progress Level: ${currentVip}`}
                        </p>
                     </div>
                  </div>
@@ -194,7 +196,7 @@ export default function UserDashboard() {
                    </Button>
                 </div>
                 
-                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
+                <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
                   {isActivityLoading ? (
                     <div className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
                   ) : recentActivity && recentActivity.length > 0 ? (
@@ -223,8 +225,7 @@ export default function UserDashboard() {
               </div>
 
               <div className="space-y-8">
-                 {/* MLM Quick Stats */}
-                 <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2rem] p-8 space-y-6 relative overflow-hidden group">
+                 <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2.5rem] p-8 space-y-6 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:rotate-12 transition-transform">
                        <Network className="h-32 w-32 text-amber-500" />
                     </div>
@@ -239,26 +240,21 @@ export default function UserDashboard() {
                           <span className="text-[10px] font-black uppercase text-muted-foreground">Team Size</span>
                           <span className="text-sm font-black text-white">{profile?.totalNetworkReferrals || 0} Warriors</span>
                        </div>
-                       <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                          <span className="text-[10px] font-black uppercase text-muted-foreground">Team Missions</span>
-                          <span className="text-sm font-black text-white">{profile?.networkTaskCompletions || 0} Done</span>
-                       </div>
                        <Button asChild className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase text-[10px] rounded-xl mt-2">
                           <Link href="/refer">MANAGE TEAM <ChevronRight className="h-3 w-3 ml-1" /></Link>
                        </Button>
                     </div>
                  </Card>
 
-                 <Card className="bg-primary/5 border-primary/20 rounded-[2rem] p-8 space-y-4">
+                 <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-8 space-y-4">
                     <div className="flex items-center gap-3">
-                       <Zap className="h-5 w-5 text-primary animate-pulse" />
-                       <h4 className="text-sm font-black uppercase italic">Elite Status Perks</h4>
+                       <ShieldCheck className="h-5 w-5 text-primary animate-pulse" />
+                       <h4 className="text-sm font-black uppercase italic">Identity Status</h4>
                     </div>
                     <ul className="space-y-3">
-                       <PerkItem active={currentVip >= 1} text="VIP 1: Withdrawal Unlocked" />
-                       <PerkItem active={currentVip >= 1} text="VIP 1: ₹15 High-Value Tasks" />
-                       <PerkItem active={currentVip >= 3} text="VIP 3: ₹2,500 Daily Limit" />
-                       <PerkItem active={currentVip >= 5} text="VIP 5: Priority 2H Payout" />
+                       <PerkItem active={currentVip >= 1} text="VIP 1: Withdrawal Verified" />
+                       <PerkItem active={profile?.riskNoticeAccepted || false} text="Legal Terms Accepted" />
+                       <PerkItem active={!profile?.isSuspended} text="Security Audit Passed" />
                     </ul>
                  </Card>
                  <ViralLeaderboard />
