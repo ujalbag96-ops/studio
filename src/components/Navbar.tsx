@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Zap, Wallet, User, LogOut, Shield, Activity, GraduationCap, Library, Bell, BookOpen, Trophy } from 'lucide-react';
+import { Home, Zap, Wallet, User, LogOut, Shield, Activity, GraduationCap, Library, Bell, BookOpen, Trophy, Gamepad2 } from 'lucide-react';
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -52,11 +52,12 @@ export default function Navbar() {
 
           <div className="flex items-center gap-8">
             <NavLink href="/" label="Home" active={pathname === '/'} />
-            <NavLink href="/campus" label="Resource Locker" active={pathname.startsWith('/campus')} />
-            <NavLink href="/earning-hub" label="Income Hub" active={pathname === '/earning-hub'} />
+            <NavLink href="/campus" label="Resource" active={pathname.startsWith('/campus')} />
+            <NavLink href="/games" label="Games Hub" active={pathname === '/games'} />
+            <NavLink href="/earning-hub" label="Income" active={pathname === '/earning-hub'} />
             <NavLink href="/movies" label="Cinema" active={pathname === '/movies'} />
             <NavLink href="/leaderboard" label="Hall of Fame" active={pathname === '/leaderboard'} />
-            {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-amber-500 italic flex items-center gap-1.5 animate-pulse"><Shield className="h-3 w-3" /> Admin Hub</Link>}
+            {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-amber-500 italic flex items-center gap-1.5 animate-pulse"><Shield className="h-3 w-3" /> Admin</Link>}
           </div>
 
           <div className="flex items-center gap-6">
@@ -88,8 +89,8 @@ export default function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#0a0a0f] border-t border-white/5 flex items-center justify-around px-2">
         <MobileNavItem active={pathname === '/'} icon={<Home />} label="Home" href="/" />
         <MobileNavItem active={pathname.startsWith('/campus')} icon={<Library />} label="Locker" href="/campus" />
+        <MobileNavItem active={pathname === '/games'} icon={<Gamepad2 />} label="Games" href="/games" />
         <MobileNavItem active={pathname === '/earning-hub'} icon={<Zap />} label="Income" href="/earning-hub" />
-        <MobileNavItem active={pathname === '/leaderboard'} icon={<Trophy />} label="Ranks" href="/leaderboard" />
         <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="Portfolio" href="/dashboard" />
       </nav>
     </>

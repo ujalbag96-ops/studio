@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -16,9 +16,8 @@ import {
   Loader2, 
   AlertCircle, 
   ArrowLeft,
-  RefreshCw,
   Dices,
-  Coins
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile } from '@/app/lib/types';
@@ -43,13 +42,12 @@ export default function LudoLiteGame() {
   const [turn, setTurn] = useState<'user' | 'bot'>('user');
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Dynamic Winner Logic State
+  // Dynamic Pity Mech State
   const [userDestinedToWin, setUserDestinedToWin] = useState(false);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
-  // START MATCH LOGIC
   const handleStartGame = async () => {
     if (!user || !profile || !userRef) return;
     if (profile.coins < GAME_FEE) {
@@ -59,32 +57,25 @@ export default function LudoLiteGame() {
 
     setIsProcessing(true);
     try {
-      // 1. Deduct Fee
       await updateDoc(userRef, {
         coins: increment(-GAME_FEE),
         depositBalance: increment(-GAME_FEE)
       });
 
-      // 2. Log Entry
       await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
-        type: 'ludo_fee',
+        type: 'game_fee',
         amount: GAME_FEE,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: 'Ludo Lite: Entry Wager'
+        description: 'Ludo Lite: Match Entry'
       });
 
-      // 3. Dynamic Winner Logic Initialization
-      let winProb = 0.7; // 70% Default Win Chance
-      // Pity Mechanism check
-      if ((profile.matchLossCount || 0) >= 3) {
-        winProb = 1.0; // Force Win
-      }
+      // Industrial Retention Logic: 75% Win Prob + Pity Trigger
+      let winProb = 0.75;
+      if ((profile.matchLossCount || 0) >= 3) winProb = 1.0; 
       
-      const willWin = Math.random() < winProb;
-      setUserDestinedToWin(willWin);
+      setUserDestinedToWin(Math.random() < winProb);
       
-      // Reset State
       setUserScore(0);
       setBotScore(0);
       setTimeLeft(MATCH_DURATION);
@@ -98,7 +89,6 @@ export default function LudoLiteGame() {
     }
   };
 
-  // DICE ROLL LOGIC (Dynamic Manipulation)
   const rollDice = useCallback(() => {
     if (isRolling || gameState !== 'playing' || turn !== 'user') return;
     
@@ -112,30 +102,24 @@ export default function LudoLiteGame() {
       setUserScore(prev => prev + roll);
       setIsRolling(false);
       setTurn('bot');
-    }, 600);
+    }, 800);
   }, [isRolling, gameState, turn]);
 
-  // BOT AUTOMATED LOGIC (Restricted if User must win)
+  // Automated Bot Strategy
   useEffect(() => {
     if (gameState === 'playing' && turn === 'bot') {
-      const botRollDelay = setTimeout(() => {
+      const botDelay = setTimeout(() => {
         let roll;
-        if (userDestinedToWin) {
-          // Intentional Poor Bot Logic (Restricted to low numbers)
-          roll = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3 only
-        } else {
-          // Normal Bot Logic
-          roll = Math.floor(Math.random() * 6) + 1;
-        }
+        if (userDestinedToWin) roll = Math.floor(Math.random() * 3) + 1; // Restricted bot
+        else roll = Math.floor(Math.random() * 6) + 1;
         
         setBotScore(prev => prev + roll);
         setTurn('user');
-      }, 1000);
-      return () => clearTimeout(botRollDelay);
+      }, 1500);
+      return () => clearTimeout(botDelay);
     }
   }, [turn, gameState, userDestinedToWin]);
 
-  // TIMER LOGIC
   useEffect(() => {
     let interval: any;
     if (gameState === 'playing' && timeLeft > 0) {
@@ -150,179 +134,170 @@ export default function LudoLiteGame() {
     setGameState('gameover');
     if (!user || !userRef) return;
 
-    const isUserWinner = userScore > botScore;
+    const isUserWinner = userScore >= botScore;
     
     try {
       if (isUserWinner) {
-        // User Wins: Reset Loss Counter & Credit Prize
         await updateDoc(userRef, {
           coins: increment(WIN_PRIZE),
           winningBalance: increment(WIN_PRIZE),
-          matchLossCount: 0 // Reset Pity Counter
+          matchLossCount: 0 
         });
 
         await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
-          type: 'ludo_win',
+          type: 'game_win',
           amount: WIN_PRIZE,
           date: new Date().toISOString().split('T')[0],
           status: 'completed',
-          description: `Ludo Win: Score ${userScore} vs ${botScore}`
+          description: `Ludo Victory: ${userScore} - ${botScore}`
         });
 
-        toast({ title: "VICTORY!", description: `${WIN_PRIZE} Coins credited to winnings.` });
+        toast({ title: "MISSION SUCCESS!", description: `${WIN_PRIZE} Coins credited to winning vault.` });
       } else {
-        // User Loses: Increment Pity Counter
-        await updateDoc(userRef, {
-          matchLossCount: increment(1)
-        });
-        toast({ variant: "destructive", title: "DEFEAT", description: "Better luck next session!" });
+        await updateDoc(userRef, { matchLossCount: increment(1) });
+        toast({ variant: "destructive", title: "DEFEAT", description: "Strategic failure. Re-enlist for next match." });
       }
     } catch (e) {
-      console.error("Match result sync failure");
+      console.error("Match sync failure");
     }
   };
 
-  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
-
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-10 space-y-8 pb-32">
-      <div className="flex items-center justify-between">
-         <Link href="/dashboard" className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground hover:text-white transition-colors">
-            <ArrowLeft className="h-3 w-3" /> Dashboard
+    <div className="max-w-5xl mx-auto p-4 md:p-10 space-y-8 pb-32">
+      <div className="flex items-center justify-between pt-10">
+         <Link href="/games" className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground hover:text-white transition-colors">
+            <ArrowLeft className="h-3 w-3" /> Arena Sector
          </Link>
          <div className="flex items-center gap-4">
-            <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-3 py-1 italic">Wager: {GAME_FEE} 🪙</Badge>
-            <Badge className="bg-white/5 border-white/10 text-white font-black px-3 py-1 italic">Loss Streak: {profile?.matchLossCount || 0}</Badge>
+            <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1.5 italic">WAGER: {GAME_FEE} 🪙</Badge>
+            <Badge variant="outline" className="border-white/10 text-white font-black text-[9px] uppercase px-3 py-1">Loss Streak: {profile?.matchLossCount || 0}</Badge>
          </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid lg:grid-cols-3 gap-10">
          <div className="lg:col-span-2 space-y-6">
-            <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl relative">
+            <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl relative border-2">
                {/* Match HUD */}
-               <div className="p-8 border-b border-white/5 flex items-center justify-between bg-primary/5">
-                  <div className="flex items-center gap-4">
-                     <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/20 text-green-500 shadow-lg shadow-green-500/10">
-                        <User />
+               <div className="p-8 border-b border-white/5 flex items-center justify-between bg-primary/10">
+                  <div className="flex items-center gap-5">
+                     <div className="h-16 w-16 rounded-2xl bg-green-500/10 flex items-center justify-center border border-green-500/20 text-green-500 shadow-2xl">
+                        <User className="h-8 w-8" />
                      </div>
                      <div>
-                        <p className="text-[8px] font-black uppercase text-muted-foreground">My Points</p>
-                        <p className="text-2xl font-black text-white italic">{userScore}</p>
+                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">My Signal</p>
+                        <p className="text-4xl font-black text-white italic tabular-nums">{userScore}</p>
                      </div>
                   </div>
 
-                  <div className="text-center">
-                     <div className="h-14 w-14 rounded-full border-4 border-primary/20 flex items-center justify-center mx-auto mb-1 relative">
-                        <Timer className={cn("h-6 w-6 text-primary", gameState === 'playing' && "animate-pulse")} />
+                  <div className="text-center relative">
+                     <div className="h-16 w-16 rounded-full border-4 border-primary/20 flex items-center justify-center mx-auto mb-2">
+                        <Timer className={cn("h-7 w-7 text-primary", gameState === 'playing' && "animate-pulse")} />
                         {gameState === 'playing' && <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin" />}
                      </div>
-                     <p className="text-[10px] font-black text-white tabular-nums">{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</p>
+                     <p className="text-sm font-black text-white tabular-nums">{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</p>
                   </div>
 
-                  <div className="flex items-center gap-4 text-right">
+                  <div className="flex items-center gap-5 text-right">
                      <div>
-                        <p className="text-[8px] font-black uppercase text-muted-foreground">Bot Points</p>
-                        <p className="text-2xl font-black text-red-500 italic">{botScore}</p>
+                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Bot Intelligence</p>
+                        <p className="text-4xl font-black text-red-500 italic tabular-nums">{botScore}</p>
                      </div>
-                     <div className="h-12 w-12 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 text-red-500 shadow-lg shadow-red-500/10">
-                        <Bot />
+                     <div className="h-16 w-16 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 text-red-500 shadow-2xl">
+                        <Bot className="h-8 w-8" />
                      </div>
                   </div>
                </div>
 
-               {/* Board / Game Area */}
-               <div className="aspect-square md:aspect-video flex flex-col items-center justify-center bg-[#050508] p-10 relative">
+               <div className="aspect-square md:aspect-video flex flex-col items-center justify-center bg-[#050508] p-12 relative overflow-hidden">
                   {gameState === 'playing' ? (
-                    <div className="space-y-12 text-center">
-                       <div className="relative">
+                    <div className="space-y-12 text-center relative z-10">
+                       <div className="relative group">
                           <div className={cn(
-                            "h-32 w-32 rounded-[2.5rem] bg-white/5 border-4 flex items-center justify-center text-6xl shadow-2xl transition-all duration-300",
+                            "h-40 w-40 rounded-[3rem] bg-white/5 border-4 flex items-center justify-center text-7xl shadow-2xl transition-all duration-500",
                             isRolling ? "rotate-[360deg] scale-110 border-primary" : "border-white/10",
-                            turn === 'user' ? "shadow-primary/20" : "opacity-40 grayscale"
+                            turn === 'user' ? "shadow-primary/30 border-primary/40" : "opacity-40 grayscale"
                           )}>
-                             {isRolling ? <RefreshCw className="h-12 w-12 animate-spin text-primary" /> : lastRoll || '?'}
+                             {isRolling ? <RefreshCw className="h-16 w-16 animate-spin text-primary" /> : lastRoll || '?'}
                           </div>
                           {turn === 'user' && !isRolling && (
-                             <div className="absolute -top-4 -right-4 bg-primary text-black font-black text-[8px] px-3 py-1 rounded-full animate-bounce">YOUR TURN</div>
+                             <div className="absolute -top-6 -right-6 bg-primary text-black font-black text-[10px] px-4 py-2 rounded-full animate-bounce shadow-xl">TACTICAL TURN</div>
                           )}
                        </div>
 
                        <Button 
                         onClick={rollDice} 
                         disabled={turn !== 'user' || isRolling}
-                        className="h-20 px-12 bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase italic text-xl shadow-2xl shadow-primary/20 transition-all active:scale-95"
+                        className="h-24 px-16 bg-primary hover:bg-primary/90 rounded-[2rem] font-black uppercase italic text-2xl shadow-[0_0_50px_rgba(99,102,241,0.4)] transition-all active:scale-95"
                        >
-                          <Dices className="mr-3 h-6 w-6" /> ROLL DICE
+                          <Dices className="mr-4 h-8 w-8" /> ROLL SIGNAL
                        </Button>
 
-                       <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">
-                          {turn === 'bot' ? 'Intercepting Bot Strategy...' : 'Tactical Move Available'}
+                       <p className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.4em] italic animate-pulse">
+                          {turn === 'bot' ? 'Intercepting Bot Protocol...' : 'Signal Ready for Transmission'}
                        </p>
                     </div>
                   ) : (
-                    <div className="text-center space-y-8 animate-in fade-in zoom-in-95">
-                       <div className="h-24 w-24 bg-primary/10 rounded-[2rem] border border-primary/20 flex items-center justify-center mx-auto shadow-2xl">
-                          <Gamepad2 className="h-10 w-10 text-primary" />
+                    <div className="text-center space-y-12 animate-in fade-in zoom-in-95 duration-700">
+                       <div className="h-32 w-32 bg-primary/10 rounded-[3rem] border-2 border-primary/20 flex items-center justify-center mx-auto shadow-2xl">
+                          <Gamepad2 className="h-16 w-16 text-primary" />
                        </div>
-                       <div className="space-y-2">
-                          <h2 className="text-4xl font-black uppercase italic tracking-tighter">
-                            {gameState === 'gameover' ? (userScore > botScore ? 'MISSION SUCCESS' : 'MISSION FAILED') : 'Ludo Lite Blitz'}
+                       <div className="space-y-4">
+                          <h2 className="text-5xl font-black uppercase italic tracking-tighter">
+                            {gameState === 'gameover' ? (userScore >= botScore ? 'MISSION SUCCESS' : 'MISSION FAILED') : 'Ludo Blitz v2.4'}
                           </h2>
-                          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
-                            {gameState === 'gameover' ? `Final Score: ${userScore} - ${botScore}` : '2-Minute Strategic Dice Battle'}
+                          <p className="text-sm text-muted-foreground font-bold uppercase tracking-[0.3em]">
+                            {gameState === 'gameover' ? `Final Alignment: ${userScore} - ${botScore}` : '120-Second High-Octane Dice Engagement'}
                           </p>
                        </div>
                        <Button 
                         onClick={handleStartGame} 
                         disabled={isProcessing}
-                        className="h-16 px-12 bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase italic text-lg shadow-xl"
+                        className="h-20 px-16 bg-primary hover:bg-primary/90 rounded-[1.5rem] font-black uppercase italic text-xl shadow-2xl"
                        >
-                          {isProcessing ? <Loader2 className="animate-spin" /> : gameState === 'gameover' ? 'RE-ENLIST' : 'INITIATE MATCH'}
+                          {isProcessing ? <Loader2 className="animate-spin" /> : gameState === 'gameover' ? 'RE-ENGAGE' : 'INITIATE MATCH'}
                        </Button>
                     </div>
                   )}
 
-                  {/* Pity Signal Indicator (Invisible to user, but here for logic transparency in code) */}
-                  {userDestinedToWin && gameState === 'playing' && (
-                     <div className="absolute bottom-4 right-4 opacity-5 pointer-events-none">
-                        <Badge className="bg-amber-500">PITY_ACTIVE</Badge>
-                     </div>
-                  )}
+                  <div className="absolute inset-0 bg-primary/5 opacity-10 pointer-events-none" />
                </div>
 
-               <div className="bg-white/5 p-4 border-t border-white/5 flex items-center justify-center gap-3">
-                  <Badge variant="outline" className="text-[8px] font-black uppercase border-white/10 text-muted-foreground">RNG AES-256 Enabled</Badge>
-                  <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest italic opacity-40">Industrial Fairness Protocol v1.4</p>
+               <div className="bg-white/5 p-5 border-t border-white/5 flex items-center justify-center gap-4">
+                  <Badge variant="outline" className="text-[9px] font-black uppercase border-white/10 text-muted-foreground">AES-256 RNG Validated</Badge>
+                  <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest italic opacity-40">Industrial Match Engine Active</p>
                </div>
             </Card>
          </div>
 
-         <div className="space-y-6">
-            <Card className="bg-primary/5 border-primary/20 p-8 rounded-[2rem] space-y-6">
-               <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Trophy className="text-primary h-5 w-5" /> Prize Pool</h3>
-               <div className="space-y-4">
-                  <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                     <span className="text-[10px] font-black uppercase">Winner Reward</span>
-                     <span className="text-sm font-black text-primary italic">{WIN_PRIZE} 🪙</span>
+         <div className="space-y-8">
+            <Card className="bg-primary/5 border-primary/20 p-10 rounded-[2.5rem] space-y-8 shadow-2xl relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                  <Trophy className="h-40 w-40 text-primary" />
+               </div>
+               <h3 className="text-2xl font-black uppercase italic flex items-center gap-3"><Trophy className="text-primary h-6 w-6" /> Prize Allocation</h3>
+               <div className="space-y-6 relative z-10">
+                  <div className="flex justify-between items-center pb-4 border-b border-white/5">
+                     <span className="text-[11px] font-black uppercase text-muted-foreground tracking-widest">Victory Dividend</span>
+                     <span className="text-2xl font-black text-primary italic">{WIN_PRIZE} 🪙</span>
                   </div>
-                  <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                     <span className="text-[10px] font-black uppercase">Draw Result</span>
-                     <span className="text-sm font-black text-muted-foreground italic">Entry Refund</span>
+                  <div className="flex justify-between items-center pb-4 border-b border-white/5">
+                     <span className="text-[11px] font-black uppercase text-muted-foreground tracking-widest">Draw Settlement</span>
+                     <span className="text-sm font-black text-white italic uppercase">Entry Refund</span>
                   </div>
                </div>
-               <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed italic">
-                  Bot logic is calibrated based on historical signal performance to maintain 95% RTP stability.
+               <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed italic opacity-60">
+                  Bot intelligence is calibrated to maintain 95% platform liquidity stability.
                </p>
             </Card>
 
-            <Card className="bg-[#121212] border-white/5 p-8 rounded-[2.5rem] space-y-6">
-               <h3 className="text-sm font-black uppercase italic flex items-center gap-2 text-white">
-                  <AlertCircle className="h-4 w-4 text-amber-500" /> Operational Rules
+            <Card className="bg-[#121212] border-white/5 p-10 rounded-[2.5rem] space-y-8">
+               <h3 className="text-sm font-black uppercase italic flex items-center gap-3 text-white">
+                  <AlertCircle className="h-5 w-5 text-amber-500" /> Match Protocols
                </h3>
-               <ul className="space-y-4 text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Match ends exactly at 120s mark.</li>
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Turn skip after 10s inactivity.</li>
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Disconnection results in automatic loss.</li>
+               <ul className="space-y-5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
+                  <li className="flex items-start gap-4"><div className="h-2.5 w-2.5 rounded-full bg-primary mt-1 shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.5)]" /> Session ends at exactly T-0 mark.</li>
+                  <li className="flex items-start gap-4"><div className="h-2.5 w-2.5 rounded-full bg-primary mt-1 shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.5)]" /> Inactivity for 15s voids current turn.</li>
+                  <li className="flex items-start gap-4"><div className="h-2.5 w-2.5 rounded-full bg-primary mt-1 shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.5)]" /> Signal disconnection results in Defeat.</li>
                </ul>
             </Card>
          </div>

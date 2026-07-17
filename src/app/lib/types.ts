@@ -32,7 +32,7 @@ export interface UserProfile {
   totalReferrals?: number; 
   totalNetworkReferrals?: number; 
   riskNoticeAccepted?: boolean;
-  matchLossCount?: number;
+  matchLossCount?: number; // Pity System tracking
   preferredLanguage?: 'en' | 'or';
   // KYC Tracking
   kycStatus: KycStatus;
@@ -54,7 +54,7 @@ export interface UserProfile {
 
 export interface AppSettings {
   maintenanceMode: boolean;
-  reviewMode: boolean; // KILL SWITCH
+  reviewMode: boolean; 
   adminUpiId: string;
   automaticGatewayEnabled: boolean;
   conversionFeePercent: number;
@@ -69,52 +69,6 @@ export interface UserLedgerEntry {
   status: 'pending' | 'completed' | 'failed';
   description?: string;
   currencySymbol?: string;
-}
-
-export interface Tournament {
-  id: string;
-  name: string;
-  status: TournamentStatus;
-  gameType: GameType;
-  prizePool: string;
-  entryFee: number;
-  startDate: string;
-  banner: string;
-  streamUrl?: string;
-  roomCredentials?: {
-    roomId?: string;
-    roomPassword?: string;
-  };
-}
-
-export interface Registration {
-  id: string;
-  userId: string;
-  tournamentId: string;
-  gameId: string;
-  joinedAt: string;
-  feePaid: number;
-}
-
-export interface SystemNotification {
-  id: string;
-  userId?: string;
-  title: string;
-  body: string;
-  localizedBody?: string;
-  timestamp: string;
-  type: 'broadcast' | 'payout' | 'mission' | 'milestone';
-  imageUrl?: string;
-  voucherCode?: string;
-}
-
-export interface Movie {
-  id: string;
-  title: string;
-  poster: string;
-  videoUrl: string;
-  category: string;
-  createdAt: string;
 }
 
 export interface PayoutRequest {
