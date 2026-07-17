@@ -26,28 +26,30 @@ export interface UserProfile {
   city?: string;
   rank: UserRank;
   isSuspended?: boolean;
+  
+  // VIP 1 Quest Tracking
+  cpaTasksCount: number;      // Target: 5
+  referralTasksCount: number; // Target: 3
+  engagementCount: number;    // Target: 2 (Reading/Games)
+  
   tasksCompletedCount?: number;
   networkTaskCompletions?: number;
   totalNetworkRevenue?: number;
   totalReferrals?: number; 
   totalNetworkReferrals?: number; 
   riskNoticeAccepted?: boolean;
-  matchLossCount?: number; // Pity System tracking
+  matchLossCount?: number; 
   preferredLanguage?: 'en' | 'or';
-  // KYC Tracking
   kycStatus: KycStatus;
   kycDocumentUrl?: string;
   kycSubmittedAt?: string;
-  // Sharing Stats
   totalPagesShared?: number;
   shareRewardsEarned?: number;
   lastShareDate?: string;
   dailyShareCount?: number;
   unlockedMilestones?: string[];
-  // Elite Affiliate System
   isEliteAffiliate?: boolean;
   megaMilestoneClaimed?: boolean;
-  // Analytics
   lastSpinTimestamp?: string;
   isAccountActivated?: boolean;
 }

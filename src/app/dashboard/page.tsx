@@ -36,7 +36,9 @@ import {
   DollarSign,
   Fingerprint,
   Upload,
-  AlertCircle
+  AlertCircle,
+  XCircle,
+  ShieldAlert
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,6 +54,7 @@ import { useToast } from '@/hooks/use-toast';
 import ViralLeaderboard from '@/components/ViralLeaderboard';
 import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import VipQuestDashboard from '@/components/VipQuestDashboard';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -63,7 +66,6 @@ export default function UserDashboard() {
   const [isConnectOpen, setIsConnectOpen] = useState(false);
   const [showLegal, setShowLegal] = useState(false);
   
-  // KYC State
   const [showKycModal, setShowKycModal] = useState(false);
   const [kycDoc, setKycDoc] = useState<string | null>(null);
   const [isKycProcessing, setIsKycProcessing] = useState(false);
@@ -129,7 +131,6 @@ export default function UserDashboard() {
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
       <RiskDisclosureModal isOpen={showLegal} onOpenChange={setShowLegal} />
       
-      {/* KYC MODAL */}
       <Dialog open={showKycModal} onOpenChange={setShowKycModal}>
          <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] p-10">
             <DialogHeader className="space-y-4">
@@ -221,6 +222,10 @@ export default function UserDashboard() {
              </div>
           </div>
         </header>
+
+        {profile && profile.vipLevel === 0 && (
+           <VipQuestDashboard profile={profile} />
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} color="green" />

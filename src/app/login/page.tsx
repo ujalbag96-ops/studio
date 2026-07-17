@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -36,20 +37,16 @@ function LoginContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'phone'>('login');
   
-  // Email Auth State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
-  // Phone Auth State
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   
-  // Support & Legal State
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
-  const [supportData, setSupportData] = useState({ contact: '', issue: '' });
 
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -69,11 +66,6 @@ function LoginContent() {
         deviceId = 'DEV-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
         localStorage.setItem('bb_device_id', deviceId);
       }
-
-      // 🕵️ ANTI-FRAUD: Integrity Check
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isEmulator = userAgent.includes('sdk') || userAgent.includes('google_sdk') || userAgent.includes('droid4x');
-      const isBot = (navigator as any).webdriver;
 
       let ipData = { ip: 'Unknown', country: 'Global', region: 'Unknown', city: 'Unknown', proxy: false };
       try {
@@ -102,7 +94,12 @@ function LoginContent() {
             const l1Data = uplineSnap.docs[0].data();
             l1Upline = uplineSnap.docs[0].id;
             l2Upline = l1Data.referredBy || '';
-            await setDoc(doc(firestore, 'users', l1Upline), { totalReferrals: increment(1) }, { merge: true });
+            
+            // Increment referral tasks for parent for VIP Quest
+            await updateDoc(doc(firestore, 'users', l1Upline), { 
+               totalReferrals: increment(1),
+               referralTasksCount: increment(1) 
+            });
           }
         }
 
@@ -123,19 +120,23 @@ function LoginContent() {
           referredBy: l1Upline,
           referredByL2: l2Upline,
           mlmLevel: 0,
+          vipLevel: 0,
+          cpaTasksCount: 0,
+          referralTasksCount: 0,
+          engagementCount: 0,
           tasksCompletedCount: 0,
           totalReferrals: 0,
           networkTaskCompletions: 0,
           totalNetworkRevenue: 0,
           isAccountActivated: false,
-          riskNoticeAccepted: true, // Accepted via the modal in signup
+          riskNoticeAccepted: true,
           deviceId: deviceId,
           lastIp: ipData.ip,
           country: ipData.country,
           region: ipData.region,
           city: ipData.city,
-          status: (ipData.proxy || isEmulator || isBot) ? 'suspended' : 'active',
-          isSuspended: (ipData.proxy || isEmulator || isBot),
+          status: (ipData.proxy) ? 'suspended' : 'active',
+          isSuspended: (ipData.proxy),
           joinedAt: new Date().toISOString()
         });
       }
@@ -148,7 +149,6 @@ function LoginContent() {
     if (e) e.preventDefault();
     if (!auth) return;
     
-    // If signing up, ensure legal modal is accepted first
     if (authMode === 'signup' && !showLegalModal) {
       setShowLegalModal(true);
       return;
@@ -212,7 +212,6 @@ function LoginContent() {
     <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-700">
       <div id="recaptcha-container"></div>
       
-      {/* SIGNUP LEGAL MODAL TRIGGER */}
       <RiskDisclosureModal 
         isOpen={showLegalModal} 
         onOpenChange={setShowLegalModal} 

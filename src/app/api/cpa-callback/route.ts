@@ -4,8 +4,7 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, addDoc, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Postback-Enforced Reward Gateway with VIP Escalation & MLM Distribution
- * VIP 0: 0-9 | VIP 1: 10-29 | VIP 2: 30-49 | VIP 3: 50-99 | VIP 4: 100-199 | VIP 5: 200+
+ * Postback-Enforced Reward Gateway with VIP 1 Quest Logic
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -34,28 +33,37 @@ export async function GET(request: Request) {
     }
 
     const dateStr = new Date().toISOString().split('T')[0];
-    const newTasksTotal = (userData.tasksCompletedCount || 0) + 1;
+    const currentCpa = (userData.cpaTasksCount || 0) + 1;
+    const currentRefs = (userData.referralTasksCount || 0);
+    const currentEng = (userData.engagementCount || 0);
 
-    // --- NEW VIP ESCALATION LOGIC (0-5) ---
+    // --- VIP 1 QUEST LOGIC (5 CPA, 3 REFS, 2 ENG) ---
     let newVipLevel = userData.vipLevel || 0;
-    const vipTiers = [
-      { tasks: 10, level: 1, name: 'VIP 1: Rookie' },
-      { tasks: 30, level: 2, name: 'VIP 2: Warrior' },
-      { tasks: 50, level: 3, name: 'VIP 3: Pro' },
-      { tasks: 100, level: 4, name: 'VIP 4: Master' },
-      { tasks: 200, level: 5, name: 'VIP 5: Elite' }
-    ];
-
-    const nextTier = vipTiers.find(t => newTasksTotal >= t.tasks && newVipLevel < t.level);
-    if (nextTier) {
-       newVipLevel = nextTier.level;
+    if (newVipLevel === 0 && currentCpa >= 5 && currentRefs >= 3 && currentEng >= 2) {
+       newVipLevel = 1;
+       batch.update(userRef, {
+          rank: 'Silver',
+          isAccountActivated: true
+       });
+       
        await addDoc(collection(firestore, 'notifications'), {
           userId: userId,
-          title: `🔥 PROMOTED TO ${nextTier.name.toUpperCase()}`,
-          body: `Missions reached ${nextTier.tasks}. Withdrawal access and high-value rewards unlocked!`,
+          title: `🔥 VIP 1 PROTOCOL UNLOCKED`,
+          body: `Congratulations! Your Quest is complete. Withdrawal access and high-value rewards are now active.`,
           timestamp: new Date().toISOString(),
           type: 'milestone'
        });
+    } else if (newVipLevel > 0) {
+       // Regular VIP escalation beyond VIP 1
+       const tasksTotal = (userData.tasksCompletedCount || 0) + 1;
+       const tiers = [
+          { tasks: 30, level: 2 },
+          { tasks: 50, level: 3 },
+          { tasks: 100, level: 4 },
+          { tasks: 200, level: 5 }
+       ];
+       const next = tiers.find(t => tasksTotal >= t.tasks && newVipLevel < t.level);
+       if (next) newVipLevel = next.level;
     }
 
     // --- MLM COMMISSION DISTRIBUTION (2 LEVELS) ---
@@ -103,38 +111,13 @@ export async function GET(request: Request) {
       }
     }
 
-    if (userData.referredByL2) {
-      const l2Ref = doc(firestore, 'users', userData.referredByL2);
-      const l2Snap = await getDoc(l2Ref);
-      if (l2Snap.exists()) {
-        const l2Data = l2Snap.data();
-        const commRate = l2Data.isEliteAffiliate ? 0.04 : 0.02;
-        const commAmount = rewardAmount * commRate;
-
-        batch.update(l2Ref, {
-          referralCommissionBalance: increment(commAmount),
-          totalNetworkRevenue: increment(commAmount),
-          networkTaskCompletions: increment(1),
-          coins: increment(commAmount)
-        });
-
-        batch.set(doc(collection(firestore, 'users', userData.referredByL2, 'ledger')), {
-          type: 'referral_comm',
-          amount: commAmount,
-          date: dateStr,
-          status: 'completed',
-          description: `Team Commission (L2) from downline activity`
-        });
-      }
-    }
-
     // Main Reward Credit
     batch.update(userRef, {
       taskBalance: increment(rewardAmount),
       coins: increment(rewardAmount),
       tasksCompletedCount: increment(1),
-      vipLevel: newVipLevel,
-      isAccountActivated: newTasksTotal >= 10 || userData.isAccountActivated
+      cpaTasksCount: increment(1),
+      vipLevel: newVipLevel
     });
 
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {

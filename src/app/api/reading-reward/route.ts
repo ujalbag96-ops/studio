@@ -5,13 +5,13 @@ import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firesto
 
 /**
  * Reading Time Reward Gateway
- * Credits 2 coins for every 15 minutes of verified reading.
+ * Credits 2 coins and increments Engagement count for VIP Quest.
  */
 export async function POST(request: Request) {
   try {
     const { userId, type } = await request.json();
 
-    if (!userId || !['reading', 'quiz'].includes(type)) {
+    if (!userId || !['reading', 'quiz', 'share'].includes(type)) {
       return NextResponse.json({ error: 'Invalid Signal' }, { status: 400 });
     }
 
@@ -25,19 +25,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Identity Missing' }, { status: 404 });
     }
 
-    const reward = type === 'reading' ? 2 : 5;
+    const reward = type === 'reading' ? 2 : type === 'quiz' ? 5 : 2;
     const description = type === 'reading' 
       ? 'Reading Milestone: 15 Mins (+2 🪙)' 
-      : 'Knowledge Quiz: Perfect Score (+5 🪙)';
+      : type === 'quiz' 
+      ? 'Knowledge Quiz: Perfect Score (+5 🪙)'
+      : 'Viral Share Reward (+2 🪙)';
 
     batch.update(userRef, {
       taskBalance: increment(reward),
       coins: increment(reward),
-      weeklyPointsEarned: increment(reward)
+      weeklyPointsEarned: increment(reward),
+      engagementCount: increment(1) // Track engagement for VIP 1 Quest
     });
 
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
-      type: type === 'reading' ? 'reading_reward' : 'quiz_reward',
+      type: type === 'reading' ? 'reading_reward' : type === 'quiz' ? 'quiz_reward' : 'share_reward',
       amount: reward,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
