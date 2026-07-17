@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2, Clock, Zap, Timer, ShieldAlert, Star, Lock, UserCheck, Shield } from 'lucide-react';
+import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, CheckCircle2, Clock, Zap, Timer, ShieldAlert, Star, Lock, UserCheck, Shield, Fingerprint } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +17,6 @@ import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCurrencyData } from '@/lib/currency';
 import { cn } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
 import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 
 const MIN_WITHDRAWAL = 50;
@@ -50,7 +50,7 @@ export default function WithdrawPage() {
   const coinsRequired = localValue * currencyData.rateToCoins;
   
   const currentVip = profile?.vipLevel || 0;
-  const isWithdrawalEnabled = currentVip > 0;
+  const isKycApproved = profile?.kycStatus === 'approved';
   
   const vipLimits: Record<number, number> = { 0: 0, 1: 500, 2: 1000, 3: 2500, 4: 5000, 5: 15000 };
   const currentLimit = vipLimits[currentVip] || 0;
@@ -71,7 +71,12 @@ export default function WithdrawPage() {
        return;
     }
 
-    if (!isWithdrawalEnabled) {
+    if (!isKycApproved) {
+       setError("Identity Audit Pending. Please complete KYC in Dashboard.");
+       return;
+    }
+
+    if (currentVip === 0) {
       setError("Reach VIP Level 1 (10 Missions) to unlock payouts.");
       return;
     }
@@ -155,17 +160,19 @@ export default function WithdrawPage() {
         <Card className="bg-[#0a0a0f] border-white/5 shadow-2xl rounded-[2.5rem] overflow-hidden">
           <div className="bg-primary/10 p-10 border-b border-white/5 text-center relative">
              <div className="absolute top-4 right-6">
-                <Badge className="bg-amber-500 text-black font-black uppercase text-[8px] italic">VIP {currentVip}</Badge>
+                <Badge className={cn("text-black font-black uppercase text-[8px] italic px-3 py-1", isKycApproved ? "bg-green-500" : "bg-amber-500")}>
+                   {isKycApproved ? 'KYC: APPROVED' : 'KYC: PENDING'}
+                </Badge>
              </div>
              <p className="text-[10px] font-black uppercase text-primary mb-2 italic">Withdrawable Assets</p>
              <h2 className="text-6xl font-black text-white italic">{profile?.winningBalance?.toFixed(0) || 0} 🪙</h2>
           </div>
 
           <CardContent className="p-10 space-y-8">
-            {!profile?.riskNoticeAccepted && (
-               <Alert className="bg-primary/5 border-primary/20 text-primary rounded-xl cursor-pointer" onClick={() => setShowSecurityModal(true)}>
-                  <ShieldCheck className="h-4 w-4" />
-                  <AlertDescription className="font-bold text-[10px] uppercase">Legal & Security Update: Acceptance Mandatory. Tap to view.</AlertDescription>
+            {!isKycApproved && (
+               <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-500 rounded-xl cursor-pointer" onClick={() => router.push('/dashboard')}>
+                  <Fingerprint className="h-4 w-4" />
+                  <AlertDescription className="font-bold text-[10px] uppercase">Identity Audit Required: Please verify your identity in Dashboard.</AlertDescription>
                </Alert>
             )}
 
@@ -173,7 +180,7 @@ export default function WithdrawPage() {
             
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Gateway Protocol</Label>
-              <Select value={method} onValueChange={setMethod} disabled={!isWithdrawalEnabled}>
+              <Select value={method} onValueChange={setMethod} disabled={!isKycApproved || currentVip === 0}>
                 <SelectTrigger className="h-16 bg-white/5 border-white/10 rounded-xl font-black text-xs uppercase"><SelectValue placeholder="Protocol" /></SelectTrigger>
                 <SelectContent className="bg-[#0a0a0f] border-white/10">
                   <SelectItem value="UPI">UPI Digital</SelectItem>
@@ -190,7 +197,7 @@ export default function WithdrawPage() {
                 value={amountLocal} 
                 onChange={e => setAmountLocal(e.target.value)} 
                 placeholder={`Min ${MIN_WITHDRAWAL}`} 
-                disabled={!isWithdrawalEnabled}
+                disabled={!isKycApproved || currentVip === 0}
                 className="h-16 bg-white/5 border-white/10 rounded-xl text-2xl font-black text-primary" 
               />
             </div>
@@ -201,12 +208,12 @@ export default function WithdrawPage() {
                 value={destinationId} 
                 onChange={e => setDestinationId(e.target.value)} 
                 placeholder="UPI ID or Account Number" 
-                disabled={!isWithdrawalEnabled}
+                disabled={!isKycApproved || currentVip === 0}
                 className="h-16 bg-white/5 border-white/10 rounded-xl font-mono text-xs" 
               />
             </div>
 
-            <Button onClick={handleWithdrawInitiate} disabled={isSubmitting || !amountLocal || !destinationId || !method || !isWithdrawalEnabled} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+            <Button onClick={handleWithdrawInitiate} disabled={isSubmitting || !amountLocal || !destinationId || !method || !isKycApproved || currentVip === 0} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
                {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : "EXECUTE WITHDRAWAL"}
             </Button>
           </CardContent>
@@ -217,9 +224,9 @@ export default function WithdrawPage() {
               <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20"><Shield className="text-primary h-8 w-8" /></div>
               <h3 className="text-2xl font-black uppercase italic tracking-tighter">Security Protocol</h3>
               <ul className="space-y-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-                 <li className="flex items-start gap-3"><CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" /> KYC verification is mandatory for all users.</li>
-                 <li className="flex items-start gap-3"><CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" /> Withdrawal window: Friday 00:00 to Saturday 23:59.</li>
-                 <li className="flex items-start gap-3"><CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" /> 2% Industrial tax deducted at source.</li>
+                 <li className="flex items-start gap-3"><CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" /> One-time KYC audit is mandatory.</li>
+                 <li className="flex items-start gap-3"><CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" /> Withdrawal window: Friday-Saturday only.</li>
+                 <li className="flex items-start gap-3"><CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" /> 2% Industrial tax applied to Net Amount.</li>
               </ul>
            </Card>
         </div>

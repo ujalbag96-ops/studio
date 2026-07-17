@@ -2,6 +2,7 @@
 export type TournamentStatus = 'active' | 'upcoming' | 'completed' | 'cancelled';
 export type GameType = 'BGMI' | 'Free Fire' | 'Ludo King' | 'Other';
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
+export type KycStatus = 'none' | 'pending' | 'approved' | 'rejected';
 
 export interface UserProfile {
   id: string;
@@ -10,13 +11,14 @@ export interface UserProfile {
   winningBalance: number;
   bonusBalance: number;
   referralCommissionBalance?: number;
+  taskBalance: number;
   coins: number;
   walletBalanceINR: number;
   referralCode: string;
-  referredBy?: string; // Level 1 Parent
-  referredByL2?: string; // Level 2 Parent
+  referredBy?: string; 
+  referredByL2?: string; 
   mlmLevel?: number;
-  vipLevel: number; // 0 to 7
+  vipLevel: number; 
   deviceId?: string;
   lastIp?: string;
   country?: string;
@@ -27,11 +29,15 @@ export interface UserProfile {
   tasksCompletedCount?: number;
   networkTaskCompletions?: number;
   totalNetworkRevenue?: number;
-  totalReferrals?: number; // Level 1 Count
-  totalNetworkReferrals?: number; // Level 1 + Level 2 Count
+  totalReferrals?: number; 
+  totalNetworkReferrals?: number; 
   riskNoticeAccepted?: boolean;
   matchLossCount?: number;
   preferredLanguage?: 'en' | 'or';
+  // KYC Tracking
+  kycStatus: KycStatus;
+  kycDocumentUrl?: string;
+  kycSubmittedAt?: string;
   // Sharing Stats
   totalPagesShared?: number;
   shareRewardsEarned?: number;
@@ -46,13 +52,12 @@ export interface UserProfile {
   isAccountActivated?: boolean;
 }
 
-export interface Movie {
-  id: string;
-  title: string;
-  poster: string;
-  videoUrl: string;
-  category: string;
-  createdAt: string;
+export interface AppSettings {
+  maintenanceMode: boolean;
+  reviewMode: boolean; // KILL SWITCH
+  adminUpiId: string;
+  automaticGatewayEnabled: boolean;
+  conversionFeePercent: number;
 }
 
 export interface UserLedgerEntry {
@@ -91,15 +96,6 @@ export interface Registration {
   feePaid: number;
 }
 
-export interface ShopItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  imageUrl: string;
-}
-
 export interface SystemNotification {
   id: string;
   userId?: string;
@@ -112,40 +108,13 @@ export interface SystemNotification {
   voucherCode?: string;
 }
 
-export interface AppSettings {
-  maintenanceMode: boolean;
-  adminUpiId: string;
-  automaticGatewayEnabled: boolean;
-  conversionFeePercent: number;
-}
-
-export interface CricketMatch {
+export interface Movie {
   id: string;
-  teamA: string;
-  teamB: string;
-  teamALogo: string;
-  teamBLogo: string;
-  startTime: string;
-  status: 'live' | 'upcoming' | 'completed';
-  series: string;
-  liveScore?: {
-    runsA: string;
-    runsB: string;
-    overs: string;
-    target?: string;
-    lastBalls?: string[];
-  };
-  winner?: string;
-}
-
-export interface PredictionPoll {
-  id: string;
-  question: string;
+  title: string;
+  poster: string;
+  videoUrl: string;
   category: string;
-  totalPool: number;
-  entryFee: number;
-  expiry: string;
-  timestamp: string;
+  createdAt: string;
 }
 
 export interface PayoutRequest {
@@ -160,17 +129,4 @@ export interface PayoutRequest {
   status: 'pending' | 'completed' | 'failed';
   timestamp: string;
   vipLevel: number;
-  isExpress?: boolean;
-  tasksCompleted?: number;
-}
-
-export interface StudyMaterial {
-  id: string;
-  title: string;
-  type: string;
-  url: string;
-  isPremium: boolean;
-  department: string;
-  semester: number;
-  createdAt: string;
 }

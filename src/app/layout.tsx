@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -10,7 +11,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import SupportChat from '@/components/SupportChat';
 import { usePathname } from 'next/navigation';
-import { Loader2, ShieldAlert } from 'lucide-react';
+import { Loader2, ShieldAlert, Monitor } from 'lucide-react';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -29,21 +30,21 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background text-white min-h-screen flex flex-col">
         <FirebaseClientProvider>
           <Toaster />
-          <MaintenanceGate>
+          <SystemGate>
             <Navbar />
             <main className="flex-1 pb-20 md:pb-0 md:pt-16">
               {children}
             </main>
             <Footer />
             <SupportChat />
-          </MaintenanceGate>
+          </SystemGate>
         </FirebaseClientProvider>
       </body>
     </html>
   );
 }
 
-function MaintenanceGate({ children }: { children: React.ReactNode }) {
+function SystemGate({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const { user } = useUser();
   const pathname = usePathname();
@@ -56,11 +57,16 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
 
   const isAdmin = user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  const isExcludedPage = pathname.startsWith('/admin') || 
-                         pathname === '/login' || 
-                         pathname === '/auth';
-                         
-  const isMaintenance = settings?.maintenanceMode && !isExcludedPage && !isAdmin;
+  const isReviewMode = settings?.reviewMode && !isAdmin;
+  const isMaintenance = settings?.maintenanceMode && !isAdmin && !pathname.startsWith('/auth') && !pathname.startsWith('/admin');
+
+  // KILL SWITCH: Hide gaming modules during review
+  const isGamingPath = pathname.startsWith('/tournaments') || 
+                       pathname.startsWith('/esports-live') || 
+                       pathname.startsWith('/cricket') ||
+                       pathname.startsWith('/games') ||
+                       pathname.startsWith('/lottery') ||
+                       pathname.startsWith('/predictions');
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-screen bg-black">
@@ -80,17 +86,22 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
         </div>
         <div className="space-y-3">
            <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter text-white leading-none">Sector <span className="text-primary">Locked</span></h1>
-           <p className="text-muted-foreground font-black text-xs uppercase tracking-[0.4em] italic">Tactical System Update in Progress</p>
-        </div>
-        <div className="max-w-xs space-y-4">
-           <p className="text-[11px] text-muted-foreground font-bold uppercase leading-relaxed opacity-60">
-             The arena is currently undergoing a scheduled structural reinforcement for better performance.
-           </p>
-           <div className="h-px w-20 bg-white/10 mx-auto" />
-           <p className="text-[10px] font-black text-primary uppercase tracking-widest italic">ETA: 15-45 MINUTES</p>
+           <p className="text-muted-foreground font-black text-xs uppercase tracking-[0.4em] italic">System Update in Progress</p>
         </div>
       </div>
     );
+  }
+
+  if (isReviewMode && isGamingPath) {
+     return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] p-10 text-center space-y-6">
+           <Monitor className="h-20 w-20 text-muted-foreground opacity-10" />
+           <p className="text-sm font-black uppercase text-muted-foreground tracking-widest italic">Signal Offline: Content under routine audit.</p>
+           <Button asChild variant="outline" className="h-12 px-8 rounded-xl border-white/10 text-white font-black uppercase italic">
+              <Link href="/">Back to Library</Link>
+           </Button>
+        </div>
+     );
   }
 
   return <>{children}</>;

@@ -9,40 +9,34 @@ service cloud.firestore {
              request.auth.token.email.lower() == "ujalbag96@gmail.com";
     }
 
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+      
+      // HACK-PROOF Update Rule
+      allow update: if isAdmin() || (
+        isOwner(userId) && 
+        // Prevent manual override of financial balances
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['coins', 'depositBalance', 'winningBalance', 'taskBalance', 'referralCommissionBalance', 'vipLevel']) &&
+        // Allow updating only safety/consent flags
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['riskNoticeAccepted', 'kycStatus', 'kycDocumentUrl', 'kycSubmittedAt', 'preferredLanguage'])
+      );
     }
 
-    match /weather_logs/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    match /users/{userId}/ledger/{docId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isAdmin(); // Only system/admin should create ledger
+      allow update, delete: if false; // Ledger is immutable
     }
 
-    match /weather_votes/{docId} {
+    match /payouts/{docId} {
       allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow update: if isAdmin();
-    }
-
-    match /movies/{movieId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /lottery_entries/{docId} {
-      allow read, write: if true;
-    }
-
-    match /lottery_results/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /daily_pool/{docId} {
-      allow read: if true;
-      allow write: if true;
     }
 
     match /app_settings/{docId} {
@@ -50,6 +44,28 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /tournaments/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /registrations/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if isAdmin();
+    }
+
+    match /notifications/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /movies/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Default catch-all for system collections
     match /{document=**} {
       allow read: if true;
       allow write: if isAdmin();
