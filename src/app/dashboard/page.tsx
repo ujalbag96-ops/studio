@@ -38,7 +38,10 @@ import {
   Upload,
   AlertCircle,
   XCircle,
-  ShieldAlert
+  ShieldAlert,
+  Gamepad2,
+  CloudRain,
+  BookOpen
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,7 +97,6 @@ export default function UserDashboard() {
   useEffect(() => {
     if (profile?.questCelebrationPending) {
        setShowCelebration(true);
-       // Clear the pending flag so it doesn't show again
        if (userProfileRef) {
           updateDoc(userProfileRef, { questCelebrationPending: false });
        }
@@ -190,10 +192,16 @@ export default function UserDashboard() {
           </Link>
         </div>
 
-        <nav className="flex-1 p-8 space-y-2">
+        <nav className="flex-1 p-8 space-y-2 overflow-y-auto no-scrollbar">
           <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Portfolio" onClick={() => setActiveNav('overview')} />
           <SidebarItem active={activeNav === 'mlm'} icon={<Network />} label="MLM Network" onClick={() => setActiveNav('mlm')} />
           <SidebarItem active={false} icon={<Fingerprint />} label="Verify Identity" onClick={() => setShowKycModal(true)} />
+          <div className="pt-8 px-4">
+             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 italic">Operational Links</p>
+             <Link href="/earning-hub" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><Zap className="h-4 w-4 text-primary" /> Income Hub</Link>
+             <Link href="/games" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><Gamepad2 className="h-4 w-4 text-primary" /> Games Arena</Link>
+             <Link href="/movies" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><Video className="h-4 w-4 text-primary" /> Cinema Hub</Link>
+          </div>
         </nav>
 
         <div className="p-8 border-t border-white/5">
@@ -214,6 +222,13 @@ export default function UserDashboard() {
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Student <span className="text-primary">Vault</span></h1>
           </div>
+          <div className="bg-black/40 border border-white/5 px-8 py-4 rounded-3xl backdrop-blur-xl">
+             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Weekly Scholarship Progress</p>
+             <div className="flex items-center gap-4">
+                <Progress value={Math.min(((profile?.weeklyPointsEarned || 0)/50)*100, 100)} className="h-2 w-32 bg-white/5" />
+                <span className="text-sm font-black text-primary italic">₹{(profile?.weeklyPointsEarned || 0).toFixed(0)} / 50</span>
+             </div>
+          </div>
         </header>
 
         {profile && profile.vipLevel === 0 && (
@@ -228,29 +243,47 @@ export default function UserDashboard() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
-          <div className="xl:col-span-2 space-y-8">
-            <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><History className="h-6 w-6 text-primary" /> Recent Logic</h3>
-            <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
-              {isActivityLoading ? (
-                <div className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
-              ) : recentActivity && recentActivity.length > 0 ? (
-                <div className="divide-y divide-white/5">
-                  {recentActivity.map((activity) => (
-                    <div key={activity.id} className="p-8 flex items-center justify-between">
-                       <div className="space-y-1">
-                          <p className="text-sm font-bold uppercase text-white">{activity.description || activity.type}</p>
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase">{activity.date}</p>
-                       </div>
-                       <p className={cn("text-xl font-black", activity.amount < 0 ? "text-red-400" : "text-green-400")}>
-                         {activity.amount > 0 ? '+' : ''}{activity.amount} 🪙
-                       </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-32 text-center text-muted-foreground uppercase font-black text-xs">No activity archived.</div>
-              )}
-            </Card>
+          <div className="xl:col-span-2 space-y-12">
+            
+            {/* 💰 REVENUE SIGNALS GUIDE (NEW) */}
+            <section className="space-y-6">
+               <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><Zap className="h-6 w-6 text-primary" /> Active Income Signals</h3>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <IncomeSourceCard title="CPA Missions" value="₹5 - ₹50" icon={<Smartphone />} link="/earning-hub" />
+                  <IncomeSourceCard title="Movie Watch" value="300 🪙" icon={<Video />} link="/watch-earn" />
+                  <IncomeSourceCard title="Ludo Battles" value="35 🪙" icon={<Gamepad2 />} link="/games" />
+                  <IncomeSourceCard title="Team Royalties" value="5% + 2%" icon={<Users />} link="/refer" />
+                  <IncomeSourceCard title="Weather Prediction" value="10 🪙" icon={<CloudRain />} link="/predictions/weather" />
+                  <IncomeSourceCard title="Midnight Jackpot" value="₹500+" icon={<Trophy />} link="/lottery" />
+                  <IncomeSourceCard title="Daily Jhilli" value="Spin & Win" icon={<RefreshCcw />} link="/rewards" />
+                  <IncomeSourceCard title="Study Reading" value="2 🪙" icon={<BookOpen />} link="/campus" />
+               </div>
+            </section>
+
+            <div className="space-y-8">
+              <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><History className="h-6 w-6 text-primary" /> Recent Logic</h3>
+              <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                {isActivityLoading ? (
+                  <div className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
+                ) : recentActivity && recentActivity.length > 0 ? (
+                  <div className="divide-y divide-white/5">
+                    {recentActivity.map((activity) => (
+                      <div key={activity.id} className="p-8 flex items-center justify-between">
+                         <div className="space-y-1">
+                            <p className="text-sm font-bold uppercase text-white">{activity.description || activity.type}</p>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase">{activity.date}</p>
+                         </div>
+                         <p className={cn("text-xl font-black", activity.amount < 0 ? "text-red-400" : "text-green-400")}>
+                           {activity.amount > 0 ? '+' : ''}{activity.amount} 🪙
+                         </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-32 text-center text-muted-foreground uppercase font-black text-xs">No activity archived.</div>
+                )}
+              </Card>
+            </div>
           </div>
           
           <div className="space-y-8">
@@ -302,6 +335,25 @@ function WalletCard({ label, value, icon, color }: any) {
   );
 }
 
+function IncomeSourceCard({ title, value, icon, link }: any) {
+   return (
+      <Link href={link}>
+         <div className="p-5 bg-[#0a0a0f] border border-white/5 rounded-2xl flex items-center justify-between group hover:border-primary/40 transition-all">
+            <div className="flex items-center gap-4">
+               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                  {icon}
+               </div>
+               <div>
+                  <p className="text-xs font-black uppercase text-white">{title}</p>
+                  <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Yield: {value}</p>
+               </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all" />
+         </div>
+      </Link>
+   );
+}
+
 function SecurityLink({ active, text }: any) {
    return (
       <li className={cn("flex items-center justify-between text-[9px] font-black uppercase tracking-widest", active ? "text-white" : "text-muted-foreground opacity-40")}>
@@ -309,4 +361,10 @@ function SecurityLink({ active, text }: any) {
          {active ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <XCircle className="h-3 w-3" />}
       </li>
    );
+}
+
+function RefreshCcw(props: any) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+  )
 }
