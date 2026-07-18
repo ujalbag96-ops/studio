@@ -4,18 +4,20 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Geo-Aware Postback Gateway v4.0
- * 1. India Logic: 60% User / 40% Admin
- * 2. Global Logic: 35% User / 65% Admin (High procurement cost buffer)
+ * Global CPA Postback Gateway v5.0
+ * 1. Domestic (India): 60% User / 40% Admin
+ * 2. International (US/UK/Global): 35% User / 65% Admin
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('uid');
-  let rawRevenueINR = parseFloat(searchParams.get('payout') || '0');
-  const appName = searchParams.get('offer') || 'System Task';
+  // Raw Revenue is usually passed in USD from Global Networks
+  let rawRevenueUSD = parseFloat(searchParams.get('payout') || '0');
+  const offerName = searchParams.get('offer') || 'Global Mission';
+  const category = searchParams.get('type') || 'CPA'; 
   
-  if (!userId || isNaN(rawRevenueINR) || rawRevenueINR <= 0) {
-    return NextResponse.json({ error: 'Invalid Tactical Signal' }, { status: 400 });
+  if (!userId || isNaN(rawRevenueUSD) || rawRevenueUSD <= 0) {
+    return NextResponse.json({ error: 'Invalid Signal' }, { status: 400 });
   }
 
   try {
@@ -34,27 +36,20 @@ export async function GET(request: Request) {
        return NextResponse.json({ error: 'Identity Locked' }, { status: 403 });
     }
 
-    // --- GEO-PROFITABILITY LOGIC ---
+    // --- GLOBAL PROFITABILITY LOGIC ---
     const isIndia = userData.country === 'India';
     
-    // Logic: India gets 60% share, Global gets 35% share
+    // Logic: India gets 60% share, International gets 35% share
     const userSharePct = isIndia ? 0.60 : 0.35;
     const adminSharePct = 1 - userSharePct;
 
-    const userRewardValue = rawRevenueINR * userSharePct;
-    const adminProfitValue = rawRevenueINR * adminSharePct;
-    
-    // Coin mapping: 1 Unit Revenue = 100 Coins (Scaled for display)
-    const rewardAmountCoins = userRewardValue * 100;
+    // Convert USD payout to Coins
+    // Assumption: 1 USD = 1000 Coins Base
+    const totalCoinsInOffer = rawRevenueUSD * 1000;
+    const rewardAmountCoins = Math.floor(totalCoinsInOffer * userSharePct);
+    const adminProfitCoins = totalCoinsInOffer - rewardAmountCoins;
 
     const dateStr = new Date().toISOString().split('T')[0];
-    const currentCpa = (userData.cpaTasksCount || 0) + 1;
-
-    // VIP Quest Logic (Simplified)
-    let newVipLevel = userData.vipLevel || 0;
-    if (newVipLevel === 0 && currentCpa >= 5) {
-       // Check other conditions (Referrals/Eng) if needed
-    }
 
     // Wallet Sync
     batch.update(userRef, {
@@ -70,23 +65,28 @@ export async function GET(request: Request) {
       amount: rewardAmountCoins,
       date: dateStr,
       status: 'completed',
-      description: `Verified Mission [${userData.country}]: ${appName}`,
+      description: `Verified [${userData.country}] ${category}: ${offerName}`,
       isPostbackVerified: true,
-      platformProfit: adminProfitValue,
-      geoMode: isIndia ? 'Domestic' : 'International'
+      geoMode: isIndia ? 'Domestic' : 'International',
+      sharePct: `${userSharePct * 100}%`
     });
+
+    // Elite Milestone Check (1000 Referrals)
+    if (userData.totalNetworkReferrals >= 1000 && !userData.isEliteAffiliate) {
+      batch.update(userRef, { isEliteAffiliate: true, vipLevel: 7 });
+    }
 
     await batch.commit();
 
     return NextResponse.json({ 
       success: true, 
       geo: userData.country,
-      share: `${userSharePct * 100}%`,
-      coins: rewardAmountCoins
+      reward: rewardAmountCoins,
+      share: `${userSharePct * 100}%`
     });
 
   } catch (error: any) {
-    console.error('Postback Failure:', error);
-    return NextResponse.json({ error: 'Sync Node Offline' }, { status: 500 });
+    console.error('Global Postback Failure:', error);
+    return NextResponse.json({ error: 'Operational Node Offline' }, { status: 500 });
   }
 }

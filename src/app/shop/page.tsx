@@ -6,7 +6,7 @@ import { doc, updateDoc, increment, collection, addDoc, writeBatch } from 'fireb
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, Loader2, ShieldCheck, CheckCircle2, Copy, Gift, Ticket, Smartphone } from 'lucide-react';
+import { ShoppingBag, Loader2, ShieldCheck, CheckCircle2, Ticket, Globe, Landmark } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { UserProfile, ShopItem } from '@/app/lib/types';
@@ -14,11 +14,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
-const MOCK_SHOP_ITEMS: ShopItem[] = [
-  { id: 's1', name: '₹100 Google Play', description: 'Instant Digital Gift Code', price: 100, category: 'Redeem Code', imageUrl: 'https://picsum.photos/seed/googleplay/400/200' },
-  { id: 's2', name: '60 UC Pack (BGMI)', description: 'Direct Game Credit Transfer', price: 75, category: 'Game Credit', imageUrl: 'https://picsum.photos/seed/bgmi/400/200' },
-  { id: 's3', name: '₹500 Amazon Pay', description: 'E-Commerce Shopping Voucher', price: 500, category: 'Voucher', imageUrl: 'https://picsum.photos/seed/amazon/400/200' },
-  { id: 's4', name: '100 Free Fire Diamonds', description: 'In-game Currency Top-up', price: 80, category: 'Game Credit', imageUrl: 'https://picsum.photos/seed/ff/400/200' },
+const DOMESTIC_ITEMS: ShopItem[] = [
+  { id: 's1', name: '₹100 Google Play (IN)', description: 'Digital Gift Code', price: 10000, category: 'Redeem Code', imageUrl: 'https://picsum.photos/seed/gp/400/200', geo: 'India' },
+  { id: 's2', name: 'Paytm Cash ₹500', description: 'Direct Wallet Transfer', price: 50000, category: 'Cash', imageUrl: 'https://picsum.photos/seed/paytm/400/200', geo: 'India' },
+];
+
+const GLOBAL_ITEMS: ShopItem[] = [
+  { id: 'g1', name: '$10 PayPal Cash', description: 'Instant PayPal Transfer', price: 10000, category: 'Cash', imageUrl: 'https://picsum.photos/seed/paypal/400/200', geo: 'Global' },
+  { id: 'g2', name: '$5 Amazon.com Card', description: 'US Region Voucher', price: 5000, category: 'Voucher', imageUrl: 'https://picsum.photos/seed/amazonus/400/200', geo: 'Global' },
+  { id: 'g3', name: '£10 Steam Wallet', description: 'UK Region Credit', price: 12000, category: 'Game Credit', imageUrl: 'https://picsum.photos/seed/steam/400/200', geo: 'United Kingdom' },
 ];
 
 export default function ShopPage() {
@@ -32,186 +36,136 @@ export default function ShopPage() {
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
+  const isIndia = profile?.country === 'India';
+  const availableItems = isIndia ? DOMESTIC_ITEMS : GLOBAL_ITEMS;
+
   const handleRedeemInitiate = (item: ShopItem) => {
-    if (!user || !profile) {
-      toast({ variant: "destructive", title: "Login Required" });
-      return;
-    }
-    if (profile.winningBalance < item.price) {
-      toast({ variant: "destructive", title: "Insufficient Winnings", description: `You need ${item.price} winning coins.` });
+    if (!user || !profile) return;
+    const userBalance = profile.winningBalance + profile.taskBalance;
+    if (userBalance < item.price) {
+      toast({ variant: "destructive", title: "Insufficient Coins", description: `You need ${item.price} coins for this.` });
       return;
     }
     setSelectedItem(item);
   };
 
   const handleConfirmRedeem = async () => {
-    if (!user || !firestore || !userRef || !profile || !selectedItem || !deliveryId.trim()) return;
+    if (!user || !firestore || !userRef || !selectedItem || !deliveryId) return;
 
     setIsRedeeming(true);
     try {
       const batch = writeBatch(firestore);
       const timestamp = new Date().toISOString();
+      const dateStr = timestamp.split('T')[0];
 
-      // 1. Deduct Balance
+      // Atomic Deduct (Deduct from Task Balance first, then winning)
+      let rem = selectedItem.price;
+      const taskDec = Math.min(profile!.taskBalance, rem);
+      rem -= taskDec;
+      const winDec = rem;
+
       batch.update(userRef, {
-        winningBalance: increment(-selectedItem.price),
+        taskBalance: increment(-taskDec),
+        winningBalance: increment(-winDec),
         coins: increment(-selectedItem.price)
       });
 
-      // 2. Create Payout Request for Admin
       const payoutRef = doc(collection(firestore, 'payouts'));
       batch.set(payoutRef, {
         userId: user.uid,
         userEmail: user.email,
         amount: selectedItem.price,
-        method: 'Shop Redemption',
+        method: 'Global Shop Redemption',
         destination: deliveryId,
         status: 'pending',
-        timestamp: timestamp,
-        type: 'shop',
+        timestamp,
         itemName: selectedItem.name,
-        category: selectedItem.category
+        geo: profile?.country
       });
 
-      // 3. Ledger Receipt
-      const ledgerRef = doc(collection(firestore, 'users', user.uid, 'ledger'));
-      batch.set(ledgerRef, {
+      batch.set(doc(collection(firestore, 'users', user.uid, 'ledger')), {
         type: 'shop_redemption',
         amount: selectedItem.price,
-        date: timestamp.split('T')[0],
+        date: dateStr,
         status: 'pending',
-        description: `Purchased: ${selectedItem.name} [ID: ${deliveryId}]`,
-        payoutId: payoutRef.id
+        description: `Redeemed: ${selectedItem.name}`
       });
 
       await batch.commit();
-
-      toast({ title: "REDEEM REQUEST SENT", description: "Voucher will be delivered to your inbox soon." });
+      toast({ title: "REDEEM REQUEST SENT", description: "Verification signal dispatched." });
       setSelectedItem(null);
-      setDeliveryId('');
-      new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
     } catch (e) {
-      toast({ variant: "destructive", title: "Redemption Failed" });
+      toast({ variant: "destructive", title: "Sync Failed" });
     } finally {
       setIsRedeeming(false);
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
-      <header className="space-y-4 pt-12 text-center">
-        <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-primary/10 border border-primary/20 shadow-xl">
-           <ShoppingBag className="h-4 w-4 text-primary" />
-           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Elite Redemption Store</span>
+    <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-12 pb-32">
+      <header className="space-y-6 pt-12 text-center md:text-left">
+        <div className="flex items-center justify-center md:justify-start gap-4">
+           <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[9px] tracking-widest italic">
+             {isIndia ? 'Domestic Hub: INR' : 'Global Hub: USD/GBP'}
+           </Badge>
+           <Badge variant="outline" className="border-white/10 text-[9px] font-black uppercase text-muted-foreground">35% Revenue Share System</Badge>
         </div>
-        <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white">WinZO <span className="text-primary">Shop</span></h1>
-        <p className="text-muted-foreground font-medium text-lg max-w-2xl mx-auto">
-          Redeem your winning cash for digital vouchers and game currencies instantly.
+        <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white">Reward <span className="text-primary">Shop</span></h1>
+        <p className="text-muted-foreground font-medium text-lg max-w-2xl">
+          Redeem your shared mission revenue for regional gift cards and digital cash payouts.
         </p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {MOCK_SHOP_ITEMS.map((item) => (
-          <Card key={item.id} className="bg-[#0a0a0f] border-white/5 overflow-hidden rounded-[2.5rem] group hover:border-primary/40 transition-all shadow-2xl">
-            <div className="relative h-40 w-full overflow-hidden">
-               <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" />
-               <div className="absolute top-4 left-4">
-                  <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase px-3 py-1">
-                    {item.category}
-                  </Badge>
+        {availableItems.map((item) => (
+          <Card key={item.id} className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden group hover:border-primary/40 transition-all shadow-2xl relative">
+            <div className="aspect-video relative overflow-hidden">
+               <img src={item.imageUrl} className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" alt={item.name} />
+               <div className="absolute top-4 right-4">
+                  <Badge className="bg-black/60 text-white border-none text-[8px] font-black uppercase px-2 py-1">{item.geo}</Badge>
                </div>
             </div>
-            <CardContent className="p-6 space-y-6">
-              <div className="space-y-1">
-                 <h3 className="text-lg font-black uppercase italic text-white truncate">{item.name}</h3>
-                 <p className="text-[10px] text-muted-foreground font-bold uppercase">{item.description}</p>
+            <CardContent className="p-8 space-y-6">
+              <div>
+                 <h3 className="text-xl font-black uppercase italic text-white truncate">{item.name}</h3>
+                 <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">{item.description}</p>
               </div>
-              
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between border-t border-white/5 pt-4">
                  <div className="flex items-end gap-1">
-                    <span className="text-2xl font-black text-white italic">{item.price}</span>
-                    <span className="text-[10px] font-bold text-muted-foreground mb-1">🪙</span>
+                    <span className="text-2xl font-black text-primary italic">{item.price}</span>
+                    <span className="text-[10px] font-bold opacity-40 mb-1">🪙</span>
                  </div>
-                 <Button 
-                   onClick={() => handleRedeemInitiate(item)}
-                   className="h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-primary text-white font-black text-[10px] uppercase tracking-widest px-6"
-                 >
-                   REDEEM
-                 </Button>
+                 <Button onClick={() => handleRedeemInitiate(item)} className="h-10 px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-primary text-white font-black text-[10px] uppercase">REDEEM</Button>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Redemption Dialog */}
       <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
-        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] p-8">
+        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] p-10">
            <DialogHeader className="space-y-4">
               <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-                 <Ticket className="h-8 w-8 text-primary" />
+                 <Landmark className="h-8 w-8 text-primary" />
               </div>
-              <div>
-                <DialogTitle className="text-2xl font-black uppercase italic">Redeem Details</DialogTitle>
-                <DialogDescription className="text-xs uppercase font-bold text-muted-foreground tracking-widest">Provide delivery identification</DialogDescription>
-              </div>
+              <DialogTitle className="text-3xl font-black uppercase italic">Payer Identity</DialogTitle>
            </DialogHeader>
-
-           <div className="space-y-6 py-6">
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
-                 <span className="text-[10px] font-black uppercase text-muted-foreground">Item Selected</span>
-                 <span className="text-sm font-black text-primary italic">{selectedItem?.name}</span>
+           <div className="py-6 space-y-6">
+              <div className="space-y-2">
+                 <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Delivery Destination (Email/ID)</Label>
+                 <Input value={deliveryId} onChange={e => setDeliveryId(e.target.value)} placeholder="Enter PayPal or Amazon Email" className="h-16 bg-black border-white/10 rounded-2xl font-black text-lg focus:ring-primary" />
               </div>
-              <div className="space-y-3">
-                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">
-                    {selectedItem?.category === 'Game Credit' ? 'Game Character ID' : 'Email Address'}
-                 </Label>
-                 <Input 
-                   value={deliveryId} 
-                   onChange={e => setDeliveryId(e.target.value)} 
-                   placeholder={selectedItem?.category === 'Game Credit' ? 'Enter Game Player ID' : 'Enter recipient email'}
-                   className="h-14 bg-black border-white/10 rounded-xl font-black text-lg focus:ring-primary"
-                 />
-              </div>
-              <p className="text-[9px] text-muted-foreground uppercase font-bold italic leading-relaxed text-center">
-                 Voucher will be delivered to your in-app Inbox after industrial verification (2-24 Hours).
+              <p className="text-[10px] text-muted-foreground uppercase font-bold text-center leading-relaxed">
+                 Signal verification takes 2-24 hours. Reward will be sent to your in-app inbox once settled.
               </p>
            </div>
-
            <DialogFooter>
-              <Button 
-                onClick={handleConfirmRedeem} 
-                disabled={isRedeeming || !deliveryId} 
-                className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl"
-              >
-                {isRedeeming ? <Loader2 className="animate-spin h-6 w-6" /> : "CONFIRM REDEMPTION"}
+              <Button onClick={handleConfirmRedeem} disabled={isRedeeming || !deliveryId} className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl">
+                 {isRedeeming ? <Loader2 className="animate-spin" /> : "CONFIRM REDEEM"}
               </Button>
            </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <section className="pt-10">
-         <Card className="bg-gradient-to-br from-[#1a1a24] to-[#0a0a0f] border-white/5 rounded-[3rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10">
-            <div className="space-y-4 max-w-xl text-center md:text-left">
-               <h3 className="text-3xl font-black uppercase italic text-white flex items-center justify-center md:justify-start gap-4">
-                  <ShieldCheck className="h-8 w-8 text-primary" /> Delivery Protocol
-               </h3>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-3">
-                     <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-1" />
-                     <p className="text-[10px] text-muted-foreground font-bold uppercase">Codes are sent to your Inbox</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                     <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-1" />
-                     <p className="text-[10px] text-muted-foreground font-bold uppercase">Standard Processing: 2-24 Hours</p>
-                  </div>
-               </div>
-            </div>
-            <Button variant="outline" asChild className="h-16 px-10 rounded-2xl border-white/10 hover:bg-white/5 text-white font-black uppercase italic tracking-widest">
-               <a href="https://t.me/bracketbattles_support" target="_blank">CONTACT LOGISTICS</a>
-            </Button>
-         </Card>
-      </section>
     </div>
   );
 }
