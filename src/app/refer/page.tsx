@@ -21,7 +21,8 @@ import {
   Info,
   Crown,
   Star,
-  Flame
+  Flame,
+  Layout
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -310,25 +311,40 @@ function DownlineList({ users, loading, level }: any) {
 
    return (
       <div className="divide-y divide-white/5 max-h-[500px] overflow-y-auto no-scrollbar">
-         {users.map((u: any) => (
-            <div key={u.id} className="p-6 flex items-center justify-between hover:bg-white/5 transition-all">
-               <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-primary text-sm">
-                     {u.email?.[0] || 'U'}
+         {users.map((u: any) => {
+            const taskGoal = 10;
+            const completed = u.tasksCompletedCount || 0;
+            const progress = Math.min((completed / taskGoal) * 100, 100);
+            
+            return (
+               <div key={u.id} className="p-6 space-y-4 hover:bg-white/5 transition-all">
+                  <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-primary text-sm">
+                           {u.email?.[0] || 'U'}
+                        </div>
+                        <div>
+                           <p className="text-xs font-black uppercase text-white truncate max-w-[120px]">{u.email?.split('@')[0] || 'Warrior'}</p>
+                           <p className="text-[8px] font-bold text-muted-foreground uppercase">{u.country || 'Global'}</p>
+                        </div>
+                     </div>
+                     <div className="text-right space-y-1">
+                        <Badge className={cn("text-[7px] font-black uppercase px-2", u.vipLevel > 0 ? "bg-amber-500/10 text-amber-500" : "bg-primary/10 text-primary")}>
+                           {u.vipLevel > 0 ? `VIP ${u.vipLevel}` : 'INITIATE'}
+                        </Badge>
+                     </div>
                   </div>
-                  <div>
-                     <p className="text-xs font-black uppercase text-white truncate max-w-[120px]">{u.email?.split('@')[0] || 'Warrior'}</p>
-                     <p className="text-[8px] font-bold text-muted-foreground uppercase">{u.country || 'Global'}</p>
+
+                  <div className="space-y-1.5">
+                     <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-muted-foreground">
+                        <span>VIP 1 Quest Progress</span>
+                        <span>{completed}/{taskGoal} Missions</span>
+                     </div>
+                     <Progress value={progress} className="h-1 bg-white/5" />
                   </div>
                </div>
-               <div className="text-right space-y-1">
-                  <p className="text-xs font-black text-green-500">{u.tasksCompletedCount || 0} Missions</p>
-                  <Badge className={cn("text-[7px] font-black uppercase px-2", u.isSuspended ? "bg-red-500/10 text-red-500" : "bg-primary/10 text-primary")}>
-                     {u.isSuspended ? 'PENDING AUDIT' : 'ACTIVE'}
-                  </Badge>
-               </div>
-            </div>
-         ))}
+            );
+         })}
       </div>
    );
 }

@@ -22,7 +22,8 @@ import {
   Timer,
   PlayCircle,
   X,
-  Sparkles
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -52,18 +53,9 @@ function ViewerContent() {
   const [quizFinished, setQuizFinished] = useState(false);
   
   const [isSharing, setIsSharing] = useState(false);
-  const [shareCooldown, setShareCooldown] = useState(0);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
-
-  useEffect(() => {
-    let interval: any;
-    if (shareCooldown > 0) {
-      interval = setInterval(() => setShareCooldown(c => c - 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [shareCooldown]);
 
   // Reading Timer & Auto Quiz Trigger
   useEffect(() => {
@@ -131,6 +123,38 @@ function ViewerContent() {
     }
   };
 
+  const handleViralShare = async () => {
+    if (!profile?.referralCode || isSharing) return;
+    setIsSharing(true);
+
+    const shareUrl = `${window.location.origin}/login?ref=${profile.referralCode}&redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    const shareText = `Check out these industrial notes on CampusCompanion! Join via my link to earn coins: ${shareUrl}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'CampusCompanion Notes', text: shareText, url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({ title: "Viral Link Copied!" });
+      }
+
+      // Record share for reward
+      const res = await fetch('/api/share-reward', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.uid })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "SHARE REWARDED", description: `+${data.reward} Coins for spreading the signal.` });
+      }
+    } catch (e) {
+      console.error("Share signal lost");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   if (!url) return <div className="p-20 text-center">Invalid Resource URL</div>;
 
   return (
@@ -140,17 +164,27 @@ function ViewerContent() {
         * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
       `}</style>
 
-      <div className="flex items-center justify-between">
-         <Button variant="ghost" onClick={() => router.back()} className="text-[10px] font-black uppercase text-muted-foreground">
-            <ArrowLeft className="h-3 w-3 mr-2" /> Back
-         </Button>
-         <div className="flex items-center gap-3">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+         <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => router.back()} className="text-[10px] font-black uppercase text-muted-foreground">
+               <ArrowLeft className="h-3 w-3 mr-2" /> Back
+            </Button>
             <div className="bg-black/40 border border-white/10 px-4 py-2 rounded-xl flex items-center gap-3">
                <Clock className="h-3 w-3 text-primary animate-pulse" />
                <span className="text-[10px] font-black text-white tabular-nums">
                  {Math.floor(secondsRead / 60)}m {secondsRead % 60}s Read
                </span>
             </div>
+         </div>
+
+         <div className="flex items-center gap-3">
+            <Button 
+              onClick={handleViralShare}
+              disabled={isSharing}
+              className="h-10 px-4 rounded-xl bg-green-500/10 border border-green-500/20 hover:bg-green-500 text-green-500 hover:text-white font-black text-[9px] uppercase tracking-widest"
+            >
+               <Share2 className="h-3 w-3 mr-2" /> {isSharing ? 'SHARING...' : 'SHARE TO EARN'}
+            </Button>
             <Button 
               onClick={startAiQuiz}
               className="h-10 px-4 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary text-primary hover:text-white font-black text-[9px] uppercase tracking-widest"
@@ -188,9 +222,23 @@ function ViewerContent() {
                      <span className="text-[10px] font-black uppercase text-muted-foreground">Reading Goal</span>
                      <span className="text-sm font-black text-primary italic">+2 🪙</span>
                   </div>
+                  <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                     <span className="text-[10px] font-black uppercase text-muted-foreground">Viral Share</span>
+                     <span className="text-sm font-black text-primary italic">+2 🪙</span>
+                  </div>
                </div>
                <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed italic border-t border-white/5 pt-4">
-                  Pass the quiz to prove lesson mastery.
+                  Pass the quiz or share the link to prove lesson mastery.
+               </p>
+            </Card>
+
+            <Card className="bg-green-500/5 border-green-500/20 p-8 rounded-[2.5rem] space-y-4 shadow-2xl">
+               <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-green-500" />
+                  <h4 className="text-[10px] font-black uppercase text-green-500 tracking-widest italic">Viral Referral</h4>
+               </div>
+               <p className="text-[9px] text-muted-foreground font-bold uppercase leading-relaxed">
+                  Refer students by sharing this page. Every naya warrior that joins through your link builds your network and revenue.
                </p>
             </Card>
          </div>
