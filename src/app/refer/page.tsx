@@ -22,7 +22,8 @@ import {
   Crown,
   Star,
   Flame,
-  Layout
+  Layout,
+  Coins
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,6 +66,7 @@ export default function ReferPage() {
 
   const totalShares = profile?.totalPagesShared || 0;
   const totalNetwork = profile?.totalNetworkReferrals || 0;
+  const isGlobal = profile?.country !== 'India';
   
   // Milestone Definitions
   const milestones = [
@@ -168,7 +170,7 @@ export default function ReferPage() {
             </div>
           </section>
 
-          {/* MEGA MILESTONE SECTION */}
+          {/* MEGA MILESTONE SECTION - THE 35% REWARD Logic */}
           <section className="space-y-8 animate-in slide-in-from-bottom-6 duration-1000">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

@@ -95,3 +95,13 @@ export interface PayoutRequest {
   timestamp: string;
   vipLevel: number;
 }
+
+export interface ShopItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  category: string;
+  geo: string;
+}

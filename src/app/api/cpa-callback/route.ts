@@ -4,14 +4,16 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Global CPA Postback Gateway v5.0
+ * Global CPA Postback Gateway v6.0
+ * DYNAMIC REVENUE LOGIC:
  * 1. Domestic (India): 60% User / 40% Admin
- * 2. International (US/UK/Global): 35% User / 65% Admin
+ * 2. International (Global): Base 30% User / 70% Admin
+ * 3. Elite International (1000+ Refs): 35% User / 65% Admin
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('uid');
-  // Raw Revenue is usually passed in USD from Global Networks
+  // Raw Revenue is passed in USD from Global Networks
   let rawRevenueUSD = parseFloat(searchParams.get('payout') || '0');
   const offerName = searchParams.get('offer') || 'Global Mission';
   const category = searchParams.get('type') || 'CPA'; 
@@ -36,18 +38,16 @@ export async function GET(request: Request) {
        return NextResponse.json({ error: 'Identity Locked' }, { status: 403 });
     }
 
-    // --- GLOBAL PROFITABILITY LOGIC ---
+    // --- DYNAMIC PROFITABILITY CALIBRATION ---
     const isIndia = userData.country === 'India';
+    const isElite = !!userData.isEliteAffiliate;
     
-    // Logic: India gets 60% share, International gets 35% share
-    const userSharePct = isIndia ? 0.60 : 0.35;
-    const adminSharePct = 1 - userSharePct;
-
-    // Convert USD payout to Coins
-    // Assumption: 1 USD = 1000 Coins Base
+    // Logic: India gets 60%, Global gets 30%, Elite Global gets 35%
+    let userSharePct = isIndia ? 0.60 : (isElite ? 0.35 : 0.30);
+    
+    // Assumption: 1 USD = 1000 Coins Base for Global tracking
     const totalCoinsInOffer = rawRevenueUSD * 1000;
     const rewardAmountCoins = Math.floor(totalCoinsInOffer * userSharePct);
-    const adminProfitCoins = totalCoinsInOffer - rewardAmountCoins;
 
     const dateStr = new Date().toISOString().split('T')[0];
 
@@ -65,24 +65,44 @@ export async function GET(request: Request) {
       amount: rewardAmountCoins,
       date: dateStr,
       status: 'completed',
-      description: `Verified [${userData.country}] ${category}: ${offerName}`,
+      description: `Verified Mission: ${offerName} (${(userSharePct * 100).toFixed(0)}% Share)`,
       isPostbackVerified: true,
-      geoMode: isIndia ? 'Domestic' : 'International',
+      geoMode: isIndia ? 'Domestic' : (isElite ? 'Elite-Global' : 'Standard-Global'),
       sharePct: `${userSharePct * 100}%`
     });
 
-    // Elite Milestone Check (1000 Referrals)
-    if (userData.totalNetworkReferrals >= 1000 && !userData.isEliteAffiliate) {
-      batch.update(userRef, { isEliteAffiliate: true, vipLevel: 7 });
+    // Update parent commission if applicable
+    if (userData.referredBy) {
+       // Referral Commission Logic (Std: 5%, Elite: 7%)
+       const parentRef = doc(firestore, 'users', userData.referredBy);
+       const parentSnap = await getDoc(parentRef);
+       if (parentSnap.exists()) {
+          const parentData = parentSnap.data();
+          const commPct = parentData.isEliteAffiliate ? 0.07 : 0.05;
+          const commAmount = Math.floor(totalCoinsInOffer * commPct);
+          
+          batch.update(parentRef, {
+             winningBalance: increment(commAmount),
+             coins: increment(commAmount),
+             totalNetworkRevenue: increment(commAmount)
+          });
+          
+          batch.set(doc(collection(firestore, 'users', userData.referredBy, 'ledger')), {
+             type: 'referral_comm',
+             amount: commAmount,
+             date: dateStr,
+             status: 'completed',
+             description: `Network Commission from ${userData.email || 'Warrior'}`
+          });
+       }
     }
 
     await batch.commit();
 
     return NextResponse.json({ 
       success: true, 
-      geo: userData.country,
-      reward: rewardAmountCoins,
-      share: `${userSharePct * 100}%`
+      share: `${userSharePct * 100}%`,
+      reward: rewardAmountCoins 
     });
 
   } catch (error: any) {
