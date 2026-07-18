@@ -45,7 +45,10 @@ import {
   Smartphone,
   RefreshCcw,
   ShoppingBag,
-  ArrowRight
+  ArrowRight,
+  Package,
+  Sparkles,
+  Timer
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,6 +67,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import VipQuestDashboard from '@/components/VipQuestDashboard';
 import QuestCelebrationModal from '@/components/QuestCelebrationModal';
 import { formatCurrency } from '@/lib/currency';
+import ScratchCard from '@/components/ScratchCard';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -71,9 +75,11 @@ export default function UserDashboard() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  
   const [activeNav, setActiveNav] = useState<'overview' | 'offers' | 'video' | 'mlm'>('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
   const [showLegal, setShowLegal] = useState(false);
+  const [showScratch, setShowScratch] = useState(false);
   
   const [showKycModal, setShowKycModal] = useState(false);
   const [kycDoc, setKycDoc] = useState<string | null>(null);
@@ -85,17 +91,7 @@ export default function UserDashboard() {
     [firestore, user]
   );
   
-  const ledgerQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'users', user.uid, 'ledger'),
-      orderBy('date', 'desc'),
-      limit(6)
-    );
-  }, [firestore, user]);
-
   const { data: profile } = useDoc<UserProfile>(userProfileRef);
-  const { data: recentActivity, isLoading: isActivityLoading } = useCollection<UserLedgerEntry>(ledgerQuery);
 
   useEffect(() => {
     if (profile?.questCelebrationPending) {
@@ -138,40 +134,43 @@ export default function UserDashboard() {
   const combinedCashBalance = formatCurrency((profile?.winningBalance || 0) + (profile?.taskBalance || 0), profile?.country);
 
   return (
-    <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative">
+    <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative overflow-x-hidden">
       <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
       <RiskDisclosureModal isOpen={showLegal} onOpenChange={setShowLegal} />
       {profile && <QuestCelebrationModal isOpen={showCelebration} onClose={() => setShowCelebration(false)} profile={profile} />}
+      {showScratch && <ScratchCard onClose={() => setShowScratch(false)} />}
       
-      <Dialog open={showKycModal} onOpenChange={setShowKycModal}>
-         <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] p-10">
-            <DialogHeader className="space-y-4">
-               <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-                  <Fingerprint className="h-8 w-8 text-primary" />
+      {/* 🎰 LIVE WINNING MARQUEE (RETENTION HOOK) */}
+      <div className="fixed top-0 left-0 right-0 z-[110] bg-primary/20 backdrop-blur-md border-b border-primary/20 py-2 overflow-hidden h-10 hidden md:block">
+         <div className="flex animate-marquee whitespace-nowrap gap-20">
+            {Array(5).fill(0).map((_, i) => (
+               <div key={i} className="flex gap-20">
+                  <div className="flex items-center gap-3">
+                     <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                     <span className="text-[9px] font-black uppercase tracking-widest text-white/80">
+                        Signal: <span className="text-primary italic">Warrior_X7</span> Jeeta <span className="text-green-500">₹240</span> Ludo Lite mein!
+                     </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                     <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                     <span className="text-[9px] font-black uppercase tracking-widest text-white/80">
+                        Signal: <span className="text-primary italic">Bhubaneswar_Pro</span> Ne <span className="text-amber-500">VIP 1</span> Unlock kiya!
+                     </span>
+                  </div>
                </div>
-               <DialogTitle className="text-3xl font-black uppercase italic">Identity Verification</DialogTitle>
-               <DialogDescription className="text-[10px] font-bold uppercase text-muted-foreground">Industrial security protocol audit.</DialogDescription>
-            </DialogHeader>
+            ))}
+         </div>
+      </div>
 
-            <div className="py-8">
-               <Input type="file" accept="image/*" onChange={(e) => {
-                 const file = e.target.files?.[0];
-                 if(file) {
-                    const r = new FileReader();
-                    r.onloadend = () => setKycDoc(r.result as string);
-                    r.readAsDataURL(file);
-                 }
-               }} className="bg-black border-white/10 h-16 rounded-xl pt-4" />
-            </div>
+      {/* 🎁 FLOATING MYSTERY BOX TRIGGER */}
+      <button 
+        onClick={() => setShowScratch(true)}
+        className="fixed bottom-24 right-6 z-[120] h-16 w-16 bg-amber-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(245,158,11,0.5)] animate-bounce hover:scale-110 transition-transform"
+      >
+         <Package className="h-8 w-8 text-black" />
+         <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded-full border-2 border-[#050508]">FREE</span>
+      </button>
 
-            <DialogFooter>
-               <Button onClick={submitKyc} disabled={!kycDoc || isKycProcessing} className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl">
-                  {isKycProcessing ? <Loader2 className="animate-spin" /> : "DISPATCH SIGNAL"}
-               </Button>
-            </DialogFooter>
-         </DialogContent>
-      </Dialog>
-      
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-10 border-b border-white/5">
           <Link href="/" className="flex items-center gap-4 group">
@@ -186,6 +185,7 @@ export default function UserDashboard() {
           <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Portfolio" onClick={() => setActiveNav('overview')} />
           <SidebarItem active={activeNav === 'mlm'} icon={<Network />} label="MLM Network" onClick={() => setActiveNav('mlm')} />
           <SidebarItem active={false} icon={<Fingerprint />} label="Verify KYC" onClick={() => setShowKycModal(true)} />
+          <SidebarItem active={false} icon={<ShieldCheck />} label="Legal & Security" onClick={() => setShowLegal(true)} />
           <div className="pt-8 px-4 space-y-4">
              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest italic">Operational Nodes</p>
              <Link href="/earning-hub" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><Zap className="h-4 w-4 text-primary" /> Income Hub</Link>
@@ -200,7 +200,7 @@ export default function UserDashboard() {
         </div>
       </aside>
 
-      <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-10 pb-32">
+      <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-10 pb-32 mt-10 md:mt-0">
         <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-10">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
@@ -211,7 +211,7 @@ export default function UserDashboard() {
                   <Star className="h-3 w-3 fill-amber-500" /> VIP LEVEL {profile?.vipLevel || 0}
                </Badge>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Total <span className="text-primary">{combinedCashBalance}</span></h1>
+            <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter italic leading-none">Total <span className="text-primary">{combinedCashBalance}</span></h1>
           </div>
           <div className="bg-black/40 border border-white/5 px-8 py-4 rounded-3xl backdrop-blur-xl">
              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Regional Node</p>
@@ -236,6 +236,37 @@ export default function UserDashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           <div className="xl:col-span-2 space-y-12">
             
+            {/* 🎲 ADDICTIVE HOOK: MYSTERY VAULT */}
+            <section className="space-y-6">
+               <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><Gift className="h-6 w-6 text-amber-500" /> Mystery Vault</h3>
+                  <Badge variant="outline" className="border-amber-500/20 text-amber-500 text-[8px] font-black uppercase">Refreshes Daily</Badge>
+               </div>
+               <Card className="bg-gradient-to-br from-[#1a1a24] to-black border-amber-500/30 border-2 rounded-[2.5rem] p-10 relative overflow-hidden group shadow-[0_0_50px_rgba(245,158,11,0.1)]">
+                  <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-1000">
+                     <Package className="h-48 w-48 text-amber-500" />
+                  </div>
+                  <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+                     <div className="space-y-4 text-center md:text-left">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
+                           <Timer className="h-3 w-3 text-amber-500" />
+                           <span className="text-[9px] font-black text-amber-500 uppercase">Flash Loot Available</span>
+                        </div>
+                        <h4 className="text-4xl font-black uppercase italic text-white leading-none">Daily <span className="text-amber-500">Loot Drop</span></h4>
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed max-w-sm">
+                           Signal lock detected. Open the mystery vault to claim a surprise coin bounty.
+                        </p>
+                     </div>
+                     <Button 
+                        onClick={() => setShowScratch(true)}
+                        className="h-16 px-12 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase italic text-lg rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
+                     >
+                        OPEN VAULT <Sparkles className="ml-2 h-5 w-5" />
+                     </Button>
+                  </div>
+               </Card>
+            </section>
+
             {isIndia && (
               <section className="space-y-6">
                 <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><BookOpen className="h-6 w-6 text-primary" /> Domestic Study Hub</h3>
@@ -285,7 +316,7 @@ export default function UserDashboard() {
             <section className="space-y-6">
                <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><Zap className="h-6 w-6 text-primary" /> Active Yield Signals</h3>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <IncomeSourceCard title="CPA Missions" value={isIndia ? "60% Share" : "35% Share"} icon={<Smartphone />} link="/earning-hub" />
+                  <IncomeSourceCard title="CPA Missions" value={isIndia ? "60% Share" : "30% Share"} icon={<Smartphone />} link="/earning-hub" />
                   <IncomeSourceCard title="Arcade Arena" icon={<Gamepad2 />} link="/games" />
                   <IncomeSourceCard title="Cinema Watch" value="300 🪙" icon={<Video />} link="/watch-earn" />
                   <IncomeSourceCard title="Team Royalties" value="5% + 2%" icon={<Users />} link="/refer" />
@@ -294,7 +325,7 @@ export default function UserDashboard() {
           </div>
           
           <div className="space-y-8">
-             <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-8 space-y-6">
+             <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
                 <h4 className="text-sm font-black uppercase italic flex items-center gap-2"><ShieldCheck className="text-primary" /> Security Hub</h4>
                 <ul className="space-y-4">
                    <SecurityLink active={profile?.kycStatus === 'approved'} text="Identity Verified" />
@@ -308,9 +339,31 @@ export default function UserDashboard() {
                 </Button>
              </Card>
              <ViralLeaderboard />
+
+             {/* ADDICTIVE HOOK: FAST TASK CARD */}
+             <Card className="bg-green-500/10 border-green-500/20 rounded-[2.5rem] p-8 space-y-4 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform"><TrendingUp className="h-10 w-10 text-green-500" /></div>
+                <p className="text-[10px] font-black uppercase text-green-500 tracking-[0.2em] italic">Instant Cashout Boost</p>
+                <h4 className="text-xl font-black uppercase italic leading-tight">Complete 1 App Mission for <span className="text-green-500">₹10+</span></h4>
+                <Button asChild variant="outline" className="w-full h-10 border-green-500/20 text-green-500 font-black uppercase italic text-[9px] hover:bg-green-500 hover:text-black">
+                   <Link href="/earning-hub">ACTIVATE MISSION</Link>
+                </Button>
+             </Card>
           </div>
         </div>
       </main>
+
+      <style jsx global>{`
+          @keyframes marquee {
+             0% { transform: translateX(0); }
+             100% { transform: translateX(-50%); }
+          }
+          .animate-marquee {
+             animation: marquee 30s linear infinite;
+             display: flex;
+             width: max-content;
+          }
+       `}</style>
     </div>
   );
 }
