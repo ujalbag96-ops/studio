@@ -16,31 +16,21 @@ export interface CurrencyData {
 export const CURRENCY_MAP: Record<string, CurrencyData> = {
   'India': { symbol: '₹', code: 'INR', rateToCoins: 100 },
   'United States': { symbol: '$', code: 'USD', rateToCoins: 1000 },
-  'United Kingdom': { symbol: '£', code: 'GBP', rateToCoins: 1200 },
-  'United Arab Emirates': { symbol: 'د.إ', code: 'AED', rateToCoins: 250 },
-  'Canada': { symbol: 'CA$', code: 'CAD', rateToCoins: 750 },
-  'Australia': { symbol: 'A$', code: 'AUD', rateToCoins: 700 },
-  'Germany': { symbol: '€', code: 'EUR', rateToCoins: 1050 },
-  'France': { symbol: '€', code: 'EUR', rateToCoins: 1050 },
   'Global': { symbol: '$', code: 'USD', rateToCoins: 1000 }
 };
 
 export function getCurrencyData(country?: string): CurrencyData {
-  if (!country) return CURRENCY_MAP['Global'];
-  return CURRENCY_MAP[country] || CURRENCY_MAP['Global'];
+  // Always default to India for this specific project context
+  return CURRENCY_MAP['India'];
 }
 
-export function formatCurrency(amount: number, country?: string): string {
-  const data = getCurrencyData(country);
-  return `${data.symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export function formatCurrency(amountCoins: number): string {
+  const data = getCurrencyData();
+  const value = amountCoins / data.rateToCoins;
+  return `${data.symbol}${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-/**
- * Distributed Revenue Calculator
- * Converts arbitrary coin amounts to local market cash value.
- */
-export function calculateCashValue(coins: number, country?: string): string {
-  const data = getCurrencyData(country);
-  const cash = coins / data.rateToCoins;
-  return `${data.symbol}${cash.toFixed(2)}`;
+export function calculateCashValue(coins: number): number {
+  const data = getCurrencyData();
+  return coins / data.rateToCoins;
 }

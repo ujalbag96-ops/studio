@@ -29,9 +29,14 @@ export interface UserProfile {
   isSuspended?: boolean;
   
   // VIP 1 Quest Tracking
-  cpaTasksCount: number;      // Target: 5
-  referralTasksCount: number; // Target: 3
-  engagementCount: number;    // Target: 2 (Reading/Games)
+  cpaTasksCount: number;
+  referralTasksCount: number;
+  engagementCount: number;
+  
+  // Arcade Progress (50 Levels each)
+  puzzleLevel: number;
+  physicsLevel: number;
+  runnerLevel: number;
   
   tasksCompletedCount?: number;
   networkTaskCompletions?: number;
@@ -53,7 +58,7 @@ export interface UserProfile {
   megaMilestoneClaimed?: boolean;
   lastSpinTimestamp?: string;
   isAccountActivated?: boolean;
-  questCelebrationPending?: boolean; // New flag for celebration popup
+  questCelebrationPending?: boolean;
 }
 
 export interface AppSettings {
@@ -63,6 +68,7 @@ export interface AppSettings {
   automaticGatewayEnabled: boolean;
   conversionFeePercent: number;
   minWithdrawalAmount: number;
+  coinToInrRate: number; // e.g. 100
 }
 
 export interface UserLedgerEntry {

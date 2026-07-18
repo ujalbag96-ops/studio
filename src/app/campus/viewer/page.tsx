@@ -4,7 +4,7 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,11 +19,14 @@ import {
   Share2,
   Lock,
   ShieldCheck,
-  Timer
+  Timer,
+  PlayCircle,
+  X,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz-flow';
 import { UserProfile } from '@/app/lib/types';
 
@@ -40,17 +43,20 @@ function ViewerContent() {
   const [adCountdown, setAdCountdown] = useState(10);
   const [secondsRead, setSecondsRead] = useState(0);
   
-  // Quiz & Share State
+  // Quiz State
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizLoading, setQuizLoading] = useState(false);
   const [quizData, setQuizData] = useState<GenerateQuizOutput | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [quizScore, setQuizScore] = useState(0);
+  const [quizFinished, setQuizFinished] = useState(false);
+  
   const [isSharing, setIsSharing] = useState(false);
   const [shareCooldown, setShareCooldown] = useState(0);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
-  // Cooldown Logic
   useEffect(() => {
     let interval: any;
     if (shareCooldown > 0) {
@@ -59,32 +65,15 @@ function ViewerContent() {
     return () => clearInterval(interval);
   }, [shareCooldown]);
 
-  // 🛡️ ANTI-SCREENSHOT PROTECTION
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey && (e.key === 'p' || e.key === 's' || e.key === 'u' || e.key === 'c')) || e.key === 'PrintScreen') {
-        e.preventDefault();
-        toast({ variant: "destructive", title: "SECURITY VIOLATION", description: "Screenshots and Printing are disabled for IP protection." });
-      }
-    };
-    window.addEventListener('contextmenu', handleContextMenu);
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('contextmenu', handleContextMenu);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
-  // Reading Timer
+  // Reading Timer & Auto Quiz Trigger
   useEffect(() => {
     if (!user || isAdRunning || showQuiz) return;
     const interval = setInterval(() => {
       setSecondsRead(prev => {
         const next = prev + 1;
+        // Trigger Quiz after 15 mins (900s)
         if (next === 900) {
-          handleReward('reading');
-          return 0; 
+          toast({ title: "STUDY MILESTONE", description: "You've read for 15 mins! Take a quiz to earn coins." });
         }
         return next;
       });
@@ -92,62 +81,13 @@ function ViewerContent() {
     return () => clearInterval(interval);
   }, [user, isAdRunning, showQuiz]);
 
-  const handleReward = async (type: 'reading' | 'quiz' | 'share') => {
-    if (!user) return;
-    const endpoint = type === 'share' ? '/api/share-reward' : '/api/reading-reward';
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid, type })
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast({ 
-          title: data.milestone ? `🏆 ${data.milestone} UNLOCKED` : type.toUpperCase() + " REWARD", 
-          description: `+${data.reward} Coins added to your wallet!` 
-        });
-        if (type === 'share') setShareCooldown(30); // 30s Cooldown
-        new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
-      } else if (data.error) {
-        toast({ variant: "destructive", title: "LIMIT REACHED", description: data.error });
-      }
-    } catch (e) {
-      console.error("Reward sync failed");
-    }
-  };
-
-  const handleShare = async () => {
-    if (!user || !profile || shareCooldown > 0) return;
-    setIsSharing(true);
-    
-    const shareUrl = `${window.location.origin}/login?ref=${profile.referralCode}`;
-    const shareText = `Check out these industrial notes on CampusCompanion! Join via my link to earn coins: ${shareUrl}`;
-
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'CampusCompanion Notes',
-          text: shareText,
-          url: shareUrl,
-        });
-        handleReward('share');
-      } else {
-        await navigator.clipboard.writeText(shareText);
-        toast({ title: "LINK COPIED", description: "Share manually to earn rewards." });
-        handleReward('share');
-      }
-    } catch (e) {
-      console.log("Share cancelled");
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
   const startAiQuiz = async () => {
     setIsAdRunning(false);
     setShowQuiz(true);
     setQuizLoading(true);
+    setQuizFinished(false);
+    setCurrentQuestion(0);
+    setQuizScore(0);
     try {
       const res = await generateQuiz({ 
         contentSummary: "Technical industrial notes with high-level encryption and secure node communication logic." 
@@ -158,6 +98,36 @@ function ViewerContent() {
       setShowQuiz(false);
     } finally {
       setQuizLoading(false);
+    }
+  };
+
+  const handleAnswer = (idx: number) => {
+    if (!quizData) return;
+    if (idx === quizData.questions[currentQuestion].correctIndex) {
+      setQuizScore(s => s + 1);
+    }
+    if (currentQuestion < 4) {
+      setCurrentQuestion(c => c + 1);
+    } else {
+      setQuizFinished(true);
+    }
+  };
+
+  const claimQuizReward = async (isDouble: boolean = false) => {
+    if (!user || !userRef) return;
+    const baseReward = quizScore * 1; // 1 coin per correct answer
+    const finalReward = isDouble ? baseReward * 2 : baseReward;
+    
+    try {
+      await updateDoc(userRef, {
+        coins: increment(finalReward),
+        taskBalance: increment(finalReward),
+        engagementCount: increment(1)
+      });
+      toast({ title: "REWARD CLAIMED", description: `+${finalReward} Coins added to your wallet!` });
+      setShowQuiz(false);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Sync Failed" });
     }
   };
 
@@ -182,14 +152,10 @@ function ViewerContent() {
                </span>
             </div>
             <Button 
-              onClick={handleShare}
-              disabled={isSharing || shareCooldown > 0}
-              className={cn(
-                "h-10 px-4 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all",
-                shareCooldown > 0 ? "bg-white/5 text-muted-foreground" : "bg-primary/10 border border-primary/20 hover:bg-primary text-primary hover:text-white"
-              )}
+              onClick={startAiQuiz}
+              className="h-10 px-4 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary text-primary hover:text-white font-black text-[9px] uppercase tracking-widest"
             >
-               {isSharing ? <Loader2 className="h-3 w-3 animate-spin" /> : shareCooldown > 0 ? <><Timer className="h-3 w-3 mr-2" /> WAIT {shareCooldown}S</> : <><Share2 className="h-3 w-3 mr-2" /> SHARE & EARN 2 🪙</>}
+               <BrainCircuit className="h-3 w-3 mr-2" /> TAKE AI QUIZ
             </Button>
          </div>
       </div>
@@ -200,22 +166,10 @@ function ViewerContent() {
                <div className="aspect-[3/4] bg-white">
                   <iframe 
                     src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`}
-                    className="w-full h-full border-none pointer-events-auto"
+                    className="w-full h-full border-none"
                     title="Secure Viewer"
                   />
                </div>
-
-               {!showSolution && (
-                 <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black via-black/90 to-transparent flex flex-col items-center justify-end p-12 space-y-6 z-10">
-                    <h3 className="text-2xl font-black uppercase italic text-white text-center">Solution is <span className="text-green-500">FREE</span></h3>
-                    <Button 
-                      onClick={() => { setIsAdRunning(true); setAdCountdown(10); }}
-                      className="h-16 px-10 bg-green-600 hover:bg-green-500 font-black uppercase italic rounded-2xl shadow-xl"
-                    >
-                       UNLOCK FOR FREE (AD) <Zap className="ml-3 h-5 w-5 fill-white" />
-                    </Button>
-                 </div>
-               )}
             </Card>
          </div>
 
@@ -223,46 +177,85 @@ function ViewerContent() {
             <Card className="bg-primary/5 border-primary/20 p-8 rounded-[2.5rem] space-y-6 shadow-2xl relative overflow-hidden">
                <div className="absolute -top-10 -right-10 opacity-5"><ShieldCheck className="h-40 w-40 text-primary" /></div>
                <h3 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
-                  <Trophy className="h-6 w-6 text-primary" /> Live Bounty
+                  <Trophy className="h-6 w-6 text-primary" /> Study Bounty
                </h3>
                <div className="space-y-5">
                   <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                     <span className="text-[10px] font-black uppercase text-muted-foreground">15 Mins Read</span>
-                     <span className="text-sm font-black text-primary italic">+2 🪙</span>
+                     <span className="text-[10px] font-black uppercase text-muted-foreground">Quiz (5 Correct)</span>
+                     <span className="text-sm font-black text-primary italic">+5 🪙</span>
                   </div>
                   <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                     <span className="text-[10px] font-black uppercase text-muted-foreground">Social Share</span>
+                     <span className="text-[10px] font-black uppercase text-muted-foreground">Reading Goal</span>
                      <span className="text-sm font-black text-primary italic">+2 🪙</span>
                   </div>
                </div>
-               <Button 
-                onClick={() => { setIsAdRunning(true); setAdCountdown(10); }}
-                className="w-full h-12 bg-white/5 border border-white/10 hover:bg-primary text-[10px] font-black uppercase rounded-xl transition-all"
-               >
-                  <BrainCircuit className="h-4 w-4 mr-2" /> TAKE QUIZ (AD)
-               </Button>
-            </Card>
-
-            <Card className="bg-[#121212] border-white/5 p-8 rounded-[2.5rem] space-y-4">
-               <h3 className="text-sm font-black uppercase italic flex items-center gap-2 text-white">
-                  <Lock className="h-4 w-4 text-red-500" /> Security Protocol
-               </h3>
-               <ul className="space-y-3 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                  <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary mt-1" /> Screenshots Blocked</li>
-                  <li className="flex items-start gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary mt-1" /> Share Cooldown Active</li>
-               </ul>
+               <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed italic border-t border-white/5 pt-4">
+                  Pass the quiz to prove lesson mastery.
+               </p>
             </Card>
          </div>
       </div>
 
-      {/* REWARDED MODAL */}
+      {/* QUIZ DIALOG */}
+      <Dialog open={showQuiz} onOpenChange={setShowQuiz}>
+        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-xl rounded-[2.5rem] p-10 overflow-hidden">
+           <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
+           
+           {quizLoading ? (
+             <div className="py-20 flex flex-col items-center gap-6">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">AI GENERATING QUIZ...</p>
+             </div>
+           ) : quizFinished ? (
+             <div className="space-y-8 text-center animate-in zoom-in-95 duration-500 pt-10">
+                <div className="h-24 w-24 bg-green-500/10 rounded-[2.5rem] flex items-center justify-center mx-auto border-2 border-green-500/20 shadow-2xl">
+                   <Trophy className="h-12 w-12 text-green-500" />
+                </div>
+                <div className="space-y-2">
+                   <h3 className="text-4xl font-black uppercase italic tracking-tighter">Lesson Master!</h3>
+                   <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest">You scored {quizScore} / 5 correctly.</p>
+                </div>
+                
+                <div className="grid gap-4">
+                   <Button onClick={() => claimQuizReward(false)} className="h-16 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black uppercase italic">
+                      CLAIM {quizScore} COINS
+                   </Button>
+                   <Button onClick={() => { setIsAdRunning(true); setAdCountdown(10); }} className="h-16 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20">
+                      <Zap className="mr-2 h-5 w-5 fill-white" /> WATCH AD FOR 2X ({quizScore * 2} 🪙)
+                   </Button>
+                </div>
+             </div>
+           ) : quizData ? (
+             <div className="space-y-8 pt-10 relative z-10">
+                <div className="flex justify-between items-center">
+                   <Badge className="bg-primary/20 text-primary border-none uppercase font-black text-[8px] px-3">QUESTION {currentQuestion + 1} / 5</Badge>
+                   <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">STREAK: {quizScore}</span>
+                </div>
+                <h3 className="text-2xl font-black uppercase italic leading-tight text-white">{quizData.questions[currentQuestion].question}</h3>
+                <div className="grid gap-3">
+                   {quizData.questions[currentQuestion].options.map((opt, i) => (
+                     <button 
+                       key={i} 
+                       onClick={() => handleAnswer(i)}
+                       className="w-full p-6 bg-white/5 border border-white/10 rounded-2xl text-left font-bold uppercase text-xs hover:border-primary hover:bg-primary/5 transition-all active:scale-[0.98]"
+                     >
+                        <span className="text-primary mr-4">0{i+1}.</span> {opt}
+                     </button>
+                   ))}
+                </div>
+             </div>
+           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* REWARDED MODAL FOR 2X */}
       {isAdRunning && (
         <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8">
            <Card className="max-w-md w-full bg-[#0d0d12] border-primary/20 border-2 rounded-[3rem] overflow-hidden p-12 text-center space-y-10">
               <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
                  <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
                  <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin" />
-                 <Eye className="h-12 w-12 text-primary animate-pulse" />
+                 <PlayCircle className="h-12 w-12 text-primary animate-pulse" />
               </div>
               <div className="space-y-4">
                  <h3 className="text-3xl font-black uppercase italic">Verifying Slot...</h3>
@@ -270,10 +263,10 @@ function ViewerContent() {
               </div>
               <Button 
                 disabled={adCountdown > 0} 
-                onClick={() => adCountdown === 0 && (showQuiz === false ? startAiQuiz() : (setShowSolution(true), setIsAdRunning(false)))}
+                onClick={() => adCountdown === 0 && claimQuizReward(true)}
                 className={cn("w-full h-20 rounded-2xl font-black text-xl uppercase italic", adCountdown === 0 ? "bg-green-600 animate-bounce" : "bg-white/5 opacity-50")}
               >
-                 {adCountdown === 0 ? "CONFIRM UNLOCK" : "WATCHING SPONSOR..."}
+                 {adCountdown === 0 ? "CLAIM DOUBLE REWARD" : "WATCHING SPONSOR..."}
               </Button>
            </Card>
         </div>

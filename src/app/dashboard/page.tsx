@@ -41,7 +41,9 @@ import {
   ShieldAlert,
   Gamepad2,
   CloudRain,
-  BookOpen
+  BookOpen,
+  Smartphone,
+  RefreshCcw
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,6 +61,7 @@ import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import VipQuestDashboard from '@/components/VipQuestDashboard';
 import QuestCelebrationModal from '@/components/QuestCelebrationModal';
+import { formatCurrency } from '@/lib/currency';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -141,6 +144,7 @@ export default function UserDashboard() {
   if (!user) return <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   const currentVip = profile?.vipLevel || 0;
+  const combinedCashBalance = formatCurrency((profile?.winningBalance || 0) + (profile?.taskBalance || 0));
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative">
@@ -215,18 +219,18 @@ export default function UserDashboard() {
         <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-10">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Verified Student Warrior</Badge>
+               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">Industrial Portfolio</Badge>
                <Badge className="bg-amber-500/20 text-amber-500 border-none uppercase font-black px-4 py-1 text-[10px] flex items-center gap-1.5">
                   <Star className="h-3 w-3 fill-amber-500" /> VIP LEVEL {currentVip}
                </Badge>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Student <span className="text-primary">Vault</span></h1>
+            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Total <span className="text-primary">{combinedCashBalance}</span></h1>
           </div>
           <div className="bg-black/40 border border-white/5 px-8 py-4 rounded-3xl backdrop-blur-xl">
-             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Weekly Scholarship Progress</p>
+             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Skill Proficiency</p>
              <div className="flex items-center gap-4">
-                <Progress value={Math.min(((profile?.weeklyPointsEarned || 0)/50)*100, 100)} className="h-2 w-32 bg-white/5" />
-                <span className="text-sm font-black text-primary italic">₹{(profile?.weeklyPointsEarned || 0).toFixed(0)} / 50</span>
+                <Progress value={((profile?.puzzleLevel || 1) / 50) * 100} className="h-2 w-32 bg-white/5" />
+                <span className="text-sm font-black text-primary italic">Lvl {(profile?.puzzleLevel || 1)}</span>
              </div>
           </div>
         </header>
@@ -237,26 +241,49 @@ export default function UserDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} icon={<Trophy />} color="green" />
-          <WalletCard label="Deposit Cash" value={profile?.depositBalance || 0} icon={<CreditCard />} color="blue" />
-          <WalletCard label="Total Coins" value={profile?.coins || 0} icon={<Coins />} color="amber" />
-          <WalletCard label="Bonus Assets" value={profile?.bonusBalance || 0} icon={<Zap />} color="primary" />
+          <WalletCard label="Task Earnings" value={profile?.taskBalance || 0} icon={<CreditCard />} color="blue" />
+          <WalletCard label="Total Assets" value={profile?.coins || 0} icon={<Coins />} color="amber" />
+          <WalletCard label="Bonus Signal" value={profile?.bonusBalance || 0} icon={<Zap />} color="primary" />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           <div className="xl:col-span-2 space-y-12">
             
-            {/* 💰 REVENUE SIGNALS GUIDE (NEW) */}
+            <section className="space-y-6">
+               <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><BookOpen className="h-6 w-6 text-primary" /> Study & Earn Sector</h3>
+               <Card className="bg-primary/5 border-primary/20 border-2 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl">
+                  <div className="absolute top-0 right-0 p-8 opacity-5">
+                     <BrainCircuit className="h-40 w-48 text-primary" />
+                  </div>
+                  <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+                     <div className="space-y-4 flex-1">
+                        <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black text-[8px] px-3">ACTIVE CHALLENGE</Badge>
+                        <h4 className="text-3xl font-black uppercase italic leading-none">Weekly <span className="text-primary">Scholarship</span></h4>
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
+                           Read for 15 minutes to trigger an AI Quiz. Score 5/5 to earn extra coin dividends.
+                        </p>
+                        <div className="pt-4 space-y-2">
+                           <div className="flex justify-between text-[8px] font-black uppercase text-muted-foreground">
+                              <span>Weekly Progress</span>
+                              <span className="text-primary">{profile?.totalPagesShared || 0} / 10 Reads</span>
+                           </div>
+                           <Progress value={Math.min(((profile?.totalPagesShared || 0)/10)*100, 100)} className="h-2 bg-white/5" />
+                        </div>
+                     </div>
+                     <Button asChild className="h-16 px-10 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase italic shadow-xl">
+                        <Link href="/campus">GO TO LIBRARY <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                     </Button>
+                  </div>
+               </Card>
+            </section>
+
             <section className="space-y-6">
                <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><Zap className="h-6 w-6 text-primary" /> Active Income Signals</h3>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <IncomeSourceCard title="CPA Missions" value="₹5 - ₹50" icon={<Smartphone />} link="/earning-hub" />
-                  <IncomeSourceCard title="Movie Watch" value="300 🪙" icon={<Video />} link="/watch-earn" />
-                  <IncomeSourceCard title="Ludo Battles" value="35 🪙" icon={<Gamepad2 />} link="/games" />
+                  <IncomeSourceCard title="Arcade Levels" value="Up to 50 🪙" icon={<Gamepad2 />} link="/games" />
+                  <IncomeSourceCard title="Cinema Watch" value="300 🪙" icon={<Video />} link="/watch-earn" />
                   <IncomeSourceCard title="Team Royalties" value="5% + 2%" icon={<Users />} link="/refer" />
-                  <IncomeSourceCard title="Weather Prediction" value="10 🪙" icon={<CloudRain />} link="/predictions/weather" />
-                  <IncomeSourceCard title="Midnight Jackpot" value="₹500+" icon={<Trophy />} link="/lottery" />
-                  <IncomeSourceCard title="Daily Jhilli" value="Spin & Win" icon={<RefreshCcw />} link="/rewards" />
-                  <IncomeSourceCard title="Study Reading" value="2 🪙" icon={<BookOpen />} link="/campus" />
                </div>
             </section>
 
@@ -316,6 +343,7 @@ function SidebarItem({ active, icon, label, onClick }: any) {
 }
 
 function WalletCard({ label, value, icon, color }: any) {
+  const currencyStr = formatCurrency(value);
   const colorMap = {
     blue: "border-blue-500/20 text-blue-400 bg-blue-500/5",
     amber: "border-amber-500/20 text-amber-500 bg-amber-500/5",
@@ -328,7 +356,8 @@ function WalletCard({ label, value, icon, color }: any) {
         <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border", colorMap[color as keyof typeof colorMap])}>{icon}</div>
         <div>
           <p className="text-[10px] font-bold uppercase text-muted-foreground/60 mb-1">{label}</p>
-          <h4 className="text-2xl font-black text-white italic tabular-nums">{value.toLocaleString()} 🪙</h4>
+          <h4 className="text-xl font-black text-white italic tabular-nums">{currencyStr}</h4>
+          <p className="text-[9px] font-bold opacity-40 uppercase">{value.toLocaleString()} 🪙</p>
         </div>
       </div>
     </Card>
@@ -363,8 +392,8 @@ function SecurityLink({ active, text }: any) {
    );
 }
 
-function RefreshCcw(props: any) {
+function BrainCircuit(props: any) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .52 8.105 4 4 0 0 0 5.327 2.09c1.168-.344 2.13-1.127 2.676-2.09"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.52 8.105 4 4 0 0 1-5.327 2.09c-1.168-.344-2.13-1.127-2.676-2.09"/><path d="M9 13a3 3 0 1 1 6 0 3 3 0 0 1-6 0Z"/></svg>
   )
 }

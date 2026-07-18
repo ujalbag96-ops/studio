@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import ConnectWalletModal from './ConnectWalletModal';
+import { formatCurrency } from '@/lib/currency';
 
 export default function WalletModal({ children }: { children?: React.ReactNode }) {
   const { user } = useUser();
@@ -46,8 +47,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   const winningBal = profile?.winningBalance || 0;
   const taskBal = profile?.taskBalance || 0;
   
-  const baseFee = settings?.conversionFeePercent || 0.012; 
-  const tierFee = profile?.rank === 'Gold' ? 0.005 : profile?.rank === 'Silver' ? 0.008 : baseFee;
+  const totalDisplayBalance = formatCurrency(depositBal + winningBal);
 
   const handleConvertTasks = async () => {
     const amount = parseFloat(convertAmount);
@@ -62,13 +62,12 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
     }
 
     setIsConverting(true);
-    const fee = amount * tierFee;
-    const netAmount = amount - fee;
+    const fee = 0; // Removing fee for pure skill-based context
+    const netAmount = amount;
 
     const updateData = {
       taskBalance: increment(-amount),
-      winningBalance: increment(netAmount),
-      coins: increment(-fee)
+      winningBalance: increment(netAmount)
     };
 
     updateDoc(userProfileRef, updateData).catch(async (err) => {
@@ -84,7 +83,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
       amount: netAmount,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Converted Bonus to Cash`
+      description: `Converted Study/Arcade Earnings to Cash`
     };
 
     addDoc(collection(firestore, 'users', user.uid, 'ledger'), ledgerData).catch(async (err) => {
@@ -95,7 +94,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
       }));
     });
 
-    toast({ title: "Success", description: "Successfully converted to winning balance." });
+    toast({ title: "Success", description: "Earnings converted to winning balance." });
     setConvertAmount('');
     setIsConverting(false);
   };
@@ -110,7 +109,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
             <button className="flex items-center gap-2 rounded-full bg-[#121216] px-4 py-1.5 border border-white/5 hover:bg-white/5">
               <Wallet className="h-4 w-4 text-primary" />
               <span className="text-sm font-black text-white tabular-nums">
-                {(depositBal + winningBal).toLocaleString()} 🪙
+                {totalDisplayBalance}
               </span>
             </button>
           )}
@@ -129,7 +128,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                  <div>
                    <h2 className="text-2xl font-black uppercase italic">My Wallet</h2>
                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase text-muted-foreground">Secure Payments</span>
+                      <span className="text-[10px] font-bold uppercase text-muted-foreground">Industrial Sync Active</span>
                    </div>
                  </div>
                </div>
@@ -143,7 +142,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
 
             <div className="grid grid-cols-3 gap-3">
                <BalanceRow label="DEPOSIT" value={depositBal} color="blue" icon={<CreditCard className="h-3 w-3" />} />
-               <BalanceRow label="BONUS" value={taskBal} color="amber" icon={<Zap className="h-3 w-3" />} />
+               <BalanceRow label="EARNINGS" value={taskBal} color="amber" icon={<Zap className="h-3 w-3" />} />
                <BalanceRow label="WINNINGS" value={winningBal} color="green" icon={<Trophy className="h-3 w-3" />} />
             </div>
             
@@ -162,11 +161,10 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                <div className="flex items-center justify-between">
                   <div className="space-y-1">
                      <h4 className="text-xs font-bold uppercase italic flex items-center gap-2">
-                        <RefreshCcw className="h-4 w-4 text-amber-500" /> Convert Bonus
+                        <RefreshCcw className="h-4 w-4 text-amber-500" /> Convert Earnings
                      </h4>
-                     <p className="text-[10px] text-muted-foreground font-bold uppercase italic">Transfer bonus coins to winnings</p>
+                     <p className="text-[10px] text-muted-foreground font-bold uppercase italic">Transfer study rewards to winnings</p>
                   </div>
-                  <Badge className="bg-amber-500 text-black text-[9px] font-black border-none px-3 py-1 uppercase">{(tierFee * 100).toFixed(1)}% FEE</Badge>
                </div>
                
                <div className="flex gap-3">
@@ -203,12 +201,15 @@ function BalanceRow({ label, value, color, icon }: any) {
     green: "text-green-500 bg-green-500/10 border-green-500/20"
   };
 
+  const displayVal = formatCurrency(value);
+
   return (
     <div className={cn("p-4 rounded-xl border text-center space-y-1", colorMap[color as keyof typeof colorMap])}>
        <p className="text-[8px] font-bold uppercase opacity-60 flex items-center justify-center gap-1">
           {icon} {label}
        </p>
-       <h3 className="text-lg font-black tabular-nums">{value.toFixed(1)}</h3>
+       <h3 className="text-sm font-black tabular-nums">{displayVal}</h3>
+       <p className="text-[7px] font-bold opacity-40">{value.toLocaleString()} 🪙</p>
     </div>
   );
 }
