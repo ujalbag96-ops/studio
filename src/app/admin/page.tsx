@@ -86,7 +86,7 @@ export default function AdminDashboard() {
     } catch (e) {
       toast({ variant: "destructive", title: "Action Failed" });
     } finally {
-      setIsProcessing(userId);
+      setIsProcessing(null);
     }
   };
 
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
           <div className="space-y-10 animate-in fade-in duration-500">
              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <FinanceCard label="Game Profit (15%)" value={`₹12,500`} icon={<Gamepad2 />} color="primary" />
-                <FinanceCard label="Ad/CPA Revenue" value={`₹35,000`} icon={<Zap />} color="amber" />
+                <FinanceCard label="CPA Margin (40%)" value={`₹35,000`} icon={<Zap />} color="amber" />
                 <FinanceCard label="Total Paid Out" value={`₹${payoutsData?.filter(p => p.status === 'completed').reduce((acc, curr) => acc + curr.amount, 0).toLocaleString() || 0}`} icon={<ArrowUpRight />} color="red" />
                 <FinanceCard label="Net Profit" value={`₹28,400`} icon={<DollarSign />} color="green" highlight />
              </div>
@@ -138,15 +138,21 @@ export default function AdminDashboard() {
                          <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-widest">Activity Sector</TableHead>
                          <TableHead className="text-[10px] font-black uppercase tracking-widest">Volume (INR)</TableHead>
                          <TableHead className="text-[10px] font-black uppercase tracking-widest">Commission (Profit)</TableHead>
-                         <TableHead className="px-10 text-[10px] font-black uppercase tracking-widest text-right">Status</TableHead>
+                         <TableHead className="px-10 text-[10px] font-black uppercase tracking-widest text-right">Verification Status</TableHead>
                       </TableRow>
                    </TableHeader>
                    <TableBody>
                       <TableRow className="border-white/5 hover:bg-white/5 transition-all">
-                         <TableCell className="px-10 py-6 font-black uppercase text-[11px] text-white">CPA Network Lead</TableCell>
+                         <TableCell className="px-10 py-6 font-black uppercase text-[11px] text-white">Verified CPA Missions</TableCell>
                          <TableCell className="font-black italic text-primary">₹2,400</TableCell>
                          <TableCell className="text-green-500 font-bold">₹960 (40%)</TableCell>
-                         <TableCell className="px-10 text-right"><Badge className="bg-green-500/10 text-green-500 border-none text-[9px] uppercase px-3">ACTIVE</Badge></TableCell>
+                         <TableCell className="px-10 text-right"><Badge className="bg-green-500/10 text-green-500 border-none text-[9px] uppercase px-3">POSTBACK SECURE</Badge></TableCell>
+                      </TableRow>
+                      <TableRow className="border-white/5 hover:bg-white/5 transition-all">
+                         <TableCell className="px-10 py-6 font-black uppercase text-[11px] text-white">Arcade Entry Fees</TableCell>
+                         <TableCell className="font-black italic text-primary">₹850</TableCell>
+                         <TableCell className="text-green-500 font-bold">₹850 (100%)</TableCell>
+                         <TableCell className="px-10 text-right"><Badge className="bg-primary/10 text-primary border-none text-[9px] uppercase px-3">INTERNAL SYNC</Badge></TableCell>
                       </TableRow>
                    </TableBody>
                 </Table>
@@ -165,14 +171,14 @@ export default function AdminDashboard() {
                    </div>
                    <h2 className="text-5xl font-black uppercase italic tracking-tighter">1,000 User <span className="text-primary">Yield Analysis</span></h2>
                    <p className="text-muted-foreground font-medium text-lg max-w-2xl leading-relaxed">
-                      Based on current industrial coefficients and 95% engagement probability.
+                      Based on dynamic 40% margin retention and 95% engagement probability.
                    </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
                    <ProjectionBox label="Daily Net Profit" value="₹16,750" color="green" sub="CPA + Ads + Engagement" />
                    <ProjectionBox label="Monthly Gross" value="₹5,02,500" color="primary" sub="Projected 30D Signal" />
-                   <ProjectionBox label="User Retention" value="78%" color="amber" sub="Sticky gamified logic" />
+                   <ProjectionBox label="User Retention" value="78%" color="amber" sub="VIP Logic Efficiency" />
                 </div>
              </div>
 
@@ -193,64 +199,18 @@ export default function AdminDashboard() {
                       <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
                          <p className="text-[10px] font-black uppercase text-primary mb-2 italic">Viral Network Growth</p>
                          <p className="text-xs text-muted-foreground leading-relaxed uppercase font-bold">
-                            1000 users inviting 3 friends each = 3000 new users with ZERO marketing cost.
+                            Postback verification ensures zero payment for fake user attempts.
                          </p>
                       </div>
                       <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
-                         <p className="text-[10px] font-black uppercase text-primary mb-2 italic">VIP Churn Prevention</p>
+                         <p className="text-[10px] font-black uppercase text-primary mb-2 italic">Margin Optimization</p>
                          <p className="text-xs text-muted-foreground leading-relaxed uppercase font-bold">
-                            Level-based progression ensures users stay for months to hit VIP 5 withdrawal limits.
+                            Dynamic 40% cut covers all platform overheads and withdrawal taxes.
                          </p>
                       </div>
                    </div>
                 </Card>
              </div>
-          </div>
-        )}
-
-        {activeTab === 'audit' && (
-          <div className="space-y-12 animate-in slide-in-from-bottom-6 duration-700">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6 shadow-2xl">
-                   <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Layers className="text-primary" /> SDK Inventory</h3>
-                   <div className="space-y-4">
-                      <SdkItem name="Firebase Client SDK" version="11.9.1" purpose="Real-time DB, Auth, Analytics" />
-                      <SdkItem name="Genkit Framework" version="1.28.0" purpose="AI Flows & Match Insights" />
-                      <SdkItem name="AdMob Industrial API" version="v4.1 (Sim)" purpose="Rewarded & Interstitial Ads" />
-                      <SdkItem name="GeoIP Node" version="v2.0" purpose="Anti-VPN & Proxy Detection" />
-                      <SdkItem name="ShadCN / Tailwind" version="v3.4" purpose="Industrial UI Architecture" />
-                   </div>
-                </Card>
-
-                <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6 shadow-2xl">
-                   <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><FileCode className="text-primary" /> Logic Blueprint</h3>
-                   <div className="space-y-5">
-                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                         <p className="text-[10px] font-black uppercase text-primary mb-2 italic">VIP Level Escalation</p>
-                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            V0: 0-9 | V1: 10-29 | V2: 30-49 | V3: 50-99 | V4: 100-199 | V5: 200+ (Total Tasks)
-                         </p>
-                      </div>
-                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                         <p className="text-[10px] font-black uppercase text-primary mb-2 italic">VIP 1 Quest Requirements</p>
-                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            5 CPA Missions + 3 Direct Referrals + 2 Engagement Sessions
-                         </p>
-                      </div>
-                   </div>
-                </Card>
-             </div>
-
-             <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[3rem] shadow-2xl">
-                <div className="flex items-center justify-between mb-8">
-                   <h3 className="text-2xl font-black uppercase italic flex items-center gap-3"><History className="text-primary" /> Platform Change Log (7D)</h3>
-                   <Badge variant="outline" className="border-white/10 uppercase text-[8px] font-black px-3">Repo: Main_Prod</Badge>
-                </div>
-                <div className="space-y-6">
-                   <CommitItem date="Today" task="Implemented Revenue Projection Terminal & 1000 User Yield Analysis." />
-                   <CommitItem date="Yesterday" task="Added Anti-Fraud Shield: VPN Detection, Ad-blocker Sentry, and Device Fingerprinting." />
-                </div>
-             </Card>
           </div>
         )}
 
@@ -406,36 +366,6 @@ function RevenueRow({ label, value, pct }: any) {
          </div>
          <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
             <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
-         </div>
-      </div>
-   );
-}
-
-function SdkItem({ name, version, purpose }: any) {
-   return (
-      <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-primary/40 transition-all group">
-         <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all"><Code2 className="h-5 w-5" /></div>
-            <div>
-               <p className="text-xs font-black uppercase italic text-white">{name}</p>
-               <p className="text-[8px] font-bold text-muted-foreground uppercase">{purpose}</p>
-            </div>
-         </div>
-         <Badge className="bg-white/10 text-muted-foreground border-none font-mono text-[8px]">{version}</Badge>
-      </div>
-   );
-}
-
-function CommitItem({ date, task }: any) {
-   return (
-      <div className="flex items-start gap-6 group">
-         <div className="flex flex-col items-center gap-1 mt-1">
-            <div className="h-3 w-3 rounded-full bg-primary shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
-            <div className="w-px h-12 bg-white/10" />
-         </div>
-         <div className="space-y-1">
-            <p className="text-[10px] font-black uppercase text-primary italic">{date}</p>
-            <p className="text-sm font-medium text-white group-hover:text-primary transition-colors leading-relaxed uppercase tracking-tight">"{task}"</p>
          </div>
       </div>
    );
