@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Zap, Wallet, User, LogOut, Shield, Activity, GraduationCap, Library, Bell, BookOpen, Trophy, Gamepad2 } from 'lucide-react';
+import { Home, Zap, Wallet, User, LogOut, Shield, Activity, GraduationCap, Library, Bell, BookOpen, Trophy, Gamepad2, ShoppingBag } from 'lucide-react';
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
@@ -38,6 +38,7 @@ export default function Navbar() {
   };
 
   const isAdmin = user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isIndia = profile?.country === 'India';
 
   return (
     <>
@@ -52,10 +53,10 @@ export default function Navbar() {
 
           <div className="flex items-center gap-8">
             <NavLink href="/" label="Home" active={pathname === '/'} />
-            <NavLink href="/campus" label="Resource" active={pathname.startsWith('/campus')} />
-            <NavLink href="/games" label="Games Hub" active={pathname === '/games'} />
+            {isIndia && <NavLink href="/campus" label="Resource" active={pathname.startsWith('/campus')} />}
+            <NavLink href="/games" label="Games" active={pathname === '/games'} />
             <NavLink href="/earning-hub" label="Income" active={pathname === '/earning-hub'} />
-            <NavLink href="/movies" label="Cinema" active={pathname === '/movies'} />
+            <NavLink href="/shop" label="Shop" active={pathname === '/shop'} />
             <NavLink href="/leaderboard" label="Hall of Fame" active={pathname === '/leaderboard'} />
             {isAdmin && <Link href="/admin" className="text-[10px] font-bold uppercase text-amber-500 italic flex items-center gap-1.5 animate-pulse"><Shield className="h-3 w-3" /> Admin</Link>}
           </div>
@@ -65,7 +66,7 @@ export default function Navbar() {
               <>
                 <div className="hidden lg:flex items-center gap-3 px-4 py-1.5 bg-primary/5 border border-primary/20 rounded-full">
                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                   <span className="text-[10px] font-black uppercase text-primary italic">Live Points: {(profile?.coins || 0).toLocaleString()}</span>
+                   <span className="text-[10px] font-black uppercase text-primary italic">Live Node: {profile?.country || 'Global'}</span>
                 </div>
                 <Link href="/inbox" className="relative group">
                   <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
@@ -88,7 +89,11 @@ export default function Navbar() {
       {/* Mobile Nav Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 bg-[#0a0a0f] border-t border-white/5 flex items-center justify-around px-2">
         <MobileNavItem active={pathname === '/'} icon={<Home />} label="Home" href="/" />
-        <MobileNavItem active={pathname.startsWith('/campus')} icon={<Library />} label="Locker" href="/campus" />
+        {isIndia ? (
+          <MobileNavItem active={pathname.startsWith('/campus')} icon={<Library />} label="Locker" href="/campus" />
+        ) : (
+          <MobileNavItem active={pathname === '/shop'} icon={<ShoppingBag />} label="Shop" href="/shop" />
+        )}
         <MobileNavItem active={pathname === '/games'} icon={<Gamepad2 />} label="Games" href="/games" />
         <MobileNavItem active={pathname === '/earning-hub'} icon={<Zap />} label="Income" href="/earning-hub" />
         <MobileNavItem active={pathname === '/dashboard'} icon={<Activity />} label="Portfolio" href="/dashboard" />
@@ -116,7 +121,7 @@ function UserMenu({ user, isAdmin, onLogout }: any) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-[#121216] border-white/10 text-white rounded-xl w-56 shadow-2xl">
-        <DropdownMenuLabel className="p-4 text-[10px] font-bold uppercase text-muted-foreground">Student Identity</DropdownMenuLabel>
+        <DropdownMenuLabel className="p-4 text-[10px] font-bold uppercase text-muted-foreground">Industrial Identity</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-white/5" />
         <DropdownMenuItem asChild className="focus:bg-white/5 h-11 cursor-pointer"><Link href="/dashboard" className="w-full flex items-center gap-3 font-bold uppercase text-[10px]"><User className="h-4 w-4" /> Portfolio</Link></DropdownMenuItem>
         <DropdownMenuItem asChild className="focus:bg-white/5 h-11 cursor-pointer"><Link href="/inbox" className="w-full flex items-center gap-3 font-bold uppercase text-[10px]"><Bell className="h-4 w-4" /> Notifications</Link></DropdownMenuItem>

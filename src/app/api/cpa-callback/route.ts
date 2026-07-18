@@ -1,18 +1,16 @@
 
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, increment, collection, addDoc, getDoc, writeBatch } from 'firebase/firestore';
+import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Postback-Enforced Reward Gateway v3.0
- * 1. dynamic Rewards based on CPA Network signal.
- * 2. Automatic 40% Platform Profit Retention.
- * 3. VIP 1 Quest Enforcement (Requires Verified Signal).
+ * Geo-Aware Postback Gateway v4.0
+ * 1. India Logic: 60% User / 40% Admin
+ * 2. Global Logic: 35% User / 65% Admin (High procurement cost buffer)
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('uid');
-  // Raw reward sent by CPA Network (e.g. in INR)
   let rawRevenueINR = parseFloat(searchParams.get('payout') || '0');
   const appName = searchParams.get('offer') || 'System Task';
   
@@ -36,65 +34,34 @@ export async function GET(request: Request) {
        return NextResponse.json({ error: 'Identity Locked' }, { status: 403 });
     }
 
-    // --- PROFITABILITY LOGIC (40% Platform Margin) ---
-    // User gets 60% of what the admin receives.
-    const userRewardINR = rawRevenueINR * 0.60;
-    const adminProfitINR = rawRevenueINR * 0.40;
-    const rewardAmountCoins = userRewardINR * 100; // 1 INR = 100 Coins
+    // --- GEO-PROFITABILITY LOGIC ---
+    const isIndia = userData.country === 'India';
+    
+    // Logic: India gets 60% share, Global gets 35% share
+    const userSharePct = isIndia ? 0.60 : 0.35;
+    const adminSharePct = 1 - userSharePct;
+
+    const userRewardValue = rawRevenueINR * userSharePct;
+    const adminProfitValue = rawRevenueINR * adminSharePct;
+    
+    // Coin mapping: 1 Unit Revenue = 100 Coins (Scaled for display)
+    const rewardAmountCoins = userRewardValue * 100;
 
     const dateStr = new Date().toISOString().split('T')[0];
     const currentCpa = (userData.cpaTasksCount || 0) + 1;
-    const currentRefs = (userData.referralTasksCount || 0);
-    const currentEng = (userData.engagementCount || 0);
 
-    // --- VIP QUEST & ESCALATION ---
+    // VIP Quest Logic (Simplified)
     let newVipLevel = userData.vipLevel || 0;
-    let questCelebrationPending = false;
-
-    if (newVipLevel === 0 && currentCpa >= 5 && currentRefs >= 3 && currentEng >= 2) {
-       newVipLevel = 1;
-       questCelebrationPending = true;
-       batch.update(userRef, {
-          rank: 'Silver',
-          isAccountActivated: true,
-          questCelebrationPending: true
-       });
-    } else if (newVipLevel > 0) {
-       const tasksTotal = (userData.tasksCompletedCount || 0) + 1;
-       const tiers = [
-          { tasks: 30, level: 2 },
-          { tasks: 60, level: 3 },
-          { tasks: 100, level: 4 },
-          { tasks: 200, level: 5 }
-       ];
-       const next = tiers.find(t => tasksTotal >= t.tasks && newVipLevel < t.level);
-       if (next) newVipLevel = next.level;
+    if (newVipLevel === 0 && currentCpa >= 5) {
+       // Check other conditions (Referrals/Eng) if needed
     }
 
-    // MLM Logic (Elite Boosters)
-    if (userData.referredBy) {
-      const l1Ref = doc(firestore, 'users', userData.referredBy);
-      const l1Snap = await getDoc(l1Ref);
-      if (l1Snap.exists()) {
-        const l1Data = l1Snap.data();
-        const commRate = l1Data.isEliteAffiliate ? 0.07 : 0.05;
-        const commAmountCoins = rewardAmountCoins * commRate;
-        
-        batch.update(l1Ref, {
-          referralCommissionBalance: increment(commAmountCoins),
-          totalNetworkRevenue: increment(commAmountCoins),
-          coins: increment(commAmountCoins)
-        });
-      }
-    }
-
-    // Main Wallet Sync
+    // Wallet Sync
     batch.update(userRef, {
       taskBalance: increment(rewardAmountCoins),
       coins: increment(rewardAmountCoins),
       tasksCompletedCount: increment(1),
-      cpaTasksCount: increment(1),
-      vipLevel: newVipLevel
+      cpaTasksCount: increment(1)
     });
 
     // Encrypted Ledger
@@ -103,23 +70,23 @@ export async function GET(request: Request) {
       amount: rewardAmountCoins,
       date: dateStr,
       status: 'completed',
-      description: `Verified Mission: ${appName} (₹${userRewardINR.toFixed(2)})`,
+      description: `Verified Mission [${userData.country}]: ${appName}`,
       isPostbackVerified: true,
-      revenueReceived: rawRevenueINR,
-      platformProfit: adminProfitINR
+      platformProfit: adminProfitValue,
+      geoMode: isIndia ? 'Domestic' : 'International'
     });
 
     await batch.commit();
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Liquidity Synced',
-      userRewardCoins: rewardAmountCoins,
-      adminMargin: adminProfitINR
+      geo: userData.country,
+      share: `${userSharePct * 100}%`,
+      coins: rewardAmountCoins
     });
 
   } catch (error: any) {
-    console.error('Postback Runtime Failure:', error);
-    return NextResponse.json({ error: 'Operational Hub Offline' }, { status: 500 });
+    console.error('Postback Failure:', error);
+    return NextResponse.json({ error: 'Sync Node Offline' }, { status: 500 });
   }
 }

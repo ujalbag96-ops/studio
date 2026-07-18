@@ -8,29 +8,34 @@ export interface CurrencyData {
 }
 
 /**
- * Industrial Currency & Exchange Calibration
- * Multi-Currency Sync Logic for Distributed Engine:
- * - India: 100 Coins = 1 INR (Reward 300 = 3 INR)
- * - Global: 1000 Coins = 1 USD (Reward 300 = 0.30 USD)
+ * Industrial Currency & Geo-Calibration Engine
+ * Multi-Currency Sync Logic for Distributed Platform:
+ * - India Node: 100 Coins = 1 INR (Profit: 60/40 Split)
+ * - Global Node: 1000 Coins = 1 USD (Profit: 35/65 Split)
  */
 export const CURRENCY_MAP: Record<string, CurrencyData> = {
   'India': { symbol: '₹', code: 'INR', rateToCoins: 100 },
-  'United States': { symbol: '$', code: 'USD', rateToCoins: 1000 },
   'Global': { symbol: '$', code: 'USD', rateToCoins: 1000 }
 };
 
 export function getCurrencyData(country?: string): CurrencyData {
-  // Always default to India for this specific project context
-  return CURRENCY_MAP['India'];
+  if (country === 'India') {
+    return CURRENCY_MAP['India'];
+  }
+  return CURRENCY_MAP['Global'];
 }
 
-export function formatCurrency(amountCoins: number): string {
-  const data = getCurrencyData();
+export function formatCurrency(amountCoins: number, country?: string): string {
+  const data = getCurrencyData(country);
   const value = amountCoins / data.rateToCoins;
-  return `${data.symbol}${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  
+  if (data.code === 'INR') {
+    return `${data.symbol}${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `${data.symbol}${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function calculateCashValue(coins: number): number {
-  const data = getCurrencyData();
+export function calculateCashValue(coins: number, country?: string): number {
+  const data = getCurrencyData(country);
   return coins / data.rateToCoins;
 }
