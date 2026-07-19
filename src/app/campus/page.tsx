@@ -49,10 +49,8 @@ export default function CampusHomeScreen() {
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile, isLoading } = useDoc<UserProfile>(userRef);
 
-  const [eduSource, setEduSource] = useState<EduSource>('NCERT');
-  const [language, setLanguage] = useState<'en' | 'or'>('en');
-
-  const isIndia = profile?.country === 'India';
+  const [eduSource, setEduSource] = useState<EduSource>(profile?.preferredEduSource || 'NCERT');
+  const [language, setLanguage] = useState<'en' | 'or' | 'hi' | 'es'>(profile?.preferredLanguage as any || 'en');
 
   const updatePreference = async (source: EduSource) => {
     setEduSource(source);
@@ -61,10 +59,12 @@ export default function CampusHomeScreen() {
     }
   };
 
-  if (!isLoading && profile && !isIndia && eduSource !== 'OpenStax') {
-    // Force OpenStax for global users if not already set
-    if (eduSource !== 'OpenStax') setEduSource('OpenStax');
-  }
+  const updateLanguage = async (lang: string) => {
+    setLanguage(lang as any);
+    if (userRef) {
+      await updateDoc(userRef, { preferredLanguage: lang });
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto p-6 md:p-12 space-y-12 pb-32">
@@ -73,46 +73,48 @@ export default function CampusHomeScreen() {
            <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-4">
                  <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black px-4 py-1 text-[9px] flex items-center gap-1.5 shadow-xl">
-                    <ShieldCheck className="h-3 w-3" /> SMART LIBRARY ACTIVE
+                    <ShieldCheck className="h-3 w-3" /> GLOBAL SMART LIBRARY ACTIVE
                  </Badge>
                  <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">
-                    <AlertCircle className="h-3 w-3" /> Industrial API Sync: {eduSource}
+                    <Globe className="h-3 w-3" /> All Language Books Unlocked
                  </div>
               </div>
               <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase italic text-white leading-none">
-                Academic <br /><span className="text-primary">Resource Hub</span>
+                Academic <br /><span className="text-primary">Global Vault</span>
               </h1>
               <p className="text-muted-foreground font-medium text-lg max-w-2xl">
-                Access official {eduSource} textbooks. Complete lessons to trigger the <span className="text-white font-bold italic border-b-2 border-primary">Scholar Dividend.</span>
+                Access official curriculum from any region. Complete lessons to trigger the <span className="text-white font-bold italic border-b-2 border-primary">Scholar Dividend.</span>
               </p>
            </div>
            
            <div className="flex flex-col gap-4 w-full md:w-auto">
               <Card className="bg-[#0a0a0f] border-white/10 p-6 rounded-3xl flex flex-col md:flex-row items-center gap-6 shadow-2xl">
                  <div className="space-y-2 flex-1">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Library Node</Label>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground ml-1">Curriculum Node</p>
                     <Select value={eduSource} onValueChange={(v) => updatePreference(v as EduSource)}>
                        <SelectTrigger className="w-[200px] h-12 bg-black border-white/10 font-black text-xs uppercase rounded-xl">
                           <Library className="h-4 w-4 mr-2 text-primary" />
                           <SelectValue />
                        </SelectTrigger>
                        <SelectContent className="bg-[#0a0a0f] border-white/10 text-white">
-                          <SelectItem value="NCERT">NCERT India</SelectItem>
+                          <SelectItem value="NCERT">NCERT (India)</SelectItem>
                           <SelectItem value="OdiaMedium">Odia Medium (OSEPA)</SelectItem>
-                          <SelectItem value="OpenStax">OpenStax Global</SelectItem>
+                          <SelectItem value="OpenStax">OpenStax (Global)</SelectItem>
                        </SelectContent>
                     </Select>
                  </div>
                  <div className="space-y-2 flex-1">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Display Language</Label>
-                    <Select value={language} onValueChange={(v) => setLanguage(v as any)}>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground ml-1">Learning Language</p>
+                    <Select value={language} onValueChange={(v) => updateLanguage(v)}>
                        <SelectTrigger className="w-[160px] h-12 bg-black border-white/10 font-black text-xs uppercase rounded-xl">
                           <Languages className="h-4 w-4 mr-2 text-primary" />
                           <SelectValue />
                        </SelectTrigger>
                        <SelectContent className="bg-[#0a0a0f] border-white/10 text-white">
-                          <SelectItem value="en">English (STD)</SelectItem>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="hi">Hindi (हिंदी)</SelectItem>
                           <SelectItem value="or">Odia (ଓଡ଼ିଆ)</SelectItem>
+                          <SelectItem value="es">Spanish (Español)</SelectItem>
                        </SelectContent>
                     </Select>
                  </div>
@@ -141,7 +143,7 @@ export default function CampusHomeScreen() {
               </div>
               <div className="relative z-10">
                 <h3 className="text-xl font-black uppercase italic text-white">
-                   {language === 'or' ? cls.name.replace('Class', 'ଶ୍ରେଣୀ') : cls.name}
+                   {cls.name}
                 </h3>
                 <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{cls.desc}</p>
               </div>
@@ -160,35 +162,23 @@ export default function CampusHomeScreen() {
                <h2 className="text-3xl font-black uppercase italic tracking-tighter">Career <span className="text-amber-500">Guidance</span></h2>
             </div>
             <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-               {language === 'or' ? "UPSC, JEE, NEET ପାଇଁ ଓଡ଼ିଶା ଶିକ୍ଷା ବିଭାଗରୁ ବିଶେଷ ଟିପ୍ସ |" : "Master academic foundations to unlock high-bandwidth career nodes like UPSC, JEE, and NEET."}
+               Master academic foundations to unlock high-bandwidth career nodes like UPSC, JEE, and NEET. Available in all languages.
             </p>
             <div className="grid grid-cols-3 gap-3">
-               <CareerBadge label="UPSC" />
-               <CareerBadge label="NEET" />
-               <CareerBadge label="JEE" />
+               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">UPSC</div>
+               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">NEET</div>
+               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">JEE</div>
             </div>
          </Card>
 
          <Card className="bg-primary/5 border-primary/20 border-2 p-10 rounded-[3rem] flex flex-col justify-center items-center text-center space-y-6">
             <Globe className="h-12 w-12 text-primary animate-pulse" />
             <div className="space-y-2">
-               <h4 className="text-2xl font-black uppercase italic tracking-tighter">OSEPA Odisha <span className="text-primary">Sync</span></h4>
-               <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] italic">Official Signal Integration Active</p>
+               <h4 className="text-2xl font-black uppercase italic tracking-tighter">Universal <span className="text-primary">Sync</span></h4>
+               <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] italic">OpenStax & NCERT Signal Integrated</p>
             </div>
          </Card>
       </section>
     </div>
   );
-}
-
-function CareerBadge({ label }: { label: string }) {
-   return (
-      <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">
-         {label}
-      </div>
-   );
-}
-
-function Label({ children, className }: any) {
-   return <label className={cn("text-xs font-bold", className)}>{children}</label>;
 }
