@@ -5,17 +5,16 @@ import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firesto
 import { getPayoutPercentage } from '@/lib/currency';
 
 /**
- * Global CPA Postback Gateway v7.0
- * DYNAMIC REVENUE LOGIC:
- * 1. Domestic (India): 30% User Share
- * 2. US/UK: 32% User Share
- * 3. Validation Required: 5 CPA + 10 General to unlock withdrawal
+ * Industrial CPA Postback Gateway v5.0
+ * CALCULATION ENGINE:
+ * Coins = (Network Revenue USD * Payout % [30/32]) / 0.01
+ * This ensures Admin strictly keeps 68-70% Net Profit.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('uid');
   let rawRevenueUSD = parseFloat(searchParams.get('payout') || '0');
-  const offerName = searchParams.get('offer') || 'Industrial Mission';
+  const offerName = searchParams.get('offer') || 'Mission Signal';
   
   if (!userId || isNaN(rawRevenueUSD) || rawRevenueUSD <= 0) {
     return NextResponse.json({ error: 'Invalid Signal' }, { status: 400 });
@@ -37,15 +36,13 @@ export async function GET(request: Request) {
        return NextResponse.json({ error: 'Identity Locked' }, { status: 403 });
     }
 
-    // --- REGIONAL PAYOUT CALIBRATION ---
+    // --- STRATEGIC MARGIN CALIBRATION ---
     const userSharePct = getPayoutPercentage(userData.country);
     
-    // Base: 1 USD = 10,000 Coins (Adjusted for finer precision)
-    // If USD payout is $1.00, Total Pool = 10,000 Coins
-    // India User (30%) gets 3,000 Coins
-    // US User (32%) gets 3,200 Coins
-    const totalCoinsInOfferPool = rawRevenueUSD * 10000;
-    const rewardAmountCoins = Math.floor(totalCoinsInOfferPool * userSharePct);
+    // Formula: (USD * Share) / 0.01 = Total Coins
+    // If USD is $1.00, User (30%) gets (1 * 0.30) / 0.01 = 30 Coins (Representing ₹0.30 value at 100:1 scale)
+    // NOTE: Adjustment for Coin Scale (100:1)
+    const rewardAmountCoins = Math.floor((rawRevenueUSD * userSharePct * 10000) / 100); 
 
     const dateStr = new Date().toISOString().split('T')[0];
 
@@ -53,9 +50,12 @@ export async function GET(request: Request) {
     batch.update(userRef, {
       taskBalance: increment(rewardAmountCoins),
       coins: increment(rewardAmountCoins),
-      cpaTasksCount: increment(1), // Important for Validation
+      cpaTasksCount: increment(1),
       tasksCompletedCount: increment(1)
     });
+
+    // Referral Logic: Bonus activates ONLY if downline reaches VIP 1 (Handled in referral module)
+    // Here we just log the task completion for auditing
 
     // Encrypted Ledger
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
@@ -63,10 +63,10 @@ export async function GET(request: Request) {
       amount: rewardAmountCoins,
       date: dateStr,
       status: 'completed',
-      description: `CPA Mission: ${offerName} (${(userSharePct * 100).toFixed(0)}% Share)`,
+      description: `Verified Mission: ${offerName} (${(userSharePct * 100).toFixed(0)}% Share)`,
       isPostbackVerified: true,
       geo: userData.country || 'Global',
-      payoutPct: userSharePct
+      adminMargin: 1 - userSharePct
     });
 
     await batch.commit();
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error: any) {
-    console.error('Global Postback Failure:', error);
+    console.error('Industrial Postback Failure:', error);
     return NextResponse.json({ error: 'Operational Node Offline' }, { status: 500 });
   }
 }
