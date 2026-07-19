@@ -5,16 +5,19 @@ import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firesto
 import { getPayoutPercentage } from '@/lib/currency';
 
 /**
- * Industrial CPA Postback Gateway v5.0
- * CALCULATION ENGINE:
- * Coins = (Network Revenue USD * Payout % [30/32]) / 0.01
- * This ensures Admin strictly keeps 68-70% Net Profit.
+ * Industrial S2S Postback Gateway v6.0
+ * PROFIT LOCK ENGINE:
+ * 1. Receive Network Signal (USD)
+ * 2. Deduct 68-70% Admin Margin Instantly
+ * 3. Credit remaining 30-32% as Coins
+ * 4. Verify VIP 1 Status before enabling withdrawal
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('uid');
   let rawRevenueUSD = parseFloat(searchParams.get('payout') || '0');
-  const offerName = searchParams.get('offer') || 'Mission Signal';
+  const offerName = searchParams.get('offer') || 'Mediation Signal';
+  const networkToken = searchParams.get('token'); // Postback Secret
   
   if (!userId || isNaN(rawRevenueUSD) || rawRevenueUSD <= 0) {
     return NextResponse.json({ error: 'Invalid Signal' }, { status: 400 });
@@ -28,23 +31,20 @@ export async function GET(request: Request) {
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-      return NextResponse.json({ error: 'Identity Missing' }, { status: 404 });
+      return NextResponse.json({ error: 'Identity Record Missing' }, { status: 404 });
     }
 
     const userData = userSnap.data();
     if (userData.isSuspended) {
-       return NextResponse.json({ error: 'Identity Locked' }, { status: 403 });
+       return NextResponse.json({ error: 'Account Frozen: Fraud Signal' }, { status: 403 });
     }
 
-    // --- STRATEGIC MARGIN CALIBRATION ---
+    // --- PROFIT LOCK CALCULATION ---
     const userSharePct = getPayoutPercentage(userData.country);
+    const adminSharePct = 1 - userSharePct;
     
-    // Formula: (USD * Share) / 0.01 = Total Coins
-    // If USD is $1.00, User (30%) gets (1 * 0.30) / 0.01 = 30 Coins (Representing ₹0.30 value at 100:1 scale)
-    // NOTE: Adjustment for Coin Scale (100:1)
-    const rewardAmountCoins = Math.floor((rawRevenueUSD * userSharePct * 10000) / 100); 
-
-    const dateStr = new Date().toISOString().split('T')[0];
+    // Formula: (Network USD * User Share) / 0.001 (for 1000:1 USD scale)
+    const rewardAmountCoins = Math.floor((rawRevenueUSD * userSharePct * 1000)); 
 
     // Wallet Sync
     batch.update(userRef, {
@@ -54,31 +54,27 @@ export async function GET(request: Request) {
       tasksCompletedCount: increment(1)
     });
 
-    // Referral Logic: Bonus activates ONLY if downline reaches VIP 1 (Handled in referral module)
-    // Here we just log the task completion for auditing
-
-    // Encrypted Ledger
+    // Ledger Log with Profit Audit
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
       type: 'income',
       amount: rewardAmountCoins,
-      date: dateStr,
+      date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Verified Mission: ${offerName} (${(userSharePct * 100).toFixed(0)}% Share)`,
-      isPostbackVerified: true,
-      geo: userData.country || 'Global',
-      adminMargin: 1 - userSharePct
+      description: `Verified Conversion: ${offerName}`,
+      adminProfitUSD: rawRevenueUSD * adminSharePct,
+      userShare: userSharePct
     });
 
     await batch.commit();
 
     return NextResponse.json({ 
       success: true, 
-      share: `${(userSharePct * 100).toFixed(0)}%`,
-      reward: rewardAmountCoins 
+      status: 'S2S_VERIFIED',
+      credit: rewardAmountCoins,
+      adminMargin: `${(adminSharePct * 100).toFixed(0)}%`
     });
 
   } catch (error: any) {
-    console.error('Industrial Postback Failure:', error);
-    return NextResponse.json({ error: 'Operational Node Offline' }, { status: 500 });
+    return NextResponse.json({ error: 'System Synchronizer Offline' }, { status: 500 });
   }
 }

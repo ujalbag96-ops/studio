@@ -9,10 +9,10 @@ export interface CurrencyData {
 }
 
 /**
- * Industrial Currency & Geo-Calibration Engine v5.0
- * Multi-Currency Sync Logic:
- * - India Node: 100 Coins = 1 INR (Profit Share: 30%)
- * - Global Node: 1000 Coins = 1 USD (Profit Share: 32%)
+ * Industrial Currency & Geo-Calibration Engine v6.0
+ * 70% ADMIN PROFIT LOCK LOGIC
+ * - India Node: 100 Coins = 1 INR (User Share: 30%)
+ * - Global Node: 1000 Coins = 1 USD (User Share: 32%)
  * - Minimum Withdrawal: 50,000 Coins (₹500 / $50)
  */
 export const CURRENCY_MAP: Record<string, CurrencyData> = {
@@ -26,10 +26,10 @@ export function getCurrencyData(country?: string): CurrencyData {
 }
 
 /**
- * STRICT INDUSTRIAL PAYOUT LOGIC:
- * - India: 30% User Share (70% Admin Profit)
- * - Global (US/UK): 32% User Share (68% Admin Profit)
- * - Admin Margin is strictly locked by the engine.
+ * STRICT INDUSTRIAL PROFIT LOCK:
+ * - India: 30% User Share (70% Admin Net Profit)
+ * - Global: 32% User Share (68% Admin Net Profit)
+ * - These ratios are hardcoded to ensure platform sustainability.
  */
 export function getPayoutPercentage(country?: string): number {
   if (country === 'India') return 0.30;

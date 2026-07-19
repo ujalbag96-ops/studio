@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Smartphone, Globe, ShieldAlert, CheckCircle2, Lock, Star, ClipboardList, Video, Landmark } from 'lucide-react';
+import { Loader2, Smartphone, Globe, ShieldAlert, Lock, ClipboardList, Video, Landmark, Zap, BarChart3 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useMemoFirebase, useUser, useCollection, useDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
@@ -11,7 +11,7 @@ import { UserProfile } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
-type MissionType = 'All' | 'App' | 'Survey' | 'Video' | 'Financial';
+type MissionType = 'All' | 'High-Value' | 'Apps' | 'Surveys' | 'Financial';
 
 export default function OfferWall() {
   const { user } = useUser();
@@ -21,105 +21,83 @@ export default function OfferWall() {
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
+  // Simulation of Mediation API results
   const missionsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cpa_missions') : null, [firestore]);
   const { data: missions, isLoading } = useCollection<any>(missionsQuery);
 
-  const currentVip = profile?.vipLevel || 0;
   const isGlobal = profile?.country !== 'India';
+  const isVipLocked = (profile?.vipLevel || 0) < 1;
 
   const filteredMissions = missions?.filter((m: any) => {
     if (filter === 'All') return true;
+    if (filter === 'High-Value') return m.reward >= 2000;
     return m.type === filter;
   }) || [];
 
-  const getIcon = (type: string) => {
-    switch(type) {
-      case 'Survey': return <ClipboardList className="text-amber-500" />;
-      case 'Video': return <Video className="text-red-500" />;
-      case 'Financial': return <Landmark className="text-green-500" />;
-      default: return <Smartphone className="text-primary" />;
-    }
-  };
-
   if (isLoading) return (
-    <div className="flex flex-col items-center py-32 gap-6">
-      <Loader2 className="animate-spin text-primary h-12 w-12" />
-      <p className="text-[10px] font-black uppercase text-muted-foreground italic tracking-[0.4em]">Synchronizing Global Missions...</p>
+    <div className="flex flex-col items-center py-20 gap-4">
+      <Loader2 className="animate-spin text-primary h-10 w-10" />
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Fetching Mediation Waterfall...</p>
     </div>
   );
 
   return (
-    <div className="space-y-10">
-      {/* Category Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <FilterBtn label="All" active={filter === 'All'} onClick={() => setFilter('All')} />
-        <FilterBtn label="App Installs" active={filter === 'App'} onClick={() => setFilter('App')} />
-        <FilterBtn label="Surveys" active={filter === 'Survey'} onClick={() => setFilter('Survey')} />
-        <FilterBtn label="Video Tasks" active={filter === 'Video'} onClick={() => setFilter('Video')} />
-        {isGlobal && <FilterBtn label="High-Pay Leads" active={filter === 'Financial'} onClick={() => setFilter('Financial')} />}
+    <div className="space-y-8">
+      {/* Mediation Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-[#0a0a0f] p-6 rounded-[2rem] border border-white/5">
+         <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+               <Zap className="h-6 w-6 text-primary animate-pulse" />
+            </div>
+            <div>
+               <h3 className="text-xl font-black uppercase italic">Waterfall <span className="text-primary">Mediation</span></h3>
+               <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">CPALead • AdGate • IronSource Active</p>
+            </div>
+         </div>
+         <div className="flex flex-wrap gap-2">
+            <FilterBtn label="All" active={filter === 'All'} onClick={() => setFilter('All')} />
+            <FilterBtn label="High-Pay" active={filter === 'High-Value'} onClick={() => setFilter('High-Value')} />
+            <FilterBtn label="Financial" active={filter === 'Financial'} onClick={() => setFilter('Financial')} />
+         </div>
       </div>
 
-      <div className="space-y-6">
-        {filteredMissions.length > 0 ? (
-          filteredMissions.map((task: any) => {
-            const isHighValue = task.reward >= 1500;
-            const isLocked = isHighValue && currentVip === 0;
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {filteredMissions.map((task: any) => {
+          const isHighValue = task.reward >= 2000;
+          return (
+            <Card key={task.id} className="bg-[#0f0f15] border-white/5 hover:border-primary/30 transition-all rounded-[2.5rem] overflow-hidden group shadow-2xl relative">
+              <CardContent className="p-8 space-y-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-5">
+                    <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      {task.type === 'Survey' ? <ClipboardList className="text-amber-500" /> : <Smartphone className="text-primary" />}
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-black uppercase italic text-white leading-tight">{task.appName}</h4>
+                      <Badge className="bg-white/5 text-muted-foreground border-none text-[7px] font-black uppercase mt-1 tracking-widest">{task.type}</Badge>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                     <p className="text-[10px] font-black text-primary italic tabular-nums">{task.reward} 🪙</p>
+                  </div>
+                </div>
 
-            return (
-              <Card key={task.id} className={cn(
-                "bg-white/5 border-white/5 hover:border-primary/40 transition-all rounded-[2rem] overflow-hidden group shadow-2xl relative",
-                isLocked && "opacity-60 grayscale-[50%]"
-              )}>
-                {isLocked && (
-                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] space-y-3">
-                     <Lock className="h-6 w-6 text-amber-500" />
-                     <p className="text-[10px] font-black uppercase text-amber-500 italic">VIP 1 REQUIRED</p>
+                <div className="flex items-center justify-between border-t border-white/5 pt-6">
+                  <div className="flex items-center gap-2">
+                     <Globe className="h-3 w-3 text-muted-foreground" />
+                     <span className="text-[8px] font-black uppercase text-muted-foreground">{task.geo || 'Global'}</span>
                   </div>
-                )}
-
-                <CardContent className="p-8 flex flex-col md:flex-row items-center justify-between gap-8">
-                  <div className="flex items-center gap-6 min-w-0">
-                    <div className="h-16 w-16 bg-white/5 rounded-2xl flex items-center justify-center shrink-0 border border-white/10 group-hover:scale-105 transition-transform shadow-xl">
-                      {getIcon(task.type)}
-                    </div>
-                    <div className="truncate">
-                      <div className="flex items-center gap-2">
-                         <h4 className="text-2xl font-black uppercase italic truncate text-white">{task.appName}</h4>
-                         {task.isPremium && <Badge className="bg-amber-500 text-black text-[7px] font-black">PREMIUM</Badge>}
-                      </div>
-                      <div className="flex items-center gap-4 mt-2">
-                        <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase">{task.type}</Badge>
-                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                          <Globe className="h-3 w-3" /> {task.geo || 'Global'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-white/5 pt-6 md:pt-0">
-                    <div className="text-right">
-                       <p className="text-[9px] font-black uppercase text-muted-foreground mb-1 italic">Mission Dividend</p>
-                       <p className={cn("text-4xl font-black italic", isHighValue ? "text-amber-500" : "text-white")}>
-                         {task.reward} <span className="text-lg text-primary opacity-40">🪙</span>
-                       </p>
-                    </div>
-                    <Button 
-                      disabled={isLocked}
-                      onClick={() => window.open(`${task.link}&uid=${user?.uid}`, '_blank')} 
-                      className="h-16 rounded-2xl bg-primary hover:bg-primary/90 px-10 font-black uppercase italic text-sm shadow-xl"
-                    >
-                      {isLocked ? 'LOCKED' : 'START MISSION'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        ) : (
-          <div className="py-40 text-center space-y-6 border-2 border-dashed border-white/10 rounded-[3rem]">
-             <ShieldAlert className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
-             <p className="text-muted-foreground italic font-black uppercase text-[12px] tracking-[0.4em]">Zero Active Deployments in Sector {filter}</p>
-          </div>
-        )}
+                  <Button 
+                    onClick={() => window.open(`${task.link}&uid=${user?.uid}`, '_blank')} 
+                    className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 font-black uppercase italic text-[10px] shadow-lg shadow-primary/20"
+                  >
+                    DEPLOY MISSION
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
@@ -130,8 +108,8 @@ function FilterBtn({ label, active, onClick }: any) {
     <button 
       onClick={onClick}
       className={cn(
-        "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-        active ? "bg-primary text-white shadow-lg" : "bg-white/5 text-muted-foreground hover:bg-white/10"
+        "px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+        active ? "bg-primary text-white shadow-xl" : "bg-white/5 text-muted-foreground hover:bg-white/10"
       )}
     >
       {label}
