@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, ShoppingBag, ArrowRight, Lock, ShieldAlert } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -19,7 +19,6 @@ import { getCurrencyData } from '@/lib/currency';
 import { cn } from '@/lib/utils';
 import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 
-const MIN_WITHDRAWAL = 50;
 const FEE_PERCENT = 0.02;
 
 export default function WithdrawPage() {
@@ -41,6 +40,11 @@ export default function WithdrawPage() {
   const isIndia = profile?.country === 'India';
   const currencyData = getCurrencyData(profile?.country);
 
+  // Validation Criteria
+  const cpaMet = (profile?.cpaTasksCount || 0) >= 5;
+  const generalMet = (profile?.generalTasksCount || 0) >= 10;
+  const isValidationPassed = cpaMet && generalMet;
+
   useEffect(() => {
     if (!isLoading && profile && !isIndia) {
        toast({ title: "INTERNATIONAL MODE", description: "Direct withdrawal restricted. Please use the Gift Card Shop." });
@@ -58,16 +62,16 @@ export default function WithdrawPage() {
   const handleWithdraw = async () => {
     if (!user || !firestore || !profile || !userRef) return;
     
-    if (profile.vipLevel === 0) {
-      setError("Reach VIP Level 1 to unlock withdrawals.");
+    if (!isValidationPassed) {
+      setError("Validation Criteria not met. Complete 5 CPA + 10 General Tasks.");
       return;
     }
 
     const localValue = parseFloat(amountLocal) || 0;
     const coinsRequired = localValue * currencyData.rateToCoins;
 
-    if (localValue < MIN_WITHDRAWAL) {
-      setError(`Minimum threshold: ${currencyData.symbol}${MIN_WITHDRAWAL}`);
+    if (localValue < currencyData.minWithdrawal) {
+      setError(`Minimum threshold: ${currencyData.symbol}${currencyData.minWithdrawal}`);
       return;
     }
 
@@ -139,7 +143,32 @@ export default function WithdrawPage() {
         <h1 className="text-4xl font-black uppercase italic tracking-tighter">Withdraw <span className="text-primary">Terminal</span></h1>
       </div>
 
-      <Card className="bg-[#0a0a0f] border-white/5 shadow-2xl rounded-[2.5rem] overflow-hidden">
+      {!isValidationPassed && (
+        <Card className="bg-red-500/5 border-red-500/20 p-8 rounded-[2rem] space-y-6 animate-pulse">
+           <div className="flex items-center gap-4">
+              <ShieldAlert className="h-6 w-6 text-red-500" />
+              <h3 className="text-xl font-black uppercase italic text-white">Action Required: Validation Signal Missing</h3>
+           </div>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className={cn("p-5 rounded-2xl border", cpaMet ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-white/5 border-white/5 text-white/40")}>
+                 <p className="text-[10px] font-black uppercase">CPA Missions (5 Required)</p>
+                 <p className="text-2xl font-black italic">{profile?.cpaTasksCount || 0} / 5</p>
+              </div>
+              <div className={cn("p-5 rounded-2xl border", generalMet ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-white/5 border-white/5 text-white/40")}>
+                 <p className="text-[10px] font-black uppercase">General Tasks (10 Required)</p>
+                 <p className="text-2xl font-black italic">{profile?.generalTasksCount || 0} / 10</p>
+              </div>
+           </div>
+           <p className="text-[10px] font-bold text-muted-foreground uppercase text-center italic">
+              *General tasks include Quizzes, Daily Check-ins, and Video Ads.
+           </p>
+        </Card>
+      )}
+
+      <Card className={cn(
+        "bg-[#0a0a0f] border-white/5 shadow-2xl rounded-[2.5rem] overflow-hidden transition-all",
+        !isValidationPassed && "opacity-40 grayscale pointer-events-none"
+      )}>
         <div className="bg-primary/10 p-10 border-b border-white/5 text-center">
            <p className="text-[10px] font-black uppercase text-primary mb-2 italic">Withdrawable Assets</p>
            <h2 className="text-6xl font-black text-white italic">{profile?.winningBalance?.toFixed(0) || 0} 🪙</h2>
@@ -162,7 +191,7 @@ export default function WithdrawPage() {
 
           <div className="space-y-3">
             <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Amount ({currencyData.symbol})</Label>
-            <Input type="number" value={amountLocal} onChange={e => setAmountLocal(e.target.value)} placeholder={`Min ${MIN_WITHDRAWAL}`} className="h-16 bg-white/5 border-white/10 rounded-xl text-2xl font-black text-primary" />
+            <Input type="number" value={amountLocal} onChange={e => setAmountLocal(e.target.value)} placeholder={`Min ${currencyData.minWithdrawal}`} className="h-16 bg-white/5 border-white/10 rounded-xl text-2xl font-black text-primary" />
           </div>
 
           <div className="space-y-3">
@@ -170,8 +199,8 @@ export default function WithdrawPage() {
             <Input value={destinationId} onChange={e => setDestinationId(e.target.value)} placeholder="UPI ID or Account Number" className="h-16 bg-white/5 border-white/10 rounded-xl font-mono text-xs" />
           </div>
 
-          <Button onClick={handleWithdrawInitiate} disabled={isSubmitting || !amountLocal || !destinationId || !method} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
-             {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : "EXECUTE WITHDRAWAL"}
+          <Button onClick={handleWithdrawInitiate} disabled={isSubmitting || !amountLocal || !destinationId || !method || !isValidationPassed} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+             {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : !isValidationPassed ? <><Lock className="mr-2 h-5 w-5" /> TERMINAL LOCKED</> : "EXECUTE WITHDRAWAL"}
           </Button>
         </CardContent>
       </Card>

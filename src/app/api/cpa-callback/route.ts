@@ -2,21 +2,20 @@
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
+import { getPayoutPercentage } from '@/lib/currency';
 
 /**
- * Global CPA Postback Gateway v6.0
+ * Global CPA Postback Gateway v7.0
  * DYNAMIC REVENUE LOGIC:
- * 1. Domestic (India): 60% User / 40% Admin
- * 2. International (Global): Base 30% User / 70% Admin
- * 3. Elite International (1000+ Refs): 35% User / 65% Admin
+ * 1. Domestic (India): 30% User Share
+ * 2. US/UK: 32% User Share
+ * 3. Validation Required: 5 CPA + 10 General to unlock withdrawal
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('uid');
-  // Raw Revenue is passed in USD from Global Networks
   let rawRevenueUSD = parseFloat(searchParams.get('payout') || '0');
-  const offerName = searchParams.get('offer') || 'Global Mission';
-  const category = searchParams.get('type') || 'CPA'; 
+  const offerName = searchParams.get('offer') || 'Industrial Mission';
   
   if (!userId || isNaN(rawRevenueUSD) || rawRevenueUSD <= 0) {
     return NextResponse.json({ error: 'Invalid Signal' }, { status: 400 });
@@ -38,16 +37,15 @@ export async function GET(request: Request) {
        return NextResponse.json({ error: 'Identity Locked' }, { status: 403 });
     }
 
-    // --- DYNAMIC PROFITABILITY CALIBRATION ---
-    const isIndia = userData.country === 'India';
-    const isElite = !!userData.isEliteAffiliate;
+    // --- REGIONAL PAYOUT CALIBRATION ---
+    const userSharePct = getPayoutPercentage(userData.country);
     
-    // Logic: India gets 60%, Global gets 30%, Elite Global gets 35%
-    let userSharePct = isIndia ? 0.60 : (isElite ? 0.35 : 0.30);
-    
-    // Assumption: 1 USD = 1000 Coins Base for Global tracking
-    const totalCoinsInOffer = rawRevenueUSD * 1000;
-    const rewardAmountCoins = Math.floor(totalCoinsInOffer * userSharePct);
+    // Base: 1 USD = 10,000 Coins (Adjusted for finer precision)
+    // If USD payout is $1.00, Total Pool = 10,000 Coins
+    // India User (30%) gets 3,000 Coins
+    // US User (32%) gets 3,200 Coins
+    const totalCoinsInOfferPool = rawRevenueUSD * 10000;
+    const rewardAmountCoins = Math.floor(totalCoinsInOfferPool * userSharePct);
 
     const dateStr = new Date().toISOString().split('T')[0];
 
@@ -55,8 +53,8 @@ export async function GET(request: Request) {
     batch.update(userRef, {
       taskBalance: increment(rewardAmountCoins),
       coins: increment(rewardAmountCoins),
-      tasksCompletedCount: increment(1),
-      cpaTasksCount: increment(1)
+      cpaTasksCount: increment(1), // Important for Validation
+      tasksCompletedCount: increment(1)
     });
 
     // Encrypted Ledger
@@ -65,43 +63,17 @@ export async function GET(request: Request) {
       amount: rewardAmountCoins,
       date: dateStr,
       status: 'completed',
-      description: `Verified Mission: ${offerName} (${(userSharePct * 100).toFixed(0)}% Share)`,
+      description: `CPA Mission: ${offerName} (${(userSharePct * 100).toFixed(0)}% Share)`,
       isPostbackVerified: true,
-      geoMode: isIndia ? 'Domestic' : (isElite ? 'Elite-Global' : 'Standard-Global'),
-      sharePct: `${userSharePct * 100}%`
+      geo: userData.country || 'Global',
+      payoutPct: userSharePct
     });
-
-    // Update parent commission if applicable
-    if (userData.referredBy) {
-       // Referral Commission Logic (Std: 5%, Elite: 7%)
-       const parentRef = doc(firestore, 'users', userData.referredBy);
-       const parentSnap = await getDoc(parentRef);
-       if (parentSnap.exists()) {
-          const parentData = parentSnap.data();
-          const commPct = parentData.isEliteAffiliate ? 0.07 : 0.05;
-          const commAmount = Math.floor(totalCoinsInOffer * commPct);
-          
-          batch.update(parentRef, {
-             winningBalance: increment(commAmount),
-             coins: increment(commAmount),
-             totalNetworkRevenue: increment(commAmount)
-          });
-          
-          batch.set(doc(collection(firestore, 'users', userData.referredBy, 'ledger')), {
-             type: 'referral_comm',
-             amount: commAmount,
-             date: dateStr,
-             status: 'completed',
-             description: `Network Commission from ${userData.email || 'Warrior'}`
-          });
-       }
-    }
 
     await batch.commit();
 
     return NextResponse.json({ 
       success: true, 
-      share: `${userSharePct * 100}%`,
+      share: `${(userSharePct * 100).toFixed(0)}%`,
       reward: rewardAmountCoins 
     });
 

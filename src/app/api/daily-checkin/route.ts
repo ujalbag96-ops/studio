@@ -43,7 +43,8 @@ export async function POST(request: Request) {
       dailyStreak: newStreak,
       lastCheckInDate: today,
       coins: increment(reward),
-      bonusBalance: increment(reward)
+      bonusBalance: increment(reward),
+      generalTasksCount: increment(1) // Counts for validation
     });
 
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {

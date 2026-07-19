@@ -1,63 +1,41 @@
 
 'use client';
 
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
-import { collection, doc, query, limit, orderBy, updateDoc, increment, addDoc, where } from 'firebase/firestore';
+import { useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   LayoutDashboard,
   Wallet, 
   Trophy, 
   Zap, 
-  History, 
-  ChevronRight,
   Activity,
-  Shield,
   Loader2,
-  TrendingUp,
-  ArrowUpRight,
   LogOut,
   CreditCard,
   Crown,
   Coins,
   Gift,
-  Target,
-  PlayCircle,
-  Video,
-  Lock,
-  Network,
-  Users,
   CheckCircle2,
   ShieldCheck,
   Star,
-  Flame,
   Globe,
-  Scale,
-  DollarSign,
   Fingerprint,
-  Upload,
   AlertCircle,
   XCircle,
-  ShieldAlert,
   Gamepad2,
-  CloudRain,
-  BookOpen,
-  Smartphone,
-  RefreshCcw,
   ShoppingBag,
-  ArrowRight,
+  ArrowUpRight,
   Package,
   Sparkles,
-  Timer,
-  Heart,
-  ShieldEllipsis
+  ShieldEllipsis,
+  ShieldAlert
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
-import { UserProfile, UserLedgerEntry } from '@/app/lib/types';
+import { UserProfile } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -65,10 +43,8 @@ import ConnectWalletModal from '@/components/ConnectWalletModal';
 import { useToast } from '@/hooks/use-toast';
 import ViralLeaderboard from '@/components/ViralLeaderboard';
 import RiskDisclosureModal from '@/components/RiskDisclosureModal';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import VipQuestDashboard from '@/components/VipQuestDashboard';
 import QuestCelebrationModal from '@/components/QuestCelebrationModal';
-import { formatCurrency } from '@/lib/currency';
+import { formatCurrency, getCurrencyData } from '@/lib/currency';
 import ScratchCard from '@/components/ScratchCard';
 import DailyStreak from '@/components/DailyStreak';
 import TrendingEarners from '@/components/TrendingEarners';
@@ -80,14 +56,9 @@ export default function UserDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [activeNav, setActiveNav] = useState<'overview' | 'offers' | 'video' | 'mlm'>('overview');
   const [isConnectOpen, setIsConnectOpen] = useState(false);
   const [showLegal, setShowLegal] = useState(false);
   const [showScratch, setShowScratch] = useState(false);
-  
-  const [showKycModal, setShowKycModal] = useState(false);
-  const [kycDoc, setKycDoc] = useState<string | null>(null);
-  const [isKycProcessing, setIsKycProcessing] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
@@ -117,10 +88,13 @@ export default function UserDashboard() {
   if (!user) return null;
 
   const isIndia = profile?.country === 'India';
+  const currencyData = getCurrencyData(profile?.country);
   const combinedCashBalance = formatCurrency((profile?.winningBalance || 0) + (profile?.taskBalance || 0), profile?.country);
-  const currentTotalCoins = profile?.coins || 0;
-  const currentWithdrawalVal = (profile?.winningBalance || 0) / 100;
-  const neededForWithdrawal = Math.max(0, 100 - currentWithdrawalVal);
+  
+  // Validation Logic: 5 CPA + 10 General
+  const isEarningActive = (profile?.cpaTasksCount || 0) >= 5 && (profile?.generalTasksCount || 0) >= 10;
+  const currentWithdrawalVal = (profile?.winningBalance || 0) / currencyData.rateToCoins;
+  const neededForWithdrawal = Math.max(0, currencyData.minWithdrawal - currentWithdrawalVal);
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative overflow-x-hidden">
@@ -162,9 +136,9 @@ export default function UserDashboard() {
         </div>
 
         <nav className="flex-1 p-8 space-y-2">
-          <SidebarItem active={activeNav === 'overview'} icon={<LayoutDashboard />} label="Portfolio" onClick={() => setActiveNav('overview')} />
-          <SidebarItem active={activeNav === 'mlm'} icon={<Network />} label="MLM Network" onClick={() => setActiveNav('mlm')} />
-          <SidebarItem active={false} icon={<Fingerprint />} label="Verify KYC" onClick={() => setShowKycModal(true)} />
+          <SidebarItem active={true} icon={<LayoutDashboard />} label="Portfolio" onClick={() => {}} />
+          <SidebarItem active={false} icon={<Globe />} label="MLM Network" onClick={() => router.push('/refer')} />
+          <SidebarItem active={false} icon={<Fingerprint />} label="Verify KYC" onClick={() => {}} />
           <SidebarItem active={false} icon={<ShieldCheck />} label="Legal & Security" onClick={() => setShowLegal(true)} />
           <div className="pt-8 px-4 space-y-4">
              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest italic">Operational Nodes</p>
@@ -188,14 +162,18 @@ export default function UserDashboard() {
                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">
                  {isIndia ? 'Domestic Node' : 'Global Node'}
                </Badge>
-               <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black px-4 py-1 text-[10px] flex items-center gap-1.5 shadow-xl">
-                  <ShieldEllipsis className="h-3 w-3 fill-green-500" /> FREE EARNING MODE: ACTIVE
+               <Badge className={cn(
+                 "border-none uppercase font-black px-4 py-1 text-[10px] flex items-center gap-1.5 shadow-xl",
+                 isEarningActive ? "bg-green-500/20 text-green-500" : "bg-amber-500/20 text-amber-500"
+               )}>
+                  <ShieldEllipsis className={cn("h-3 w-3", isEarningActive ? "fill-green-500" : "fill-amber-500")} /> 
+                  EARNING STATUS: {isEarningActive ? 'ACTIVE' : 'PENDING VALIDATION'}
                </Badge>
             </div>
             <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter italic leading-none">Balance <span className="text-primary">{combinedCashBalance}</span></h1>
-            {isIndia && (
+            {neededForWithdrawal > 0 && (
               <p className="text-sm font-black text-amber-500 uppercase italic tracking-widest animate-pulse">
-                Zero Investment. Earn ₹{neededForWithdrawal.toFixed(2)} more to withdraw!
+                Zero Investment. Earn {currencyData.symbol}{neededForWithdrawal.toFixed(2)} more to withdraw!
               </p>
             )}
           </div>
@@ -210,15 +188,30 @@ export default function UserDashboard() {
           </div>
         </header>
 
-        {profile && profile.vipLevel === 0 && (
-           <VipQuestDashboard profile={profile} />
+        {/* Validation Progress HUD */}
+        {!isEarningActive && (
+          <Card className="bg-amber-500/5 border-amber-500/20 border-2 rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-10">
+             <div className="space-y-4 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-3">
+                   <ShieldAlert className="h-6 w-6 text-amber-500" />
+                   <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Validation <span className="text-amber-500">Incomplete</span></h3>
+                </div>
+                <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest max-w-md">
+                   Complete the mandatory criteria to unlock your first industrial withdrawal.
+                </p>
+             </div>
+             <div className="grid grid-cols-2 gap-6 w-full md:w-auto">
+                <ValidationCircle label="CPA MISSIONS" current={profile?.cpaTasksCount || 0} target={5} color="text-primary" />
+                <ValidationCircle label="GENERAL TASKS" current={profile?.generalTasksCount || 0} target={10} color="text-amber-500" />
+             </div>
+          </Card>
         )}
 
         {profile && <DailyStreak profile={profile} />}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <WalletCard label="Winnings" value={profile?.winningBalance || 0} country={profile?.country} icon={<Trophy />} color="green" />
-          <WalletCard label="Free Missions" value={profile?.taskBalance || 0} country={profile?.country} icon={<CreditCard />} color="blue" />
+          <WalletCard label="Mission Rev." value={profile?.taskBalance || 0} country={profile?.country} icon={<CreditCard />} color="blue" />
           <WalletCard label="Total Coins" value={profile?.coins || 0} country={profile?.country} icon={<Coins />} color="amber" />
           <WalletCard label="Bonus Signal" value={profile?.bonusBalance || 0} country={profile?.country} icon={<Zap />} color="primary" />
         </div>
@@ -272,7 +265,7 @@ export default function UserDashboard() {
                 <ul className="space-y-4">
                    <SecurityLink active={profile?.kycStatus === 'approved'} text="Identity Verified" />
                    <SecurityLink active={profile?.riskNoticeAccepted || false} text="Legal Consent" />
-                   <SecurityLink active={profile?.vipLevel! > 0} text="VIP Unlock" />
+                   <SecurityLink active={isEarningActive} text="Validation Pass" />
                 </ul>
                 <Button asChild className="w-full h-12 bg-primary rounded-xl font-black uppercase italic text-[10px] shadow-lg">
                    <Link href={isIndia ? "/withdraw" : "/shop"}>
@@ -297,6 +290,22 @@ export default function UserDashboard() {
        `}</style>
     </div>
   );
+}
+
+function ValidationCircle({ label, current, target, color }: any) {
+   const pct = Math.min((current / target) * 100, 100);
+   return (
+      <div className="text-center space-y-2">
+         <div className="h-16 w-16 rounded-full border-4 border-white/5 relative mx-auto flex items-center justify-center">
+            <svg className="absolute inset-0 -rotate-90 h-full w-full">
+               <circle cx="32" cy="32" r="28" fill="transparent" stroke="currentColor" strokeWidth="4" className={cn("opacity-20", color)} />
+               <circle cx="32" cy="32" r="28" fill="transparent" stroke="currentColor" strokeWidth="4" strokeDasharray={176} strokeDashoffset={176 - (176 * pct) / 100} className={cn("transition-all duration-1000", color)} />
+            </svg>
+            <span className="text-xs font-black text-white">{current}</span>
+         </div>
+         <p className="text-[8px] font-black uppercase text-muted-foreground">{label}</p>
+      </div>
+   );
 }
 
 function SidebarItem({ active, icon, label, onClick }: any) {

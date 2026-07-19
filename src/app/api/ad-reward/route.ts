@@ -32,10 +32,11 @@ export async function POST(request: Request) {
 
     const dateStr = new Date().toISOString().split('T')[0];
 
-    // 1. Unified Wallet Credit (Bonus balance for Ads)
+    // 1. Unified Wallet Credit
     batch.update(userRef, {
       bonusBalance: increment(reward),
-      coins: increment(reward)
+      coins: increment(reward),
+      generalTasksCount: increment(1) // Counts as General Task for validation
     });
 
     // 2. Encrypted Ledger Log

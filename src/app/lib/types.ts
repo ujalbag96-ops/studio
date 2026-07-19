@@ -28,9 +28,9 @@ export interface UserProfile {
   rank: UserRank;
   isSuspended?: boolean;
   
-  // VIP 1 Quest Tracking
+  // Validation Tracking
   cpaTasksCount: number;
-  referralTasksCount: number;
+  generalTasksCount: number; // For Quizzes, Ads, Check-ins
   engagementCount: number;
   
   // Arcade Progress (50 Levels each)
