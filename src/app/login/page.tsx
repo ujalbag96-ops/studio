@@ -6,18 +6,15 @@ import { useUser, useFirestore, useAuth } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  ConfirmationResult
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs, limit, increment, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, limit, updateDoc } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldCheck, Eye, EyeOff, Smartphone, Mail, Hash, ShieldAlert, Zap } from 'lucide-react';
+import { Loader2, ShieldCheck, Eye, EyeOff, Smartphone, Mail, Hash, ShieldAlert, Zap, ShieldX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 
@@ -32,16 +29,12 @@ function LoginContent() {
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'phone'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('');
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-  
+  const [isSuspended, setIsSuspended] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
 
   useEffect(() => {
@@ -77,6 +70,7 @@ function LoginContent() {
       }
 
       if (ipData.proxy) {
+         setIsSuspended(true);
          toast({ variant: "destructive", title: "SECURITY BREACH", description: "VPN/Proxy detected. Account functionality frozen." });
       }
 
@@ -99,19 +93,19 @@ function LoginContent() {
         await setDoc(userDocRef, {
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
-          phoneNumber: firebaseUser.phoneNumber || '',
           depositBalance: 0,
           winningBalance: 0,
-          bonusBalance: 2000, // Locked ₹20 Bonus
+          bonusBalance: 2000, 
           taskBalance: 0,
           coins: 2000,
           rank: 'Bronze',
           referralCode: randomCode,
           referredBy: l1Upline,
           referredByL2: l2Upline,
-          vipLevel: 0, // VIP 0 - Locked
+          vipLevel: 0, 
           cpaTasksCount: 0,
           generalTasksCount: 0,
+          totalReferrals: 0,
           engagementCount: 0,
           tasksCompletedCount: 0,
           riskNoticeAccepted: false,
@@ -155,12 +149,25 @@ function LoginContent() {
     }
   };
 
-  // ... (setupRecaptcha, handleSendOtp, handleVerifyOtp remain same)
+  if (isSuspended) {
+    return (
+      <div className="max-w-md mx-auto p-12 pt-20 text-center space-y-8 animate-in zoom-in-95 duration-500">
+         <div className="h-28 w-28 bg-red-500/10 rounded-[3rem] flex items-center justify-center mx-auto border-2 border-red-500/20 shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+            <ShieldX className="h-12 w-12 text-red-500 animate-pulse" />
+         </div>
+         <div className="space-y-4">
+            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Identity <span className="text-red-500">Frozen</span></h2>
+            <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
+               VPN or Proxy detection signal confirmed. Industrial integrity breach results in automatic account suspension.
+            </p>
+         </div>
+         <Button onClick={() => window.location.reload()} className="h-14 px-8 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl">RELOAD ARENA</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto p-4 pt-12 space-y-8 animate-in fade-in duration-700">
-      <div id="recaptcha-container"></div>
-      
       <RiskDisclosureModal isOpen={showLegalModal} onOpenChange={setShowLegalModal} onAccepted={() => handleEmailAuth()} />
 
       <div className="text-center space-y-3">
@@ -172,10 +179,9 @@ function LoginContent() {
       </div>
 
       <Tabs value={authMode} onValueChange={(val) => setAuthMode(val as any)} className="w-full">
-        <TabsList className="grid grid-cols-3 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
+        <TabsList className="grid grid-cols-2 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
           <TabsTrigger value="login" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase"><Mail className="h-3 w-3 mr-1.5" /> Login</TabsTrigger>
           <TabsTrigger value="signup" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase"><Hash className="h-3 w-3 mr-1.5" /> Register</TabsTrigger>
-          <TabsTrigger value="phone" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase"><Smartphone className="h-3 w-3 mr-1.5" /> OTP</TabsTrigger>
         </TabsList>
 
         <TabsContent value="login" className="mt-6">

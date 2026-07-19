@@ -35,7 +35,8 @@ import {
   ClipboardCheck,
   CheckCircle2,
   Clock,
-  Settings
+  Settings,
+  ShieldX
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,10 +63,12 @@ export default function AdminDashboard() {
 
   const payoutsQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc'), limit(100)) : null, [firestore, isAdminUser]);
   const kycQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), where('kycStatus', '==', 'pending'), limit(50)) : null, [firestore, isAdminUser]);
+  const fraudQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), where('isSuspended', '==', true), limit(50)) : null, [firestore, isAdminUser]);
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
 
   const { data: payoutsData } = useCollection<PayoutRequest>(payoutsQuery);
   const { data: kycPendingData } = useCollection<UserProfile>(kycQuery);
+  const { data: fraudData } = useCollection<UserProfile>(fraudQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const handleMarkPaid = async (payoutId: string) => {
@@ -81,14 +84,14 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleKycAction = async (userId: string, status: 'approved' | 'rejected') => {
+  const handleReinstate = async (userId: string) => {
     if (!firestore) return;
     setIsProcessing(userId);
     try {
-      await updateDoc(doc(firestore, 'users', userId), { kycStatus: status });
-      toast({ title: `KYC ${status.toUpperCase()}` });
+      await updateDoc(doc(firestore, 'users', userId), { isSuspended: false });
+      toast({ title: "ACCOUNT REINSTATED" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Action Failed" });
+      toast({ variant: "destructive", title: "Sync Failed" });
     } finally {
       setIsProcessing(null);
     }
@@ -101,7 +104,7 @@ export default function AdminDashboard() {
     <div className="flex min-h-screen bg-[#050508] text-white">
       <aside className="w-72 bg-[#0a0a0f] border-r border-white/5 flex flex-col fixed inset-y-0 z-50 shadow-2xl">
         <div className="p-8 flex items-center gap-4 border-b border-white/5 bg-primary/5">
-          <ShieldCheck className="h-7 v-7 text-primary" />
+          <ShieldCheck className="h-7 w-7 text-primary" />
           <span className="font-black text-xl italic uppercase tracking-tighter text-white">ARENA <span className="text-primary">MASTER</span></span>
         </div>
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
@@ -109,9 +112,8 @@ export default function AdminDashboard() {
           <AdminLink active={activeTab === 'finance'} icon={<BarChart3 />} label="Financial Hub" onClick={() => setActiveTab('finance')} />
           <AdminLink active={activeTab === 'projections'} icon={<Calculator />} label="Revenue Predictor" onClick={() => setActiveTab('projections')} />
           <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Terminal" onClick={() => setActiveTab('withdrawals')} />
+          <AdminLink active={activeTab === 'audit'} icon={<ShieldX />} label="Security Signals" onClick={() => setActiveTab('audit')} />
           <AdminLink active={activeTab === 'kyc'} icon={<ShieldAlert />} label="Identity Audit" onClick={() => setActiveTab('kyc')} />
-          <AdminLink active={activeTab === 'games'} icon={<Gamepad2 />} label="Game Matrix" onClick={() => setActiveTab('games')} />
-          <AdminLink active={activeTab === 'audit'} icon={<Search />} label="Audit Signal" onClick={() => setActiveTab('audit')} />
           <AdminLink active={activeTab === 'settings'} icon={<Monitor />} label="System Switch" onClick={() => setActiveTab('settings')} />
         </nav>
       </aside>
@@ -127,50 +129,47 @@ export default function AdminDashboard() {
            </div>
         </header>
 
-        {activeTab === 'status' && (
+        {activeTab === 'audit' && (
           <div className="space-y-10 animate-in fade-in duration-500">
-             <div className="bg-primary/5 border border-primary/20 p-10 rounded-[3rem] space-y-6">
+             <div className="bg-red-500/5 border border-red-500/20 p-10 rounded-[3rem] space-y-4">
                 <div className="flex items-center gap-4">
-                   <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                      <ClipboardCheck className="h-6 w-6 text-primary" />
-                   </div>
-                   <h2 className="text-3xl font-black uppercase italic tracking-tighter">Feature <span className="text-primary">Status Log</span></h2>
+                   <ShieldX className="h-8 w-8 text-red-500" />
+                   <h2 className="text-3xl font-black uppercase italic tracking-tighter">Fraud & VPN <span className="text-red-500">Signals</span></h2>
                 </div>
-                <p className="text-muted-foreground text-sm font-medium uppercase tracking-tight max-w-2xl">
-                   Real-time operational status of all platform modules for industrial audit and compliance.
-                </p>
+                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Accounts suspended due to VPN detection or multi-accounting flags.</p>
              </div>
 
-             <div className="grid gap-6">
-                <StatusRow 
-                   name="Skill Arcade Engine" 
-                   status="Completed" 
-                   desc="50-level skill-based progression hub. Removed all wagering logic." 
-                   policy="100% Skill-based Compliant" 
-                   icon={<Gamepad2 className="text-blue-500" />}
-                />
-                <StatusRow 
-                   name="Academic AI Quiz" 
-                   status="Testing" 
-                   desc="Context-aware MCQ generator based on lesson text. 3-Heart life system." 
-                   policy="Educational Reward Compliant" 
-                   icon={<Zap className="text-amber-500" />}
-                />
-                <StatusRow 
-                   name="Global Payout (35%)" 
-                   status="Completed" 
-                   desc="Auto-scaling 30% to 35% reward logic for non-India nodes." 
-                   policy="Region-specific Protocol" 
-                   icon={<Globe className="h-4 w-4 text-green-500" />}
-                />
-                <StatusRow 
-                   name="Compliance UI Refresh" 
-                   status="Completed" 
-                   desc="Removed 'Jackpot', 'Battle', 'Tournament'. Replaced with 'Bounty', 'Arena', 'Challenge'." 
-                   policy="Google Policy Compliant" 
-                   icon={<ShieldCheck className="text-primary" />}
-                />
-             </div>
+             <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+                <Table>
+                   <TableHeader className="bg-white/5">
+                      <TableRow className="border-white/5">
+                         <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-widest">Warrior Email / ID</TableHead>
+                         <TableHead className="text-[10px] font-black uppercase tracking-widest">Reason / Geo</TableHead>
+                         <TableHead className="px-10 text-[10px] font-black uppercase tracking-widest text-right">Action</TableHead>
+                      </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                      {fraudData && fraudData.length > 0 ? fraudData.map(f => (
+                         <TableRow key={f.id} className="border-white/5">
+                            <TableCell className="px-10 py-6 font-black uppercase text-[11px] text-white">{f.email || f.id}</TableCell>
+                            <TableCell>
+                               <Badge className="bg-red-500/10 text-red-500 border-none text-[8px] uppercase px-3">VPN DETECTED</Badge>
+                               <p className="text-[9px] text-muted-foreground mt-1 uppercase font-bold">{f.country || 'Unknown'}</p>
+                            </TableCell>
+                            <TableCell className="px-10 text-right">
+                               <Button onClick={() => handleReinstate(f.id)} disabled={isProcessing === f.id} className="h-10 px-6 bg-white/5 border border-white/10 hover:bg-primary rounded-xl font-black text-[9px] uppercase">
+                                  {isProcessing === f.id ? <Loader2 className="animate-spin h-3 w-3" /> : 'REINSTATE'}
+                               </Button>
+                            </TableCell>
+                         </TableRow>
+                      )) : (
+                        <TableRow>
+                          <TableCell colSpan={3} className="py-20 text-center text-muted-foreground font-black uppercase text-[10px] italic">No active fraud signals detected.</TableCell>
+                        </TableRow>
+                      )}
+                   </TableBody>
+                </Table>
+             </Card>
           </div>
         )}
 
@@ -212,27 +211,42 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ... (rest of the sections remain same, just renaming headings) */}
-        {activeTab === 'projections' && (
-          <div className="space-y-12 animate-in slide-in-from-right-10 duration-700">
-             <div className="bg-primary/5 border border-primary/20 p-10 rounded-[3rem] relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-10 opacity-5"><TrendingUp className="h-64 w-64 text-primary" /></div>
-                <div className="relative z-10 space-y-6">
-                   <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-primary/10 border border-primary/20">
-                      <Calculator className="h-5 w-5 text-primary" />
-                      <span className="text-xs font-black uppercase tracking-widest text-primary italic">Industrial Revenue Forecaster</span>
+        {activeTab === 'status' && (
+          <div className="space-y-10 animate-in fade-in duration-500">
+             <div className="bg-primary/5 border border-primary/20 p-10 rounded-[3rem] space-y-6">
+                <div className="flex items-center gap-4">
+                   <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                      <ClipboardCheck className="h-6 w-6 text-primary" />
                    </div>
-                   <h2 className="text-5xl font-black uppercase italic tracking-tighter">1,000 User <span className="text-primary">Yield Analysis</span></h2>
-                   <p className="text-muted-foreground font-medium text-lg max-w-2xl leading-relaxed">
-                      Based on dynamic 40% margin retention and 95% engagement probability.
-                   </p>
+                   <h2 className="text-3xl font-black uppercase italic tracking-tighter">Feature <span className="text-primary">Status Log</span></h2>
                 </div>
+                <p className="text-muted-foreground text-sm font-medium uppercase tracking-tight max-w-2xl">
+                   Real-time operational status of all platform modules for industrial audit and compliance.
+                </p>
+             </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-                   <ProjectionBox label="Daily Net Profit" value="₹16,750" color="green" sub="CPA + Ads + Engagement" />
-                   <ProjectionBox label="Monthly Gross" value="₹5,02,500" color="primary" sub="Projected 30D Signal" />
-                   <ProjectionBox label="User Retention" value="78%" color="amber" sub="VIP Logic Efficiency" />
-                </div>
+             <div className="grid gap-6">
+                <StatusRow 
+                   name="Skill Arcade Engine" 
+                   status="Completed" 
+                   desc="50-level skill-based progression hub. Removed all wagering logic." 
+                   policy="100% Skill-based Compliant" 
+                   icon={<Gamepad2 className="text-blue-500" />}
+                />
+                <StatusRow 
+                   name="VPN Guard Shield" 
+                   status="Completed" 
+                   desc="Real-time proxy and tor node blocking system." 
+                   policy="Fraud Prevention Protocol" 
+                   icon={<ShieldCheck className="text-red-500" />}
+                />
+                <StatusRow 
+                   name="VIP 1 Gateway" 
+                   status="Completed" 
+                   desc="5 CPA + 5 Ads + 5 Referrals mandatory validation for withdrawal." 
+                   policy="Industrial Integrity Pass" 
+                   icon={<Lock className="text-amber-500" />}
+                />
              </div>
           </div>
         )}
@@ -241,7 +255,6 @@ export default function AdminDashboard() {
           <div className="space-y-8 animate-in fade-in duration-500">
              <h3 className="text-2xl font-black uppercase italic tracking-tighter">Pending <span className="text-primary">Payouts</span></h3>
              <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
-                {/* ... (Payout table remains same) */}
                 <Table>
                    <TableHeader className="bg-white/5">
                       <TableRow className="border-white/5 hover:bg-transparent">
@@ -354,40 +367,4 @@ function FinanceCard({ label, value, icon, color, highlight }: any) {
          </div>
       </Card>
    );
-}
-
-function ProjectionBox({ label, value, color, sub }: any) {
-   const colors = {
-      green: "bg-green-500/10 text-green-500 border-green-500/20",
-      primary: "bg-primary/10 text-primary border-primary/20",
-      amber: "bg-amber-500/10 text-amber-500 border-amber-500/20"
-   };
-   return (
-      <div className={cn("p-8 rounded-3xl border-2 text-center space-y-2 backdrop-blur-xl", colors[color as keyof typeof colors])}>
-         <p className="text-[10px] font-black uppercase opacity-60 tracking-widest">{label}</p>
-         <h4 className="text-4xl font-black italic text-white">{value}</h4>
-         <p className="text-[9px] font-bold text-muted-foreground uppercase">{sub}</p>
-      </div>
-   );
-}
-
-function Globe(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 2a14.5 14.5 0 0 0 0 20" />
-      <path d="M2 12h20" />
-    </svg>
-  );
 }

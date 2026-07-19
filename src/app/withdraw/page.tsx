@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, ShoppingBag, ArrowRight, Lock, ShieldAlert, CreditCard, UserCheck, Zap } from 'lucide-react';
+import { Wallet, ArrowLeft, Loader2, AlertCircle, ShieldCheck, ShoppingBag, ArrowRight, Lock, ShieldAlert, CreditCard, UserCheck, Zap, Fingerprint } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -36,13 +36,12 @@ export default function WithdrawPage() {
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile, isLoading } = useDoc<UserProfile>(userRef);
 
-  const isIndia = profile?.country === 'India';
   const currencyData = getCurrencyData(profile?.country);
 
-  // --- STRICT VIP 1 VALIDATION UPGRADE ---
+  // --- STRICT VIP 1 VALIDATION ---
   const cpaMet = (profile?.cpaTasksCount || 0) >= 5;
-  const adsMet = (profile?.generalTasksCount || 0) >= 5; // 5 Video Ads
-  const referralsMet = (profile?.totalReferrals || 0) >= 5; // 5 Invites
+  const adsMet = (profile?.generalTasksCount || 0) >= 5; 
+  const referralsMet = (profile?.totalReferrals || 0) >= 5; 
   
   const isValidationPassed = cpaMet && adsMet && referralsMet;
 
@@ -95,7 +94,8 @@ export default function WithdrawPage() {
         destination: destinationId,
         status: 'pending',
         timestamp,
-        geo: profile.country
+        geo: profile.country,
+        vipLevel: profile.vipLevel
       });
 
       await updateDoc(userRef, {
@@ -113,6 +113,8 @@ export default function WithdrawPage() {
   };
 
   if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div>;
+
+  const isIndia = profile?.country === 'India';
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-10 space-y-10 pb-32">
@@ -197,7 +199,7 @@ export default function WithdrawPage() {
              >
                 {isSubmitting ? <Loader2 className="animate-spin h-8 w-8" /> : 
                  isCheckingFraud ? <><Loader2 className="animate-spin h-6 w-6" /> VERIFYING FRAUD SHIELD...</> : 
-                 !isValidationPassed ? "TERMINAL LOCKED" : <><UserCheck className="h-6 w-6" /> SUBMIT FOR AUDIT</>}
+                 !isValidationPassed ? "TERMINAL LOCKED" : <><Fingerprint className="h-6 w-6" /> SUBMIT FOR AUDIT</>}
              </Button>
           </div>
         </CardContent>

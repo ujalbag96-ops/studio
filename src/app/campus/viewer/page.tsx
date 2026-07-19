@@ -20,7 +20,8 @@ import {
   Heart,
   Globe,
   Lock,
-  PlayCircle
+  PlayCircle,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -63,12 +64,28 @@ function ViewerContent() {
     return () => clearInterval(interval);
   }, [user, showQuiz, isAdRunning]);
 
+  useEffect(() => {
+    let interval: any;
+    if (isAdRunning && adCountdown > 0) {
+      interval = setInterval(() => setAdCountdown(c => c - 1), 1000);
+    } else if (isAdRunning && adCountdown === 0) {
+       setIsAdRunning(false);
+       if (quizFinished) {
+          // Actual claim logic
+          if (userRef) updateDoc(userRef, { coins: increment(10), bonusBalance: increment(10) });
+          toast({ title: "REWARD CLAIMED", description: "+10 Coins added to wallet." });
+       }
+    }
+    return () => clearInterval(interval);
+  }, [isAdRunning, adCountdown, quizFinished]);
+
   const startAiQuiz = async () => {
     setShowQuiz(true);
     setQuizLoading(true);
     setQuizFinished(false);
     setCurrentQuestion(0);
     setQuizScore(0);
+    setLives(3);
     try {
       const res = await generateQuiz({ 
         contentSummary: "Advanced technical notes focusing on high-performance industrial logic and secure node communication." 
@@ -86,21 +103,25 @@ function ViewerContent() {
     if (!quizData) return;
     const isCorrect = idx === quizData.questions[currentQuestion].correctIndex;
     
-    // --- DIFFICULT QUESTION GATE: AD REWARDED ---
-    const isDifficult = currentQuestion >= 3;
-    if (isDifficult && !isCorrect && lives > 0) {
-       // Logic: Fail difficult question? Must watch ad to try again or lose life
-    }
-
     if (isCorrect) {
       setQuizScore(s => s + 1);
-      if (currentQuestion < 4) setCurrentQuestion(c => c + 1);
-      else setQuizFinished(true);
+      if (currentQuestion < 4) {
+         setCurrentQuestion(c => c + 1);
+      } else {
+         setQuizFinished(true);
+      }
     } else {
       setLives(l => l - 1);
       toast({ variant: "destructive", title: "SIGNAL VOID", description: "Life lost. Re-read material." });
       if (lives <= 1) setShowQuiz(false);
     }
+  };
+
+  const claimQuizReward = () => {
+     // TRIGGER REWARDED AD FOR FINAL CLAIM
+     setIsAdRunning(true);
+     setAdCountdown(10);
+     setShowQuiz(false);
   };
 
   const handleShare = async () => {
@@ -110,8 +131,8 @@ function ViewerContent() {
       await navigator.share({ title: 'Join Arena', text: 'Master these industrial notes!', url: shareUrl });
     }
     // Reward for sharing
-    if (userRef) updateDoc(userRef, { coins: increment(5), bonusBalance: increment(5) });
-    toast({ title: "SHARE DIVIDEND", description: "+5 Coins added." });
+    if (userRef) updateDoc(userRef, { coins: increment(2), bonusBalance: increment(2) });
+    toast({ title: "SHARE DIVIDEND", description: "+2 Coins added." });
   };
 
   if (!url) return <div className="p-20 text-center">Invalid Signal URL</div>;
@@ -133,7 +154,7 @@ function ViewerContent() {
          </div>
 
          <div className="flex items-center gap-3">
-            <Button onClick={handleShare} className="h-10 px-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-500 font-black text-[9px] uppercase"><Share2 className="h-3 w-3 mr-2" /> SHARE FOR 5 🪙</Button>
+            <Button onClick={handleShare} className="h-10 px-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-500 font-black text-[9px] uppercase"><Share2 className="h-3 w-3 mr-2" /> SHARE FOR 2 🪙</Button>
             <Button onClick={startAiQuiz} className="h-10 px-4 rounded-xl bg-primary/10 border border-primary/20 text-primary font-black text-[9px] uppercase"><BrainCircuit className="h-3 w-3 mr-2" /> START QUIZ</Button>
          </div>
       </div>
@@ -163,13 +184,14 @@ function ViewerContent() {
             </Card>
 
             <Card className="bg-[#121212] border-white/5 p-8 rounded-[2.5rem] space-y-4">
-               <p className="text-[9px] font-black uppercase text-muted-foreground leading-relaxed italic">
-                 *Difficult questions (4-5) may require a rewarded ad signal to verify student focus.
+               <p className="text-[9px] font-black uppercase text-muted-foreground leading-relaxed italic text-center">
+                 "Master the lesson to unlock the Quiz Dividend. High-value rewards require ad signal validation."
                </p>
             </Card>
          </div>
       </div>
 
+      {/* QUIZ DIALOG */}
       <Dialog open={showQuiz} onOpenChange={setShowQuiz}>
         <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-xl rounded-[2.5rem] p-10 overflow-hidden">
            {quizLoading ? (
@@ -178,8 +200,11 @@ function ViewerContent() {
              <div className="space-y-8 text-center pt-10">
                 <div className="h-24 w-24 bg-green-500/10 rounded-[2.5rem] flex items-center justify-center mx-auto border-2 border-green-500/20 shadow-2xl"><Trophy className="h-12 w-12 text-green-500" /></div>
                 <h3 className="text-4xl font-black uppercase italic">Lesson Mastered</h3>
-                <p className="text-sm text-muted-foreground font-bold uppercase">Reward: {quizScore * 2} Coins</p>
-                <Button onClick={() => setShowQuiz(false)} className="w-full h-16 bg-primary font-black uppercase italic rounded-2xl">CLAIM DIVIDEND</Button>
+                <p className="text-sm text-muted-foreground font-bold uppercase">Reward Unlocked: 10 Coins</p>
+                <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
+                   <p className="text-[9px] font-black uppercase text-primary italic">Sponsor Ad required to verify reward signal</p>
+                </div>
+                <Button onClick={claimQuizReward} className="w-full h-16 bg-primary font-black uppercase italic rounded-2xl">WATCH AD & CLAIM</Button>
              </div>
            ) : quizData ? (
              <div className="space-y-8 pt-10">
@@ -199,6 +224,44 @@ function ViewerContent() {
            ) : null}
         </DialogContent>
       </Dialog>
+
+      {/* REWARDED AD MODAL */}
+      {isAdRunning && (
+        <div className="fixed inset-0 z-[250] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-300">
+           <Card className="max-w-md w-full bg-[#0d0d12] border-white/10 rounded-[3rem] overflow-hidden relative shadow-2xl">
+              <div className="p-12 text-center space-y-10">
+                 <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
+                    <div 
+                      className="absolute inset-0 rounded-full border-t-4 border-primary transition-all duration-1000 ease-linear" 
+                      style={{ transform: `rotate(${(10 - adCountdown) * 36}deg)` }}
+                    />
+                    <PlayCircle className="h-12 w-12 text-primary animate-pulse" />
+                 </div>
+
+                 <div className="space-y-4">
+                    <h3 className="text-3xl font-black uppercase italic">Verifying Signal...</h3>
+                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
+                       Sponsor signal analysis in progress. Do not minimize this node to ensure reward credit.
+                    </p>
+                 </div>
+
+                 <div className="space-y-6">
+                    <p className="text-5xl font-black text-white italic tabular-nums">{adCountdown}s</p>
+                    <Button 
+                      disabled={adCountdown > 0} 
+                      className={cn(
+                        "w-full h-20 rounded-2xl font-black text-xl uppercase italic shadow-2xl transition-all",
+                        adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce" : "bg-white/5 text-white/20 border border-white/10"
+                      )}
+                    >
+                       {adCountdown === 0 ? "SIGNAL VERIFIED" : "WATCHING AD..."}
+                    </Button>
+                 </div>
+              </div>
+           </Card>
+        </div>
+      )}
     </div>
   );
 }
