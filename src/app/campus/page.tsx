@@ -5,7 +5,7 @@ import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, GraduationCap, Library, FlaskConical, Palette, Landmark, Pill, Briefcase, Sparkles, AlertCircle, Globe, ShieldAlert, ArrowRight } from 'lucide-react';
+import { BookOpen, GraduationCap, Library, FlaskConical, Palette, Landmark, Pill, Briefcase, Sparkles, AlertCircle, Globe, ShieldAlert, ArrowRight, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { UserProfile } from '@/app/lib/types';
@@ -52,18 +52,18 @@ export default function CampusHomeScreen() {
     <div className="max-w-7xl mx-auto p-6 md:p-12 space-y-12 pb-32">
       <header className="space-y-6 pt-12 text-center md:text-left">
         <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-4">
-           <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black tracking-widest px-4 py-1 text-[9px] flex items-center gap-1.5 w-fit mx-auto md:mx-0">
-              <Sparkles className="h-3 w-3" /> 100% Free Study Hub (Domestic Node)
+           <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black tracking-widest px-4 py-1 text-[9px] flex items-center gap-1.5 w-fit mx-auto md:mx-0 shadow-xl">
+              <ShieldCheck className="h-3 w-3" /> 100% FREE KNOWLEDGE LOCKER
            </Badge>
            <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest italic justify-center">
-              <AlertCircle className="h-3 w-3" /> Educational Purposes Only
+              <AlertCircle className="h-3 w-3" /> Zero Investment Educational Node
            </div>
         </div>
         <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase italic text-white leading-none">
           Resource <span className="text-primary">Sectors</span>
         </h1>
         <p className="text-muted-foreground font-medium text-lg max-w-2xl">
-          Access curated study materials, industrial notes, and previous year questions. <span className="text-white font-bold italic">Always free for students.</span>
+          Access curated industrial notes and previous year questions. <span className="text-white font-bold italic underline decoration-primary underline-offset-4">Always 100% free for students.</span>
         </p>
       </header>
 

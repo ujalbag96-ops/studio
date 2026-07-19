@@ -23,7 +23,9 @@ import {
   CheckCircle2,
   Smartphone,
   ShieldAlert,
-  EyeOff
+  EyeOff,
+  ShieldCheckIcon,
+  CircleDollarSign
 } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
 import { useState, useEffect } from 'react';
@@ -45,7 +47,6 @@ export default function EarningHub() {
   const [currentReward, setCurrentReward] = useState(0);
   const [activeTab, setActiveTab] = useState<'ads' | 'missions'>('ads');
 
-  // 🕵️ ANTI-FRAUD: Ad-blocker detection state
   const [adFailCount, setAdFailCount] = useState(0);
   const [isAdBlockerActive, setIsAdBlockerActive] = useState(false);
 
@@ -66,15 +67,13 @@ export default function EarningHub() {
       return;
     }
 
-    // 🕵️ ANTI-FRAUD: Check if ads are failing consistently
     if (adFailCount >= 3) {
        setIsAdBlockerActive(true);
        updateDoc(userRef, { adLoadFailCount: increment(1) });
        return;
     }
 
-    // Simulation of ad failure for ad-blockers (e.g. if certain resource fails to load)
-    const adResourceBlocked = Math.random() < 0.1; // 10% chance to simulate block if not real ad SDK
+    const adResourceBlocked = Math.random() < 0.1;
     if (adResourceBlocked) {
        setAdFailCount(prev => prev + 1);
        toast({ variant: "destructive", title: "AD SIGNAL LOST", description: "Please disable ad-blockers to earn rewards." });
@@ -101,11 +100,11 @@ export default function EarningHub() {
       if (result.success) {
         toast({ 
           title: "REWARD CREDITED", 
-          description: `+${currentReward} Coins added via Video Ad Signal.` 
+          description: `+${currentReward} Coins added via Free Video Ad.` 
         });
         new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
         setShowAdModal(false);
-        setAdFailCount(0); // Reset count on success
+        setAdFailCount(0);
       }
     } catch (e) {
       toast({ variant: "destructive", title: "Sync Failed" });
@@ -121,7 +120,6 @@ export default function EarningHub() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-12 pb-32">
-      {/* 🕵️ AD-BLOCKER OVERLAY */}
       {isAdBlockerActive && (
         <div className="fixed inset-0 z-[250] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6 text-center">
            <div className="max-w-sm space-y-6">
@@ -131,7 +129,7 @@ export default function EarningHub() {
               <div className="space-y-2">
                  <h3 className="text-3xl font-black uppercase italic">Ad-Blocker Detected</h3>
                  <p className="text-xs text-muted-foreground font-bold uppercase leading-relaxed">
-                    Our revenue engine is supported by sponsors. Please disable any Ad-blocking extensions or software to continue earning coins.
+                    Our free revenue engine is supported by sponsors. Please disable any Ad-blocking software to continue earning.
                  </p>
               </div>
               <Button onClick={() => window.location.reload()} className="h-14 px-8 bg-amber-500 text-black font-black uppercase rounded-xl">RELOAD ARENA</Button>
@@ -142,12 +140,17 @@ export default function EarningHub() {
       <div className="space-y-6 pt-12 text-center md:text-left">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
            <div className="space-y-4">
-              <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Elite Earning Terminal</Badge>
+              <div className="flex items-center justify-center md:justify-start gap-3">
+                 <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-4 py-1 text-[9px]">Elite Free Node</Badge>
+                 <Badge className="bg-green-500/10 text-green-500 border-none uppercase font-black text-[9px] px-3 py-1 flex items-center gap-1.5 shadow-lg">
+                    <CircleDollarSign className="h-3 w-3" /> ZERO INVESTMENT REQUIRED
+                 </Badge>
+              </div>
               <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-none italic text-white">
                 Income <span className="text-primary">Hub</span>
               </h1>
               <p className="text-muted-foreground font-medium text-lg max-w-2xl leading-relaxed">
-                Complete sponsored missions and watch video signals to earn industrial-grade campus credits.
+                Complete 100% free sponsored missions and watch video signals to earn industrial-grade campus credits.
               </p>
            </div>
 
@@ -160,7 +163,7 @@ export default function EarningHub() {
                     <Gift className="h-4 w-4 text-primary" />
                     <span className="text-[10px] font-black uppercase text-white italic">Weekly Pocket Money</span>
                  </div>
-                 <h4 className="text-xl font-black italic">Target: ₹50.00</h4>
+                 <h4 className="text-xl font-black italic">Free Target: ₹50.00</h4>
                  <div className="space-y-2">
                     <div className="flex justify-between text-[8px] font-black uppercase text-muted-foreground">
                        <span>Progress</span>
@@ -169,7 +172,7 @@ export default function EarningHub() {
                     <Progress value={weeklyProgress} className="h-2 bg-white/5" />
                  </div>
                  <p className="text-[8px] font-bold text-muted-foreground uppercase leading-relaxed">
-                    Earn 50 coins this week to instantly unlock your ₹50 pocket money payout protocol.
+                    Earn 50 coins this week to instantly unlock your free ₹50 pocket money payout protocol.
                  </p>
               </div>
            </Card>
@@ -177,7 +180,7 @@ export default function EarningHub() {
       </div>
 
       <div className="flex items-center gap-2 p-1 bg-white/5 rounded-2xl border border-white/5 max-w-sm mx-auto md:mx-0">
-         <button onClick={() => setActiveTab('ads')} className={cn("flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'ads' ? "bg-primary text-white" : "text-muted-foreground hover:text-white")}>Video Rewards</button>
+         <button onClick={() => setActiveTab('ads')} className={cn("flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'ads' ? "bg-primary text-white" : "text-muted-foreground hover:text-white")}>Free Ad Rewards</button>
          <button onClick={() => setActiveTab('missions')} className={cn("flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'missions' ? "bg-primary text-white" : "text-muted-foreground hover:text-white")}>Strategic Missions</button>
       </div>
 
@@ -185,7 +188,7 @@ export default function EarningHub() {
         <div className="space-y-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <AdRewardCard 
-                title="Quick Signal" 
+                title="Free Signal" 
                 reward={5} 
                 duration={15} 
                 icon={<Zap className="text-amber-500" />} 
@@ -193,7 +196,7 @@ export default function EarningHub() {
                 disabled={isAdBlockerActive}
             />
             <AdRewardCard 
-                title="Prime Stream" 
+                title="Sponsor Stream" 
                 reward={15} 
                 duration={30} 
                 icon={<Tv className="text-primary" />} 
@@ -202,7 +205,7 @@ export default function EarningHub() {
                 disabled={isAdBlockerActive}
             />
             <AdRewardCard 
-                title="Mega Yield" 
+                title="Elite Yield" 
                 reward={50} 
                 duration={60} 
                 icon={<MonitorPlay className="text-green-500" />} 
@@ -213,7 +216,7 @@ export default function EarningHub() {
 
           <section className="space-y-8">
             <h2 className="text-3xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-                <TrendingUp className="text-primary" /> High-Value <span className="text-primary">Cinema Sessions</span>
+                <TrendingUp className="text-primary" /> Free High-Value <span className="text-primary">Cinema</span>
             </h2>
             <Card className="bg-[#0a0a0f] border-primary/20 border-2 rounded-[3rem] overflow-hidden group shadow-2xl relative">
                 <div className="p-10 flex flex-col md:flex-row items-center justify-between gap-10">
@@ -222,16 +225,16 @@ export default function EarningHub() {
                         <Video className="h-10 w-10" />
                       </div>
                       <div className="space-y-2">
-                        <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black px-3">MASSIVE REWARD</Badge>
-                        <h3 className="text-3xl font-black uppercase italic text-white">Movie Watch Session</h3>
-                        <p className="text-muted-foreground text-sm font-medium uppercase tracking-tight">Watch cinematic content for 10 mins for a master payout.</p>
+                        <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black px-3">ZERO COST</Badge>
+                        <h3 className="text-3xl font-black uppercase italic text-white">Watch to Earn Session</h3>
+                        <p className="text-muted-foreground text-sm font-medium uppercase tracking-tight">Watch cinematically for 10 mins for a guaranteed master payout.</p>
                       </div>
                   </div>
                   <div className="text-center md:text-right">
                       <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 italic">Distributed Dividend</p>
                       <p className="text-5xl font-black text-white italic">300 <span className="text-xl text-primary opacity-40">🪙</span></p>
                       <Button asChild className="mt-6 h-16 px-12 bg-primary hover:bg-primary/90 font-black uppercase italic rounded-2xl shadow-xl">
-                        <Link href="/watch-earn">ENTER CINEMA ENGINE</Link>
+                        <Link href="/watch-earn">ENTER FREE CINEMA</Link>
                       </Button>
                   </div>
                 </div>
@@ -259,9 +262,9 @@ export default function EarningHub() {
                  </div>
 
                  <div className="space-y-4">
-                    <h3 className="text-3xl font-black uppercase italic">Ad Stream Active</h3>
+                    <h3 className="text-3xl font-black uppercase italic">Free Signal Active</h3>
                     <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                       Watching sponsor signal to unlock reward. Please wait for the transmission to conclude.
+                       Watching sponsor signal to unlock reward. This process is 100% free for all students.
                     </p>
                  </div>
 
@@ -275,7 +278,7 @@ export default function EarningHub() {
                         adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce" : "bg-white/5 text-white/20 border border-white/10"
                       )}
                     >
-                       {isProcessing ? <Loader2 className="animate-spin" /> : adCountdown === 0 ? "CLAIM COINS" : "WATCHING SPONSOR..."}
+                       {isProcessing ? <Loader2 className="animate-spin" /> : adCountdown === 0 ? "CLAIM FREE COINS" : "WATCHING SPONSOR..."}
                     </Button>
                  </div>
               </div>
@@ -299,7 +302,7 @@ function AdRewardCard({ title, reward, duration, icon, onClick, highlight, disab
             </div>
             <div>
                <h4 className="text-2xl font-black uppercase italic text-white">{title}</h4>
-               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Video Ad • {duration}s Signal</p>
+               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Sponsored • {duration}s Signal</p>
             </div>
          </div>
 
@@ -309,7 +312,7 @@ function AdRewardCard({ title, reward, duration, icon, onClick, highlight, disab
                <span className="text-sm font-bold text-primary opacity-40 mb-1">🪙</span>
             </div>
             <Button onClick={onClick} disabled={disabled} className="w-full h-14 bg-white/5 border border-white/10 hover:bg-primary text-white font-black uppercase italic rounded-xl transition-all">
-               WATCH & EARN
+               EARN FOR FREE
             </Button>
          </div>
       </Card>

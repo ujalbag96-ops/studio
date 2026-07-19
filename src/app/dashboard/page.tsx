@@ -49,7 +49,8 @@ import {
   Package,
   Sparkles,
   Timer,
-  Heart
+  Heart,
+  ShieldEllipsis
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -136,13 +137,13 @@ export default function UserDashboard() {
                   <div className="flex items-center gap-3">
                      <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                      <span className="text-[9px] font-black uppercase tracking-widest text-white/80">
-                        Signal: <span className="text-primary italic">Warrior_X7</span> Jeeta <span className="text-green-500">₹240</span> Ludo Lite mein!
+                        Signal: <span className="text-primary italic">Warrior_X7</span> Earned <span className="text-green-500">₹240</span> Free!
                      </span>
                   </div>
                   <div className="flex items-center gap-3">
                      <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                      <span className="text-[9px] font-black uppercase tracking-widest text-white/80">
-                        Signal: <span className="text-primary italic">Bhubaneswar_Pro</span> Ne <span className="text-amber-500">VIP 1</span> Unlock kiya!
+                        Signal: <span className="text-primary italic">Bhubaneswar_Pro</span> Unlocked <span className="text-amber-500">VIP 1</span> Challenge!
                      </span>
                   </div>
                </div>
@@ -167,9 +168,9 @@ export default function UserDashboard() {
           <SidebarItem active={false} icon={<ShieldCheck />} label="Legal & Security" onClick={() => setShowLegal(true)} />
           <div className="pt-8 px-4 space-y-4">
              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest italic">Operational Nodes</p>
-             <Link href="/earning-hub" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><Zap className="h-4 w-4 text-primary" /> Income Hub</Link>
-             <Link href="/games" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><Gamepad2 className="h-4 w-4 text-green-500" /> Arcade Sector</Link>
-             <Link href="/shop" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><ShoppingBag className="h-4 w-4 text-amber-500" /> Reward Shop</Link>
+             <Link href="/earning-hub" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><Zap className="h-4 w-4 text-primary" /> Free Income Hub</Link>
+             <Link href="/games" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><Gamepad2 className="h-4 w-4 text-green-500" /> Free Arcade Sector</Link>
+             <Link href="/shop" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><ShoppingBag className="h-4 w-4 text-amber-500" /> Reward Vault</Link>
           </div>
         </nav>
 
@@ -187,14 +188,14 @@ export default function UserDashboard() {
                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">
                  {isIndia ? 'Domestic Node' : 'Global Node'}
                </Badge>
-               <Badge className="bg-amber-500/20 text-amber-500 border-none uppercase font-black px-4 py-1 text-[10px] flex items-center gap-1.5">
-                  <Heart className="h-3 w-3 fill-amber-500" /> Lives: {profile?.quizLives || 3}
+               <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black px-4 py-1 text-[10px] flex items-center gap-1.5 shadow-xl">
+                  <ShieldEllipsis className="h-3 w-3 fill-green-500" /> FREE EARNING MODE: ACTIVE
                </Badge>
             </div>
             <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter italic leading-none">Balance <span className="text-primary">{combinedCashBalance}</span></h1>
             {isIndia && (
               <p className="text-sm font-black text-amber-500 uppercase italic tracking-widest animate-pulse">
-                ₹{neededForWithdrawal.toFixed(2)} aur kamaiye, Saturday withdrawal ke liye!
+                Zero Investment. Earn ₹{neededForWithdrawal.toFixed(2)} more to withdraw!
               </p>
             )}
           </div>
@@ -217,7 +218,7 @@ export default function UserDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <WalletCard label="Winnings" value={profile?.winningBalance || 0} country={profile?.country} icon={<Trophy />} color="green" />
-          <WalletCard label="Missions" value={profile?.taskBalance || 0} country={profile?.country} icon={<CreditCard />} color="blue" />
+          <WalletCard label="Free Missions" value={profile?.taskBalance || 0} country={profile?.country} icon={<CreditCard />} color="blue" />
           <WalletCard label="Total Coins" value={profile?.coins || 0} country={profile?.country} icon={<Coins />} color="amber" />
           <WalletCard label="Bonus Signal" value={profile?.bonusBalance || 0} country={profile?.country} icon={<Zap />} color="primary" />
         </div>
@@ -235,10 +236,10 @@ export default function UserDashboard() {
                   </div>
                   <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
                      <div className="space-y-4 text-center md:text-left">
-                        <Badge className="bg-amber-500/10 text-amber-500 border-none uppercase font-black px-3 py-1 text-[8px]">REFRESHES AT MIDNIGHT</Badge>
+                        <Badge className="bg-amber-500/10 text-amber-500 border-none uppercase font-black px-3 py-1 text-[8px]">100% FREE REWARD</Badge>
                         <h4 className="text-4xl font-black uppercase italic text-white leading-none">Elite <span className="text-amber-500">Loot Drop</span></h4>
                         <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed max-w-sm">
-                           Signal lock detected. Claim your daily surprise coin bounty.
+                           No investment required. Claim your daily surprise coin bounty subsidized by sponsors.
                         </p>
                      </div>
                      <Button 
@@ -252,9 +253,9 @@ export default function UserDashboard() {
             </section>
 
             <section className="space-y-6">
-               <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><Gamepad2 className="h-6 w-6 text-primary" /> Arcade Sector (50+ Levels)</h3>
+               <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><Gamepad2 className="h-6 w-6 text-primary" /> Free Arcade Sector</h3>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <IncomeSourceCard title="Logic Puzzle" value={`Level ${profile?.puzzleLevel || 1}/50`} icon={<Layout />} link="/games" />
+                  <IncomeSourceCard title="Logic Puzzle" value={`Level ${profile?.puzzleLevel || 1}/50`} icon={<LayoutDashboard />} link="/games" />
                   <IncomeSourceCard title="Physics Arcade" value={`Level ${profile?.physicsLevel || 1}/50`} icon={<Target />} link="/games" />
                   <IncomeSourceCard title="Endless Runner" value={`Level ${profile?.runnerLevel || 1}/50`} icon={<Zap />} link="/games" />
                   <IncomeSourceCard title="Special Boss Mode" value="Unlock Level 10" icon={<Crown />} link="/games" />
@@ -275,7 +276,7 @@ export default function UserDashboard() {
                 </ul>
                 <Button asChild className="w-full h-12 bg-primary rounded-xl font-black uppercase italic text-[10px] shadow-lg">
                    <Link href={isIndia ? "/withdraw" : "/shop"}>
-                     {isIndia ? "EXECUTE WITHDRAWAL" : "ENTER GLOBAL SHOP"} <ArrowUpRight className="h-4 w-4 ml-2" />
+                     {isIndia ? "EXECUTE FREE WITHDRAWAL" : "ENTER GLOBAL SHOP"} <ArrowUpRight className="h-4 w-4 ml-2" />
                    </Link>
                 </Button>
              </Card>
