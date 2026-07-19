@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import WalletModal from './WalletModal';
 import { cn } from '@/lib/utils';
 import { UserProfile } from '@/app/lib/types';
+import { doc } from 'firebase/firestore';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
