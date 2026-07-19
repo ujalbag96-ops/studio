@@ -25,8 +25,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>CampusCompanion | Industrial Learning & Mastery Hub</title>
-        <meta name="description" content="Master skills, analyze outcomes, and earn industrial rewards in the elite student arena." />
+        <title>CampusCompanion | Global Scholar & Yield Hub</title>
+        <meta name="description" content="The ultimate educational reward platform. Access global textbooks and earn industrial yield through verified skill missions." />
+        <meta name="keywords" content="Education, Rewards, NCERT, Odia Medium, CPA, Earning app, Student productivity" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
