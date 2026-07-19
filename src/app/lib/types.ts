@@ -3,6 +3,7 @@ export type TournamentStatus = 'active' | 'upcoming' | 'completed' | 'cancelled'
 export type GameType = 'BGMI' | 'Free Fire' | 'Ludo King' | 'Other';
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
 export type KycStatus = 'none' | 'pending' | 'approved' | 'rejected';
+export type EduSource = 'NCERT' | 'OpenStax' | 'OdiaMedium';
 
 export interface UserProfile {
   id: string;
@@ -39,6 +40,7 @@ export interface UserProfile {
   dailyStudyMinutes: number;
   lastStudyDate?: string;
   selectedClass?: string;
+  preferredEduSource?: EduSource;
   
   // Arcade Progress (50 Levels each)
   puzzleLevel: number;
