@@ -84,6 +84,13 @@ export interface AppSettings {
   conversionFeePercent: number;
   minWithdrawalAmount: number;
   coinToInrRate: number; 
+  // API Nodes Status
+  cpaApiActive?: boolean;
+  adMobActive?: boolean;
+  ncertApiActive?: boolean;
+  osepaApiActive?: boolean;
+  vpnGuardActive?: boolean;
+  upiGatewayActive?: boolean;
 }
 
 export interface UserLedgerEntry {

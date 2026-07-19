@@ -23,7 +23,11 @@ import {
   Users,
   Activity,
   ArrowUpRight,
-  Power
+  Power,
+  Link2,
+  Lock,
+  Wifi,
+  Signal
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,7 +46,7 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'monitor' | 'finance' | 'audit' | 'settings'>('monitor');
+  const [activeTab, setActiveTab] = useState<'monitor' | 'apis' | 'finance' | 'audit' | 'settings'>('monitor');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -89,6 +93,7 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 p-8 space-y-3">
           <AdminLink active={activeTab === 'monitor'} icon={<Monitor />} label="Master Monitor" onClick={() => setActiveTab('monitor')} />
+          <AdminLink active={activeTab === 'apis'} icon={<Link2 />} label="API Master Hub" onClick={() => setActiveTab('apis')} />
           <AdminLink active={activeTab === 'finance'} icon={<BarChart3 />} label="Financial Node" onClick={() => setActiveTab('finance')} />
           <AdminLink active={activeTab === 'audit'} icon={<ShieldX />} label="Fraud Shield" onClick={() => setActiveTab('audit')} />
           <AdminLink active={activeTab === 'settings'} icon={<Settings />} label="System Config" onClick={() => setActiveTab('settings')} />
@@ -147,14 +152,14 @@ export default function AdminDashboard() {
                     <NodeSwitch 
                        icon={<Database />} 
                        label="NCERT Hub (India)" 
-                       active={true} 
-                       onToggle={() => {}} 
+                       active={settings?.ncertApiActive !== false} 
+                       onToggle={(v: boolean) => toggleSetting('ncertApiActive', v)} 
                     />
                     <NodeSwitch 
                        icon={<Globe />} 
                        label="OSEPA Node (Odisha)" 
-                       active={true} 
-                       onToggle={() => {}} 
+                       active={settings?.osepaApiActive !== false} 
+                       onToggle={(v: boolean) => toggleSetting('osepaApiActive', v)} 
                     />
                  </div>
               </Card>
@@ -206,8 +211,8 @@ export default function AdminDashboard() {
                        </div>
                     </div>
                     <div className="flex gap-6">
-                       <StatusIndicator label="CPA Mediation (CPALead)" status="active" />
-                       <StatusIndicator label="Ad Streaming (Rewarded)" status="active" />
+                       <StatusIndicator label="CPA Mediation (CPALead)" status={settings?.cpaApiActive !== false ? 'active' : 'inactive'} />
+                       <StatusIndicator label="Ad Streaming (Rewarded)" status={settings?.adMobActive !== false ? 'active' : 'inactive'} />
                        <StatusIndicator label="Postback Node (S2S)" status="active" />
                     </div>
                  </div>
@@ -235,7 +240,56 @@ export default function AdminDashboard() {
            </div>
         )}
 
-        {activeTab !== 'monitor' && (
+        {activeTab === 'apis' && (
+           <div className="space-y-10 animate-in slide-in-from-bottom-4 duration-700">
+              <header className="flex items-center gap-4">
+                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                    <Link2 className="h-5 w-5 text-primary" />
+                 </div>
+                 <div>
+                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">Master API <span className="text-primary">Configuration</span></h2>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Global Industrial Node Management</p>
+                 </div>
+              </header>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                 <ApiCategoryCard title="Monetization Nodes" icon={<Zap className="text-amber-500" />}>
+                    <NodeSwitch label="CPALead Mediation" active={settings?.cpaApiActive !== false} onToggle={(v: boolean) => toggleSetting('cpaApiActive', v)} />
+                    <NodeSwitch label="AdMob Rewarded" active={settings?.adMobActive !== false} onToggle={(v: boolean) => toggleSetting('adMobActive', v)} />
+                    <NodeSwitch label="S2S Postback URL" active={true} onToggle={() => {}} />
+                 </ApiCategoryCard>
+
+                 <ApiCategoryCard title="Education Nodes" icon={<Library className="text-primary" />}>
+                    <NodeSwitch label="NCERT API (India)" active={settings?.ncertApiActive !== false} onToggle={(v: boolean) => toggleSetting('ncertApiActive', v)} />
+                    <NodeSwitch label="OSEPA API (Odisha)" active={settings?.osepaApiActive !== false} onToggle={(v: boolean) => toggleSetting('osepaApiActive', v)} />
+                    <NodeSwitch label="OpenStax Global" active={true} onToggle={() => {}} />
+                 </ApiCategoryCard>
+
+                 <ApiCategoryCard title="Security & Finance" icon={<ShieldCheck className="text-green-500" />}>
+                    <NodeSwitch label="VPN Guard Node" active={settings?.vpnGuardActive !== false} onToggle={(v: boolean) => toggleSetting('vpnGuardActive', v)} />
+                    <NodeSwitch label="UPI Gateway (Auto)" active={settings?.upiGatewayActive !== false} onToggle={(v: boolean) => toggleSetting('upiGatewayActive', v)} />
+                    <NodeSwitch label="RNG Integrity Node" active={true} onToggle={() => {}} />
+                 </ApiCategoryCard>
+              </div>
+
+              <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
+                 <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
+                       <Signal className="h-5 w-5 text-primary" /> API Heartbeat Monitor
+                    </h3>
+                    <Badge variant="outline" className="border-white/10 uppercase text-[9px] font-black">Live Signals</Badge>
+                 </div>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <HeartbeatIndicator label="CPA Signal" ms={32} status="active" />
+                    <HeartbeatIndicator label="Ad SDK" ms={120} status="active" />
+                    <HeartbeatIndicator label="Gov. Library" ms={450} status="active" />
+                    <HeartbeatIndicator label="Auth Node" ms={12} status="active" />
+                 </div>
+              </Card>
+           </div>
+        )}
+
+        {activeTab !== 'monitor' && activeTab !== 'apis' && (
            <div className="py-40 text-center space-y-6 bg-[#0a0a0f] border border-dashed border-white/10 rounded-[4rem]">
               <Settings className="h-20 w-20 text-muted-foreground opacity-10 mx-auto" />
               <p className="text-sm font-black uppercase text-muted-foreground tracking-[0.4em] italic">Secondary Node Hub Active</p>
@@ -244,6 +298,35 @@ export default function AdminDashboard() {
       </main>
     </div>
   );
+}
+
+function ApiCategoryCard({ title, icon, children }: any) {
+   return (
+      <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
+         <div className="flex items-center gap-3 pb-2 border-b border-white/5">
+            <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">{icon}</div>
+            <h3 className="text-lg font-black uppercase italic tracking-tighter text-white">{title}</h3>
+         </div>
+         <div className="space-y-4">
+            {children}
+         </div>
+      </Card>
+   );
+}
+
+function HeartbeatIndicator({ label, ms, status }: any) {
+   return (
+      <div className="p-6 bg-black/40 rounded-2xl border border-white/5 space-y-2 group hover:border-primary/40 transition-all">
+         <div className="flex justify-between items-center">
+            <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">{label}</p>
+            <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", status === 'active' ? "bg-green-500" : "bg-red-500")} />
+         </div>
+         <p className="text-2xl font-black italic text-white">{ms}<span className="text-[10px] opacity-40 ml-1">ms</span></p>
+         <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+            <div className="h-full bg-primary" style={{ width: `${Math.max(10, 100 - (ms / 10))}%` }} />
+         </div>
+      </div>
+   );
 }
 
 function StatusIndicator({ label, status }: { label: string, status: 'active' | 'inactive' }) {
@@ -262,9 +345,11 @@ function NodeSwitch({ icon, label, active, onToggle }: any) {
    return (
       <div className="flex items-center justify-between p-6 bg-white/5 border border-white/10 rounded-2xl group hover:border-primary/40 transition-all shadow-lg">
          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center text-primary border border-white/5 group-hover:scale-110 transition-transform">
-               {icon}
-            </div>
+            {icon && (
+               <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center text-primary border border-white/5 group-hover:scale-110 transition-transform">
+                  {icon}
+               </div>
+            )}
             <span className="text-[11px] font-black uppercase tracking-widest">{label}</span>
          </div>
          <Switch checked={active} onCheckedChange={onToggle} />
