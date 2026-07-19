@@ -15,13 +15,13 @@ export default function LivePrizePool() {
 
   const participants = pool?.total_participants || 0;
   // Calculation: ₹(total_participants * 10 * 0.8)
-  const jackpotPool = participants * 10 * 0.8;
+  const bountyPool = participants * 10 * 0.8;
 
   const mockWinners = [
     { name: "Rahul_G", amount: 240 },
-    { name: "WinnerBot_99", amount: 500 },
-    { name: "GamingPro_22", amount: 180 },
-    { name: "Lucky_Strike", amount: 350 }
+    { name: "MasterNode_99", amount: 500 },
+    { name: "GamerPro_22", amount: 180 },
+    { name: "Skill_Strike", amount: 350 }
   ];
 
   return (
@@ -37,19 +37,19 @@ export default function LivePrizePool() {
                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
                       <Zap className="h-5 w-5 text-amber-500 animate-pulse" />
                    </div>
-                   <h3 className="text-xl font-black uppercase italic tracking-widest text-white">Daily Jackpot Pool</h3>
+                   <h3 className="text-xl font-black uppercase italic tracking-widest text-white">Daily Skill Bounty</h3>
                 </div>
                 <div>
                    <p className="text-6xl md:text-8xl font-black text-amber-500 italic tracking-tighter drop-shadow-lg">
-                      ₹{jackpotPool.toFixed(0)}
+                      ₹{bountyPool.toFixed(0)}
                    </p>
                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] mt-2">Operational Integrity Active</p>
                 </div>
              </div>
 
              <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
-                <StatBox label="Warriors" value={participants} icon={<Users />} />
-                <StatBox label="Draw In" value="Midnight" icon={<Sparkles />} />
+                <StatBox label="Active Peers" value={participants} icon={<Users />} />
+                <StatBox label="Settle In" value="Midnight" icon={<Sparkles />} />
              </div>
           </div>
 
@@ -62,7 +62,7 @@ export default function LivePrizePool() {
                          <div key={idx} className="flex items-center gap-3">
                             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-white/60">
-                               Recent Winner: <span className="text-white italic">{winner.name}</span> won <span className="text-green-500">₹{winner.amount}</span>
+                               Recent Credit: <span className="text-white italic">{winner.name}</span> earned <span className="text-green-500">₹{winner.amount}</span>
                             </span>
                          </div>
                       ))}

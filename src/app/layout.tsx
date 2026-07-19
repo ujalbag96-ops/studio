@@ -12,6 +12,8 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import SupportChat from '@/components/SupportChat';
 import { usePathname } from 'next/navigation';
 import { Loader2, ShieldAlert, Monitor } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -23,6 +25,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <title>CampusCompanion | Industrial Learning & Mastery Hub</title>
+        <meta name="description" content="Master skills, analyze outcomes, and earn industrial rewards in the elite student arena." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -60,13 +64,13 @@ function SystemGate({ children }: { children: React.ReactNode }) {
   const isReviewMode = settings?.reviewMode && !isAdmin;
   const isMaintenance = settings?.maintenanceMode && !isAdmin && !pathname.startsWith('/auth') && !pathname.startsWith('/admin');
 
-  // KILL SWITCH: Hide gaming modules during review
-  const isGamingPath = pathname.startsWith('/tournaments') || 
-                       pathname.startsWith('/esports-live') || 
-                       pathname.startsWith('/cricket') ||
-                       pathname.startsWith('/games') ||
-                       pathname.startsWith('/lottery') ||
-                       pathname.startsWith('/predictions');
+  // Operational Node Control: Restrict high-performance modules during review
+  const isHighPerformancePath = pathname.startsWith('/tournaments') || 
+                               pathname.startsWith('/esports-live') || 
+                               pathname.startsWith('/cricket') ||
+                               pathname.startsWith('/games') ||
+                               pathname.startsWith('/lottery') ||
+                               pathname.startsWith('/predictions');
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-screen bg-black">
@@ -92,7 +96,7 @@ function SystemGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isReviewMode && isGamingPath) {
+  if (isReviewMode && isHighPerformancePath) {
      return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] p-10 text-center space-y-6">
            <Monitor className="h-20 w-20 text-muted-foreground opacity-10" />

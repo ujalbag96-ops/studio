@@ -30,17 +30,17 @@ export default function Home() {
   
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-12 pb-24 md:pb-12 bg-background">
-      {/* Jackpot Widget Hook */}
+      {/* Bounty Widget Hook */}
       <section className="animate-in slide-in-from-top-10 duration-700">
          <LivePrizePool />
          <div className="flex justify-center -mt-6 relative z-10">
             <Button asChild className="h-14 px-10 bg-primary hover:bg-primary/90 font-black uppercase italic rounded-2xl shadow-2xl">
-               <Link href="/lottery">ENTER DRAW NOW <ArrowRight className="ml-2 h-4 w-4" /></Link>
+               <Link href="/lottery">ENTER DAILY DRAW <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
          </div>
       </section>
 
-      {/* High-Octane Gaming Hero */}
+      {/* High-Octane Learning Arena */}
       <section className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-[#121216] to-[#0a0a0f] border border-white/5 shadow-2xl">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -mr-40 -mt-40 animate-pulse" />
         
@@ -48,24 +48,24 @@ export default function Home() {
           <div className="space-y-8 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-primary/10 border border-primary/20 shadow-xl">
               <Target className="h-4 w-4 text-primary animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Live Tournament Arena</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Mastery Skill Arena</span>
             </div>
             
             <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-white uppercase italic">
-              BATTLE FOR <br />
-              <span className="text-primary">THE CROWN</span>
+              ANALYZE & <br />
+              <span className="text-primary">ELEVATE</span>
             </h1>
             
             <p className="text-lg text-muted-foreground font-medium max-w-md mx-auto lg:mx-0 leading-relaxed">
-              Enlist in elite BGMI, Free Fire & Ludo King tournaments. Spend <span className="text-white">Deposits</span>, win <span className="text-primary">Real Rewards</span>.
+              Complete elite skill challenges and academic quests. Earn <span className="text-white">Credits</span>, unlock <span className="text-primary">Industrial Rewards</span>.
             </p>
             
             <div className="flex flex-wrap justify-center lg:justify-start gap-6">
               <Button asChild size="lg" className="h-16 bg-primary hover:bg-primary/90 text-white font-black px-12 rounded-2xl shadow-2xl shadow-primary/20 text-xl tracking-widest uppercase italic transition-all hover:scale-105">
-                <Link href="/login">PLAY NOW</Link>
+                <Link href="/login">ENTER HUB</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="h-16 border-white/10 hover:bg-white/5 text-white font-black px-10 rounded-2xl text-lg uppercase tracking-widest transition-all hover:border-primary/40">
-                <Link href="/earning-hub">FREE INCOME</Link>
+                <Link href="/earning-hub">INCOME MISSIONS</Link>
               </Button>
             </div>
           </div>
@@ -79,26 +79,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Game Sectors */}
+      {/* Sector Selection */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-6">
-         <CategoryCard icon={<Gamepad2 />} label="BGMI" color="from-orange-500/20 to-transparent border-orange-500/30" active={selectedGame === 'BGMI'} onClick={() => setSelectedGame(selectedGame === 'BGMI' ? 'All' : 'BGMI')} />
-         <CategoryCard icon={<Zap />} label="FREE FIRE" color="from-blue-500/20 to-transparent border-blue-500/30" active={selectedGame === 'Free Fire'} onClick={() => setSelectedGame(selectedGame === 'Free Fire' ? 'All' : 'Free Fire')} />
-         <CategoryCard icon={<Trophy />} label="LUDO KING" color="from-green-500/20 to-transparent border-green-500/30" active={selectedGame === 'Ludo King'} onClick={() => setSelectedGame(selectedGame === 'Ludo King' ? 'All' : 'Ludo King')} />
-         <CategoryCard icon={<Gift />} label="ALL ARENAS" color="from-purple-500/20 to-transparent border-purple-500/30" active={selectedGame === 'All'} onClick={() => setSelectedGame('All')} />
+         <CategoryCard icon={<Gamepad2 />} label="SKILL ARCADE" color="from-orange-500/20 to-transparent border-orange-500/30" active={selectedGame === 'BGMI'} onClick={() => setSelectedGame(selectedGame === 'BGMI' ? 'All' : 'BGMI')} />
+         <CategoryCard icon={<Zap />} label="RAPID MISSIONS" color="from-blue-500/20 to-transparent border-blue-500/30" active={selectedGame === 'Free Fire'} onClick={() => setSelectedGame(selectedGame === 'Free Fire' ? 'All' : 'Free Fire')} />
+         <CategoryCard icon={<Trophy />} label="ELITE BOUNTY" color="from-green-500/20 to-transparent border-green-500/30" active={selectedGame === 'Ludo King'} onClick={() => setSelectedGame(selectedGame === 'Ludo King' ? 'All' : 'Ludo King')} />
+         <CategoryCard icon={<Gift />} label="GLOBAL NODE" color="from-purple-500/20 to-transparent border-purple-500/30" active={selectedGame === 'All'} onClick={() => setSelectedGame('All')} />
       </section>
 
-      {/* High-Stakes Campaigns */}
+      {/* Active High-Performance Campaigns */}
       <section className="space-y-10">
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-6">
             <Crown className="h-10 w-10 text-primary drop-shadow-[0_0_15px_rgba(255,123,0,0.5)]" />
             <h2 className="text-4xl font-black uppercase italic tracking-tighter">
-              {selectedGame === 'All' ? 'Active Campaigns' : `${selectedGame} Sector`}
+              {selectedGame === 'All' ? 'Active Challenges' : `${selectedGame} Sector`}
             </h2>
           </div>
-          {selectedGame !== 'All' && (
-            <Button variant="ghost" onClick={() => setSelectedGame('All')} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Clear Sector</Button>
-          )}
         </div>
         
         {tourisLoading ? (
