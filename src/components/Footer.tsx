@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Target, Zap, Activity, Info } from 'lucide-react';
+import { ShieldCheck, Target, Zap, Activity, Info, Layout } from 'lucide-react';
 import RiskDisclosureModal from './RiskDisclosureModal';
 
 export default function Footer() {
@@ -35,9 +35,9 @@ export default function Footer() {
         <div className="space-y-6">
           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white italic">Arena Sectors</h4>
           <ul className="space-y-3">
+            <li><FooterLink href="/about" label="Platform Overview" /></li>
             <li><FooterLink href="/campus" label="Resource Locker" /></li>
             <li><FooterLink href="/earning-hub" label="Earning Hub" /></li>
-            <li><FooterLink href="/movies" label="Cinema Arena" /></li>
             <li><FooterLink href="/leaderboard" label="Hall of Fame" /></li>
           </ul>
         </div>
