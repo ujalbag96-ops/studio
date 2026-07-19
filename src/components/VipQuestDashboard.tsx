@@ -3,14 +3,13 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { CheckCircle2, Circle, Smartphone, Users, Zap, Info, ArrowRight, Trophy, Lock } from 'lucide-react';
+import { CheckCircle2, Circle, Smartphone, Users, Zap, Info, ArrowRight, Trophy, Lock, Video } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { UserProfile } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface QuestProps {
   profile: UserProfile;
@@ -19,16 +18,16 @@ interface QuestProps {
 export default function VipQuestDashboard({ profile }: QuestProps) {
   const requirements = {
     cpa: 5,
-    referrals: 3,
-    engagement: 2
+    ads: 5,
+    referrals: 5
   };
 
   const currentCpa = profile.cpaTasksCount || 0;
-  const currentRefs = profile.referralTasksCount || 0;
-  const currentEng = profile.engagementCount || 0;
+  const currentAds = profile.generalTasksCount || 0;
+  const currentRefs = profile.totalReferrals || 0;
 
-  const totalTasks = currentCpa + currentRefs + currentEng;
-  const targetTasks = requirements.cpa + requirements.referrals + requirements.engagement;
+  const totalTasks = currentCpa + currentAds + currentRefs;
+  const targetTasks = requirements.cpa + requirements.ads + requirements.referrals;
   const overallProgress = Math.min((totalTasks / targetTasks) * 100, 100);
 
   return (
@@ -47,7 +46,7 @@ export default function VipQuestDashboard({ profile }: QuestProps) {
                </span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-white">Elite Access <span className="text-primary">Protocol</span></h2>
-            <p className="text-muted-foreground text-sm font-medium uppercase tracking-tight">Complete 10 strategic tasks to unlock Withdrawals & Tournaments.</p>
+            <p className="text-muted-foreground text-sm font-medium uppercase tracking-tight">"Complete 10 Tasks & 5 Invites to unlock Payout"</p>
           </div>
           
           <div className="bg-black/40 border border-white/10 p-6 rounded-3xl text-center min-w-[160px]">
@@ -63,7 +62,15 @@ export default function VipQuestDashboard({ profile }: QuestProps) {
              title="CPA Missions" 
              current={currentCpa} 
              target={requirements.cpa} 
-             desc="Install & verify sponsored apps from the Income Hub."
+             desc="Install & verify 5 sponsored apps."
+             href="/earning-hub"
+           />
+           <QuestItem 
+             icon={<Video className="text-amber-500" />} 
+             title="Video Signals" 
+             current={currentAds} 
+             target={requirements.ads} 
+             desc="Watch 5 sponsored video ads."
              href="/earning-hub"
            />
            <QuestItem 
@@ -71,30 +78,22 @@ export default function VipQuestDashboard({ profile }: QuestProps) {
              title="Warriors Recruited" 
              current={currentRefs} 
              target={requirements.referrals} 
-             desc="Invite 3 students using your unique signal link."
+             desc="Invite 5 students using your link."
              href="/refer"
-           />
-           <QuestItem 
-             icon={<Zap className="text-amber-500" />} 
-             title="Arena Activity" 
-             current={currentEng} 
-             target={requirements.engagement} 
-             desc="Read 2 study pages or play 2 arena mini-games."
-             href="/campus"
            />
         </div>
 
         <div className="p-6 bg-primary/5 border border-primary/20 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6">
            <div className="flex items-start gap-4">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
-                 <Info className="h-5 w-5 text-primary" />
+                 <ShieldCheck className="h-5 w-5 text-primary" />
               </div>
               <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">
-                 VIP 1 unlocks the industrial withdrawal terminal, eSports tournaments, and high-reward missions (₹15+ rewards).
+                 VIP 1 verifies your industrial integrity. Once unlocked, the Anti-Fraud Shield will perform a final audit of your task completion history before your first withdrawal.
               </p>
            </div>
            <Button asChild className="bg-white text-black hover:bg-white/90 font-black uppercase italic rounded-xl px-8 h-12 shadow-xl">
-              <Link href="/earning-hub">GO TO INCOME HUB <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link href="/earning-hub">GO TO HUB <ArrowRight className="ml-2 h-4 w-4" /></Link>
            </Button>
         </div>
       </div>

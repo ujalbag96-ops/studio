@@ -30,8 +30,9 @@ export interface UserProfile {
   
   // Validation Tracking
   cpaTasksCount: number;
-  generalTasksCount: number; // For Quizzes, Ads, Check-ins
+  generalTasksCount: number; // For Video Ads
   engagementCount: number;
+  totalReferrals: number; 
   
   // Arcade Progress (50 Levels each)
   puzzleLevel: number;
@@ -46,7 +47,6 @@ export interface UserProfile {
   tasksCompletedCount?: number;
   networkTaskCompletions?: number;
   totalNetworkRevenue?: number;
-  totalReferrals?: number; 
   totalNetworkReferrals?: number; 
   riskNoticeAccepted?: boolean;
   matchLossCount?: number; 
@@ -128,4 +128,16 @@ export interface CricketMatch {
     lastBalls?: string[];
   };
   winner?: string;
+}
+
+export interface PredictionPoll {
+  id: string;
+  question: string;
+  optionA: string;
+  optionB: string;
+  totalPool: number;
+  entryFee: number;
+  category: string;
+  expiry: string;
+  timestamp: string;
 }

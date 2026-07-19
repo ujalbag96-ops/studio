@@ -29,7 +29,8 @@ import {
   Package,
   Sparkles,
   ShieldEllipsis,
-  ShieldAlert
+  ShieldAlert,
+  Users
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -91,8 +92,12 @@ export default function UserDashboard() {
   const currencyData = getCurrencyData(profile?.country);
   const combinedCashBalance = formatCurrency((profile?.winningBalance || 0) + (profile?.taskBalance || 0), profile?.country);
   
-  // Validation Logic: 5 CPA + 10 General
-  const isEarningActive = (profile?.cpaTasksCount || 0) >= 5 && (profile?.generalTasksCount || 0) >= 10;
+  // --- UPDATED VIP 1 VALIDATION HUD ---
+  const cpaMet = (profile?.cpaTasksCount || 0) >= 5;
+  const adsMet = (profile?.generalTasksCount || 0) >= 5;
+  const referralsMet = (profile?.totalReferrals || 0) >= 5;
+  const isEarningActive = cpaMet && adsMet && referralsMet;
+
   const currentWithdrawalVal = (profile?.winningBalance || 0) / currencyData.rateToCoins;
   const neededForWithdrawal = Math.max(0, currencyData.minWithdrawal - currentWithdrawalVal);
 
@@ -188,21 +193,22 @@ export default function UserDashboard() {
           </div>
         </header>
 
-        {/* Validation Progress HUD */}
+        {/* Validation Progress HUD UPGRADED */}
         {!isEarningActive && (
           <Card className="bg-amber-500/5 border-amber-500/20 border-2 rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-10">
              <div className="space-y-4 text-center md:text-left">
                 <div className="flex items-center justify-center md:justify-start gap-3">
                    <ShieldAlert className="h-6 w-6 text-amber-500" />
-                   <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Validation <span className="text-amber-500">Incomplete</span></h3>
+                   <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Validation <span className="text-amber-500">Gateway</span></h3>
                 </div>
                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest max-w-md">
-                   Complete the mandatory criteria to unlock your first industrial withdrawal.
+                   "Complete 10 Tasks & 5 Invites to unlock Payout Terminal"
                 </p>
              </div>
-             <div className="grid grid-cols-2 gap-6 w-full md:w-auto">
+             <div className="grid grid-cols-3 gap-6 w-full md:w-auto">
                 <ValidationCircle label="CPA MISSIONS" current={profile?.cpaTasksCount || 0} target={5} color="text-primary" />
-                <ValidationCircle label="GENERAL TASKS" current={profile?.generalTasksCount || 0} target={10} color="text-amber-500" />
+                <ValidationCircle label="VIDEO ADS" current={profile?.generalTasksCount || 0} target={5} color="text-amber-500" />
+                <ValidationCircle label="INVITES" current={profile?.totalReferrals || 0} target={5} color="text-green-500" />
              </div>
           </Card>
         )}
@@ -231,7 +237,7 @@ export default function UserDashboard() {
                      <div className="space-y-4 text-center md:text-left">
                         <Badge className="bg-amber-500/10 text-amber-500 border-none uppercase font-black px-3 py-1 text-[8px]">100% FREE REWARD</Badge>
                         <h4 className="text-4xl font-black uppercase italic text-white leading-none">Elite <span className="text-amber-500">Loot Drop</span></h4>
-                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed max-w-sm">
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed max-sm">
                            No investment required. Claim your daily surprise coin bounty subsidized by sponsors.
                         </p>
                      </div>
@@ -265,7 +271,7 @@ export default function UserDashboard() {
                 <ul className="space-y-4">
                    <SecurityLink active={profile?.kycStatus === 'approved'} text="Identity Verified" />
                    <SecurityLink active={profile?.riskNoticeAccepted || false} text="Legal Consent" />
-                   <SecurityLink active={isEarningActive} text="Validation Pass" />
+                   <SecurityLink active={isEarningActive} text="VIP 1 Verified" />
                 </ul>
                 <Button asChild className="w-full h-12 bg-primary rounded-xl font-black uppercase italic text-[10px] shadow-lg">
                    <Link href={isIndia ? "/withdraw" : "/shop"}>
@@ -352,7 +358,7 @@ function IncomeSourceCard({ title, value, icon, link }: any) {
                   {value && <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{value}</p>}
                </div>
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all" />
+            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all" />
          </div>
       </Link>
    );
