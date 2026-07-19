@@ -21,7 +21,8 @@ import {
   Globe,
   Lock,
   PlayCircle,
-  X
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -52,6 +53,7 @@ function ViewerContent() {
   
   const [isAdRunning, setIsAdRunning] = useState(false);
   const [adCountdown, setAdCountdown] = useState(0);
+  const [pendingUnlock, setPendingUnlock] = useState(false);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
@@ -70,14 +72,18 @@ function ViewerContent() {
       interval = setInterval(() => setAdCountdown(c => c - 1), 1000);
     } else if (isAdRunning && adCountdown === 0) {
        setIsAdRunning(false);
-       if (quizFinished) {
-          // Actual claim logic
+       if (pendingUnlock) {
+          setPendingUnlock(false);
+          // Reward logic for quiz answer unlock
+          toast({ title: "DIFFICULT ANSWER UNLOCKED", description: "Signal verified. Options are now visible." });
+       } else if (quizFinished) {
+          // Final reward logic
           if (userRef) updateDoc(userRef, { coins: increment(10), bonusBalance: increment(10) });
-          toast({ title: "REWARD CLAIMED", description: "+10 Coins added to wallet." });
+          toast({ title: "10 COINS CREDITED", description: "Lesson mastery verified via Ad Signal." });
        }
     }
     return () => clearInterval(interval);
-  }, [isAdRunning, adCountdown, quizFinished]);
+  }, [isAdRunning, adCountdown, quizFinished, pendingUnlock, userRef]);
 
   const startAiQuiz = async () => {
     setShowQuiz(true);
@@ -117,8 +123,13 @@ function ViewerContent() {
     }
   };
 
+  const unlockDifficultAnswer = () => {
+     setPendingUnlock(true);
+     setAdCountdown(10);
+     setIsAdRunning(true);
+  };
+
   const claimQuizReward = () => {
-     // TRIGGER REWARDED AD FOR FINAL CLAIM
      setIsAdRunning(true);
      setAdCountdown(10);
      setShowQuiz(false);
@@ -128,14 +139,22 @@ function ViewerContent() {
     if (!profile?.referralCode) return;
     const shareUrl = `${window.location.origin}/login?ref=${profile.referralCode}`;
     if (navigator.share) {
-      await navigator.share({ title: 'Join Arena', text: 'Master these industrial notes!', url: shareUrl });
+      await navigator.share({ title: 'CampusCompanion', text: 'Master these industrial notes!', url: shareUrl });
     }
     // Reward for sharing
-    if (userRef) updateDoc(userRef, { coins: increment(2), bonusBalance: increment(2) });
+    if (userRef) {
+       await fetch('/api/share-reward', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user!.uid })
+       });
+    }
     toast({ title: "SHARE DIVIDEND", description: "+2 Coins added." });
   };
 
   if (!url) return <div className="p-20 text-center">Invalid Signal URL</div>;
+
+  const isDifficultQuestion = currentQuestion >= 3 && !pendingUnlock && !quizFinished;
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-8 pb-32">
@@ -144,7 +163,7 @@ function ViewerContent() {
             <Button variant="ghost" onClick={() => router.back()} className="text-[10px] font-black uppercase text-muted-foreground"><ArrowLeft className="h-3 w-3 mr-2" /> Back</Button>
             <Select value={language} onValueChange={setLanguage}>
                <SelectTrigger className="w-[140px] h-10 bg-white/5 border-white/10 rounded-xl font-black text-[10px] uppercase"><Globe className="h-3 w-3 mr-2" /><SelectValue placeholder="Language" /></SelectTrigger>
-               <SelectContent className="bg-[#0a0a0f] border-white/10">
+               <SelectContent className="bg-[#0a0a0f] border-white/10 text-white">
                   <SelectItem value="en">English</SelectItem>
                   <SelectItem value="hi">Hindi</SelectItem>
                   <SelectItem value="or">Odia</SelectItem>
@@ -170,7 +189,7 @@ function ViewerContent() {
 
          <div className="space-y-6">
             <Card className="bg-primary/5 border-primary/20 p-8 rounded-[2.5rem] space-y-6">
-               <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Trophy className="h-5 w-5 text-primary" /> Session Hub</h3>
+               <h3 className="text-xl font-black uppercase italic flex items-center gap-3 text-white"><Trophy className="h-5 w-5 text-primary" /> Session Hub</h3>
                <div className="space-y-4">
                   <div className="flex justify-between text-[10px] font-black uppercase">
                      <span className="text-muted-foreground">Reading Time</span>
@@ -210,16 +229,37 @@ function ViewerContent() {
              <div className="space-y-8 pt-10">
                 <div className="flex justify-between items-center">
                    <Badge className="bg-primary/20 text-primary uppercase font-black text-[8px] px-3">QUESTION {currentQuestion + 1} / 5</Badge>
-                   {currentQuestion >= 3 && <Badge className="bg-amber-500 text-black uppercase font-black text-[8px] px-3 italic">DIFFICULT</Badge>}
+                   {currentQuestion >= 3 && <Badge className="bg-amber-500 text-black uppercase font-black text-[8px] px-3 italic animate-pulse">DIFFICULT SIGNAL</Badge>}
                 </div>
-                <h3 className="text-2xl font-black uppercase italic text-white leading-tight">{quizData.questions[currentQuestion].question}</h3>
-                <div className="grid gap-3">
-                   {quizData.questions[currentQuestion].options.map((opt, i) => (
-                     <button key={i} onClick={() => handleAnswer(i)} className="w-full p-6 bg-white/5 border border-white/10 rounded-2xl text-left font-bold uppercase text-xs hover:border-primary transition-all">
-                        <span className="text-primary mr-4">0{i+1}.</span> {opt}
-                     </button>
-                   ))}
-                </div>
+                <h3 className={cn(
+                   "text-2xl font-black uppercase italic text-white leading-tight",
+                   isDifficultQuestion && "blur-sm opacity-20 pointer-events-none select-none"
+                )}>
+                  {quizData.questions[currentQuestion].question}
+                </h3>
+
+                {isDifficultQuestion ? (
+                  <div className="p-10 bg-white/5 border border-white/10 rounded-3xl text-center space-y-6">
+                     <Lock className="h-10 w-10 text-amber-500 mx-auto" />
+                     <div className="space-y-2">
+                        <p className="text-lg font-black uppercase italic">Unlock Difficult Phase</p>
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed">
+                           Questions 4 & 5 test high-performance mastery. Watch 1 rewarded ad to unlock the answer terminal.
+                        </p>
+                     </div>
+                     <Button onClick={unlockDifficultAnswer} className="h-14 px-8 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase italic rounded-xl">
+                        WATCH TO UNLOCK
+                     </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {quizData.questions[currentQuestion].options.map((opt, i) => (
+                      <button key={i} onClick={() => handleAnswer(i)} className="w-full p-6 bg-white/5 border border-white/10 rounded-2xl text-left font-bold uppercase text-xs hover:border-primary transition-all group">
+                         <span className="text-primary mr-4 group-hover:scale-110 inline-block transition-transform">0{i+1}.</span> {opt}
+                      </button>
+                    ))}
+                  </div>
+                )}
              </div>
            ) : null}
         </DialogContent>
@@ -240,9 +280,9 @@ function ViewerContent() {
                  </div>
 
                  <div className="space-y-4">
-                    <h3 className="text-3xl font-black uppercase italic">Verifying Signal...</h3>
+                    <h3 className="text-3xl font-black uppercase italic text-white">Verifying Signal...</h3>
                     <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                       Sponsor signal analysis in progress. Do not minimize this node to ensure reward credit.
+                       Sponsor signal analysis in progress. Do not minimize this node to ensure {pendingUnlock ? 'unlock' : 'reward'} credit.
                     </p>
                  </div>
 
