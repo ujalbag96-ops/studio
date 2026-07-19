@@ -1,206 +1,160 @@
-
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import TournamentCard from '@/components/TournamentCard';
 import { Button } from '@/components/ui/button';
 import { 
   ArrowRight, 
   Zap, 
   Trophy, 
-  TrendingUp, 
-  Sparkles, 
-  Loader2, 
   Globe, 
   Gamepad2, 
-  Gift, 
-  Crown, 
-  Target, 
   ShieldCheck, 
-  Banknote,
   Library,
   ShoppingBag,
-  GraduationCap
+  GraduationCap,
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
 import Link from 'next/link';
-import { Tournament, GameType, UserProfile } from './lib/types';
-import { useState } from 'react';
+import { Tournament, UserProfile } from './lib/types';
 import { cn } from '@/lib/utils';
 import LivePrizePool from '@/components/LivePrizePool';
 
 export default function Home() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [selectedGame, setSelectedGame] = useState<GameType | 'All'>('All');
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
-  const tournamentsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'tournaments') : null, [firestore]);
-  const { data: tournaments, isLoading: tourisLoading } = useCollection<Tournament>(tournamentsQuery);
-
-  const isIndia = profile?.country === 'India' || !profile?.country; // Default to India style if unknown
-  
-  const filteredTournaments = tournaments?.filter(t => {
-    if (selectedGame === 'All') return t.status === 'active';
-    return t.status === 'active' && t.gameType === selectedGame;
-  }) || [];
+  const isIndia = profile?.country === 'India' || !profile?.country; 
   
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-12 pb-24 md:pb-12 bg-background">
-      {/* Bounty Widget Hook */}
-      <section className="animate-in slide-in-from-top-10 duration-700">
+    <div className="max-w-7xl mx-auto px-6 py-12 space-y-16 pb-32">
+      {/* Bounty Status Widget */}
+      <section className="animate-in fade-in slide-in-from-top-4 duration-1000">
          <LivePrizePool />
-         <div className="flex justify-center -mt-6 relative z-10">
-            <Button asChild className="h-14 px-10 bg-primary hover:bg-primary/90 font-black uppercase italic rounded-2xl shadow-2xl">
-               <Link href="/lottery">ENTER FREE DRAW <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-         </div>
       </section>
 
-      {/* Dynamic Super App Hero Section */}
-      <section className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-[#121216] to-[#0a0a0f] border border-white/5 shadow-2xl">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -mr-40 -mt-40 animate-pulse" />
+      {/* Hero Section: Clean & Professional */}
+      <section className="grid lg:grid-cols-2 gap-12 items-center bg-card border border-white/5 rounded-[3rem] p-10 md:p-16 relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] -mr-40 -mt-40" />
         
-        <div className="relative z-10 grid lg:grid-cols-2 items-center gap-12 p-8 md:p-20">
-          <div className="space-y-8 text-center lg:text-left">
-            <div className="flex flex-wrap justify-center lg:justify-start gap-3">
-               <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-green-500/10 border border-green-500/20 shadow-xl">
-                 <ShieldCheck className="h-4 w-4 text-green-500 animate-pulse" />
-                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-green-500">
-                    {isIndia ? '100% Zero Investment Hub' : 'Global High-Yield Node'}
-                 </span>
-               </div>
-               <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-primary/10 border border-primary/20 shadow-xl">
-                 <Globe className="h-4 w-4 text-primary" />
-                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                    Zone: {profile?.country || 'Analyzing Signal...'}
-                 </span>
-               </div>
-            </div>
-            
-            <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-white uppercase italic">
-              {isIndia ? 'INDIAN' : 'GLOBAL'} <br />
-              <span className="text-primary">REVENUE HUB</span>
-            </h1>
-            
-            <p className="text-lg text-muted-foreground font-medium max-w-md mx-auto lg:mx-0 leading-relaxed uppercase tracking-tight opacity-70">
-              {isIndia 
-                ? 'Access NCERT/OSEPA textbooks and solve AI quizzes to earn verified pocket money.' 
-                : 'Complete high-paying CPA missions and redeem earnings for international gift cards.'}
-            </p>
-            
-            <div className="flex flex-wrap justify-center lg:justify-start gap-6">
-              <Button asChild size="lg" className="h-16 bg-primary hover:bg-primary/90 text-white font-black px-12 rounded-2xl shadow-2xl shadow-primary/20 text-xl tracking-widest uppercase italic transition-all hover:scale-105">
-                <Link href={isIndia ? "/campus" : "/earning-hub"}>
-                   {isIndia ? "ENTER LIBRARY" : "VIEW MISSIONS"}
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="h-16 border-white/10 hover:bg-white/5 text-white font-black px-10 rounded-2xl text-lg uppercase tracking-widest transition-all hover:border-primary/40">
-                <Link href="/dashboard">MY PORTFOLIO</Link>
-              </Button>
-            </div>
-          </div>
-          
-          <div className="hidden lg:flex justify-center relative">
-             <div className="relative w-96 h-96 animate-float">
-                <div className="absolute inset-0 bg-primary/20 rounded-full blur-[100px]" />
-                {isIndia ? (
-                   <Library className="w-full h-full text-primary drop-shadow-[0_0_50px_rgba(99,102,241,0.3)]" />
-                ) : (
-                   <ShoppingBag className="w-full h-full text-primary drop-shadow-[0_0_50px_rgba(99,102,241,0.3)]" />
-                )}
+        <div className="space-y-10 relative z-10">
+          <div className="flex flex-wrap gap-4">
+             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary/10 border border-primary/20">
+               <ShieldCheck className="h-4 w-4 text-primary" />
+               <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Zero Investment Node</span>
+             </div>
+             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10">
+               <Globe className="h-4 w-4 text-muted-foreground" />
+               <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{profile?.country || 'Analyzing Location...'}</span>
              </div>
           </div>
+          
+          <h1 className="text-6xl md:text-8xl font-bold tracking-tighter leading-[0.9] text-white uppercase">
+            Industrial <br />
+            <span className="text-primary italic">Yield Hub</span>
+          </h1>
+          
+          <p className="text-lg text-muted-foreground font-medium max-w-lg leading-relaxed uppercase tracking-tight">
+            The standard platform for student resources and micro-earning missions. Verified via industrial S2S signals.
+          </p>
+          
+          <div className="flex flex-wrap gap-6 pt-4">
+            <Button asChild size="lg" className="h-16 bg-primary hover:bg-primary/90 text-white font-bold px-10 rounded-2xl shadow-xl shadow-primary/20 text-lg uppercase transition-all hover:scale-[1.02]">
+              <Link href={isIndia ? "/campus" : "/earning-hub"}>
+                 {isIndia ? "Access Library" : "Start Missions"}
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="h-16 border-white/10 hover:bg-white/5 text-white font-bold px-10 rounded-2xl text-lg uppercase transition-all">
+              <Link href="/dashboard">My Portfolio</Link>
+            </Button>
+          </div>
+        </div>
+        
+        <div className="hidden lg:flex justify-center relative">
+           <div className="relative w-80 h-80 animate-float">
+              <div className="absolute inset-0 bg-primary/10 rounded-full blur-[80px]" />
+              {isIndia ? (
+                 <Library className="w-full h-full text-primary opacity-80 drop-shadow-[0_0_40px_rgba(0,122,255,0.4)]" />
+              ) : (
+                 <ShoppingBag className="w-full h-full text-primary opacity-80 drop-shadow-[0_0_40px_rgba(0,122,255,0.4)]" />
+              )}
+           </div>
         </div>
       </section>
 
-      {/* Dynamic Sector Selection */}
+      {/* Industrial Grid: 16dp spacing ensure */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-6">
          <CategoryCard 
             icon={isIndia ? <Library /> : <Zap />} 
-            label={isIndia ? "NCERT LOCKER" : "GLOBAL CPA"} 
-            color="from-orange-500/20 to-transparent border-orange-500/30" 
-            active={false} 
-            onClick={() => {}} 
+            label={isIndia ? "NCERT Hub" : "Global Tasks"} 
+            desc={isIndia ? "Classes 1-12" : "High-Pay CPA"}
+            color="hover:border-primary/40"
          />
          <CategoryCard 
             icon={<Gamepad2 />} 
-            label="FREE ARCADE" 
-            color="from-blue-500/20 to-transparent border-blue-500/30" 
-            active={false} 
-            onClick={() => {}} 
+            label="Free Arcade" 
+            desc="Skill Rewards"
+            color="hover:border-blue-400/40"
          />
          <CategoryCard 
             icon={<Trophy />} 
-            label="DAILY BOUNTY" 
-            color="from-green-500/20 to-transparent border-green-500/30" 
-            active={false} 
-            onClick={() => {}} 
+            label="Daily Bounty" 
+            desc="Loot Drops"
+            color="hover:border-green-400/40"
          />
          <CategoryCard 
             icon={isIndia ? <GraduationCap /> : <ShoppingBag />} 
-            label={isIndia ? "OSEPA ZONE" : "GIFT SHOP"} 
-            color="from-purple-500/20 to-transparent border-purple-500/30" 
-            active={false} 
-            onClick={() => {}} 
+            label={isIndia ? "Career Tips" : "Gift Shop"} 
+            desc={isIndia ? "UPSC/JEE/NEET" : "Voucher Vault"}
+            color="hover:border-purple-400/40"
          />
       </section>
 
-      {/* Active High-Performance Campaigns */}
-      <section className="space-y-10">
-        <div className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-6">
-            <Crown className="h-10 w-10 text-primary drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]" />
-            <h2 className="text-4xl font-black uppercase italic tracking-tighter">
-              {isIndia ? 'Education Dividends' : 'Global Missions'}
-            </h2>
-          </div>
-          <Button asChild variant="link" className="text-primary font-black uppercase text-[10px] tracking-widest">
-             <Link href={isIndia ? "/campus" : "/earning-hub"}>View All Sector Signals <ArrowRight className="ml-2 h-3 w-3" /></Link>
-          </Button>
-        </div>
-        
-        {tourisLoading ? (
-          <div className="flex justify-center py-24"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
-        ) : filteredTournaments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {filteredTournaments.map(tournament => (
-              <TournamentCard key={tournament.id} tournament={tournament} />
-            ))}
-          </div>
-        ) : (
-          <div className="py-24 text-center border-2 border-dashed border-white/5 rounded-[3rem]">
-            <Zap className="h-12 w-12 text-muted-foreground opacity-10 mx-auto mb-4" />
-            <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">Zero cost deployments active soon</p>
-          </div>
-        )}
+      {/* Trust Signals */}
+      <section className="pt-10 grid md:grid-cols-3 gap-8">
+         <div className="p-10 bg-white/5 rounded-[2.5rem] border border-white/5 space-y-4">
+            <CheckCircle2 className="h-10 w-10 text-primary" />
+            <h3 className="text-xl font-bold uppercase italic">S2S Verified</h3>
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
+              Real-time postback signals ensure every mission is credited instantly.
+            </p>
+         </div>
+         <div className="p-10 bg-white/5 rounded-[2.5rem] border border-white/5 space-y-4">
+            <ShieldCheck className="h-10 w-10 text-primary" />
+            <h3 className="text-xl font-bold uppercase italic">Fraud Shield</h3>
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
+              Proprietary VPN and proxy detection node for ecosystem integrity.
+            </p>
+         </div>
+         <div className="p-10 bg-white/5 rounded-[2.5rem] border border-white/5 space-y-4">
+            <Zap className="h-10 w-10 text-primary" />
+            <h3 className="text-xl font-bold uppercase italic">Direct Payout</h3>
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
+              Instant withdrawal terminal supporting UPI and Global Gateways.
+            </p>
+         </div>
       </section>
     </div>
   );
 }
 
-function CategoryCard({ icon, label, color, active, onClick }: { icon: any, label: string, color: string, active: boolean, onClick: () => void }) {
+function CategoryCard({ icon, label, desc, color }: { icon: any, label: string, desc: string, color: string }) {
   return (
-    <div 
-      onClick={onClick}
-      className={cn(
-        "p-8 rounded-[2.5rem] bg-gradient-to-br flex flex-col items-center justify-center gap-4 cursor-pointer transition-all hover:scale-105 hover:shadow-2xl border backdrop-blur-3xl group",
-        color,
-        active ? "ring-4 ring-primary border-primary ring-offset-4 ring-offset-background scale-105" : "opacity-80 grayscale-[50%] hover:grayscale-0"
-      )}
-    >
-       <div className={cn(
-         "h-14 w-14 rounded-2xl flex items-center justify-center border border-white/10 shadow-xl transition-transform group-hover:rotate-6",
-         active ? "bg-primary text-white" : "bg-white/5 text-white/60"
-       )}>
+    <div className={cn(
+      "p-10 rounded-[2.5rem] bg-card border border-white/10 flex flex-col items-center justify-center gap-6 cursor-pointer transition-all duration-300 hover:scale-[1.05] hover:shadow-2xl hover:shadow-black group",
+      color
+    )}>
+       <div className="h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-inner group-hover:bg-primary group-hover:text-white transition-all duration-300">
           {icon}
        </div>
-       <span className={cn(
-         "font-black uppercase text-[10px] tracking-[0.3em] italic transition-colors text-center",
-         active ? "text-primary" : "text-white/60"
-       )}>{label}</span>
+       <div className="text-center space-y-1">
+          <span className="font-bold uppercase text-[12px] tracking-[0.2em] italic text-white group-hover:text-primary transition-colors">{label}</span>
+          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">{desc}</p>
+       </div>
     </div>
   );
 }
