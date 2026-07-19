@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -6,12 +7,12 @@ import { collection, query, where } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Loader2, ArrowLeft, Zap, Lock, ShieldCheck, X, Sparkles } from 'lucide-react';
+import { FileText, Download, Loader2, ArrowLeft, Zap, Lock, ShieldCheck, X, Sparkles, PlayCircle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-export default function SubjectMaterialScreen() {
+export default function ChapterListScreen() {
   const params = useParams();
   const router = useRouter();
   const firestore = useFirestore();
@@ -19,15 +20,15 @@ export default function SubjectMaterialScreen() {
   const [adCountdown, setAdCountdown] = useState(8);
   const [pendingUrl, setPendingUrl] = useState('');
 
-  const dept = params.dept as string;
-  const sem = params.sem as string;
+  const classId = params.dept as string;
+  const subjectId = params.sem as string;
 
-  const materialsQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'study_materials'), where('department', '==', dept), where('semester', '==', parseInt(sem.replace('sem-', '')))) : null, 
-    [firestore, dept, sem]
-  );
-  
-  const { data: materials, isLoading } = useCollection<any>(materialsQuery);
+  // Mocked Chapters for NCERT
+  const chapters = [
+    { id: 'ch1', title: 'Chapter 1: Rational Numbers', type: 'PDF Textbook', url: 'https://ncert.nic.in/textbook/pdf/hemh101.pdf', duration: '20 Mins' },
+    { id: 'ch2', title: 'Chapter 2: Linear Equations', type: 'PDF Textbook', url: 'https://ncert.nic.in/textbook/pdf/hemh102.pdf', duration: '25 Mins' },
+    { id: 'ch3', title: 'Chapter 3: Understanding Quadrilaterals', type: 'PDF Textbook', url: 'https://ncert.nic.in/textbook/pdf/hemh103.pdf', duration: '30 Mins' },
+  ];
 
   const handleMaterialClick = (url: string) => {
     setPendingUrl(url);
@@ -53,64 +54,55 @@ export default function SubjectMaterialScreen() {
     <div className="max-w-5xl mx-auto p-6 md:p-12 space-y-12 pb-32">
       <div className="flex items-center justify-between">
          <Button variant="ghost" asChild className="text-[10px] font-black uppercase text-muted-foreground hover:text-white">
-            <Link href={`/campus/${dept}`}><ArrowLeft className="h-3 w-3 mr-2" /> Back to Semesters</Link>
+            <Link href={`/campus/${classId}`}><ArrowLeft className="h-3 w-3 mr-2" /> Back to Subjects</Link>
          </Button>
          <div className="flex gap-2">
-            <Badge variant="outline" className="border-white/10 uppercase text-[9px] font-black">{dept}</Badge>
-            <Badge className="bg-primary/20 text-primary border-none uppercase text-[9px] font-black">{sem}</Badge>
+            <Badge variant="outline" className="border-white/10 uppercase text-[9px] font-black">{classId.replace('class-', 'CLASS ')}</Badge>
+            <Badge className="bg-primary/20 text-primary border-none uppercase text-[9px] font-black">{subjectId.toUpperCase()}</Badge>
          </div>
       </div>
 
       <header className="space-y-4 text-center md:text-left">
         <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-green-500/10 border border-green-500/20 mb-2">
            <Sparkles className="h-3 w-3 text-green-500" />
-           <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">100% Free Resources</span>
+           <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">Rewards Enabled for {subjectId.toUpperCase()}</span>
         </div>
         <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic text-white leading-none">
-          Resource <span className="text-primary">Locker</span>
+          Chapter <span className="text-primary">Stream</span>
         </h1>
-        <p className="text-muted-foreground font-medium text-lg">Curated materials for the industrial student node. No subscription required.</p>
+        <p className="text-muted-foreground font-medium text-lg uppercase tracking-tight">Complete chapters to trigger the Scholar Dividend.</p>
       </header>
 
-      {isLoading ? (
-        <div className="py-32 flex justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
-      ) : materials && materials.length > 0 ? (
-        <div className="grid gap-6">
-          {materials.map((m: any) => (
-            <Card key={m.id} className="p-8 bg-[#0a0a0f] border-white/5 hover:border-primary/20 transition-all rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-8 group shadow-xl">
-              <div className="flex items-center gap-6">
-                <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:border-primary/20 transition-all shadow-xl">
-                   <FileText className="h-8 w-8" />
-                </div>
-                <div>
-                   <div className="flex items-center gap-2 mb-1">
-                      <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] font-black uppercase">FREE ACCESS</Badge>
-                      <Badge className="bg-white/5 text-muted-foreground border-none text-[8px] font-black uppercase">{m.type}</Badge>
-                   </div>
-                   <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">{m.title}</h3>
-                   {m.isPremium && <p className="text-[9px] text-amber-500 font-bold uppercase tracking-widest mt-1">⭐ Unlock with 1 Ad</p>}
-                </div>
+      <div className="grid gap-6">
+        {chapters.map((ch) => (
+          <Card key={ch.id} className="p-8 bg-[#0a0a0f] border-white/5 hover:border-primary/20 transition-all rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-8 group shadow-xl">
+            <div className="flex items-center gap-6">
+              <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground group-hover:text-primary transition-all shadow-xl">
+                 <FileText className="h-8 w-8" />
               </div>
-              <Button 
-                onClick={() => handleMaterialClick(m.url)}
-                className="w-full md:w-auto h-16 px-10 bg-primary hover:bg-primary/90 font-black uppercase italic rounded-2xl shadow-xl shadow-primary/20"
-              >
-                READ FOR FREE <Download className="ml-3 h-5 w-5" />
-              </Button>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="py-40 text-center space-y-6 border-2 border-dashed border-white/5 rounded-[3rem]">
-           <FileText className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
-           <p className="text-muted-foreground italic font-black uppercase tracking-[0.4em]">Resource Cache is Empty</p>
-        </div>
-      )}
+              <div className="text-left">
+                 <div className="flex items-center gap-2 mb-1">
+                    <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] font-black uppercase">SCHOLAR NODE</Badge>
+                    <div className="flex items-center gap-1.5 text-[8px] text-muted-foreground font-bold uppercase ml-2"><Clock className="h-2 w-2" /> {ch.duration} Read</div>
+                 </div>
+                 <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">{ch.title}</h3>
+                 <p className="text-[8px] text-primary font-black uppercase tracking-[0.3em] mt-1 italic">+10 Scholar Points Potential</p>
+              </div>
+            </div>
+            <Button 
+              onClick={() => handleMaterialClick(ch.url)}
+              className="w-full md:w-auto h-16 px-10 bg-primary hover:bg-primary/90 font-black uppercase italic rounded-2xl shadow-xl shadow-primary/20"
+            >
+              START LEARNING <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Card>
+        ))}
+      </div>
 
       {/* INTERSTITIAL AD MODAL SIMULATION */}
       {showInterstitial && (
         <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-500">
-           <Card className="max-w-md w-full bg-[#0d0d12] border-primary/20 border-2 rounded-[3rem] overflow-hidden relative shadow-[0_0_100px_rgba(99,102,241,0.2)]">
+           <Card className="max-w-md w-full bg-[#0d0d12] border-primary/20 border-2 rounded-[3rem] overflow-hidden relative shadow-2xl">
               <div className="p-12 text-center space-y-10">
                  <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
                     <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
@@ -122,9 +114,9 @@ export default function SubjectMaterialScreen() {
                  </div>
 
                  <div className="space-y-4">
-                    <h3 className="text-3xl font-black uppercase italic tracking-tighter">Preparing <span className="text-primary">Free Access...</span></h3>
+                    <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white">Connecting <span className="text-primary">Library...</span></h3>
                     <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                       Sponsor signal analysis in progress. Free access granted after decryption protocol.
+                       Establishing high-bandwidth signal to NCERT Digital Repository. Sponsored by platform partners.
                     </p>
                  </div>
 
@@ -135,10 +127,10 @@ export default function SubjectMaterialScreen() {
                       onClick={proceedToViewer}
                       className={cn(
                         "w-full h-20 rounded-2xl font-black text-xl uppercase italic shadow-2xl transition-all",
-                        adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce" : "bg-white/5 text-white/20 border border-white/10"
+                        adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce shadow-green-500/20" : "bg-white/5 text-white/20 border border-white/10"
                       )}
                     >
-                       {adCountdown === 0 ? "ACCESS GRANTED" : "VERIFYING FREE SIGNAL..."}
+                       {adCountdown === 0 ? "SIGNAL LOCKED" : "DECRYPTING NODE..."}
                     </Button>
                  </div>
               </div>

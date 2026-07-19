@@ -30,9 +30,15 @@ export interface UserProfile {
   
   // Validation Tracking
   cpaTasksCount: number;
-  generalTasksCount: number; // For Video Ads
+  generalTasksCount: number; 
   engagementCount: number;
   totalReferrals: number; 
+  
+  // Education Tracking
+  scholarPoints: number;
+  dailyStudyMinutes: number;
+  lastStudyDate?: string;
+  selectedClass?: string;
   
   // Arcade Progress (50 Levels each)
   puzzleLevel: number;
@@ -50,7 +56,7 @@ export interface UserProfile {
   totalNetworkReferrals?: number; 
   riskNoticeAccepted?: boolean;
   matchLossCount?: number; 
-  preferredLanguage?: 'en' | 'or';
+  preferredLanguage?: 'en' | 'or' | 'hi';
   kycStatus: KycStatus;
   kycDocumentUrl?: string;
   kycSubmittedAt?: string;
@@ -69,13 +75,13 @@ export interface UserProfile {
 export interface AppSettings {
   maintenanceMode: boolean;
   reviewMode: boolean; 
-  autoWithdrawalEnabled: boolean; // Master Toggle for Automated Payouts
-  autoWithdrawalMaxAmount: number; // Max amount for auto-processing
+  autoWithdrawalEnabled: boolean; 
+  autoWithdrawalMaxAmount: number; 
   adminUpiId: string;
   automaticGatewayEnabled: boolean;
   conversionFeePercent: number;
   minWithdrawalAmount: number;
-  coinToInrRate: number; // e.g. 100
+  coinToInrRate: number; 
 }
 
 export interface UserLedgerEntry {
@@ -101,9 +107,18 @@ export interface PayoutRequest {
   status: 'pending' | 'completed' | 'failed';
   timestamp: string;
   vipLevel: number;
-  processedBy: 'manual' | 'automatic'; // Tracks how the payout was executed
-  gatewayTransactionId?: string; // ID from RazorpayX/PayPal etc.
+  processedBy: 'manual' | 'automatic'; 
+  gatewayTransactionId?: string; 
   geo?: string;
+}
+
+export interface Movie {
+  id: string;
+  title: string;
+  poster: string;
+  videoUrl: string;
+  category: string;
+  createdAt: string;
 }
 
 export interface ShopItem {
@@ -145,4 +160,16 @@ export interface PredictionPoll {
   category: string;
   expiry: string;
   timestamp: string;
+}
+
+export interface SystemNotification {
+  id: string;
+  userId: string | null;
+  title: string;
+  body: string;
+  localizedBody?: string;
+  timestamp: string;
+  type: 'broadcast' | 'payout' | 'mission';
+  imageUrl?: string;
+  voucherCode?: string;
 }
