@@ -38,6 +38,11 @@ export interface UserProfile {
   physicsLevel: number;
   runnerLevel: number;
   
+  // Retention Features
+  dailyStreak: number;
+  lastCheckInDate?: string;
+  quizLives: number;
+  
   tasksCompletedCount?: number;
   networkTaskCompletions?: number;
   totalNetworkRevenue?: number;
@@ -104,4 +109,23 @@ export interface ShopItem {
   imageUrl: string;
   category: string;
   geo: string;
+}
+
+export interface CricketMatch {
+  id: string;
+  teamA: string;
+  teamB: string;
+  teamALogo: string;
+  teamBLogo: string;
+  startTime: string;
+  status: 'live' | 'upcoming' | 'completed';
+  series: string;
+  liveScore?: {
+    runsA: string;
+    runsB: string;
+    overs: string;
+    target?: string;
+    lastBalls?: string[];
+  };
+  winner?: string;
 }

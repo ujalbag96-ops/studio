@@ -48,7 +48,8 @@ import {
   ArrowRight,
   Package,
   Sparkles,
-  Timer
+  Timer,
+  Heart
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,8 @@ import VipQuestDashboard from '@/components/VipQuestDashboard';
 import QuestCelebrationModal from '@/components/QuestCelebrationModal';
 import { formatCurrency } from '@/lib/currency';
 import ScratchCard from '@/components/ScratchCard';
+import DailyStreak from '@/components/DailyStreak';
+import TrendingEarners from '@/components/TrendingEarners';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -109,29 +112,14 @@ export default function UserDashboard() {
     }
   };
 
-  const submitKyc = async () => {
-    if (!kycDoc || !userProfileRef) return;
-    setIsKycProcessing(true);
-    try {
-      await updateDoc(userProfileRef, {
-        kycStatus: 'pending',
-        kycDocumentUrl: kycDoc,
-        kycSubmittedAt: new Date().toISOString()
-      });
-      toast({ title: "KYC SUBMITTED", description: "Identity signal dispatched for manual audit." });
-      setShowKycModal(false);
-    } catch (e) {
-      toast({ variant: "destructive", title: "Submit Failed" });
-    } finally {
-      setIsKycProcessing(false);
-    }
-  };
-
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!user) return null;
 
   const isIndia = profile?.country === 'India';
   const combinedCashBalance = formatCurrency((profile?.winningBalance || 0) + (profile?.taskBalance || 0), profile?.country);
+  const currentTotalCoins = profile?.coins || 0;
+  const currentWithdrawalVal = (profile?.winningBalance || 0) / 100;
+  const neededForWithdrawal = Math.max(0, 100 - currentWithdrawalVal);
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white selection:bg-primary relative overflow-x-hidden">
@@ -140,7 +128,7 @@ export default function UserDashboard() {
       {profile && <QuestCelebrationModal isOpen={showCelebration} onClose={() => setShowCelebration(false)} profile={profile} />}
       {showScratch && <ScratchCard onClose={() => setShowScratch(false)} />}
       
-      {/* 🎰 LIVE WINNING MARQUEE (RETENTION HOOK) */}
+      {/* 🎰 LIVE WINNING MARQUEE */}
       <div className="fixed top-0 left-0 right-0 z-[110] bg-primary/20 backdrop-blur-md border-b border-primary/20 py-2 overflow-hidden h-10 hidden md:block">
          <div className="flex animate-marquee whitespace-nowrap gap-20">
             {Array(5).fill(0).map((_, i) => (
@@ -162,15 +150,6 @@ export default function UserDashboard() {
          </div>
       </div>
 
-      {/* 🎁 FLOATING MYSTERY BOX TRIGGER */}
-      <button 
-        onClick={() => setShowScratch(true)}
-        className="fixed bottom-24 right-6 z-[120] h-16 w-16 bg-amber-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(245,158,11,0.5)] animate-bounce hover:scale-110 transition-transform"
-      >
-         <Package className="h-8 w-8 text-black" />
-         <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded-full border-2 border-[#050508]">FREE</span>
-      </button>
-
       <aside className="w-80 border-r border-white/5 bg-[#0a0a0f] hidden lg:flex flex-col fixed inset-y-0 left-0 z-50">
         <div className="p-10 border-b border-white/5">
           <Link href="/" className="flex items-center gap-4 group">
@@ -189,7 +168,8 @@ export default function UserDashboard() {
           <div className="pt-8 px-4 space-y-4">
              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest italic">Operational Nodes</p>
              <Link href="/earning-hub" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><Zap className="h-4 w-4 text-primary" /> Income Hub</Link>
-             <Link href="/shop" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><ShoppingBag className="h-4 w-4 text-amber-500" /> Gift Card Shop</Link>
+             <Link href="/games" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><Gamepad2 className="h-4 w-4 text-green-500" /> Arcade Sector</Link>
+             <Link href="/shop" className="flex items-center gap-3 p-3 text-[10px] font-bold text-white hover:bg-white/5 rounded-xl transition-all uppercase"><ShoppingBag className="h-4 w-4 text-amber-500" /> Reward Shop</Link>
           </div>
         </nav>
 
@@ -205,19 +185,26 @@ export default function UserDashboard() {
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
                <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[10px]">
-                 {isIndia ? 'Domestic Portfolio' : 'International Portfolio'}
+                 {isIndia ? 'Domestic Node' : 'Global Node'}
                </Badge>
                <Badge className="bg-amber-500/20 text-amber-500 border-none uppercase font-black px-4 py-1 text-[10px] flex items-center gap-1.5">
-                  <Star className="h-3 w-3 fill-amber-500" /> VIP LEVEL {profile?.vipLevel || 0}
+                  <Heart className="h-3 w-3 fill-amber-500" /> Lives: {profile?.quizLives || 3}
                </Badge>
             </div>
-            <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter italic leading-none">Total <span className="text-primary">{combinedCashBalance}</span></h1>
+            <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter italic leading-none">Balance <span className="text-primary">{combinedCashBalance}</span></h1>
+            {isIndia && (
+              <p className="text-sm font-black text-amber-500 uppercase italic tracking-widest animate-pulse">
+                ₹{neededForWithdrawal.toFixed(2)} aur kamaiye, Saturday withdrawal ke liye!
+              </p>
+            )}
           </div>
-          <div className="bg-black/40 border border-white/5 px-8 py-4 rounded-3xl backdrop-blur-xl">
-             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Regional Node</p>
-             <div className="flex items-center gap-4">
-                <Globe className="h-4 w-4 text-primary" />
-                <span className="text-sm font-black text-white italic uppercase">{profile?.country || 'Global'}</span>
+          <div className="flex gap-4">
+             <div className="bg-black/40 border border-white/5 px-8 py-4 rounded-3xl backdrop-blur-xl">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Rank Status</p>
+                <div className="flex items-center gap-4">
+                   <Crown className="h-4 w-4 text-amber-500" />
+                   <span className="text-sm font-black text-white italic uppercase">{profile?.rank || 'Bronze I'}</span>
+                </div>
              </div>
           </div>
         </header>
@@ -226,21 +213,21 @@ export default function UserDashboard() {
            <VipQuestDashboard profile={profile} />
         )}
 
+        {profile && <DailyStreak profile={profile} />}
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <WalletCard label="Winning Cash" value={profile?.winningBalance || 0} country={profile?.country} icon={<Trophy />} color="green" />
-          <WalletCard label="Task Earnings" value={profile?.taskBalance || 0} country={profile?.country} icon={<CreditCard />} color="blue" />
-          <WalletCard label="Total Assets" value={profile?.coins || 0} country={profile?.country} icon={<Coins />} color="amber" />
+          <WalletCard label="Winnings" value={profile?.winningBalance || 0} country={profile?.country} icon={<Trophy />} color="green" />
+          <WalletCard label="Missions" value={profile?.taskBalance || 0} country={profile?.country} icon={<CreditCard />} color="blue" />
+          <WalletCard label="Total Coins" value={profile?.coins || 0} country={profile?.country} icon={<Coins />} color="amber" />
           <WalletCard label="Bonus Signal" value={profile?.bonusBalance || 0} country={profile?.country} icon={<Zap />} color="primary" />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           <div className="xl:col-span-2 space-y-12">
             
-            {/* 🎲 ADDICTIVE HOOK: MYSTERY VAULT */}
             <section className="space-y-6">
                <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><Gift className="h-6 w-6 text-amber-500" /> Mystery Vault</h3>
-                  <Badge variant="outline" className="border-amber-500/20 text-amber-500 text-[8px] font-black uppercase">Refreshes Daily</Badge>
+                  <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><Gift className="h-6 w-6 text-amber-500" /> Daily Mystery Vault</h3>
                </div>
                <Card className="bg-gradient-to-br from-[#1a1a24] to-black border-amber-500/30 border-2 rounded-[2.5rem] p-10 relative overflow-hidden group shadow-[0_0_50px_rgba(245,158,11,0.1)]">
                   <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-1000">
@@ -248,18 +235,15 @@ export default function UserDashboard() {
                   </div>
                   <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
                      <div className="space-y-4 text-center md:text-left">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-                           <Timer className="h-3 w-3 text-amber-500" />
-                           <span className="text-[9px] font-black text-amber-500 uppercase">Flash Loot Available</span>
-                        </div>
-                        <h4 className="text-4xl font-black uppercase italic text-white leading-none">Daily <span className="text-amber-500">Loot Drop</span></h4>
+                        <Badge className="bg-amber-500/10 text-amber-500 border-none uppercase font-black px-3 py-1 text-[8px]">REFRESHES AT MIDNIGHT</Badge>
+                        <h4 className="text-4xl font-black uppercase italic text-white leading-none">Elite <span className="text-amber-500">Loot Drop</span></h4>
                         <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed max-w-sm">
-                           Signal lock detected. Open the mystery vault to claim a surprise coin bounty.
+                           Signal lock detected. Claim your daily surprise coin bounty.
                         </p>
                      </div>
                      <Button 
                         onClick={() => setShowScratch(true)}
-                        className="h-16 px-12 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase italic text-lg rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
+                        className="h-16 px-12 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase italic text-lg rounded-2xl shadow-xl active:scale-95 transition-all"
                      >
                         OPEN VAULT <Sparkles className="ml-2 h-5 w-5" />
                      </Button>
@@ -267,66 +251,23 @@ export default function UserDashboard() {
                </Card>
             </section>
 
-            {isIndia && (
-              <section className="space-y-6">
-                <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><BookOpen className="h-6 w-6 text-primary" /> Domestic Study Hub</h3>
-                <Card className="bg-primary/5 border-primary/20 border-2 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl">
-                    <div className="absolute top-0 right-0 p-8 opacity-5">
-                      <GraduationCap className="h-40 w-48 text-primary" />
-                    </div>
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
-                      <div className="space-y-4 flex-1">
-                          <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black text-[8px] px-3">INDIA EXCLUSIVE</Badge>
-                          <h4 className="text-3xl font-black uppercase italic leading-none">Resource <span className="text-primary">Locker</span></h4>
-                          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                            Access curated study materials and take AI quizzes to earn coins. 100% free for Indian students.
-                          </p>
-                      </div>
-                      <Button asChild className="h-16 px-10 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase italic shadow-xl">
-                          <Link href="/campus">OPEN LOCKER <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                      </Button>
-                    </div>
-                </Card>
-              </section>
-            )}
-
-            {!isIndia && (
-               <section className="space-y-6">
-                <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><ShoppingBag className="h-6 w-6 text-amber-500" /> Reward Redemption</h3>
-                <Card className="bg-amber-500/5 border-amber-500/20 border-2 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl">
-                    <div className="absolute top-0 right-0 p-8 opacity-5">
-                      <Gift className="h-40 w-48 text-amber-500" />
-                    </div>
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
-                      <div className="space-y-4 flex-1">
-                          <Badge className="bg-amber-500/20 text-amber-500 border-none uppercase font-black text-[8px] px-3">GIFT CARDS ACTIVE</Badge>
-                          <h4 className="text-3xl font-black uppercase italic leading-none">Global <span className="text-amber-500">Shop</span></h4>
-                          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                            Redeem your 35% revenue share for Google Play, Steam, and Amazon codes.
-                          </p>
-                      </div>
-                      <Button asChild className="h-16 px-10 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase italic shadow-xl">
-                          <Link href="/shop">ENTER SHOP <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                      </Button>
-                    </div>
-                </Card>
-              </section>
-            )}
-
             <section className="space-y-6">
-               <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><Zap className="h-6 w-6 text-primary" /> Active Yield Signals</h3>
+               <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><Gamepad2 className="h-6 w-6 text-primary" /> Arcade Sector (50+ Levels)</h3>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <IncomeSourceCard title="CPA Missions" value={isIndia ? "60% Share" : "30% Share"} icon={<Smartphone />} link="/earning-hub" />
-                  <IncomeSourceCard title="Arcade Arena" icon={<Gamepad2 />} link="/games" />
-                  <IncomeSourceCard title="Cinema Watch" value="300 🪙" icon={<Video />} link="/watch-earn" />
-                  <IncomeSourceCard title="Team Royalties" value="5% + 2%" icon={<Users />} link="/refer" />
+                  <IncomeSourceCard title="Logic Puzzle" value={`Level ${profile?.puzzleLevel || 1}/50`} icon={<Layout />} link="/games" />
+                  <IncomeSourceCard title="Physics Arcade" value={`Level ${profile?.physicsLevel || 1}/50`} icon={<Target />} link="/games" />
+                  <IncomeSourceCard title="Endless Runner" value={`Level ${profile?.runnerLevel || 1}/50`} icon={<Zap />} link="/games" />
+                  <IncomeSourceCard title="Special Boss Mode" value="Unlock Level 10" icon={<Crown />} link="/games" />
                </div>
             </section>
           </div>
           
           <div className="space-y-8">
+             <TrendingEarners />
+             <ViralLeaderboard />
+             
              <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
-                <h4 className="text-sm font-black uppercase italic flex items-center gap-2"><ShieldCheck className="text-primary" /> Security Hub</h4>
+                <h4 className="text-sm font-black uppercase italic flex items-center gap-2"><ShieldCheck className="text-primary" /> Security Node</h4>
                 <ul className="space-y-4">
                    <SecurityLink active={profile?.kycStatus === 'approved'} text="Identity Verified" />
                    <SecurityLink active={profile?.riskNoticeAccepted || false} text="Legal Consent" />
@@ -334,19 +275,8 @@ export default function UserDashboard() {
                 </ul>
                 <Button asChild className="w-full h-12 bg-primary rounded-xl font-black uppercase italic text-[10px] shadow-lg">
                    <Link href={isIndia ? "/withdraw" : "/shop"}>
-                     {isIndia ? "REQUEST WITHDRAWAL" : "GO TO SHOP"} <ArrowUpRight className="h-4 w-4 ml-2" />
+                     {isIndia ? "EXECUTE WITHDRAWAL" : "ENTER GLOBAL SHOP"} <ArrowUpRight className="h-4 w-4 ml-2" />
                    </Link>
-                </Button>
-             </Card>
-             <ViralLeaderboard />
-
-             {/* ADDICTIVE HOOK: FAST TASK CARD */}
-             <Card className="bg-green-500/10 border-green-500/20 rounded-[2.5rem] p-8 space-y-4 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform"><TrendingUp className="h-10 w-10 text-green-500" /></div>
-                <p className="text-[10px] font-black uppercase text-green-500 tracking-[0.2em] italic">Instant Cashout Boost</p>
-                <h4 className="text-xl font-black uppercase italic leading-tight">Complete 1 App Mission for <span className="text-green-500">₹10+</span></h4>
-                <Button asChild variant="outline" className="w-full h-10 border-green-500/20 text-green-500 font-black uppercase italic text-[9px] hover:bg-green-500 hover:text-black">
-                   <Link href="/earning-hub">ACTIVATE MISSION</Link>
                 </Button>
              </Card>
           </div>
