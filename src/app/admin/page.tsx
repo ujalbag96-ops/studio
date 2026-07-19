@@ -24,7 +24,10 @@ import {
   Cpu,
   Shield,
   CircleDollarSign,
-  UserCheck
+  UserCheck,
+  Globe,
+  Settings2,
+  Power
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,8 +48,8 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'withdrawals' | 'finance' | 'audit' | 'settings'>('finance');
-  const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'withdrawals' | 'finance' | 'audit' | 'settings' | 'zones'>('finance');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -54,24 +57,46 @@ export default function AdminDashboard() {
   const fraudQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), where('isSuspended', '==', true), limit(50)) : null, [firestore, isAdminUser]);
   const vipUsersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), where('vipLevel', '>=', 1), limit(100)) : null, [firestore, isAdminUser]);
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
+  
+  const allUsersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? collection(firestore, 'users') : null, [firestore, isAdminUser]);
 
   const { data: payoutsData } = useCollection<PayoutRequest>(payoutsQuery);
   const { data: fraudData } = useCollection<UserProfile>(fraudQuery);
   const { data: vipUsers } = useCollection<UserProfile>(vipUsersQuery);
+  const { data: allUsers } = useCollection<UserProfile>(allUsersQuery);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
+
+  const toggleAutoWithdraw = async () => {
+     if (!settingsRef || !settings) return;
+     setIsProcessing(true);
+     try {
+        await updateDoc(settingsRef, {
+           autoWithdrawalEnabled: !settings.autoWithdrawalEnabled
+        });
+        toast({ title: "Signal Updated", description: `Auto-Withdrawal is now ${!settings.autoWithdrawalEnabled ? 'ENABLED' : 'DISABLED'}` });
+     } catch (e) {
+        toast({ variant: "destructive", title: "Sync Failed" });
+     } finally {
+        setIsProcessing(false);
+     }
+  };
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!isAdminUser) return <div className="flex items-center justify-center min-h-screen bg-black text-red-500 font-black p-10 uppercase italic text-center space-y-4"><div><ShieldAlert className="h-20 w-20 mx-auto mb-4" />MASTER AUTHORIZATION REQUIRED</div></div>;
+
+  const indiaUsers = allUsers?.filter(u => u.country === 'India').length || 0;
+  const globalUsers = (allUsers?.length || 0) - indiaUsers;
 
   return (
     <div className="flex min-h-screen bg-[#050508] text-white">
       <aside className="w-72 bg-[#0a0a0f] border-r border-white/5 flex flex-col fixed inset-y-0 z-50 shadow-2xl">
         <div className="p-8 flex items-center gap-4 border-b border-white/5 bg-primary/5">
           <ShieldCheck className="h-7 w-7 text-primary" />
-          <span className="font-black text-xl italic uppercase tracking-tighter text-white">ARENA <span className="text-primary">MASTER</span></span>
+          <span className="font-black text-xl italic uppercase tracking-tighter text-white">SUPER <span className="text-primary">ADMIN</span></span>
         </div>
         <nav className="flex-1 p-6 space-y-2">
-          <AdminLink active={activeTab === 'finance'} icon={<BarChart3 />} label="Revenue Control" onClick={() => setActiveTab('finance')} />
+          <AdminLink active={activeTab === 'finance'} icon={<BarChart3 />} label="Financial Node" onClick={() => setActiveTab('finance')} />
+          <AdminLink active={activeTab === 'zones'} icon={<Globe />} label="Zone Monitor" onClick={() => setActiveTab('zones')} />
           <AdminLink active={activeTab === 'withdrawals'} icon={<Wallet />} label="Payout Terminal" onClick={() => setActiveTab('withdrawals')} />
           <AdminLink active={activeTab === 'audit'} icon={<ShieldX />} label="Fraud Shield" onClick={() => setActiveTab('audit')} />
           <AdminLink active={activeTab === 'settings'} icon={<Settings />} label="System Config" onClick={() => setActiveTab('settings')} />
@@ -82,8 +107,18 @@ export default function AdminDashboard() {
         <header className="flex items-center justify-between">
            <div className="space-y-1">
               <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">Command <span className="text-primary">Center</span></h1>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">Enterprise Grade Management</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">Enterprise Super-App Controller</p>
            </div>
+           
+           <Card className="bg-primary/10 border border-primary/20 px-6 py-3 rounded-2xl flex items-center gap-4">
+              <div className="space-y-1">
+                 <p className="text-[8px] font-black uppercase text-muted-foreground">Auto-Withdrawal</p>
+                 <Badge className={cn("border-none text-[9px] uppercase", settings?.autoWithdrawalEnabled ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500")}>
+                    {settings?.autoWithdrawalEnabled ? 'ACTIVE' : 'LOCKED'}
+                 </Badge>
+              </div>
+              <Switch checked={settings?.autoWithdrawalEnabled} onCheckedChange={toggleAutoWithdraw} disabled={isProcessing} />
+           </Card>
         </header>
 
         {activeTab === 'finance' && (
@@ -112,10 +147,50 @@ export default function AdminDashboard() {
                          <TableCell className="text-green-500 font-bold">$58.94</TableCell>
                          <TableCell className="px-10 text-right"><Badge className="bg-green-500/10 text-green-500 border-none text-[9px] uppercase px-3">ACTIVE</Badge></TableCell>
                       </TableRow>
+                      <TableRow className="border-white/5 hover:bg-white/5">
+                         <TableCell className="px-10 py-6 font-black uppercase text-[11px] text-white">Rewarded Ad Streams</TableCell>
+                         <TableCell className="font-black italic text-primary">$58.30</TableCell>
+                         <TableCell className="text-green-500 font-bold">$40.81</TableCell>
+                         <TableCell className="px-10 text-right"><Badge className="bg-green-500/10 text-green-500 border-none text-[9px] uppercase px-3">ACTIVE</Badge></TableCell>
+                      </TableRow>
                    </TableBody>
                 </Table>
              </Card>
           </div>
+        )}
+
+        {activeTab === 'zones' && (
+           <div className="space-y-10 animate-in fade-in duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <Card className="p-10 rounded-[3rem] bg-[#0a0a0f] border-blue-500/20 border-2 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><FlagIcon /></div>
+                    <div className="space-y-4">
+                       <Badge className="bg-blue-500/20 text-blue-500 border-none uppercase font-black px-4 py-1 text-[9px]">India Zone Signal</Badge>
+                       <h3 className="text-4xl font-black text-white italic tracking-tighter">{indiaUsers} <span className="text-xl opacity-40">Peers</span></h3>
+                       <div className="space-y-2">
+                          <p className="text-[10px] font-black uppercase text-muted-foreground">Focus: NCERT / Quizzes</p>
+                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                             <div className="h-full bg-blue-500" style={{ width: `${(indiaUsers / (allUsers?.length || 1)) * 100}%` }} />
+                          </div>
+                       </div>
+                    </div>
+                 </Card>
+
+                 <Card className="p-10 rounded-[3rem] bg-[#0a0a0f] border-primary/20 border-2 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><Globe className="h-40 w-40" /></div>
+                    <div className="space-y-4">
+                       <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[9px]">Global Zone Signal</Badge>
+                       <h3 className="text-4xl font-black text-white italic tracking-tighter">{globalUsers} <span className="text-xl opacity-40">Peers</span></h3>
+                       <div className="space-y-2">
+                          <p className="text-[10px] font-black uppercase text-muted-foreground">Focus: CPA / Shopping</p>
+                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                             <div className="h-full bg-primary" style={{ width: `${(globalUsers / (allUsers?.length || 1)) * 100}%` }} />
+                          </div>
+                       </div>
+                    </div>
+                 </Card>
+              </div>
+           </div>
         )}
 
         {activeTab === 'audit' && (
@@ -143,14 +218,56 @@ export default function AdminDashboard() {
                              <TableCell className="px-10 text-right"><Button size="sm" variant="outline" className="h-8 rounded-lg text-[9px] font-black uppercase">Review Session</Button></TableCell>
                           </TableRow>
                        ))}
+                       {(!fraudData || fraudData.length === 0) && (
+                          <TableRow><TableCell colSpan={4} className="py-20 text-center uppercase font-black text-muted-foreground text-xs opacity-20">Integrity Check Clear</TableCell></TableRow>
+                       )}
                     </TableBody>
                  </Table>
               </Card>
            </div>
         )}
+
+        {activeTab === 'settings' && (
+           <div className="space-y-10 animate-in fade-in duration-500">
+              <div className="grid md:grid-cols-2 gap-8">
+                 <Card className="p-8 bg-[#0a0a0f] border-white/5 rounded-[2.5rem] space-y-8 shadow-2xl">
+                    <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Settings2 className="text-primary" /> Auto-Payout Engine</h3>
+                    <div className="space-y-6">
+                       <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
+                          <div className="space-y-1">
+                             <Label className="text-[10px] font-black uppercase">Instant Payout Status</Label>
+                             <p className="text-[8px] text-muted-foreground uppercase font-bold">API bypass for small withdrawals</p>
+                          </div>
+                          <Switch checked={settings?.autoWithdrawalEnabled} onCheckedChange={toggleAutoWithdraw} />
+                       </div>
+                       <div className="space-y-2">
+                          <Label className="text-[9px] font-black uppercase ml-1">Maximum Auto Limit ($)</Label>
+                          <Input type="number" defaultValue={settings?.autoWithdrawalMaxAmount || 20} className="h-14 bg-black border-white/10 font-black text-xl text-primary" />
+                       </div>
+                    </div>
+                 </Card>
+
+                 <Card className="p-8 bg-red-500/5 border-red-500/20 border-2 rounded-[2.5rem] space-y-6">
+                    <h3 className="text-xl font-black uppercase italic text-red-500 flex items-center gap-3"><Power /> Emergency Node</h3>
+                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
+                       Killswitch for all financial signals. Use only during detected database breach or upstream API failure.
+                    </p>
+                    <Button variant="destructive" className="w-full h-16 rounded-2xl font-black uppercase italic shadow-xl">TERMINATE ALL SESSIONS</Button>
+                 </Card>
+              </div>
+           </div>
+        )}
       </main>
     </div>
   );
+}
+
+function FlagIcon() {
+   return (
+      <svg className="h-40 w-40 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+         <path d="M7 2H9V22H7V2ZM19 12L11 16V8L19 12Z" />
+      </svg>
+   );
 }
 
 function AdminLink({ active, icon, label, onClick }: any) {
