@@ -69,6 +69,8 @@ export interface UserProfile {
 export interface AppSettings {
   maintenanceMode: boolean;
   reviewMode: boolean; 
+  autoWithdrawalEnabled: boolean; // Master Toggle for Automated Payouts
+  autoWithdrawalMaxAmount: number; // Max amount for auto-processing
   adminUpiId: string;
   automaticGatewayEnabled: boolean;
   conversionFeePercent: number;
@@ -99,6 +101,9 @@ export interface PayoutRequest {
   status: 'pending' | 'completed' | 'failed';
   timestamp: string;
   vipLevel: number;
+  processedBy: 'manual' | 'automatic'; // Tracks how the payout was executed
+  gatewayTransactionId?: string; // ID from RazorpayX/PayPal etc.
+  geo?: string;
 }
 
 export interface ShopItem {

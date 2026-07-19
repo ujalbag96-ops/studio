@@ -9,21 +9,44 @@
         "id": { "type": "string" },
         "email": { "type": "string" },
         "coins": { "type": "number" },
-        "department": { "type": "string" },
-        "semester": { "type": "number" },
-        "riskNoticeAccepted": { "type": "boolean" },
-        "preferredLanguage": { "type": "string", "enum": ["en", "or"] }
+        "winningBalance": { "type": "number" },
+        "taskBalance": { "type": "number" },
+        "bonusBalance": { "type": "number" },
+        "country": { "type": "string" },
+        "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] },
+        "isSuspended": { "type": "boolean" },
+        "vipLevel": { "type": "number" },
+        "cpaTasksCount": { "type": "number" },
+        "generalTasksCount": { "type": "number" },
+        "totalReferrals": { "type": "number" }
       }
     },
-    "StudyMaterial": {
-      "title": "StudyMaterial",
-      "description": "Educational resources for students",
+    "AppSettings": {
+      "title": "AppSettings",
+      "description": "Global system configuration nodes.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "type": { "type": "string", "enum": ["Notes", "PYQ", "Syllabus"] },
-        "url": { "type": "string" },
-        "isPremium": { "type": "boolean" }
+        "maintenanceMode": { "type": "boolean" },
+        "reviewMode": { "type": "boolean" },
+        "autoWithdrawalEnabled": { "type": "boolean" },
+        "autoWithdrawalMaxAmount": { "type": "number" },
+        "adminUpiId": { "type": "string" },
+        "automaticGatewayEnabled": { "type": "boolean" }
+      }
+    },
+    "PayoutRequest": {
+      "title": "PayoutRequest",
+      "description": "Financial withdrawal request record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "completed", "failed"] },
+        "method": { "type": "string" },
+        "destination": { "type": "string" },
+        "processedBy": { "type": "string", "enum": ["manual", "automatic"] },
+        "gatewayTransactionId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
       }
     }
   },
@@ -35,13 +58,13 @@
       "schema": "UserProfile",
       "description": "User account data"
     },
-    "/departments/{deptId}/subjects/{subjectId}/materials/{materialId}": {
-      "schema": "StudyMaterial",
-      "description": "Nested hierarchy for academic resources"
+    "/app_settings/global_config": {
+      "schema": "AppSettings",
+      "description": "Master system configuration"
     },
-    "/study_materials/{materialId}": {
-      "schema": "StudyMaterial",
-      "description": "Flat index for global material search"
+    "/payouts/{payoutId}": {
+      "schema": "PayoutRequest",
+      "description": "Payout processing queue"
     }
   }
 }

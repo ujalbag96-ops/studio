@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -35,7 +36,9 @@ import {
   CheckCircle2,
   Clock,
   Settings,
-  ShieldX
+  ShieldX,
+  Cpu,
+  Shield
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +50,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PayoutRequest, UserProfile, AppSettings } from '../lib/types';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -72,7 +76,10 @@ export default function AdminDashboard() {
     if (!firestore) return;
     setIsProcessing(payoutId);
     try {
-      await updateDoc(doc(firestore, 'payouts', payoutId), { status: 'completed' });
+      await updateDoc(doc(firestore, 'payouts', payoutId), { 
+        status: 'completed',
+        processedBy: 'manual'
+      });
       toast({ title: "PAYOUT VERIFIED", description: "Signal synced to ledger." });
     } catch (e) {
       toast({ variant: "destructive", title: "Sync Failed" });
@@ -94,11 +101,11 @@ export default function AdminDashboard() {
     }
   };
 
-  const toggleReviewMode = async (val: boolean) => {
+  const toggleConfig = async (key: keyof AppSettings, val: any) => {
     if (!firestore) return;
     try {
-      await updateDoc(doc(firestore, 'app_settings', 'global_config'), { reviewMode: val });
-      toast({ title: `REVIEW MODE ${val ? 'ON' : 'OFF'}` });
+      await updateDoc(doc(firestore, 'app_settings', 'global_config'), { [key]: val });
+      toast({ title: "CONFIG UPDATED", description: `${key} set to ${val}` });
     } catch (e) {
       toast({ variant: "destructive", title: "Config Error" });
     }
@@ -138,52 +145,64 @@ export default function AdminDashboard() {
            </div>
         </header>
 
-        {/* STATUS REPORT TAB */}
-        {activeTab === 'status' && (
-          <div className="space-y-10 animate-in fade-in duration-500">
-             <div className="bg-primary/5 border border-primary/20 p-10 rounded-[3rem] space-y-6">
-                <div className="flex items-center gap-4">
-                   <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                      <ClipboardCheck className="h-6 w-6 text-primary" />
-                   </div>
-                   <h2 className="text-3xl font-black uppercase italic tracking-tighter">Feature <span className="text-primary">Status Log</span></h2>
-                </div>
-                <p className="text-muted-foreground text-sm font-medium uppercase tracking-tight max-w-2xl">
-                   Real-time operational status of all platform modules for industrial audit and compliance.
-                </p>
-             </div>
+        {/* SETTINGS TAB WITH AUTO-WITHDRAWAL TOGGLE */}
+        {activeTab === 'settings' && (
+           <div className="space-y-10 animate-in fade-in duration-500">
+              <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-10">
+                 <div className="flex items-center gap-4">
+                    <Settings className="h-8 w-8 text-primary" />
+                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">System <span className="text-primary">Config</span></h2>
+                 </div>
 
-             <div className="grid gap-6">
-                <StatusRow 
-                   name="Skill Arcade Engine" 
-                   status="Completed" 
-                   desc="50-level skill-based progression hub. Removed all wagering logic." 
-                   policy="100% Skill-based Compliant" 
-                   icon={<Gamepad2 className="text-blue-500" />}
-                />
-                <StatusRow 
-                   name="VPN Guard Shield" 
-                   status="Completed" 
-                   desc="Real-time proxy and tor node blocking system." 
-                   policy="Fraud Prevention Protocol" 
-                   icon={<ShieldCheck className="text-red-500" />}
-                />
-                <StatusRow 
-                   name="VIP 1 Gateway" 
-                   status="Completed" 
-                   desc="5 CPA + 5 Ads + 5 Referrals mandatory validation for withdrawal." 
-                   policy="Industrial Integrity Pass" 
-                   icon={<Lock className="text-amber-500" />}
-                />
-                <StatusRow 
-                   name="Global Payout Node" 
-                   status="Completed" 
-                   desc="30% to 32% dynamic region-based revenue share engine." 
-                   policy="Market Calibration Logic" 
-                   icon={<Globe className="text-green-500" />}
-                />
-             </div>
-          </div>
+                 <div className="grid gap-10">
+                    {/* AUTO WITHDRAWAL TOGGLE */}
+                    <div className="flex items-center justify-between p-8 bg-primary/5 rounded-3xl border border-primary/20 group hover:border-primary/40 transition-all">
+                       <div className="flex items-center gap-6">
+                          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                             <Cpu className={cn("h-8 w-8", settings?.autoWithdrawalEnabled ? "text-primary animate-pulse" : "text-muted-foreground")} />
+                          </div>
+                          <div className="space-y-1">
+                             <h4 className="text-xl font-black uppercase italic">Auto-Withdrawal Mode</h4>
+                             <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Toggle instant automated payouts via Gateway API.</p>
+                          </div>
+                       </div>
+                       <Switch 
+                        checked={settings?.autoWithdrawalEnabled} 
+                        onCheckedChange={(val) => toggleConfig('autoWithdrawalEnabled', val)} 
+                       />
+                    </div>
+
+                    <div className="p-8 bg-white/5 rounded-3xl border border-white/10 grid md:grid-cols-2 gap-8">
+                       <div className="space-y-3">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Auto-Payout Safety Cap (₹)</Label>
+                          <Input 
+                            type="number" 
+                            defaultValue={settings?.autoWithdrawalMaxAmount || 2000} 
+                            className="h-14 bg-black border-white/10 rounded-xl font-black text-xl text-primary"
+                            onBlur={(e) => toggleConfig('autoWithdrawalMaxAmount', parseFloat(e.target.value))}
+                          />
+                          <p className="text-[9px] font-bold text-muted-foreground uppercase">Requests above this limit trigger manual audit.</p>
+                       </div>
+                       <div className="space-y-3">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Master UPI ID</Label>
+                          <Input 
+                            defaultValue={settings?.adminUpiId} 
+                            className="h-14 bg-black border-white/10 rounded-xl font-mono text-xs"
+                            onBlur={(e) => toggleConfig('adminUpiId', e.target.value)}
+                          />
+                       </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-8 bg-white/5 rounded-3xl border border-white/10">
+                       <div className="space-y-1">
+                          <h4 className="text-lg font-black uppercase italic">Review Mode</h4>
+                          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Hide high-performance features for store verification.</p>
+                       </div>
+                       <Switch checked={settings?.reviewMode} onCheckedChange={(val) => toggleConfig('reviewMode', val)} />
+                    </div>
+                 </div>
+              </Card>
+           </div>
         )}
 
         {/* FINANCE TAB */}
@@ -213,57 +232,6 @@ export default function AdminDashboard() {
                          <TableCell className="text-green-500 font-bold">₹17,780</TableCell>
                          <TableCell className="px-10 text-right"><Badge className="bg-green-500/10 text-green-500 border-none text-[9px] uppercase px-3">ACTIVE</Badge></TableCell>
                       </TableRow>
-                      <TableRow className="border-white/5 hover:bg-white/5 transition-all">
-                         <TableCell className="px-10 py-6 font-black uppercase text-[11px] text-white">Arcade Rewarded Ads</TableCell>
-                         <TableCell className="font-black italic text-primary">₹12,200</TableCell>
-                         <TableCell className="text-green-500 font-bold">₹8,540</TableCell>
-                         <TableCell className="px-10 text-right"><Badge className="bg-green-500/10 text-green-500 border-none text-[9px] uppercase px-3">ACTIVE</Badge></TableCell>
-                      </TableRow>
-                   </TableBody>
-                </Table>
-             </Card>
-          </div>
-        )}
-
-        {/* SECURITY AUDIT TAB */}
-        {activeTab === 'audit' && (
-          <div className="space-y-10 animate-in fade-in duration-500">
-             <div className="bg-red-500/5 border border-red-500/20 p-10 rounded-[3rem] space-y-4">
-                <div className="flex items-center gap-4">
-                   <ShieldX className="h-8 w-8 text-red-500" />
-                   <h2 className="text-3xl font-black uppercase italic tracking-tighter">Fraud & VPN <span className="text-red-500">Signals</span></h2>
-                </div>
-                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Accounts suspended due to VPN detection or multi-accounting flags.</p>
-             </div>
-
-             <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
-                <Table>
-                   <TableHeader className="bg-white/5">
-                      <TableRow className="border-white/5">
-                         <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-widest">Warrior Email / ID</TableHead>
-                         <TableHead className="text-[10px] font-black uppercase tracking-widest">Reason / Geo</TableHead>
-                         <TableHead className="px-10 text-[10px] font-black uppercase tracking-widest text-right">Action</TableHead>
-                      </TableRow>
-                   </TableHeader>
-                   <TableBody>
-                      {fraudData && fraudData.length > 0 ? fraudData.map(f => (
-                         <TableRow key={f.id} className="border-white/5">
-                            <TableCell className="px-10 py-6 font-black uppercase text-[11px] text-white truncate max-w-[200px]">{f.email || f.id}</TableCell>
-                            <TableCell>
-                               <Badge className="bg-red-500/10 text-red-500 border-none text-[8px] uppercase px-3">VPN DETECTED</Badge>
-                               <p className="text-[9px] text-muted-foreground mt-1 uppercase font-bold">{f.country || 'Unknown'}</p>
-                            </TableCell>
-                            <TableCell className="px-10 text-right">
-                               <Button onClick={() => handleReinstate(f.id)} disabled={isProcessing === f.id} className="h-10 px-6 bg-white/5 border border-white/10 hover:bg-primary rounded-xl font-black text-[9px] uppercase transition-all">
-                                  {isProcessing === f.id ? <Loader2 className="animate-spin h-3 w-3" /> : 'REINSTATE'}
-                               </Button>
-                            </TableCell>
-                         </TableRow>
-                      )) : (
-                        <TableRow>
-                          <TableCell colSpan={3} className="py-24 text-center text-muted-foreground font-black uppercase text-[10px] italic">No active fraud signals detected.</TableCell>
-                        </TableRow>
-                      )}
                    </TableBody>
                 </Table>
              </Card>
@@ -275,7 +243,10 @@ export default function AdminDashboard() {
           <div className="space-y-8 animate-in fade-in duration-500">
              <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Pending <span className="text-primary">Payouts</span></h3>
-                <Badge className="bg-primary/20 text-primary border-none text-[10px] font-black px-4 py-1.5 uppercase">Audit Gate: Active</Badge>
+                <div className="flex gap-4">
+                   {settings?.autoWithdrawalEnabled && <Badge className="bg-green-500/20 text-green-500 border-none text-[10px] font-black px-4 py-1.5 uppercase flex items-center gap-2"><Cpu className="h-3 w-3" /> Auto-Engine Active</Badge>}
+                   <Badge className="bg-primary/20 text-primary border-none text-[10px] font-black px-4 py-1.5 uppercase">Audit Gate: Active</Badge>
+                </div>
              </div>
              <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
                 <Table>
@@ -289,7 +260,7 @@ export default function AdminDashboard() {
                    </TableHeader>
                    <TableBody>
                       {payoutsData?.filter(p => p.status === 'pending').map(p => {
-                         const upiUrl = p.method === 'UPI' ? `upi://pay?pa=${p.destination}&pn=${p.userEmail}&am=${p.amount.toFixed(2)}&cu=INR` : null;
+                         const upiUrl = p.method === 'UPI' ? `upi://pay?pa=${p.destination}&pn=${p.userEmail}&am=${(p.amount / 100).toFixed(2)}&cu=INR` : null;
                          return (
                             <TableRow key={p.id} className="border-white/5 hover:bg-white/5 transition-all">
                                <TableCell className="px-10 py-6">
@@ -297,7 +268,7 @@ export default function AdminDashboard() {
                                   <Badge className="bg-white/5 text-muted-foreground text-[8px] font-black px-2 mt-1.5 uppercase">{p.geo || 'India'}</Badge>
                                </TableCell>
                                <TableCell>
-                                  <p className="font-black text-white text-lg tabular-nums">₹{p.amount.toFixed(2)}</p>
+                                  <p className="font-black text-white text-lg tabular-nums">₹{(p.amount / 100).toFixed(2)}</p>
                                   <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">30% Share Applied</p>
                                </TableCell>
                                <TableCell>
@@ -316,77 +287,14 @@ export default function AdminDashboard() {
                             </TableRow>
                          );
                       })}
-                      {(!payoutsData || payoutsData.filter(p => p.status === 'pending').length === 0) && (
-                         <TableRow>
-                           <TableCell colSpan={4} className="py-24 text-center text-muted-foreground font-black uppercase text-[10px] italic">No pending payout signals.</TableCell>
-                         </TableRow>
-                      )}
                    </TableBody>
                 </Table>
              </Card>
           </div>
         )}
-
-        {/* SETTINGS TAB */}
-        {activeTab === 'settings' && (
-           <div className="space-y-10 animate-in fade-in duration-500">
-              <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-10">
-                 <div className="flex items-center gap-4">
-                    <Settings className="h-8 w-8 text-primary" />
-                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">System <span className="text-primary">Config</span></h2>
-                 </div>
-
-                 <div className="grid gap-10">
-                    <div className="flex items-center justify-between p-8 bg-white/5 rounded-3xl border border-white/10">
-                       <div className="space-y-1">
-                          <h4 className="text-lg font-black uppercase italic">Review Mode</h4>
-                          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Hide high-performance features for store verification.</p>
-                       </div>
-                       <Switch checked={settings?.reviewMode} onCheckedChange={toggleReviewMode} />
-                    </div>
-
-                    <div className="p-8 bg-white/5 rounded-3xl border border-white/10 space-y-6">
-                       <h4 className="text-lg font-black uppercase italic">Maintenance Control</h4>
-                       <div className="flex items-center gap-4">
-                          <Button variant="outline" className="flex-1 h-14 rounded-xl font-black uppercase text-[10px] border-red-500/20 text-red-500">ACTIVATE LOCKDOWN</Button>
-                          <Button className="flex-1 h-14 rounded-xl font-black uppercase text-[10px] bg-green-600">SYSTEM NORMAL</Button>
-                       </div>
-                    </div>
-                 </div>
-              </Card>
-           </div>
-        )}
       </main>
     </div>
   );
-}
-
-function StatusRow({ name, status, desc, policy, icon }: any) {
-   return (
-      <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-primary/20 transition-all">
-         <div className="flex items-center gap-6">
-            <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-xl group-hover:scale-105 transition-transform">
-               {icon}
-            </div>
-            <div className="space-y-1">
-               <h4 className="text-xl font-black uppercase italic text-white">{name}</h4>
-               <p className="text-xs text-muted-foreground font-medium max-w-md">{desc}</p>
-            </div>
-         </div>
-         <div className="flex flex-col items-end gap-3 w-full md:w-auto">
-            <Badge className={cn(
-               "font-black text-[9px] uppercase px-4 py-1.5 border-none",
-               status === 'Completed' ? "bg-green-500/10 text-green-500" : "bg-primary/10 text-primary animate-pulse"
-            )}>
-               {status}
-            </Badge>
-            <div className="flex items-center gap-2">
-               <CheckCircle2 className="h-3 w-3 text-green-500" />
-               <span className="text-[9px] font-black uppercase text-muted-foreground italic">{policy}</span>
-            </div>
-         </div>
-      </Card>
-   );
 }
 
 function AdminLink({ active, icon, label, onClick }: any) {
@@ -425,25 +333,4 @@ function FinanceCard({ label, value, icon, color, highlight }: any) {
          </div>
       </Card>
    );
-}
-
-function Globe(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 2a14.5 14.5 0 0 0 0 20" />
-      <path d="M2 12h20" />
-    </svg>
-  )
 }
