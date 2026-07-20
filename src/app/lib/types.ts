@@ -94,6 +94,11 @@ export interface AppSettings {
   node_referral_engine: boolean;
   node_arcade_rewards: boolean;
   node_daily_checkin: boolean;
+
+  api_admob_active: boolean;
+  api_cpalead_active: boolean;
+  api_adgate_active: boolean;
+  api_s2s_active: boolean;
 }
 
 export interface UserLedgerEntry {

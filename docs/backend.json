@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -38,7 +39,11 @@
         "node_content_analysis": { "type": "boolean" },
         "node_referral_engine": { "type": "boolean" },
         "node_arcade_rewards": { "type": "boolean" },
-        "node_daily_checkin": { "type": "boolean" }
+        "node_daily_checkin": { "type": "boolean" },
+        "api_admob_active": { "type": "boolean", "default": true },
+        "api_cpalead_active": { "type": "boolean", "default": true },
+        "api_adgate_active": { "type": "boolean", "default": true },
+        "api_s2s_active": { "type": "boolean", "default": true }
       }
     }
   },

@@ -31,7 +31,9 @@ import {
   Signal,
   CheckCircle2,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -84,7 +86,7 @@ export default function AdminDashboard() {
     setIsProcessing(true);
     try {
       await updateDoc(settingsRef, { [key]: value });
-      toast({ title: "SIGNAL UPDATED", description: `${key.toUpperCase().replace('NODE_', '')} sync successful.` });
+      toast({ title: "SIGNAL UPDATED", description: `${key.toUpperCase().replace('NODE_', '').replace('API_', '')} sync successful.` });
     } catch (e) {
       toast({ variant: "destructive", title: "SYNC FAILED" });
     } finally {
@@ -147,7 +149,7 @@ export default function AdminDashboard() {
         <header className="flex items-center justify-between">
            <div className="space-y-1">
               <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin <span className="text-primary">Command</span></h1>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v11.0 Build</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v12.0 Build</p>
            </div>
            <Button onClick={activateAllNodes} disabled={isProcessing} className="bg-primary hover:bg-primary/90 h-14 px-8 rounded-2xl font-black uppercase italic text-xs shadow-xl shadow-primary/20">
               {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <Zap className="mr-2 h-4 w-4" />} One-Click Node Activation
@@ -209,35 +211,55 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'api_hub' && (
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-in fade-in duration-700">
-              <ApiStatusCard 
-                name="AdMob SDK" 
-                status="active" 
-                heartbeat={heartbeats.admob} 
-                icon={<Link2 />} 
-                desc="Rewarded Video Node"
-              />
-              <ApiStatusCard 
-                name="CPALead API" 
-                status="active" 
-                heartbeat={heartbeats.cpalead} 
-                icon={<Globe />} 
-                desc="Global Mediation Offerwall"
-              />
-              <ApiStatusCard 
-                name="AdGate Media" 
-                status="active" 
-                heartbeat={heartbeats.adgate} 
-                icon={<Activity />} 
-                desc="Survey & App Yield"
-              />
-              <ApiStatusCard 
-                name="S2S Postback" 
-                status="active" 
-                heartbeat={heartbeats.s2s} 
-                icon={<ShieldCheck />} 
-                desc="Verification Protocol"
-              />
+           <div className="space-y-12 animate-in fade-in duration-700">
+              <header className="flex items-center gap-4">
+                 <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Server className="h-6 w-6" />
+                 </div>
+                 <div>
+                    <h3 className="text-2xl font-black uppercase italic">API Master <span className="text-primary">Hub</span></h3>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">Real-Time Signal Integrity & Visibility Control</p>
+                 </div>
+              </header>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                 <ApiStatusCard 
+                   name="AdMob SDK" 
+                   status={settings?.api_admob_active ? "active" : "offline"} 
+                   heartbeat={heartbeats.admob} 
+                   icon={<Link2 />} 
+                   desc="Rewarded Video Node"
+                   active={settings?.api_admob_active}
+                   onToggle={(v: boolean) => toggleSetting('api_admob_active', v)}
+                 />
+                 <ApiStatusCard 
+                   name="CPALead API" 
+                   status={settings?.api_cpalead_active ? "active" : "offline"} 
+                   heartbeat={heartbeats.cpalead} 
+                   icon={<Globe />} 
+                   desc="Global Mediation Offerwall"
+                   active={settings?.api_cpalead_active}
+                   onToggle={(v: boolean) => toggleSetting('api_cpalead_active', v)}
+                 />
+                 <ApiStatusCard 
+                   name="AdGate Media" 
+                   status={settings?.api_adgate_active ? "active" : "offline"} 
+                   heartbeat={heartbeats.adgate} 
+                   icon={<Activity />} 
+                   desc="Survey & App Yield"
+                   active={settings?.api_adgate_active}
+                   onToggle={(v: boolean) => toggleSetting('api_adgate_active', v)}
+                 />
+                 <ApiStatusCard 
+                   name="S2S Postback" 
+                   status={settings?.api_s2s_active ? "active" : "offline"} 
+                   heartbeat={heartbeats.s2s} 
+                   icon={<ShieldCheck />} 
+                   desc="Verification Protocol"
+                   active={settings?.api_s2s_active}
+                   onToggle={(v: boolean) => toggleSetting('api_s2s_active', v)}
+                 />
+              </div>
            </div>
         )}
 
@@ -282,7 +304,7 @@ export default function AdminDashboard() {
                     </div>
                  </div>
                  <div className="grid grid-cols-2 gap-4">
-                    <StatusPulse label="S2S Postback" active={true} />
+                    <StatusPulse label="S2S Postback" active={settings?.api_s2s_active} />
                     <StatusPulse label="Identity Gate" active={true} />
                     <StatusPulse label="Library Sync" active={settings?.node_scholar_dividend} />
                     <StatusPulse label="Auto-Payout" active={true} />
@@ -306,23 +328,42 @@ export default function AdminDashboard() {
   );
 }
 
-function ApiStatusCard({ name, status, heartbeat, icon, desc }: any) {
+function ApiStatusCard({ name, status, heartbeat, icon, desc, active, onToggle }: any) {
    return (
-      <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6 group hover:border-primary/40 transition-all shadow-xl">
-         <div className="flex items-center justify-between">
-            <div className="h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+      <Card className={cn(
+        "bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6 group transition-all shadow-xl relative overflow-hidden",
+        active ? "hover:border-primary/40" : "opacity-50 grayscale"
+      )}>
+         <div className="flex items-center justify-between relative z-10">
+            <div className={cn("h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center transition-colors", active ? "text-primary" : "text-muted-foreground")}>
                {icon}
             </div>
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+            <div className={cn("h-2 w-2 rounded-full", active ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-red-500")} />
          </div>
-         <div>
+         <div className="relative z-10">
             <h4 className="text-lg font-black uppercase italic text-white">{name}</h4>
-            <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-4">{desc}</p>
-            <div className="flex items-center justify-between bg-black p-3 rounded-xl border border-white/5">
-               <span className="text-[9px] font-black uppercase text-muted-foreground">Heartbeat</span>
-               <span className="text-xs font-black text-green-500 tabular-nums">{heartbeat}ms</span>
+            <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-6">{desc}</p>
+            
+            <div className="flex items-center justify-between bg-black/60 p-4 rounded-xl border border-white/5 mb-6">
+               <span className="text-[9px] font-black uppercase text-muted-foreground">Signal Latency</span>
+               <span className={cn("text-xs font-black tabular-nums", active ? "text-green-500" : "text-red-500")}>
+                  {active ? `${heartbeat}ms` : 'OFFLINE'}
+               </span>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+               <div className="flex items-center gap-2">
+                  {active ? <Eye className="h-3 w-3 text-primary" /> : <EyeOff className="h-3 w-3 text-muted-foreground" />}
+                  <span className="text-[10px] font-black uppercase tracking-widest">{active ? 'Unhide' : 'Hidden'}</span>
+               </div>
+               <Switch checked={active} onCheckedChange={onToggle} className="scale-90" />
             </div>
          </div>
+         {!active && (
+           <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
+              <Badge variant="outline" className="border-red-500/40 text-red-500 font-black uppercase italic text-[8px]">SIGNAL VOID</Badge>
+           </div>
+         )}
       </Card>
    );
 }
