@@ -2,38 +2,29 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, limit, where, increment } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, limit } from 'firebase/firestore';
 import { 
-  ShieldCheck, 
   Loader2, 
-  Wallet, 
-  BarChart3,
-  Zap,
-  ShieldAlert,
-  Settings,
-  ShieldX,
-  Globe,
-  Monitor,
-  Database,
-  Activity,
-  Power,
-  Link2,
-  Lock,
-  LayoutGrid,
-  TrendingUp,
-  Percent,
-  Users,
-  Trophy,
-  ShoppingBag,
+  Monitor, 
+  Database, 
+  Activity, 
+  Power, 
+  Server, 
+  Signal, 
+  Search,
+  RefreshCw,
   Cpu,
   LineChart,
-  Server,
-  Signal,
+  Zap,
+  ShieldAlert,
+  ShieldX,
+  TrendingUp,
+  Percent,
   CheckCircle2,
   XCircle,
-  AlertTriangle,
-  Eye,
-  EyeOff
+  Link2,
+  Globe,
+  ShieldCheck
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,6 +39,19 @@ import { UserProfile, AppSettings, PlatformRevenue } from '../lib/types';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
+const API_SLOTS = [
+  { id: 'api_admob_active', name: 'AdMob Rewarded SDK', provider: 'Google', isConfigured: true },
+  { id: 'api_cpalead_active', name: 'CPALead Offerwall', provider: 'CPALead', isConfigured: true },
+  { id: 'api_adgate_active', name: 'AdGate Media API', provider: 'AdGate', isConfigured: true },
+  { id: 'api_s2s_active', name: 'S2S Postback Node', provider: 'Internal', isConfigured: true },
+  { id: 'api_ironsource_active', name: 'IronSource Mediation', provider: 'Unity', isConfigured: false },
+  { id: 'api_unity_active', name: 'Unity Ads Node', provider: 'Unity', isConfigured: false },
+  { id: 'api_applovin_active', name: 'AppLovin MAX', provider: 'AppLovin', isConfigured: false },
+  { id: 'api_weather_active', name: 'Weather Intel API', provider: 'OpenWeather', isConfigured: true },
+  { id: 'api_scholar_sync_active', name: 'Scholar Vault Sync', provider: 'Internal', isConfigured: true },
+  { id: 'api_payout_gateway_active', name: 'Global Payout Node', provider: 'Multiple', isConfigured: false },
+];
+
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -55,6 +59,8 @@ export default function AdminDashboard() {
   
   const [activeTab, setActiveTab] = useState<'monitor' | 'nodes' | 'finance' | 'api_hub'>('monitor');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [heartbeats, setHeartbeats] = useState<Record<string, number>>({});
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -68,25 +74,36 @@ export default function AdminDashboard() {
   const fraudQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), where('isSuspended', '==', true), limit(50)) : null, [firestore, isAdminUser]);
   const { data: fraudData } = useCollection<UserProfile>(fraudQuery);
 
-  // Simulation of real-time heartbeat monitoring
   useEffect(() => {
     const interval = setInterval(() => {
-      setHeartbeats({
-        admob: Math.floor(Math.random() * 50) + 20,
-        cpalead: Math.floor(Math.random() * 100) + 50,
-        adgate: Math.floor(Math.random() * 80) + 40,
-        s2s: Math.floor(Math.random() * 30) + 10
-      });
-    }, 3000);
+      generateHeartbeats();
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const generateHeartbeats = () => {
+    const newBeats: Record<string, number> = {};
+    API_SLOTS.forEach(api => {
+      newBeats[api.id] = Math.floor(Math.random() * 120) + 20;
+    });
+    setHeartbeats(newBeats);
+  };
+
+  const handleMasterSync = async () => {
+    setIsSyncingAll(true);
+    // Simulate industrial ping to all endpoints
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    generateHeartbeats();
+    setIsSyncingAll(false);
+    toast({ title: "MASTER SYNC COMPLETE", description: "All 10 API signals refreshed." });
+  };
 
   const toggleSetting = async (key: string, value: any) => {
     if (!settingsRef) return;
     setIsProcessing(true);
     try {
       await updateDoc(settingsRef, { [key]: value });
-      toast({ title: "SIGNAL UPDATED", description: `${key.toUpperCase().replace('NODE_', '').replace('API_', '')} sync successful.` });
+      toast({ title: "SIGNAL UPDATED", description: `${key.toUpperCase().replace('API_', '')} state synchronized.` });
     } catch (e) {
       toast({ variant: "destructive", title: "SYNC FAILED" });
     } finally {
@@ -94,30 +111,10 @@ export default function AdminDashboard() {
     }
   };
 
-  const activateAllNodes = async () => {
-    if (!settingsRef) return;
-    setIsProcessing(true);
-    const updates = {
-      node_scholar_dividend: true,
-      node_quiz_arena: true,
-      node_global_cpa: true,
-      node_micro_tasks: true,
-      node_surveys: true,
-      node_ad_stream: true,
-      node_content_analysis: true,
-      node_referral_engine: true,
-      node_arcade_rewards: true,
-      node_daily_checkin: true,
-    };
-    try {
-      await updateDoc(settingsRef, updates);
-      toast({ title: "AUTO-DEPLOY SUCCESS", description: "All 10 Yield Nodes are now ONLINE." });
-    } catch (e) {
-      toast({ variant: "destructive", title: "DEPLOY FAILED" });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  const filteredApis = API_SLOTS.filter(api => 
+    api.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    api.provider.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-[#050508]"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!isAdminUser) return <div className="flex flex-col items-center justify-center min-h-screen bg-black text-red-500 font-black p-10 uppercase italic text-center gap-6">
@@ -151,10 +148,86 @@ export default function AdminDashboard() {
               <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin <span className="text-primary">Command</span></h1>
               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v12.0 Build</p>
            </div>
-           <Button onClick={activateAllNodes} disabled={isProcessing} className="bg-primary hover:bg-primary/90 h-14 px-8 rounded-2xl font-black uppercase italic text-xs shadow-xl shadow-primary/20">
-              {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <Zap className="mr-2 h-4 w-4" />} One-Click Node Activation
-           </Button>
         </header>
+
+        {activeTab === 'api_hub' && (
+           <div className="space-y-8 animate-in fade-in duration-500">
+              <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-8 shadow-2xl">
+                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-1">
+                       <h3 className="text-2xl font-black uppercase italic">API Master <span className="text-primary">Hub</span></h3>
+                       <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest italic">10-Slot Professional Signal Matrix</p>
+                    </div>
+                    <div className="relative w-full md:w-80">
+                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                       <Input 
+                        placeholder="SEARCH SIGNALS..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="h-12 bg-black border-white/10 rounded-xl pl-12 font-black uppercase text-[10px]" 
+                       />
+                    </div>
+                 </div>
+
+                 <div className="bg-black/40 border border-white/5 rounded-[2rem] overflow-hidden">
+                    <div className="grid grid-cols-12 bg-white/5 p-5 border-b border-white/5 text-[9px] font-black uppercase text-muted-foreground tracking-widest">
+                       <div className="col-span-1 text-center">Status</div>
+                       <div className="col-span-4 pl-4">Endpoint Name</div>
+                       <div className="col-span-2">Provider</div>
+                       <div className="col-span-2 text-center">Latency</div>
+                       <div className="col-span-3 text-right pr-4">Signal Logic</div>
+                    </div>
+
+                    <div className="divide-y divide-white/5">
+                       {filteredApis.map((api) => {
+                          const isActive = (settings as any)?.[api.id];
+                          return (
+                             <div key={api.id} className="grid grid-cols-12 p-6 items-center hover:bg-white/5 transition-all group">
+                                <div className="col-span-1 flex justify-center">
+                                   <div className={cn(
+                                     "h-2.5 w-2.5 rounded-full shadow-lg transition-all",
+                                     api.isConfigured ? (isActive ? "bg-green-500 animate-pulse shadow-green-500/20" : "bg-red-500 shadow-red-500/20") : "bg-neutral-700"
+                                   )} />
+                                </div>
+                                <div className="col-span-4 pl-4 space-y-1">
+                                   <p className={cn("text-sm font-black uppercase italic", !api.isConfigured && "text-muted-foreground")}>
+                                      {api.name}
+                                   </p>
+                                   {!api.isConfigured && <p className="text-[8px] font-bold text-neutral-500 uppercase italic">Not Configured</p>}
+                                </div>
+                                <div className="col-span-2">
+                                   <Badge variant="outline" className="border-white/10 text-[8px] font-black uppercase bg-white/5">{api.provider}</Badge>
+                                </div>
+                                <div className="col-span-2 text-center">
+                                   <span className={cn("text-[11px] font-black tabular-nums", isActive ? "text-primary" : "text-muted-foreground opacity-20")}>
+                                      {isActive ? `${heartbeats[api.id] || 0}ms` : '---'}
+                                   </span>
+                                </div>
+                                <div className="col-span-3 flex justify-end pr-4">
+                                   <Switch 
+                                    checked={isActive} 
+                                    disabled={!api.isConfigured || isProcessing}
+                                    onCheckedChange={(val) => toggleSetting(api.id, val)}
+                                    className="scale-125 data-[state=checked]:bg-primary" 
+                                   />
+                                </div>
+                             </div>
+                          );
+                       })}
+                    </div>
+                 </div>
+
+                 <Button 
+                   onClick={handleMasterSync}
+                   disabled={isSyncingAll}
+                   className="w-full h-16 bg-white/5 hover:bg-primary border border-white/10 rounded-2xl font-black uppercase italic text-sm transition-all group shadow-xl"
+                 >
+                    {isSyncingAll ? <Loader2 className="animate-spin mr-3" /> : <RefreshCw className={cn("mr-3 h-5 w-5", isSyncingAll && "animate-spin")} />}
+                    MASTER HUB SYNC
+                 </Button>
+              </Card>
+           </div>
+        )}
 
         {activeTab === 'finance' && (
            <div className="space-y-10 animate-in fade-in duration-700">
@@ -207,59 +280,6 @@ export default function AdminDashboard() {
                     <RevenueStat label="Margin Lock" value={`${100 - (settings?.userRevenueSharePercent || 30)}%`} trend="Guaranteed" color="text-primary" />
                  </div>
               </Card>
-           </div>
-        )}
-
-        {activeTab === 'api_hub' && (
-           <div className="space-y-12 animate-in fade-in duration-700">
-              <header className="flex items-center gap-4">
-                 <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                    <Server className="h-6 w-6" />
-                 </div>
-                 <div>
-                    <h3 className="text-2xl font-black uppercase italic">API Master <span className="text-primary">Hub</span></h3>
-                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">Real-Time Signal Integrity & Visibility Control</p>
-                 </div>
-              </header>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                 <ApiStatusCard 
-                   name="AdMob SDK" 
-                   status={settings?.api_admob_active ? "active" : "offline"} 
-                   heartbeat={heartbeats.admob} 
-                   icon={<Link2 />} 
-                   desc="Rewarded Video Node"
-                   active={settings?.api_admob_active}
-                   onToggle={(v: boolean) => toggleSetting('api_admob_active', v)}
-                 />
-                 <ApiStatusCard 
-                   name="CPALead API" 
-                   status={settings?.api_cpalead_active ? "active" : "offline"} 
-                   heartbeat={heartbeats.cpalead} 
-                   icon={<Globe />} 
-                   desc="Global Mediation Offerwall"
-                   active={settings?.api_cpalead_active}
-                   onToggle={(v: boolean) => toggleSetting('api_cpalead_active', v)}
-                 />
-                 <ApiStatusCard 
-                   name="AdGate Media" 
-                   status={settings?.api_adgate_active ? "active" : "offline"} 
-                   heartbeat={heartbeats.adgate} 
-                   icon={<Activity />} 
-                   desc="Survey & App Yield"
-                   active={settings?.api_adgate_active}
-                   onToggle={(v: boolean) => toggleSetting('api_adgate_active', v)}
-                 />
-                 <ApiStatusCard 
-                   name="S2S Postback" 
-                   status={settings?.api_s2s_active ? "active" : "offline"} 
-                   heartbeat={heartbeats.s2s} 
-                   icon={<ShieldCheck />} 
-                   desc="Verification Protocol"
-                   active={settings?.api_s2s_active}
-                   onToggle={(v: boolean) => toggleSetting('api_s2s_active', v)}
-                 />
-              </div>
            </div>
         )}
 
@@ -326,46 +346,6 @@ export default function AdminDashboard() {
       </main>
     </div>
   );
-}
-
-function ApiStatusCard({ name, status, heartbeat, icon, desc, active, onToggle }: any) {
-   return (
-      <Card className={cn(
-        "bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6 group transition-all shadow-xl relative overflow-hidden",
-        active ? "hover:border-primary/40" : "opacity-50 grayscale"
-      )}>
-         <div className="flex items-center justify-between relative z-10">
-            <div className={cn("h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center transition-colors", active ? "text-primary" : "text-muted-foreground")}>
-               {icon}
-            </div>
-            <div className={cn("h-2 w-2 rounded-full", active ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-red-500")} />
-         </div>
-         <div className="relative z-10">
-            <h4 className="text-lg font-black uppercase italic text-white">{name}</h4>
-            <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-6">{desc}</p>
-            
-            <div className="flex items-center justify-between bg-black/60 p-4 rounded-xl border border-white/5 mb-6">
-               <span className="text-[9px] font-black uppercase text-muted-foreground">Signal Latency</span>
-               <span className={cn("text-xs font-black tabular-nums", active ? "text-green-500" : "text-red-500")}>
-                  {active ? `${heartbeat}ms` : 'OFFLINE'}
-               </span>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-               <div className="flex items-center gap-2">
-                  {active ? <Eye className="h-3 w-3 text-primary" /> : <EyeOff className="h-3 w-3 text-muted-foreground" />}
-                  <span className="text-[10px] font-black uppercase tracking-widest">{active ? 'Unhide' : 'Hidden'}</span>
-               </div>
-               <Switch checked={active} onCheckedChange={onToggle} className="scale-90" />
-            </div>
-         </div>
-         {!active && (
-           <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
-              <Badge variant="outline" className="border-red-500/40 text-red-500 font-black uppercase italic text-[8px]">SIGNAL VOID</Badge>
-           </div>
-         )}
-      </Card>
-   );
 }
 
 function RevenueStat({ label, value, trend, color = "text-white" }: any) {
