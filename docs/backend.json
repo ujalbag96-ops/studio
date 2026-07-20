@@ -14,9 +14,6 @@
         "bonusBalance": { "type": "number" },
         "walletBalanceINR": { "type": "number" },
         "country": { "type": "string" },
-        "region": { "type": "string" },
-        "city": { "type": "string" },
-        "lastIp": { "type": "string" },
         "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] },
         "vipLevel": { "type": "number" },
         "isSuspended": { "type": "boolean" },
@@ -25,28 +22,28 @@
         "totalReferrals": { "type": "number" },
         "scholarPoints": { "type": "number" },
         "referralCode": { "type": "string" },
-        "referredBy": { "type": "string" },
-        "riskNoticeAccepted": { "type": "boolean" },
-        "puzzleLevel": { "type": "number" },
-        "physicsLevel": { "type": "number" },
-        "runnerLevel": { "type": "number" }
+        "referredBy": { "type": "string" }
       }
     },
     "AppSettings": {
       "title": "AppSettings",
-      "description": "Master system configuration and API node status.",
+      "description": "Master system configuration for 10-node multi-revenue architecture.",
       "type": "object",
       "properties": {
         "maintenanceMode": { "type": "boolean" },
         "reviewMode": { "type": "boolean" },
         "autoWithdrawalEnabled": { "type": "boolean" },
-        "autoWithdrawalMaxAmount": { "type": "number" },
         "adminUpiId": { "type": "string" },
-        "cpaApiActive": { "type": "boolean" },
-        "adMobActive": { "type": "boolean" },
-        "ncertApiActive": { "type": "boolean" },
-        "osepaApiActive": { "type": "boolean" },
-        "vpnGuardActive": { "type": "boolean" }
+        "node_scholar_dividend": { "type": "boolean" },
+        "node_quiz_arena": { "type": "boolean" },
+        "node_global_cpa": { "type": "boolean" },
+        "node_micro_tasks: ": { "type": "boolean" },
+        "node_surveys": { "type": "boolean" },
+        "node_ad_stream": { "type": "boolean" },
+        "node_content_analysis": { "type": "boolean" },
+        "node_referral_engine": { "type": "boolean" },
+        "node_arcade_rewards": { "type": "boolean" },
+        "node_daily_checkin": { "type": "boolean" }
       }
     },
     "PayoutRequest": {
@@ -55,27 +52,10 @@
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "userEmail": { "type": "string" },
         "coinAmount": { "type": "number" },
-        "localAmount": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "completed", "failed"] },
         "method": { "type": "string" },
-        "destination": { "type": "string" },
-        "processedBy": { "type": "string", "enum": ["manual", "automatic"] },
-        "geo": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      }
-    },
-    "CpaMission": {
-      "title": "CpaMission",
-      "description": "Offerwall task definition fetched from mediation.",
-      "type": "object",
-      "properties": {
-        "appName": { "type": "string" },
-        "reward": { "type": "number" },
-        "type": { "type": "string" },
-        "link": { "type": "string" },
-        "geo": { "type": "string" }
+        "processedBy": { "type": "string", "enum": ["manual", "automatic"] }
       }
     }
   },
@@ -89,15 +69,11 @@
     },
     "/app_settings/global_config": {
       "schema": "AppSettings",
-      "description": "Industrial control node"
+      "description": "Industrial control node for 10 revenue streams"
     },
     "/payouts/{payoutId}": {
       "schema": "PayoutRequest",
       "description": "Audit queue for financial settlement"
-    },
-    "/cpa_missions/{missionId}": {
-      "schema": "CpaMission",
-      "description": "Mediation waterfall cache"
     }
   }
 }

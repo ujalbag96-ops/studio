@@ -72,6 +72,7 @@ export interface UserProfile {
   lastSpinTimestamp?: string;
   isAccountActivated?: boolean;
   questCelebrationPending?: boolean;
+  weeklyPointsEarned?: number;
 }
 
 export interface AppSettings {
@@ -84,6 +85,19 @@ export interface AppSettings {
   conversionFeePercent: number;
   minWithdrawalAmount: number;
   coinToInrRate: number; 
+  
+  // 10-Node Multi-Revenue Architecture
+  node_scholar_dividend: boolean;
+  node_quiz_arena: boolean;
+  node_global_cpa: boolean;
+  node_micro_tasks: boolean;
+  node_surveys: boolean;
+  node_ad_stream: boolean;
+  node_content_analysis: boolean;
+  node_referral_engine: boolean;
+  node_arcade_rewards: boolean;
+  node_daily_checkin: boolean;
+
   // API Nodes Status
   cpaApiActive?: boolean;
   adMobActive?: boolean;

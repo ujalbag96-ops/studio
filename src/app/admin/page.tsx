@@ -27,7 +27,8 @@ import {
   Link2,
   Lock,
   Wifi,
-  Signal
+  Signal,
+  LayoutGrid
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,7 +66,7 @@ export default function AdminDashboard() {
     setIsProcessing(true);
     try {
       await updateDoc(settingsRef, { [key]: value });
-      toast({ title: "SIGNAL UPDATED", description: `${key.toUpperCase()} is now ${value ? 'ACTIVE' : 'LOCKED'}` });
+      toast({ title: "SIGNAL UPDATED", description: `${key.toUpperCase().replace('NODE_', '')} is now ${value ? 'ACTIVE' : 'LOCKED'}` });
     } catch (e) {
       toast({ variant: "destructive", title: "SYNC FAILED" });
     } finally {
@@ -94,9 +95,9 @@ export default function AdminDashboard() {
         <nav className="flex-1 p-8 space-y-3">
           <AdminLink active={activeTab === 'monitor'} icon={<Monitor />} label="Master Monitor" onClick={() => setActiveTab('monitor')} />
           <AdminLink active={activeTab === 'apis'} icon={<Link2 />} label="API Master Hub" onClick={() => setActiveTab('apis')} />
+          <AdminLink active={activeTab === 'settings'} icon={<Settings />} label="System Config" onClick={() => setActiveTab('settings')} />
           <AdminLink active={activeTab === 'finance'} icon={<BarChart3 />} label="Financial Node" onClick={() => setActiveTab('finance')} />
           <AdminLink active={activeTab === 'audit'} icon={<ShieldX />} label="Fraud Shield" onClick={() => setActiveTab('audit')} />
-          <AdminLink active={activeTab === 'settings'} icon={<Settings />} label="System Config" onClick={() => setActiveTab('settings')} />
         </nav>
         <div className="p-10 border-t border-white/5">
            <div className="flex items-center gap-3 text-[10px] font-black uppercase text-muted-foreground italic">
@@ -115,184 +116,95 @@ export default function AdminDashboard() {
            
            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
               <div className="text-right">
-                 <p className="text-[8px] font-black uppercase text-muted-foreground">System Mode</p>
-                 <p className={cn("text-xs font-black uppercase italic", settings?.reviewMode ? "text-amber-500" : "text-green-500")}>
-                    {settings?.reviewMode ? 'Review Mode Active' : 'Production Live'}
+                 <p className="text-[8px] font-black uppercase text-muted-foreground">Auto-Withdrawal</p>
+                 <p className={cn("text-xs font-black uppercase italic", settings?.autoWithdrawalEnabled ? "text-green-500" : "text-amber-500")}>
+                    {settings?.autoWithdrawalEnabled ? 'ENABLED' : 'MANUAL AUDIT'}
                  </p>
               </div>
-              <Switch checked={!settings?.reviewMode} onCheckedChange={(v) => toggleSetting('reviewMode', !v)} disabled={isProcessing} />
+              <Switch checked={settings?.autoWithdrawalEnabled} onCheckedChange={(v) => toggleSetting('autoWithdrawalEnabled', v)} disabled={isProcessing} />
            </div>
         </header>
 
+        {activeTab === 'settings' && (
+           <div className="space-y-10 animate-in slide-in-from-bottom-4 duration-700">
+              <div className="flex items-center gap-4">
+                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                    <LayoutGrid className="h-5 w-5 text-primary" />
+                 </div>
+                 <div>
+                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">Yield Node <span className="text-primary">Configuration</span></h2>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Master Toggles for 10-Node Architecture</p>
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                 <NodeCategoryCard title="Academic Sector" icon={<Library className="text-blue-400" />}>
+                    <NodeToggle label="Scholar Dividend" active={settings?.node_scholar_dividend} onToggle={(v) => toggleSetting('node_scholar_dividend', v)} />
+                    <NodeToggle label="Quiz Arena" active={settings?.node_quiz_arena} onToggle={(v) => toggleSetting('node_quiz_arena', v)} />
+                 </NodeCategoryCard>
+
+                 <NodeCategoryCard title="Global Sector (USD)" icon={<Globe className="text-amber-500" />}>
+                    <NodeToggle label="Global CPA Hub" active={settings?.node_global_cpa} onToggle={(v) => toggleSetting('node_global_cpa', v)} />
+                    <NodeToggle label="Micro Tasks" active={settings?.node_micro_tasks} onToggle={(v) => toggleSetting('node_micro_tasks', v)} />
+                    <NodeToggle label="Premium Surveys" active={settings?.node_surveys} onToggle={(v) => toggleSetting('node_surveys', v)} />
+                 </NodeCategoryCard>
+
+                 <NodeCategoryCard title="Universal Sector" icon={<Zap className="text-green-500" />}>
+                    <NodeToggle label="Ad Stream" active={settings?.node_ad_stream} onToggle={(v) => toggleSetting('node_ad_stream', v)} />
+                    <NodeToggle label="Content Analysis" active={settings?.node_content_analysis} onToggle={(v) => toggleSetting('node_content_analysis', v)} />
+                    <NodeToggle label="Referral Engine" active={settings?.node_referral_engine} onToggle={(v) => toggleSetting('node_referral_engine', v)} />
+                    <NodeToggle label="Arcade Rewards" active={settings?.node_arcade_rewards} onToggle={(v) => toggleSetting('node_arcade_rewards', v)} />
+                    <NodeToggle label="Daily Check-in" active={settings?.node_daily_checkin} onToggle={(v) => toggleSetting('node_daily_checkin', v)} />
+                 </NodeCategoryCard>
+              </div>
+           </div>
+        )}
+
         {activeTab === 'monitor' && (
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-700">
-              {/* LEARNING MODULE STATUS */}
+              {/* STATUS OVERVIEW */}
               <Card className="lg:col-span-2 bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-10 shadow-2xl relative overflow-hidden">
-                 <div className="absolute top-0 right-0 p-8 opacity-5"><Library className="h-48 w-48 text-primary" /></div>
+                 <div className="absolute top-0 right-0 p-8 opacity-5"><Signal className="h-48 w-48 text-primary" /></div>
                  <div className="flex items-center justify-between relative z-10">
                     <div className="flex items-center gap-4">
                        <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xl">
-                          <Library className="h-6 w-6" />
+                          <Activity className="h-6 w-6" />
                        </div>
                        <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-widest">Library <span className="text-primary">Signals</span></h3>
-                          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Automatic Curriculum Nodes</p>
+                          <h3 className="text-2xl font-black uppercase italic tracking-widest">Node <span className="text-primary">Monitor</span></h3>
+                          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Real-time Signal Integrity</p>
                        </div>
                     </div>
-                    <Badge variant="outline" className="border-white/10 uppercase font-black px-4 py-1 text-[9px]">Class 1-12 Active</Badge>
+                    <Badge variant="outline" className="border-white/10 uppercase font-black px-4 py-1 text-[9px]">10/10 Nodes Online</Badge>
                  </div>
 
-                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
-                    {[10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(cls => (
-                       <StatusIndicator key={cls} label={`Class ${cls}`} status="active" />
-                    ))}
-                 </div>
-
-                 <div className="grid md:grid-cols-2 gap-6 relative z-10">
-                    <NodeSwitch 
-                       icon={<Database />} 
-                       label="NCERT Hub (India)" 
-                       active={settings?.ncertApiActive !== false} 
-                       onToggle={(v: boolean) => toggleSetting('ncertApiActive', v)} 
-                    />
-                    <NodeSwitch 
-                       icon={<Globe />} 
-                       label="OSEPA Node (Odisha)" 
-                       active={settings?.osepaApiActive !== false} 
-                       onToggle={(v: boolean) => toggleSetting('osepaApiActive', v)} 
-                    />
+                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 relative z-10">
+                    <StatusPulse label="N1: EDU" active={settings?.node_scholar_dividend} />
+                    <StatusPulse label="N2: QUIZ" active={settings?.node_quiz_arena} />
+                    <StatusPulse label="N3: CPA" active={settings?.node_global_cpa} />
+                    <StatusPulse label="N4: TASK" active={settings?.node_micro_tasks} />
+                    <StatusPulse label="N5: SURV" active={settings?.node_surveys} />
+                    <StatusPulse label="N6: ADS" active={settings?.node_ad_stream} />
+                    <StatusPulse label="N7: ANLY" active={settings?.node_content_analysis} />
+                    <StatusPulse label="N8: REFR" active={settings?.node_referral_engine} />
+                    <StatusPulse label="N9: ARCD" active={settings?.node_arcade_rewards} />
+                    <StatusPulse label="N10: DAY" active={settings?.node_daily_checkin} />
                  </div>
               </Card>
 
-              {/* SECURITY & USER HUB */}
-              <div className="space-y-8">
-                 <Card className="bg-red-500/5 border-red-500/20 border-2 rounded-[3rem] p-10 space-y-6 shadow-2xl">
-                    <div className="flex items-center justify-between">
-                       <h3 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
-                          <ShieldAlert className="h-5 w-5 text-red-500" /> Fraud Shield
-                       </h3>
-                       <Badge className="bg-red-500 text-white border-none font-black px-3 py-1 text-[9px] animate-pulse">ALERTS ACTIVE</Badge>
-                    </div>
-                    <div className="space-y-1">
-                       <p className="text-5xl font-black text-white italic">{fraudData?.length || 0}</p>
-                       <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest italic">Suspicious Activities Caught</p>
-                    </div>
-                    <Button variant="outline" className="w-full h-14 rounded-xl border-red-500/20 bg-red-500/5 text-red-500 font-black uppercase text-[10px] hover:bg-red-500 hover:text-white transition-all">
-                       AUDIT FRAUD LOGS <ArrowUpRight className="h-3 w-3 ml-2" />
-                    </Button>
-                 </Card>
-
-                 <Card className="bg-green-500/5 border-green-500/20 border-2 rounded-[3rem] p-10 space-y-6 shadow-2xl">
-                    <div className="flex items-center justify-between">
-                       <h3 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
-                          <Users className="h-5 w-5 text-green-500" /> Verified Peers
-                       </h3>
-                    </div>
-                    <div className="space-y-1">
-                       <p className="text-5xl font-black text-white italic">{allUsers?.filter(u => u.vipLevel > 0).length || 0}</p>
-                       <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest italic">Industrial VIP 1 Accounts</p>
-                    </div>
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                       <div className="h-full bg-green-500" style={{ width: `${((allUsers?.filter(u => u.vipLevel > 0).length || 0) / (allUsers?.length || 1)) * 100}%` }} />
-                    </div>
-                 </Card>
-              </div>
-
-              {/* REVENUE MODULE STATUS */}
-              <Card className="lg:col-span-3 bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-10 shadow-2xl">
-                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                    <div className="flex items-center gap-4">
-                       <div className="h-14 w-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-xl">
-                          <Zap className="h-6 w-6" />
-                       </div>
-                       <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-widest">Revenue <span className="text-amber-500">Pipeline</span></h3>
-                          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Monetization Signal Status</p>
-                       </div>
-                    </div>
-                    <div className="flex gap-6">
-                       <StatusIndicator label="CPA Mediation (CPALead)" status={settings?.cpaApiActive !== false ? 'active' : 'inactive'} />
-                       <StatusIndicator label="Ad Streaming (Rewarded)" status={settings?.adMobActive !== false ? 'active' : 'inactive'} />
-                       <StatusIndicator label="Postback Node (S2S)" status="active" />
-                    </div>
-                 </div>
-
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/10 space-y-4">
-                       <p className="text-[10px] font-black uppercase text-muted-foreground">Admin Net Profit (70%)</p>
-                       <p className="text-4xl font-black text-primary italic">$420.50</p>
-                       <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase px-2 py-1">LOCKED ASSETS</Badge>
-                    </div>
-                    <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/10 space-y-4">
-                       <p className="text-[10px] font-black uppercase text-muted-foreground">Daily Revenue Yield</p>
-                       <p className="text-4xl font-black text-green-500 italic">+$82.10</p>
-                       <div className="flex items-center gap-2 text-[8px] font-bold text-green-500 uppercase">
-                          <Activity className="h-3 w-3" /> 12% Growth Today
-                       </div>
-                    </div>
-                    <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/10 space-y-4">
-                       <p className="text-[10px] font-black uppercase text-muted-foreground">API Latency Node</p>
-                       <p className="text-4xl font-black text-white italic">42ms</p>
-                       <p className="text-[9px] font-black uppercase text-muted-foreground italic">Optimal Network Signal</p>
-                    </div>
-                 </div>
-              </Card>
-           </div>
-        )}
-
-        {activeTab === 'apis' && (
-           <div className="space-y-10 animate-in slide-in-from-bottom-4 duration-700">
-              <header className="flex items-center gap-4">
-                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                    <Link2 className="h-5 w-5 text-primary" />
-                 </div>
-                 <div>
-                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">Master API <span className="text-primary">Configuration</span></h2>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Global Industrial Node Management</p>
-                 </div>
-              </header>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                 <ApiCategoryCard title="Monetization Nodes" icon={<Zap className="text-amber-500" />}>
-                    <NodeSwitch label="CPALead Mediation" active={settings?.cpaApiActive !== false} onToggle={(v: boolean) => toggleSetting('cpaApiActive', v)} />
-                    <NodeSwitch label="AdMob Rewarded" active={settings?.adMobActive !== false} onToggle={(v: boolean) => toggleSetting('adMobActive', v)} />
-                    <NodeSwitch label="S2S Postback URL" active={true} onToggle={() => {}} />
-                 </ApiCategoryCard>
-
-                 <ApiCategoryCard title="Education Nodes" icon={<Library className="text-primary" />}>
-                    <NodeSwitch label="NCERT API (India)" active={settings?.ncertApiActive !== false} onToggle={(v: boolean) => toggleSetting('ncertApiActive', v)} />
-                    <NodeSwitch label="OSEPA API (Odisha)" active={settings?.osepaApiActive !== false} onToggle={(v: boolean) => toggleSetting('osepaApiActive', v)} />
-                    <NodeSwitch label="OpenStax Global" active={true} onToggle={() => {}} />
-                 </ApiCategoryCard>
-
-                 <ApiCategoryCard title="Security & Finance" icon={<ShieldCheck className="text-green-500" />}>
-                    <NodeSwitch label="VPN Guard Node" active={settings?.vpnGuardActive !== false} onToggle={(v: boolean) => toggleSetting('vpnGuardActive', v)} />
-                    <NodeSwitch label="UPI Gateway (Auto)" active={settings?.upiGatewayActive !== false} onToggle={(v: boolean) => toggleSetting('upiGatewayActive', v)} />
-                    <NodeSwitch label="RNG Integrity Node" active={true} onToggle={() => {}} />
-                 </ApiCategoryCard>
-              </div>
-
-              <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
-                 <div className="flex items-center justify-between mb-8">
+              {/* FRAUD SHIELD QUICK VIEW */}
+              <Card className="bg-red-500/5 border-red-500/20 border-2 rounded-[3rem] p-10 space-y-6 shadow-2xl">
+                 <div className="flex items-center justify-between">
                     <h3 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
-                       <Signal className="h-5 w-5 text-primary" /> API Heartbeat Monitor
+                       <ShieldAlert className="h-5 w-5 text-red-500" /> Fraud Log
                     </h3>
-                    <Badge variant="outline" className="border-white/10 uppercase text-[9px] font-black">Live Signals</Badge>
+                    <Badge className="bg-red-500 text-white border-none font-black px-3 py-1 text-[9px] animate-pulse">ALERTS ACTIVE</Badge>
                  </div>
-                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <HeartbeatIndicator label="CPA Signal" ms={32} status="active" />
-                    <HeartbeatIndicator label="Ad SDK" ms={120} status="active" />
-                    <HeartbeatIndicator label="Gov. Library" ms={450} status="active" />
-                    <HeartbeatIndicator label="Auth Node" ms={12} status="active" />
+                 <div className="space-y-1">
+                    <p className="text-5xl font-black text-white italic">{fraudData?.length || 0}</p>
+                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest italic">Suspicious Signals Caught</p>
                  </div>
               </Card>
-           </div>
-        )}
-
-        {activeTab !== 'monitor' && activeTab !== 'apis' && (
-           <div className="py-40 text-center space-y-6 bg-[#0a0a0f] border border-dashed border-white/10 rounded-[4rem]">
-              <Settings className="h-20 w-20 text-muted-foreground opacity-10 mx-auto" />
-              <p className="text-sm font-black uppercase text-muted-foreground tracking-[0.4em] italic">Secondary Node Hub Active</p>
            </div>
         )}
       </main>
@@ -300,7 +212,7 @@ export default function AdminDashboard() {
   );
 }
 
-function ApiCategoryCard({ title, icon, children }: any) {
+function NodeCategoryCard({ title, icon, children }: any) {
    return (
       <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
          <div className="flex items-center gap-3 pb-2 border-b border-white/5">
@@ -314,45 +226,23 @@ function ApiCategoryCard({ title, icon, children }: any) {
    );
 }
 
-function HeartbeatIndicator({ label, ms, status }: any) {
+function NodeToggle({ label, active, onToggle }: any) {
    return (
-      <div className="p-6 bg-black/40 rounded-2xl border border-white/5 space-y-2 group hover:border-primary/40 transition-all">
-         <div className="flex justify-between items-center">
-            <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">{label}</p>
-            <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", status === 'active' ? "bg-green-500" : "bg-red-500")} />
-         </div>
-         <p className="text-2xl font-black italic text-white">{ms}<span className="text-[10px] opacity-40 ml-1">ms</span></p>
-         <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-            <div className="h-full bg-primary" style={{ width: `${Math.max(10, 100 - (ms / 10))}%` }} />
-         </div>
-      </div>
-   );
-}
-
-function StatusIndicator({ label, status }: { label: string, status: 'active' | 'inactive' }) {
-   return (
-      <div className="flex items-center gap-3 p-4 bg-black/40 rounded-2xl border border-white/5 min-w-[140px]">
-         <div className={cn(
-            "h-2.5 w-2.5 rounded-full shadow-lg",
-            status === 'active' ? "bg-green-500 animate-pulse shadow-green-500/20" : "bg-red-500 shadow-red-500/20"
-         )} />
-         <span className="text-[9px] font-black uppercase tracking-widest text-white/80">{label}</span>
-      </div>
-   );
-}
-
-function NodeSwitch({ icon, label, active, onToggle }: any) {
-   return (
-      <div className="flex items-center justify-between p-6 bg-white/5 border border-white/10 rounded-2xl group hover:border-primary/40 transition-all shadow-lg">
-         <div className="flex items-center gap-4">
-            {icon && (
-               <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center text-primary border border-white/5 group-hover:scale-110 transition-transform">
-                  {icon}
-               </div>
-            )}
-            <span className="text-[11px] font-black uppercase tracking-widest">{label}</span>
+      <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl">
+         <div className="flex items-center gap-3">
+            <div className={cn("h-1.5 w-1.5 rounded-full", active ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+            <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
          </div>
          <Switch checked={active} onCheckedChange={onToggle} />
+      </div>
+   );
+}
+
+function StatusPulse({ label, active }: any) {
+   return (
+      <div className="flex items-center gap-2 p-3 bg-black/40 rounded-xl border border-white/5">
+         <div className={cn("h-2 w-2 rounded-full", active ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" : "bg-red-500")} />
+         <span className="text-[8px] font-black uppercase text-white/60">{label}</span>
       </div>
    );
 }
