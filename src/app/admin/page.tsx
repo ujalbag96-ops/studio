@@ -24,7 +24,8 @@ import {
   XCircle,
   Link2,
   Globe,
-  ShieldCheck
+  ShieldCheck,
+  Video
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -145,7 +146,7 @@ export default function AdminDashboard() {
         <header className="flex items-center justify-between">
            <div className="space-y-1">
               <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin <span className="text-primary">Command</span></h1>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v12.0 Build</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v13.0 Build</p>
            </div>
         </header>
 
@@ -295,6 +296,7 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                    <NodeToggle label="Scholar Div" active={settings?.node_scholar_dividend} onToggle={(v) => toggleSetting('node_scholar_dividend', v)} />
                    <NodeToggle label="Quiz Arena" active={settings?.node_quiz_arena} onToggle={(v) => toggleSetting('node_quiz_arena', v)} />
+                   <NodeToggle label="Video Quiz" active={settings?.node_global_video_quiz} onToggle={(v) => toggleSetting('node_global_video_quiz', v)} />
                    <NodeToggle label="Global CPA" active={settings?.node_global_cpa} onToggle={(v) => toggleSetting('node_global_cpa', v)} />
                    <NodeToggle label="Micro Tasks" active={settings?.node_micro_tasks} onToggle={(v) => toggleSetting('node_micro_tasks', v)} />
                    <NodeToggle label="Surveys" active={settings?.node_surveys} onToggle={(v) => toggleSetting('node_surveys', v)} />
