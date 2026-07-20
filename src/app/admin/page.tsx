@@ -21,7 +21,10 @@ import {
   Lock,
   LayoutGrid,
   TrendingUp,
-  Percent
+  Percent,
+  Users,
+  Trophy,
+  ShoppingBag
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -101,6 +104,28 @@ export default function AdminDashboard() {
            </div>
         </header>
 
+        {activeTab === 'settings' && (
+          <div className="space-y-10 animate-in fade-in duration-700">
+             <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-8 shadow-2xl">
+                <div className="flex items-center gap-4">
+                   <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                      <Power className="h-6 w-6" />
+                   </div>
+                   <h3 className="text-2xl font-black uppercase italic">Node <span className="text-primary">Toggles</span></h3>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                   <NodeToggle label="EDU Node" active={settings?.node_scholar_dividend} onToggle={(v) => toggleSetting('node_scholar_dividend', v)} />
+                   <NodeToggle label="CPA Hub" active={settings?.node_global_cpa} onToggle={(v) => toggleSetting('node_global_cpa', v)} />
+                   <NodeToggle label="Ad Stream" active={settings?.node_ad_stream} onToggle={(v) => toggleSetting('node_ad_stream', v)} />
+                   <NodeToggle label="PeerConnect" active={settings?.node_peer_connect} onToggle={(v) => toggleSetting('node_peer_connect', v)} />
+                   <NodeToggle label="Prize Arena" active={settings?.node_prize_arena} onToggle={(v) => toggleSetting('node_prize_arena', v)} />
+                   <NodeToggle label="Marketplace" active={settings?.node_marketplace} onToggle={(v) => toggleSetting('node_marketplace', v)} />
+                </div>
+             </Card>
+          </div>
+        )}
+
         {activeTab === 'finance' && (
            <div className="space-y-10 animate-in fade-in duration-700">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -160,10 +185,10 @@ export default function AdminDashboard() {
                     </div>
                  </div>
                  <div className="grid grid-cols-2 gap-4">
-                    <StatusPulse label="EDU NODE" active={settings?.node_scholar_dividend} />
-                    <StatusPulse label="CPA HUB" active={settings?.node_global_cpa} />
+                    <StatusPulse label="PEER Node" active={settings?.node_peer_connect} />
+                    <StatusPulse label="PRIZE Arena" active={settings?.node_prize_arena} />
+                    <StatusPulse label="MARKETPLACE" active={settings?.node_marketplace} />
                     <StatusPulse label="AD STREAM" active={settings?.node_ad_stream} />
-                    <StatusPulse label="DAILY BOX" active={settings?.node_daily_checkin} />
                  </div>
               </Card>
 
@@ -180,6 +205,18 @@ export default function AdminDashboard() {
            </div>
         )}
       </main>
+    </div>
+  );
+}
+
+function NodeToggle({ label, active, onToggle }: any) {
+  return (
+    <div className="p-6 bg-black/40 rounded-2xl border border-white/5 flex flex-col gap-4">
+       <span className="text-[10px] font-black uppercase text-white/60 tracking-widest">{label}</span>
+       <div className="flex items-center justify-between">
+          <Switch checked={active} onCheckedChange={onToggle} />
+          <div className={cn("h-2 w-2 rounded-full", active ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" : "bg-red-500")} />
+       </div>
     </div>
   );
 }

@@ -18,21 +18,13 @@
         "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] },
         "vipLevel": { "type": "number" },
         "isSuspended": { "type": "boolean" },
+        "teacherPoints": { "type": "number" },
+        "marketSalesCount": { "type": "number" },
         "cpaTasksCount": { "type": "number" },
         "generalTasksCount": { "type": "number" },
         "totalReferrals": { "type": "number" },
         "scholarPoints": { "type": "number" },
         "referralCode": { "type": "string" }
-      }
-    },
-    "PlatformRevenue": {
-      "title": "PlatformRevenue",
-      "description": "Real-time tracking of platform-wide ad and mission revenue.",
-      "type": "object",
-      "properties": {
-        "totalDailyRevenueUSD": { "type": "number" },
-        "totalDistributedToUsersUSD": { "type": "number" },
-        "lastUpdated": { "type": "string", "format": "date-time" }
       }
     },
     "AppSettings": {
@@ -48,7 +40,9 @@
         "node_quiz_arena": { "type": "boolean" },
         "node_global_cpa": { "type": "boolean" },
         "node_micro_tasks": { "type": "boolean" },
-        "node_ad_stream": { "type": "boolean" }
+        "node_peer_connect": { "type": "boolean" },
+        "node_prize_arena": { "type": "boolean" },
+        "node_marketplace": { "type": "boolean" }
       }
     }
   },
@@ -64,9 +58,13 @@
       "schema": "AppSettings",
       "description": "Industrial control node"
     },
-    "/platform_stats/revenue": {
-      "schema": "PlatformRevenue",
-      "description": "Live platform-wide earnings tracker"
+    "/study_sessions/{sessionId}": {
+      "schema": "StudyBuddySession",
+      "description": "Peer-to-peer matching data"
+    },
+    "/market_assets/{assetId}": {
+      "schema": "MarketAsset",
+      "description": "UGC Knowledge Store data"
     }
   }
 }

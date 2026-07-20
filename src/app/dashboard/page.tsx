@@ -26,7 +26,11 @@ import {
   ShieldEllipsis,
   ShieldAlert,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  Users,
+  Search,
+  BookOpen,
+  Gift
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,7 +53,6 @@ export default function UserDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [showLegal, setShowLegal] = useState(false);
   const [showScratch, setShowScratch] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => 
@@ -96,8 +99,10 @@ export default function UserDashboard() {
 
         <nav className="flex-1 p-8 space-y-2">
           <SidebarItem active={true} icon={<LayoutDashboard />} label="Portfolio" onClick={() => {}} />
+          <SidebarItem active={false} icon={<Users />} label="PeerConnect" onClick={() => router.push('/peer-connect')} />
+          <SidebarItem active={false} icon={<ShoppingBag />} label="Marketplace" onClick={() => router.push('/marketplace')} />
+          <SidebarItem active={false} icon={<Trophy />} label="Prize Arena" onClick={() => router.push('/arcade-tournaments')} />
           <SidebarItem active={false} icon={<Globe />} label="MLM Network" onClick={() => router.push('/refer')} />
-          <SidebarItem active={false} icon={<BarChart3 />} label="Live Earnings" onClick={() => {}} />
         </nav>
 
         <div className="p-8 border-t border-white/5">
@@ -111,9 +116,14 @@ export default function UserDashboard() {
         <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-10">
           <div className="space-y-4">
             <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter italic leading-none">Wallet <span className="text-primary">{combinedCashBalance}</span></h1>
-            <p className="text-sm font-black text-amber-500 uppercase italic tracking-widest animate-pulse">
-               35% Network Yield Nodes Active
-            </p>
+            <div className="flex gap-4">
+               <Badge className="bg-amber-500/10 text-amber-500 border-none font-black text-[10px] px-4 py-1.5 uppercase italic animate-pulse">
+                  Teacher Points: {profile?.teacherPoints || 0}
+               </Badge>
+               <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] px-4 py-1.5 uppercase italic">
+                  Market Sales: {profile?.marketSalesCount || 0}
+               </Badge>
+            </div>
           </div>
           <div className="bg-black/40 border border-white/5 px-8 py-4 rounded-3xl backdrop-blur-xl">
              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">My Rank</p>
@@ -124,42 +134,45 @@ export default function UserDashboard() {
           </div>
         </header>
 
-        {/* PROFIT DISTRIBUTION HUD - TRANSPARENCY SECTION */}
+        {/* 30% REVENUE TRANSPARENCY HUD */}
         <section className="space-y-6">
            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><BarChart3 className="h-6 w-6 text-primary" /> Profit Distribution Hub</h3>
-              <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase px-4 italic animate-pulse">100% Transparent Signal</Badge>
+              <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><BarChart3 className="h-6 w-6 text-primary" /> Yield Transparency Hub</h3>
+              <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase px-4 italic animate-pulse">Live 70/30 Signal</Badge>
            </div>
            
-           <Card className="bg-gradient-to-br from-[#0a0a0f] to-black border-primary/20 border-2 rounded-[3rem] p-10 grid md:grid-cols-2 gap-12 relative overflow-hidden group">
+           <Card className="bg-gradient-to-br from-[#0a0a0f] to-black border-primary/20 border-2 rounded-[3rem] p-10 grid md:grid-cols-2 gap-12 relative overflow-hidden group shadow-2xl">
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
                  <TrendingUp className="h-64 w-64 text-primary" />
               </div>
 
-              <div className="space-y-6 relative z-10">
-                 <div>
-                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.4em] mb-2">Platform Daily Revenue (USD)</p>
-                    <h4 className="text-5xl font-black italic text-white tabular-nums">${platformRevenueUSD.toFixed(2)}</h4>
+              <div className="space-y-8 relative z-10">
+                 <div className="space-y-2">
+                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.4em]">Global Ad Revenue Node</p>
+                    <h4 className="text-6xl font-black italic text-white tabular-nums">${platformRevenueUSD.toFixed(2)}</h4>
                  </div>
-                 <div className="space-y-3">
-                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-primary">
-                       <span>User Share Distribution</span>
-                       <span>{sharePct}% Signal</span>
-                    </div>
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                       <div className="h-full bg-primary" style={{ width: `${sharePct}%` }} />
+                 
+                 <div className="space-y-5 bg-white/5 border border-white/10 rounded-3xl p-6">
+                    <h5 className="text-[10px] font-black uppercase text-primary italic">Distribution Equation:</h5>
+                    <div className="space-y-3">
+                       <TransparencyRow label="Platform Share (70%)" value={`$${(platformRevenueUSD * 0.7).toFixed(2)}`} color="text-muted-foreground" />
+                       <TransparencyRow label="User Share Pool (30%)" value={`$${(platformRevenueUSD * 0.3).toFixed(2)}`} color="text-primary" />
+                       <div className="h-px bg-white/10 my-2" />
+                       <p className="text-[8px] font-bold text-muted-foreground uppercase leading-relaxed">
+                          Your share is calculated based on daily task verified weight across all 10 nodes.
+                       </p>
                     </div>
                  </div>
               </div>
 
-              <div className="space-y-6 relative z-10 bg-white/5 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-xl">
-                 <div className="space-y-2 text-center">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground">My Personal Profit Share</p>
-                    <h5 className="text-4xl font-black italic text-green-500 tabular-nums">${userShareUSD.toFixed(2)}</h5>
+              <div className="space-y-8 relative z-10 bg-primary/10 border border-primary/20 rounded-[2.5rem] p-10 backdrop-blur-xl flex flex-col justify-center text-center">
+                 <div className="space-y-2">
+                    <p className="text-[11px] font-black uppercase text-primary tracking-widest italic">My Personal Profit Signal</p>
+                    <h5 className="text-5xl font-black italic text-green-500 tabular-nums">${userShareUSD.toFixed(2)}</h5>
                     <p className="text-[8px] font-bold text-muted-foreground uppercase mt-2">Verified via Industrial Audit Node</p>
                  </div>
-                 <Button asChild className="w-full h-14 bg-green-600 hover:bg-green-500 text-white font-black uppercase italic rounded-xl shadow-xl">
-                    <Link href="/withdraw">CLAIM MY {sharePct}% SHARE <ArrowUpRight className="h-4 w-4 ml-2" /></Link>
+                 <Button asChild className="w-full h-16 bg-green-600 hover:bg-green-500 text-white font-black uppercase italic rounded-2xl shadow-xl shadow-green-500/20">
+                    <Link href="/withdraw">EXECUTE WITHDRAWAL <ArrowUpRight className="h-5 w-5 ml-2" /></Link>
                  </Button>
               </div>
            </Card>
@@ -169,7 +182,7 @@ export default function UserDashboard() {
           <WalletCard label="Winning" value={profile?.winningBalance || 0} country={profile?.country} icon={<Trophy />} color="green" />
           <WalletCard label="Mission Rev." value={profile?.taskBalance || 0} country={profile?.country} icon={<CreditCard />} color="blue" />
           <WalletCard label="Total Coins" value={profile?.coins || 0} country={profile?.country} icon={<Coins />} color="amber" />
-          <WalletCard label="Bonus Signal" value={profile?.bonusBalance || 0} country={profile?.country} icon={<Zap />} color="primary" />
+          <WalletCard label="Teacher Pts" value={profile?.teacherPoints || 0} country={profile?.country} icon={<Users />} color="primary" />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
@@ -217,6 +230,15 @@ export default function UserDashboard() {
       </main>
     </div>
   );
+}
+
+function TransparencyRow({ label, value, color }: any) {
+   return (
+      <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+         <span className="text-muted-foreground">{label}</span>
+         <span className={color}>{value}</span>
+      </div>
+   );
 }
 
 function SidebarItem({ active, icon, label, onClick }: any) {
