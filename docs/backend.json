@@ -3,7 +3,7 @@
   "entities": {
     "UserProfile": {
       "title": "UserProfile",
-      "description": "User profile with academic focus and earnings.",
+      "description": "User profile with academic focus, earnings, and security status.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -12,18 +12,29 @@
         "winningBalance": { "type": "number" },
         "taskBalance": { "type": "number" },
         "bonusBalance": { "type": "number" },
+        "walletBalanceINR": { "type": "number" },
         "country": { "type": "string" },
+        "region": { "type": "string" },
+        "city": { "type": "string" },
+        "lastIp": { "type": "string" },
         "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] },
-        "isSuspended": { "type": "boolean" },
         "vipLevel": { "type": "number" },
+        "isSuspended": { "type": "boolean" },
         "cpaTasksCount": { "type": "number" },
         "generalTasksCount": { "type": "number" },
-        "totalReferrals": { "type": "number" }
+        "totalReferrals": { "type": "number" },
+        "scholarPoints": { "type": "number" },
+        "referralCode": { "type": "string" },
+        "referredBy": { "type": "string" },
+        "riskNoticeAccepted": { "type": "boolean" },
+        "puzzleLevel": { "type": "number" },
+        "physicsLevel": { "type": "number" },
+        "runnerLevel": { "type": "number" }
       }
     },
     "AppSettings": {
       "title": "AppSettings",
-      "description": "Global system configuration nodes.",
+      "description": "Master system configuration and API node status.",
       "type": "object",
       "properties": {
         "maintenanceMode": { "type": "boolean" },
@@ -31,22 +42,40 @@
         "autoWithdrawalEnabled": { "type": "boolean" },
         "autoWithdrawalMaxAmount": { "type": "number" },
         "adminUpiId": { "type": "string" },
-        "automaticGatewayEnabled": { "type": "boolean" }
+        "cpaApiActive": { "type": "boolean" },
+        "adMobActive": { "type": "boolean" },
+        "ncertApiActive": { "type": "boolean" },
+        "osepaApiActive": { "type": "boolean" },
+        "vpnGuardActive": { "type": "boolean" }
       }
     },
     "PayoutRequest": {
       "title": "PayoutRequest",
-      "description": "Financial withdrawal request record.",
+      "description": "Record of withdrawal requests with audit logs.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "amount": { "type": "number" },
+        "userEmail": { "type": "string" },
+        "coinAmount": { "type": "number" },
+        "localAmount": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "completed", "failed"] },
         "method": { "type": "string" },
         "destination": { "type": "string" },
         "processedBy": { "type": "string", "enum": ["manual", "automatic"] },
-        "gatewayTransactionId": { "type": "string" },
+        "geo": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CpaMission": {
+      "title": "CpaMission",
+      "description": "Offerwall task definition fetched from mediation.",
+      "type": "object",
+      "properties": {
+        "appName": { "type": "string" },
+        "reward": { "type": "number" },
+        "type": { "type": "string" },
+        "link": { "type": "string" },
+        "geo": { "type": "string" }
       }
     }
   },
@@ -56,15 +85,19 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "User account data"
+      "description": "Global user identity and asset ledger"
     },
     "/app_settings/global_config": {
       "schema": "AppSettings",
-      "description": "Master system configuration"
+      "description": "Industrial control node"
     },
     "/payouts/{payoutId}": {
       "schema": "PayoutRequest",
-      "description": "Payout processing queue"
+      "description": "Audit queue for financial settlement"
+    },
+    "/cpa_missions/{missionId}": {
+      "schema": "CpaMission",
+      "description": "Mediation waterfall cache"
     }
   }
 }
