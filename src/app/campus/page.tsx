@@ -6,42 +6,22 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  BookOpen, 
   GraduationCap, 
   Library, 
-  Sparkles, 
-  AlertCircle, 
   ShieldCheck, 
   ChevronRight, 
-  Trophy,
   BrainCircuit,
   Globe,
-  Flag,
-  Search,
   Languages,
-  LayoutGrid
+  Loader2,
+  BookOpen
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { UserProfile, EduSource } from '@/app/lib/types';
+import { UserProfile, EduSource, BookMetadata } from '@/app/lib/types';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-const CLASSES = [
-  { id: 'class-1', name: 'Class 1', desc: 'Primary Foundation' },
-  { id: 'class-2', name: 'Class 2', desc: 'Primary Foundation' },
-  { id: 'class-3', name: 'Class 3', desc: 'Primary Core' },
-  { id: 'class-4', name: 'Class 4', desc: 'Primary Core' },
-  { id: 'class-5', name: 'Class 5', desc: 'Primary Core' },
-  { id: 'class-6', name: 'Class 6', desc: 'Upper Primary' },
-  { id: 'class-7', name: 'Class 7', desc: 'Upper Primary' },
-  { id: 'class-8', name: 'Class 8', desc: 'Upper Primary' },
-  { id: 'class-9', name: 'Class 9', desc: 'Secondary Ed' },
-  { id: 'class-10', name: 'Class 10', desc: 'Secondary Ed' },
-  { id: 'class-11', name: 'Class 11', desc: 'Higher Secondary' },
-  { id: 'class-12', name: 'Class 12', desc: 'Board Ready' },
-];
 
 export default function CampusHomeScreen() {
   const { user } = useUser();
@@ -52,14 +32,35 @@ export default function CampusHomeScreen() {
 
   const [eduSource, setEduSource] = useState<EduSource>('NCERT');
   const [language, setLanguage] = useState<'en' | 'or' | 'hi' | 'es'>('en');
+  const [books, setBooks] = useState<BookMetadata[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Auto-assignment based on geo_region
+  // Auto-assignment based on geo_region & Language Fetching
   useEffect(() => {
     if (profile) {
       setEduSource(profile.preferredEduSource || (profile.geo_region === 'India' ? 'NCERT' : 'OpenStax'));
       setLanguage(profile.preferredLanguage || (profile.geo_region === 'India' ? 'or' : 'en'));
     }
   }, [profile]);
+
+  useEffect(() => {
+    async function fetchVaultData() {
+      if (!profile) return;
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/curriculum?region=${profile.geo_region || 'Global'}&lang=${language}&source=${eduSource}`);
+        const data = await res.json();
+        if (data.success) {
+          setBooks(data.books);
+        }
+      } catch (e) {
+        console.error("Vault Signal Lost");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchVaultData();
+  }, [profile, language, eduSource]);
 
   const updatePreference = async (source: EduSource) => {
     setEduSource(source);
@@ -142,25 +143,40 @@ export default function CampusHomeScreen() {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-        {CLASSES.map((cls) => (
-          <Link key={cls.id} href={`/campus/${cls.id}?source=${eduSource}&lang=${language}`}>
-            <Card className="p-8 rounded-[2.5rem] bg-[#0a0a0f] border-white/5 hover:border-primary/40 transition-all hover:scale-105 group text-center space-y-4 shadow-xl relative overflow-hidden">
-              <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-all relative z-10 shadow-xl">
-                <GraduationCap className="h-8 w-8" />
-              </div>
-              <div className="relative z-10">
-                <h3 className="text-xl font-black uppercase italic text-white">
-                   {cls.name}
-                </h3>
-                <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{cls.desc}</p>
-              </div>
-              <ChevronRight className="h-4 w-4 mx-auto text-muted-foreground opacity-20 group-hover:opacity-100 group-hover:text-primary transition-all relative z-10" />
-            </Card>
-          </Link>
-        ))}
-      </div>
+      {loading ? (
+        <div className="py-40 flex flex-col items-center gap-6">
+           <Loader2 className="h-12 w-12 animate-spin text-primary" />
+           <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">Accessing Regional Vault...</p>
+        </div>
+      ) : books.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {books.map((book) => (
+            <Link key={book.id} href={`/campus/${book.id}?source=${book.source}&lang=${book.lang}`}>
+              <Card className="p-8 rounded-[2.5rem] bg-[#0a0a0f] border-white/5 hover:border-primary/40 transition-all hover:scale-105 group space-y-6 shadow-xl relative overflow-hidden h-full flex flex-col justify-between">
+                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="space-y-6 relative z-10">
+                   <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary shadow-xl">
+                      <BookOpen className="h-8 w-8" />
+                   </div>
+                   <div className="space-y-2">
+                      <h3 className="text-2xl font-black uppercase italic text-white tracking-tight leading-tight">{book.title}</h3>
+                      <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{book.class} • {book.subject}</p>
+                   </div>
+                </div>
+                <div className="relative z-10 pt-6 border-t border-white/5 flex items-center justify-between">
+                   <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black px-3 py-1 uppercase">{book.chapters} Chapters</Badge>
+                   <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="py-40 text-center space-y-6 border-2 border-dashed border-white/5 rounded-[3rem]">
+           <Library className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
+           <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">No matching catalogs for this terminal</p>
+        </div>
+      )}
 
       <section className="pt-10 grid md:grid-cols-2 gap-8">
          <Card className="bg-[#0a0a0f] border-dashed border-2 border-white/5 p-10 rounded-[3rem] space-y-6">
@@ -168,23 +184,18 @@ export default function CampusHomeScreen() {
                <div className="h-10 w-10 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20 shadow-xl">
                   <BrainCircuit className="h-5 w-5 text-amber-500" />
                </div>
-               <h2 className="text-3xl font-black uppercase italic tracking-tighter">Regional <span className="text-amber-500">Mapping</span></h2>
+               <h2 className="text-3xl font-black uppercase italic tracking-tighter">Scholar <span className="text-amber-500">Dividend</span></h2>
             </div>
             <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-               Content is dynamically ingested from region-specific industrial nodes. Library sync ensures zero-latency access to textbooks globally.
+               Every minute spent in the Smart Vault generates analytical value. Complete lessons to trigger your share of the platform's educational revenue pool.
             </p>
-            <div className="grid grid-cols-3 gap-3">
-               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">ODISHA Core</div>
-               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">USA Science</div>
-               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">NCERT Core</div>
-            </div>
          </Card>
 
          <Card className="bg-primary/5 border-primary/20 border-2 p-10 rounded-[3rem] flex flex-col justify-center items-center text-center space-y-6">
             <Globe className="h-12 w-12 text-primary animate-pulse" />
             <div className="space-y-2">
-               <h4 className="text-2xl font-black uppercase italic tracking-tighter">Universal <span className="text-primary">Sync v11.0</span></h4>
-               <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] italic">Geo-Calibration Node Fully Active</p>
+               <h4 className="text-2xl font-black uppercase italic tracking-tighter">Universal <span className="text-primary">Sync Active</span></h4>
+               <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] italic">Geo-Calibration Node Fully Integrated</p>
             </div>
          </Card>
       </section>

@@ -59,15 +59,21 @@ export interface UserProfile {
   lastIp?: string;
 }
 
+export interface BookMetadata {
+  id: string;
+  title: string;
+  subject: string;
+  class: string;
+  source: EduSource;
+  lang: string;
+  chapters: number;
+  coverUrl: string;
+}
+
 export interface PlatformRevenue {
   totalDailyRevenueUSD: number;
   totalDistributedToUsersUSD: number;
   lastUpdated: string;
-  api_status?: {
-    admob: 'active' | 'error' | 'latency';
-    cpalead: 'active' | 'error' | 'latency';
-    adgate: 'active' | 'error' | 'latency';
-  };
 }
 
 export interface AppSettings {
@@ -78,7 +84,6 @@ export interface AppSettings {
   adminUpiId: string;
   coinToInrRate: number; 
   
-  // 10-Node Architecture Automation
   node_scholar_dividend: boolean;
   node_quiz_arena: boolean;
   node_global_cpa: boolean;
