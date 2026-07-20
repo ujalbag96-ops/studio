@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -25,7 +24,8 @@ import {
   Users,
   Trophy,
   ShoppingBag,
-  Cpu
+  Cpu,
+  LineChart
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -93,7 +93,7 @@ export default function AdminDashboard() {
         <nav className="flex-1 p-8 space-y-3">
           <AdminLink active={activeTab === 'monitor'} icon={<Monitor />} label="Master Monitor" onClick={() => setActiveTab('monitor')} />
           <AdminLink active={activeTab === 'nodes'} icon={<Cpu />} label="System Nodes" onClick={() => setActiveTab('nodes')} />
-          <AdminLink active={activeTab === 'finance'} icon={<BarChart3 />} label="Profit Node" onClick={() => setActiveTab('finance')} />
+          <AdminLink active={activeTab === 'finance'} icon={<LineChart />} label="Revenue Controller" onClick={() => setActiveTab('finance')} />
           <AdminLink active={activeTab === 'settings'} icon={<Settings />} label="System Config" onClick={() => setActiveTab('settings')} />
         </nav>
       </aside>
@@ -156,8 +156,8 @@ export default function AdminDashboard() {
                           <Percent className="h-5 w-5 text-primary" />
                        </div>
                        <div>
-                          <p className="text-[9px] font-black uppercase text-muted-foreground">Override Share %</p>
-                          <p className="text-xs font-bold text-white uppercase italic">70% Admin Profit Lock</p>
+                          <p className="text-[9px] font-black uppercase text-muted-foreground">Master Margin Override</p>
+                          <p className="text-xs font-bold text-white uppercase italic">Revenue Share Percent</p>
                        </div>
                     </div>
                     <div className="flex gap-4">
@@ -167,12 +167,29 @@ export default function AdminDashboard() {
                         onChange={(e) => toggleSetting('userRevenueSharePercent', parseInt(e.target.value))}
                         className="bg-black border-white/10 h-12 rounded-xl font-black text-lg text-primary w-24"
                        />
-                       <p className="text-[8px] text-muted-foreground leading-relaxed uppercase font-medium">
-                          Current logic ensures {100 - (settings?.userRevenueSharePercent || 30)}% Net Margin.
-                       </p>
+                       <div className="flex-1">
+                          <p className="text-[8px] text-muted-foreground leading-relaxed uppercase font-medium">
+                            Current setting ensures {100 - (settings?.userRevenueSharePercent || 30)}% Admin Net Margin Lock.
+                          </p>
+                       </div>
                     </div>
                  </Card>
               </div>
+
+              <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-8 shadow-2xl">
+                 <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                       <LineChart className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-2xl font-black uppercase italic">Revenue <span className="text-primary">Controller Node</span></h3>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <RevenueStat label="Gross Revenue" value={`$${(stats?.totalDailyRevenueUSD || 0).toFixed(2)}`} trend="+12%" />
+                    <RevenueStat label="User Distribution" value={`$${(stats?.totalDistributedToUsersUSD || 0).toFixed(2)}`} trend="-2%" />
+                    <RevenueStat label="Net Profit" value={`$${((stats?.totalDailyRevenueUSD || 0) * ( (100 - (settings?.userRevenueSharePercent || 30)) / 100 )).toFixed(2)}`} trend="+18%" color="text-green-500" />
+                    <RevenueStat label="Margin Stability" value={`${100 - (settings?.userRevenueSharePercent || 30)}%`} trend="Locked" color="text-primary" />
+                 </div>
+              </Card>
            </div>
         )}
 
@@ -211,6 +228,18 @@ export default function AdminDashboard() {
            </div>
         )}
       </main>
+    </div>
+  );
+}
+
+function RevenueStat({ label, value, trend, color = "text-white" }: any) {
+  return (
+    <div className="p-6 bg-black/40 rounded-2xl border border-white/5 space-y-2">
+       <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{label}</p>
+       <div className="flex items-end justify-between">
+          <h4 className={cn("text-2xl font-black italic", color)}>{value}</h4>
+          <span className="text-[8px] font-bold text-green-500 uppercase">{trend}</span>
+       </div>
     </div>
   );
 }

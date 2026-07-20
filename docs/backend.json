@@ -1,9 +1,8 @@
-
 {
   "entities": {
     "UserProfile": {
       "title": "UserProfile",
-      "description": "Master user identity with 10-node yield tracking and profit share allocation.",
+      "description": "Master user identity with 10-node yield tracking and revenue share allocation.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -12,7 +11,7 @@
         "winningBalance": { "type": "number" },
         "taskBalance": { "type": "number" },
         "bonusBalance": { "type": "number" },
-        "pendingRevenueShare": { "type": "number", "description": "USD value based on 30% redistribution logic" },
+        "pendingRevenueShare": { "type": "number", "description": "USD value based on redistribution logic" },
         "country": { "type": "string" },
         "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] },
         "vipLevel": { "type": "number" },
@@ -24,7 +23,7 @@
     },
     "AppSettings": {
       "title": "AppSettings",
-      "description": "Master system config for 10-node multi-revenue architecture and 70/30 profit lock.",
+      "description": "Master system config for 10-node revenue architecture and margin controller.",
       "type": "object",
       "properties": {
         "maintenanceMode": { "type": "boolean" },
@@ -53,7 +52,7 @@
     },
     "/app_settings/global_config": {
       "schema": "AppSettings",
-      "description": "Industrial control node with 10-node switches"
+      "description": "Industrial control node with Revenue Controller master settings"
     }
   }
 }
