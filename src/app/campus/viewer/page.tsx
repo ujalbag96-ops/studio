@@ -44,8 +44,6 @@ function ViewerContent() {
   const lang = searchParams.get('lang') || 'en';
   
   const [secondsRead, setSecondsRead] = useState(0);
-  const [isLowBandwidth, setIsLowBandwidth] = useState(false);
-  
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizLoading, setQuizLoading] = useState(false);
   const [quizData, setQuizData] = useState<GenerateQuizOutput | null>(null);
@@ -54,9 +52,8 @@ function ViewerContent() {
   const [quizFinished, setQuizFinished] = useState(false);
   const [lives, setLives] = useState(3);
   
-  const [isAdRunning, setIsAdRunning] = useState(false);
-  const [adCountdown, setAdCountdown] = useState(0);
-  const [pendingUnlock, setPendingUnlock] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationCountdown, setVerificationCountdown] = useState(0);
   const [scholarRewardClaimed, setScholarRewardClaimed] = useState(false);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
@@ -65,9 +62,27 @@ function ViewerContent() {
   const { data: profile } = useDoc<UserProfile>(userRef);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
-  // 30-Minute Scholar Point Sync linked to Node 1
   const handleScholarPoints = useCallback(async () => {
     if (!user || !userRef || scholarRewardClaimed || !settings?.node_scholar_dividend) return;
+    
+    // Trigger Silent Ad Trigger (Verification)
+    setIsVerifying(true);
+    setVerificationCountdown(10);
+  }, [user, userRef, scholarRewardClaimed, settings]);
+
+  useEffect(() => {
+    let interval: any;
+    if (isVerifying && verificationCountdown > 0) {
+      interval = setInterval(() => setVerificationCountdown(c => c - 1), 1000);
+    } else if (isVerifying && verificationCountdown === 0) {
+       finalizeReward();
+    }
+    return () => clearInterval(interval);
+  }, [isVerifying, verificationCountdown]);
+
+  const finalizeReward = async () => {
+    if (!user || !userRef || !firestore) return;
+    setIsVerifying(false);
     try {
       await updateDoc(userRef, {
         scholarPoints: increment(10),
@@ -75,54 +90,37 @@ function ViewerContent() {
         lastStudyDate: new Date().toISOString().split('T')[0]
       });
       
-      await addDoc(collection(firestore!, 'users', user.uid, 'ledger'), {
+      await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
         type: 'scholar_reward',
         amount: 5,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: lang === 'or' ? 'ସ୍କଲାର ଡିଭିଡେଣ୍ଡ ସକ୍ରିୟ (+10 ପଏଣ୍ଟ)' : 'Scholar Dividend Node Triggered (+10 Scholar Points)'
+        description: 'Skill Reward: Scholar Dividend Node (+10 Pts)'
       });
 
       setScholarRewardClaimed(true);
       toast({ 
-        title: "SCHOLAR DIVIDEND TRIGGERED", 
-        description: "+10 Points & +5 Coins added via Node 1." 
+        title: "SIGNAL VERIFIED", 
+        description: "+10 Skill Points & +5 Coins added." 
       });
     } catch (e) {
       console.error("Signal Sync Error");
     }
-  }, [user, userRef, scholarRewardClaimed, firestore, toast, lang, settings]);
+  };
 
   useEffect(() => {
-    if (!user || showQuiz || isAdRunning) return;
+    if (!user || showQuiz || isVerifying) return;
     const interval = setInterval(() => {
       setSecondsRead(prev => {
         const next = prev + 1;
-        if (next === 1800) { // 30 Minutes
+        if (next === 1800) { // 30 Minutes Target
           handleScholarPoints();
         }
         return next;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [user, showQuiz, isAdRunning, handleScholarPoints]);
-
-  useEffect(() => {
-    let interval: any;
-    if (isAdRunning && adCountdown > 0) {
-      interval = setInterval(() => setAdCountdown(c => c - 1), 1000);
-    } else if (isAdRunning && adCountdown === 0) {
-       setIsAdRunning(false);
-       if (pendingUnlock) {
-          setPendingUnlock(false);
-          toast({ title: "SOLUTION NODE UNLOCKED" });
-       } else if (quizFinished) {
-          if (userRef) updateDoc(userRef, { coins: increment(10), bonusBalance: increment(10) });
-          toast({ title: "MASTERY REWARD SYNCED" });
-       }
-    }
-    return () => clearInterval(interval);
-  }, [isAdRunning, adCountdown, quizFinished, pendingUnlock, userRef, toast]);
+  }, [user, showQuiz, isVerifying, handleScholarPoints]);
 
   const startAiQuiz = async () => {
     setShowQuiz(true);
@@ -154,16 +152,31 @@ function ViewerContent() {
     }
   };
 
-  const handleShare = async () => {
-    if (!profile?.referralCode) return;
-    const shareUrl = `${window.location.origin}/login?ref=${profile.referralCode}`;
-    const shareText = `I am studying on CampusCompanion. Access the Global Vault and earn rewards!`;
-    if (navigator.share) await navigator.share({ title: 'CampusCompanion Ed', text: shareText, url: shareUrl });
-    toast({ title: "SHARE DIVIDEND LOCKED" });
-  };
-
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-8 pb-32">
+      {/* SYSTEM VERIFICATION MODAL */}
+      {isVerifying && (
+        <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-8">
+           <Card className="max-w-md w-full bg-[#0d0d12] border-primary/20 border-2 rounded-[3rem] p-12 text-center space-y-10">
+              <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
+                 <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
+                 <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin" />
+                 <Zap className="h-12 w-12 text-primary animate-pulse" />
+              </div>
+              <div className="space-y-4">
+                 <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white">System <span className="text-primary">Verification</span></h3>
+                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
+                    Analyzing activity logs to authenticate skill reward credit. Please do not close the terminal.
+                 </p>
+              </div>
+              <div className="space-y-2">
+                 <p className="text-5xl font-black text-white italic tabular-nums">{verificationCountdown}s</p>
+                 <Badge variant="outline" className="border-white/10 text-[8px] text-muted-foreground uppercase">S2S Integrity Node Active</Badge>
+              </div>
+           </Card>
+        </div>
+      )}
+
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
          <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => router.back()} className="text-[10px] font-black uppercase text-muted-foreground">
@@ -186,10 +199,7 @@ function ViewerContent() {
                   <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${(secondsRead / 1800) * 100}%` }} />
                </div>
             </div>
-            <Button onClick={handleShare} className="h-12 px-6 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 font-black text-[10px] uppercase shadow-lg hover:bg-green-500 hover:text-black transition-all">
-               <Share2 className="h-4 w-4 mr-2" /> SHARE SIGNAL
-            </Button>
-            <Button onClick={startAiQuiz} className="h-12 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase shadow-lg shadow-primary/20 transition-all active:scale-95">
+            <Button className="h-12 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase shadow-lg shadow-primary/20 transition-all" onClick={startAiQuiz}>
                <BrainCircuit className="h-4 w-4 mr-2" /> VAULT QUIZ
             </Button>
          </div>
@@ -215,7 +225,7 @@ function ViewerContent() {
                   </div>
                   <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
                      <span className="text-muted-foreground">Lives Hub</span>
-                     <span className="text-red-500 flex items-center gap-1.5">{lives} <Heart className="h-4 w-4 fill-red-500 animate-pulse" /></span>
+                     <span className="text-red-500 flex items-center gap-1.5">{lives} <Heart className="h-4 w-4 fill-red-500" /></span>
                   </div>
                   <div className="p-6 bg-black/40 rounded-2xl border border-white/10 text-center shadow-inner">
                      <p className="text-[10px] font-bold text-primary uppercase italic tracking-[0.2em] leading-relaxed">
@@ -228,7 +238,7 @@ function ViewerContent() {
             <Card className="bg-amber-500/5 border-amber-500/20 border-2 p-10 rounded-[3rem] text-center space-y-4">
                <Sparkles className="h-8 w-8 text-amber-500 mx-auto animate-pulse" />
                <h4 className="text-sm font-black uppercase italic">Mastery Verified</h4>
-               <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest">Signal integrity pass for region: {profile?.geo_region}</p>
+               <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest">Region: {profile?.geo_region}</p>
             </Card>
          </div>
       </div>
@@ -244,8 +254,8 @@ function ViewerContent() {
              <div className="space-y-10 text-center pt-10">
                 <Award className="h-14 w-14 text-green-500 mx-auto" />
                 <h3 className="text-3xl font-black uppercase italic">Curriculum Mastered</h3>
-                <Button onClick={() => { setIsAdRunning(true); setAdCountdown(10); setShowQuiz(false); }} className="w-full h-20 bg-primary font-black uppercase italic rounded-2xl shadow-xl">
-                   CLAIM DIVIDEND
+                <Button onClick={() => { setIsVerifying(true); setVerificationCountdown(10); setShowQuiz(false); }} className="w-full h-20 bg-primary font-black uppercase italic rounded-2xl shadow-xl">
+                   BOUNTY UNLOCK
                 </Button>
              </div>
            ) : quizData ? (
@@ -258,7 +268,7 @@ function ViewerContent() {
                   {quizData.questions[currentQuestion].options.map((opt, i) => (
                     <button key={i} onClick={() => handleAnswer(i)} className="w-full p-6 bg-white/5 border border-white/10 rounded-2xl text-left font-bold uppercase text-[11px] hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-between group">
                        <span className="text-white group-hover:text-primary transition-colors">{opt}</span>
-                       <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 text-primary transition-all" />
+                       <Zap className="h-4 w-4 opacity-0 group-hover:opacity-100 text-primary transition-all" />
                     </button>
                   ))}
                 </div>

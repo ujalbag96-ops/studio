@@ -91,7 +91,6 @@ export default function AdminDashboard() {
 
   const handleMasterSync = async () => {
     setIsSyncingAll(true);
-    // Simulate industrial ping to all endpoints
     await new Promise(resolve => setTimeout(resolve, 2000));
     generateHeartbeats();
     setIsSyncingAll(false);
@@ -234,24 +233,24 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                  <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-10 space-y-4 shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-5"><TrendingUp className="h-24 w-24" /></div>
-                    <p className="text-[10px] font-black uppercase text-primary tracking-widest">Total Gross Revenue</p>
+                    <p className="text-[10px] font-black uppercase text-primary tracking-widest">Gross Yield Hub</p>
                     <h3 className="text-5xl font-black italic text-white">${(stats?.totalDailyRevenueUSD || 0).toFixed(2)}</h3>
                     <div className="flex items-center gap-2">
                        <Activity className="h-3 w-3 text-green-500 animate-pulse" />
-                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">S2S Verified Waterfall</span>
+                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">S2S Verified Cascade</span>
                     </div>
                  </Card>
 
                  <Card className="bg-green-500/5 border-green-500/20 rounded-[2.5rem] p-10 space-y-4 shadow-2xl">
-                    <p className="text-[10px] font-black uppercase text-green-500 tracking-widest">Admin Profit (70% Lock)</p>
+                    <p className="text-[10px] font-black uppercase text-green-500 tracking-widest">Operational Revenue (70%)</p>
                     <h3 className="text-5xl font-black italic text-white">${((stats?.totalDailyRevenueUSD || 0) * 0.7).toFixed(2)}</h3>
-                    <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase">Margin Integrity Secured</Badge>
+                    <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase">Margin Locked</Badge>
                  </Card>
 
                  <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2.5rem] p-10 space-y-4 shadow-2xl">
-                    <p className="text-[10px] font-black uppercase text-amber-500 tracking-widest">User Reward Pool (30%)</p>
+                    <p className="text-[10px] font-black uppercase text-amber-500 tracking-widest">User Dividend Pool (30%)</p>
                     <h3 className="text-5xl font-black italic text-white">${((stats?.totalDailyRevenueUSD || 0) * 0.3).toFixed(2)}</h3>
-                    <Badge className="bg-amber-500/20 text-amber-500 border-none text-[8px] font-black uppercase">Auto-Settle Active</Badge>
+                    <Badge className="bg-amber-500/20 text-amber-500 border-none text-[8px] font-black uppercase">Distributed</Badge>
                  </Card>
               </div>
 
@@ -261,10 +260,10 @@ export default function AdminDashboard() {
                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                           <Percent className="h-6 w-6" />
                        </div>
-                       <h3 className="text-2xl font-black uppercase italic">Margin <span className="text-primary">Controller</span></h3>
+                       <h3 className="text-2xl font-black uppercase italic">Revenue <span className="text-primary">Controller</span></h3>
                     </div>
                     <div className="flex items-center gap-4">
-                       <Label className="text-[10px] font-black uppercase text-muted-foreground">User Revenue Share %</Label>
+                       <Label className="text-[10px] font-black uppercase text-muted-foreground">User Share Ratio %</Label>
                        <Input 
                         type="number" 
                         value={settings?.userRevenueSharePercent || 30} 
@@ -274,10 +273,10 @@ export default function AdminDashboard() {
                     </div>
                  </div>
                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <RevenueStat label="AdMob Yield" value={`$${((stats?.totalDailyRevenueUSD || 0) * 0.4).toFixed(2)}`} trend="+5%" />
-                    <RevenueStat label="CPA Mediation" value={`$${((stats?.totalDailyRevenueUSD || 0) * 0.6).toFixed(2)}`} trend="+12%" />
+                    <RevenueStat label="Ad Signals" value={`$${((stats?.totalDailyRevenueUSD || 0) * 0.4).toFixed(2)}`} trend="+5%" />
+                    <RevenueStat label="CPA Conversions" value={`$${((stats?.totalDailyRevenueUSD || 0) * 0.6).toFixed(2)}`} trend="+12%" />
                     <RevenueStat label="Settle Volume" value={`$${(stats?.totalDistributedToUsersUSD || 0).toFixed(2)}`} trend="Live" color="text-amber-500" />
-                    <RevenueStat label="Margin Lock" value={`${100 - (settings?.userRevenueSharePercent || 30)}%`} trend="Guaranteed" color="text-primary" />
+                    <RevenueStat label="Profit Guard" value={`${100 - (settings?.userRevenueSharePercent || 30)}%`} trend="Guaranteed" color="text-primary" />
                  </div>
               </Card>
            </div>

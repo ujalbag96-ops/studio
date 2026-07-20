@@ -27,15 +27,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Infrastructure Records Missing' }, { status: 404 });
     }
 
-    const userData = userSnap.data();
     const settingsData = settingsSnap.data();
     const sharePercent = settingsData.userRevenueSharePercent || 30;
 
-    // Platform Revenue Estimation: 100 coins reward = approx $0.10 platform earning
+    // Platform Revenue Estimation
     const estimatedPlatformEarningUSD = (reward / 1000); 
     const userShareUSD = estimatedPlatformEarningUSD * (sharePercent / 100);
 
-    // 1. Update User Balances
+    // 1. Update User Balances (Real-time Skill Reward)
     batch.update(userRef, {
       bonusBalance: increment(reward),
       coins: increment(reward),
@@ -43,7 +42,7 @@ export async function POST(request: Request) {
       pendingRevenueShare: increment(userShareUSD)
     });
 
-    // 2. Update Global Platform Stats
+    // 2. Update Global Platform Stats (Operational Revenue tracking)
     batch.set(statsRef, {
       totalDailyRevenueUSD: increment(estimatedPlatformEarningUSD),
       totalDistributedToUsersUSD: increment(userShareUSD),
@@ -52,11 +51,11 @@ export async function POST(request: Request) {
 
     // 3. Ledger Log
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
-      type: 'video_reward',
+      type: 'skill_reward',
       amount: reward,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Transparency Signal: Ad Reward Synced (${sharePercent}% Share)`,
+      description: `Bounty Unlock: Verified Activity Completion`,
       profitShareUSD: userShareUSD
     });
 
