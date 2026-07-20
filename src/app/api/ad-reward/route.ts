@@ -1,13 +1,8 @@
 
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
+import { doc, increment, collection, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 
-/**
- * Verified Video Ad Reward Gateway
- * Credits coins upon verified simulation completion.
- * Enforces daily limit (15 ads max) to prevent abuse.
- */
 export async function POST(request: Request) {
   try {
     const { userId, reward } = await request.json();
@@ -20,55 +15,60 @@ export async function POST(request: Request) {
     const batch = writeBatch(firestore);
     
     const userRef = doc(firestore, 'users', userId);
-    const userSnap = await getDoc(userRef);
+    const settingsRef = doc(firestore, 'app_settings', 'global_config');
+    const statsRef = doc(firestore, 'platform_stats', 'revenue');
 
-    if (!userSnap.exists()) {
-      return NextResponse.json({ error: 'Identity Record Missing' }, { status: 404 });
+    const [userSnap, settingsSnap] = await Promise.all([
+      getDoc(userRef),
+      getDoc(settingsRef)
+    ]);
+
+    if (!userSnap.exists() || !settingsSnap.exists()) {
+      return NextResponse.json({ error: 'Infrastructure Records Missing' }, { status: 404 });
     }
 
     const userData = userSnap.data();
-    if (userData.isSuspended) {
-       return NextResponse.json({ error: 'Account Signal Locked' }, { status: 403 });
-    }
+    const settingsData = settingsSnap.data();
+    const sharePercent = settingsData.userRevenueSharePercent || 30;
 
-    const today = new Date().toISOString().split('T')[0];
-    const dailyAdCount = userData.lastAdDate === today ? (userData.dailyAdCount || 0) : 0;
+    // Platform Revenue Estimation: 100 coins reward = approx $0.10 platform earning
+    const estimatedPlatformEarningUSD = (reward / 1000); 
+    const userShareUSD = estimatedPlatformEarningUSD * (sharePercent / 100);
 
-    // PLAY STORE POLICY CAP: Max 15 Ads per day
-    if (dailyAdCount >= 15) {
-       return NextResponse.json({ error: 'Daily Ad Limit Reached' }, { status: 429 });
-    }
-
-    // 1. Unified Wallet Credit
+    // 1. Update User Balances
     batch.update(userRef, {
       bonusBalance: increment(reward),
       coins: increment(reward),
-      generalTasksCount: increment(1), // Counts as General Task for validation
-      dailyAdCount: dailyAdCount + 1,
-      lastAdDate: today
+      generalTasksCount: increment(1),
+      pendingRevenueShare: increment(userShareUSD)
     });
 
-    // 2. Encrypted Ledger Log
+    // 2. Update Global Platform Stats
+    batch.set(statsRef, {
+      totalDailyRevenueUSD: increment(estimatedPlatformEarningUSD),
+      totalDistributedToUsersUSD: increment(userShareUSD),
+      lastUpdated: new Date().toISOString()
+    }, { merge: true });
+
+    // 3. Ledger Log
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
       type: 'video_reward',
       amount: reward,
-      date: today,
+      date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Short Video Reward: +${reward} 🪙`,
-      isPostbackVerified: true
+      description: `Transparency Signal: Ad Reward Synced (${sharePercent}% Share)`,
+      profitShareUSD: userShareUSD
     });
 
     await batch.commit();
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Ad Liquidity Synced',
       credit: reward,
-      remainingToday: 15 - (dailyAdCount + 1)
+      shareUSD: userShareUSD
     });
 
   } catch (error) {
-    console.error('Ad Reward Runtime Failure:', error);
     return NextResponse.json({ error: 'Operational Node Offline' }, { status: 500 });
   }
 }

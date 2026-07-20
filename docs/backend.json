@@ -13,6 +13,7 @@
         "taskBalance": { "type": "number" },
         "bonusBalance": { "type": "number" },
         "walletBalanceINR": { "type": "number" },
+        "pendingRevenueShare": { "type": "number" },
         "country": { "type": "string" },
         "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] },
         "vipLevel": { "type": "number" },
@@ -21,31 +22,17 @@
         "generalTasksCount": { "type": "number" },
         "totalReferrals": { "type": "number" },
         "scholarPoints": { "type": "number" },
-        "referralCode": { "type": "string" },
-        "referredBy": { "type": "string" },
-        "quizLives": { "type": "number" }
+        "referralCode": { "type": "string" }
       }
     },
-    "QuizLeaderboard": {
-      "title": "QuizLeaderboard",
-      "description": "Real-time ranking for weekly academic competition.",
+    "PlatformRevenue": {
+      "title": "PlatformRevenue",
+      "description": "Real-time tracking of platform-wide ad and mission revenue.",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "userEmail": { "type": "string" },
-        "score": { "type": "number" },
-        "rank": { "type": "number" },
+        "totalDailyRevenueUSD": { "type": "number" },
+        "totalDistributedToUsersUSD": { "type": "number" },
         "lastUpdated": { "type": "string", "format": "date-time" }
-      }
-    },
-    "GlobalQuizPool": {
-      "title": "GlobalQuizPool",
-      "description": "Dynamic prize pool calculated from ad revenue.",
-      "type": "object",
-      "properties": {
-        "currentPrizeINR": { "type": "number" },
-        "totalParticipants": { "type": "number" },
-        "nextDrawTime": { "type": "string" }
       }
     },
     "AppSettings": {
@@ -55,18 +42,13 @@
       "properties": {
         "maintenanceMode": { "type": "boolean" },
         "reviewMode": { "type": "boolean" },
+        "userRevenueSharePercent": { "type": "number" },
         "autoWithdrawalEnabled": { "type": "boolean" },
-        "adminUpiId": { "type": "string" },
         "node_scholar_dividend": { "type": "boolean" },
         "node_quiz_arena": { "type": "boolean" },
         "node_global_cpa": { "type": "boolean" },
         "node_micro_tasks": { "type": "boolean" },
-        "node_surveys": { "type": "boolean" },
-        "node_ad_stream": { "type": "boolean" },
-        "node_content_analysis": { "type": "boolean" },
-        "node_referral_engine": { "type": "boolean" },
-        "node_arcade_rewards": { "type": "boolean" },
-        "node_daily_checkin": { "type": "boolean" }
+        "node_ad_stream": { "type": "boolean" }
       }
     }
   },
@@ -80,15 +62,11 @@
     },
     "/app_settings/global_config": {
       "schema": "AppSettings",
-      "description": "Industrial control node for 10 revenue streams"
+      "description": "Industrial control node"
     },
-    "/quiz_leaderboard/{userId}": {
-      "schema": "QuizLeaderboard",
-      "description": "Real-time weekly scholar rankings"
-    },
-    "/quiz_pool/current": {
-      "schema": "GlobalQuizPool",
-      "description": "Live prize pool linked to ad signals"
+    "/platform_stats/revenue": {
+      "schema": "PlatformRevenue",
+      "description": "Live platform-wide earnings tracker"
     }
   }
 }

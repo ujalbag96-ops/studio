@@ -16,74 +16,55 @@ export interface UserProfile {
   taskBalance: number;
   coins: number;
   walletBalanceINR: number;
+  pendingRevenueShare: number;
   referralCode: string;
   referredBy?: string; 
   referredByL2?: string; 
   mlmLevel?: number;
   vipLevel: number; 
-  deviceId?: string;
-  lastIp?: string;
   country?: string;
-  region?: string;
-  city?: string;
   rank: UserRank;
   isSuspended?: boolean;
   
-  // Validation Tracking
   cpaTasksCount: number;
   generalTasksCount: number; 
   engagementCount: number;
   totalReferrals: number; 
+  tasksCompletedCount?: number;
   
-  // Education Tracking
   scholarPoints: number;
   dailyStudyMinutes: number;
   lastStudyDate?: string;
-  selectedClass?: string;
-  preferredEduSource?: EduSource;
   
-  // Arcade Progress (50 Levels each)
   puzzleLevel: number;
   physicsLevel: number;
   runnerLevel: number;
   
-  // Retention Features
   dailyStreak: number;
   lastCheckInDate?: string;
   quizLives: number;
   
-  tasksCompletedCount?: number;
-  networkTaskCompletions?: number;
-  totalNetworkRevenue?: number;
-  totalNetworkReferrals?: number; 
   riskNoticeAccepted?: boolean;
   matchLossCount?: number; 
   preferredLanguage?: 'en' | 'or' | 'hi';
   kycStatus: KycStatus;
-  kycDocumentUrl?: string;
-  kycSubmittedAt?: string;
-  totalPagesShared?: number;
-  shareRewardsEarned?: number;
-  lastShareDate?: string;
-  dailyShareCount?: number;
-  unlockedMilestones?: string[];
   isEliteAffiliate?: boolean;
-  megaMilestoneClaimed?: boolean;
-  lastSpinTimestamp?: string;
-  isAccountActivated?: boolean;
   questCelebrationPending?: boolean;
   weeklyPointsEarned?: number;
+}
+
+export interface PlatformRevenue {
+  totalDailyRevenueUSD: number;
+  totalDistributedToUsersUSD: number;
+  lastUpdated: string;
 }
 
 export interface AppSettings {
   maintenanceMode: boolean;
   reviewMode: boolean; 
   autoWithdrawalEnabled: boolean; 
-  autoWithdrawalMaxAmount: number; 
+  userRevenueSharePercent: number;
   adminUpiId: string;
-  automaticGatewayEnabled: boolean;
-  conversionFeePercent: number;
-  minWithdrawalAmount: number;
   coinToInrRate: number; 
   
   node_scholar_dividend: boolean;
@@ -96,17 +77,6 @@ export interface AppSettings {
   node_referral_engine: boolean;
   node_arcade_rewards: boolean;
   node_daily_checkin: boolean;
-}
-
-export interface QuizQuestion {
-  question: string;
-  options: string[];
-  correctIndex: number;
-}
-
-export interface QuizSession {
-  questions: QuizQuestion[];
-  difficulty: 'easy' | 'medium' | 'hard' | 'elite';
 }
 
 export interface LeaderboardEntry {
