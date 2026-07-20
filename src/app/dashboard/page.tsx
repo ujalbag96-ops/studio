@@ -31,7 +31,8 @@ import {
   Search,
   BookOpen,
   Gift,
-  LayoutGrid
+  LayoutGrid,
+  Star
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -82,7 +83,6 @@ export default function UserDashboard() {
   const currencyData = getCurrencyData(profile?.country);
   const combinedCashBalance = formatCurrency((profile?.winningBalance || 0) + (profile?.taskBalance || 0), profile?.country);
   
-  const sharePct = settings?.userRevenueSharePercent || 30;
   const platformRevenueUSD = stats?.totalDailyRevenueUSD || 0;
   const userShareUSD = profile?.pendingRevenueShare || 0;
 
@@ -132,11 +132,11 @@ export default function UserDashboard() {
           </div>
         </header>
 
-        {/* REVENUE CONTROLLER TRANSPARENCY HUD */}
+        {/* 70/30 PROFIT TRANSPARENCY HUB */}
         <section className="space-y-6">
            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><BarChart3 className="h-6 w-6 text-primary" /> Revenue Controller Status</h3>
-              <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase px-4 italic animate-pulse">Industrial S2S Live</Badge>
+              <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><BarChart3 className="h-6 w-6 text-primary" /> Revenue Integrity Node</h3>
+              <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase px-4 italic animate-pulse">70% Margin Locked</Badge>
            </div>
            
            <Card className="bg-gradient-to-br from-[#0a0a0f] to-black border-primary/20 border-2 rounded-[3rem] p-10 grid md:grid-cols-2 gap-12 relative overflow-hidden group shadow-2xl">
@@ -146,18 +146,18 @@ export default function UserDashboard() {
 
               <div className="space-y-8 relative z-10">
                  <div className="space-y-2">
-                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.4em]">Daily Platform Gross Yield</p>
+                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.4em]">Daily Platform Gross Revenue</p>
                     <h4 className="text-6xl font-black italic text-white tabular-nums">${platformRevenueUSD.toFixed(2)}</h4>
                  </div>
                  
                  <div className="space-y-5 bg-white/5 border border-white/10 rounded-3xl p-6">
-                    <h5 className="text-[10px] font-black uppercase text-primary italic">Yield Distribution Formula:</h5>
+                    <h5 className="text-[10px] font-black uppercase text-primary italic">Distribution Equation:</h5>
                     <div className="space-y-3">
                        <TransparencyRow label="Platform Admin Lock (70%)" value={`$${(platformRevenueUSD * 0.7).toFixed(2)}`} color="text-muted-foreground" />
-                       <TransparencyRow label="User Shared Pool (30%)" value={`$${(platformRevenueUSD * 0.3).toFixed(2)}`} color="text-primary" />
+                       <TransparencyRow label="Student Reward Share (30%)" value={`$${(platformRevenueUSD * 0.3).toFixed(2)}`} color="text-primary" />
                        <div className="h-px bg-white/10 my-2" />
                        <p className="text-[8px] font-bold text-muted-foreground uppercase leading-relaxed">
-                          User share is automatically settled based on real-time task complexity and completion signals.
+                          User share is automatically scaled based on verified task signals and regional S2S confirmation.
                        </p>
                     </div>
                  </div>
@@ -165,12 +165,12 @@ export default function UserDashboard() {
 
               <div className="space-y-8 relative z-10 bg-primary/10 border border-primary/20 rounded-[2.5rem] p-10 backdrop-blur-xl flex flex-col justify-center text-center">
                  <div className="space-y-2">
-                    <p className="text-[11px] font-black uppercase text-primary tracking-widest italic">My Analytical Yield</p>
+                    <p className="text-[11px] font-black uppercase text-primary tracking-widest italic">My Analytical Dividend</p>
                     <h5 className="text-5xl font-black italic text-green-500 tabular-nums">${userShareUSD.toFixed(2)}</h5>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase mt-2">Verified via Multi-Region S2S Shield</p>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase mt-2">Verified via Multi-Region S2S Postback</p>
                  </div>
                  <Button asChild className="w-full h-16 bg-green-600 hover:bg-green-500 text-white font-black uppercase italic rounded-2xl shadow-xl shadow-green-500/20">
-                    <Link href="/withdraw">EXECUTE PAYOUT <ArrowUpRight className="h-5 w-5 ml-2" /></Link>
+                    <Link href="/withdraw">EXECUTE SETTLEMENT <ArrowUpRight className="h-5 w-5 ml-2" /></Link>
                  </Button>
               </div>
            </Card>

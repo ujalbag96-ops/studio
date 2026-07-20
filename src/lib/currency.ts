@@ -1,3 +1,4 @@
+
 'use client';
 
 export interface CurrencyData {
@@ -8,31 +9,25 @@ export interface CurrencyData {
 }
 
 /**
- * Industrial Currency & Geo-Calibration Engine v7.0
- * PROFIT LOCK LOGIC:
- * - India Node: 100 Coins = 1 INR (User Share: 30%)
- * - Global Node: 1000 Coins = 1 USD (User Share: 32%)
- * - Minimum Withdrawal: 50,000 Coins (₹500 / $50)
+ * Industrial Currency & Geo-Calibration Engine v8.0
+ * PROFIT LOCK LOGIC (STRICT ENFORCEMENT):
+ * - Admin Profit Lock: 70%
+ * - User Reward Pool: 30%
+ * 
+ * India Node: 100 Coins = 1 INR
+ * Global Node: 1000 Coins = 1 USD
  */
 export const CURRENCY_MAP: Record<string, CurrencyData> = {
   'India': { symbol: '₹', code: 'INR', rateToCoins: 100, minWithdrawal: 500 },
   'Global': { symbol: '$', code: 'USD', rateToCoins: 1000, minWithdrawal: 50 }
 };
 
+export const ADMIN_PROFIT_MARGIN = 0.70;
+export const USER_REWARD_SHARE = 0.30;
+
 export function getCurrencyData(country?: string): CurrencyData {
   if (country === 'India') return CURRENCY_MAP['India'];
   return CURRENCY_MAP['Global'];
-}
-
-/**
- * STRICT INDUSTRIAL PROFIT LOCK:
- * - India: 30% User Share (70% Admin Net Profit)
- * - Global: 32% User Share (68% Admin Net Profit)
- */
-export function getPayoutPercentage(country?: string): number {
-  if (country === 'India') return 0.30;
-  if (country === 'United States' || country === 'United Kingdom') return 0.32;
-  return 0.30;
 }
 
 export function formatCurrency(amountCoins: number, country?: string): string {

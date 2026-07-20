@@ -25,7 +25,8 @@ import {
   Link2,
   Globe,
   ShieldCheck,
-  Video
+  Video,
+  Lock
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -245,13 +246,13 @@ export default function AdminDashboard() {
                  <Card className="bg-green-500/5 border-green-500/20 rounded-[2.5rem] p-10 space-y-4 shadow-2xl">
                     <p className="text-[10px] font-black uppercase text-green-500 tracking-widest">Operational Revenue (70%)</p>
                     <h3 className="text-5xl font-black italic text-white">${((stats?.totalDailyRevenueUSD || 0) * 0.7).toFixed(2)}</h3>
-                    <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase">Margin Locked</Badge>
+                    <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase">Profit Locked</Badge>
                  </Card>
 
                  <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2.5rem] p-10 space-y-4 shadow-2xl">
                     <p className="text-[10px] font-black uppercase text-amber-500 tracking-widest">User Dividend Pool (30%)</p>
                     <h3 className="text-5xl font-black italic text-white">${((stats?.totalDailyRevenueUSD || 0) * 0.3).toFixed(2)}</h3>
-                    <Badge className="bg-amber-500/20 text-amber-500 border-none text-[8px] font-black uppercase">Distributed</Badge>
+                    <Badge className="bg-amber-500/20 text-amber-500 border-none text-[8px] font-black uppercase">Shared Share</Badge>
                  </Card>
               </div>
 
@@ -259,25 +260,22 @@ export default function AdminDashboard() {
                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                          <Percent className="h-6 w-6" />
+                          <Lock className="h-6 w-6" />
                        </div>
-                       <h3 className="text-2xl font-black uppercase italic">Revenue <span className="text-primary">Controller</span></h3>
+                       <h3 className="text-2xl font-black uppercase italic">Margin <span className="text-primary">Integrity Lock</span></h3>
                     </div>
                     <div className="flex items-center gap-4">
-                       <Label className="text-[10px] font-black uppercase text-muted-foreground">User Share Ratio %</Label>
-                       <Input 
-                        type="number" 
-                        value={settings?.userRevenueSharePercent || 30} 
-                        onChange={(e) => toggleSetting('userRevenueSharePercent', parseInt(e.target.value))}
-                        className="bg-black border-white/10 h-10 w-20 rounded-lg text-center font-black text-primary"
-                       />
+                       <div className="text-right">
+                          <p className="text-[10px] font-black uppercase text-muted-foreground">Admin Profit Ratio</p>
+                          <p className="text-xl font-black text-white italic">70% Fixed</p>
+                       </div>
                     </div>
                  </div>
                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <RevenueStat label="Ad Signals" value={`$${((stats?.totalDailyRevenueUSD || 0) * 0.4).toFixed(2)}`} trend="+5%" />
                     <RevenueStat label="CPA Conversions" value={`$${((stats?.totalDailyRevenueUSD || 0) * 0.6).toFixed(2)}`} trend="+12%" />
                     <RevenueStat label="Settle Volume" value={`$${(stats?.totalDistributedToUsersUSD || 0).toFixed(2)}`} trend="Live" color="text-amber-500" />
-                    <RevenueStat label="Profit Guard" value={`${100 - (settings?.userRevenueSharePercent || 30)}%`} trend="Guaranteed" color="text-primary" />
+                    <RevenueStat label="Profit Guard" value="70%" trend="Guaranteed" color="text-primary" />
                  </div>
               </Card>
            </div>

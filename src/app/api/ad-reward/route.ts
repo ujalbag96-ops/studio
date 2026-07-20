@@ -1,7 +1,8 @@
 
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, increment, collection, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
+import { USER_REWARD_SHARE, ADMIN_PROFIT_MARGIN } from '@/lib/currency';
 
 export async function POST(request: Request) {
   try {
@@ -15,26 +16,21 @@ export async function POST(request: Request) {
     const batch = writeBatch(firestore);
     
     const userRef = doc(firestore, 'users', userId);
-    const settingsRef = doc(firestore, 'app_settings', 'global_config');
     const statsRef = doc(firestore, 'platform_stats', 'revenue');
 
-    const [userSnap, settingsSnap] = await Promise.all([
-      getDoc(userRef),
-      getDoc(settingsRef)
-    ]);
-
-    if (!userSnap.exists() || !settingsSnap.exists()) {
-      return NextResponse.json({ error: 'Infrastructure Records Missing' }, { status: 404 });
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      return NextResponse.json({ error: 'Identity Missing' }, { status: 404 });
     }
 
-    const settingsData = settingsSnap.data();
-    const sharePercent = settingsData.userRevenueSharePercent || 30;
+    // --- PROFIT LOCK ENGINE (70/30) ---
+    // If reward is 2 coins (~$0.002), it represents the 30% user share.
+    // Total Value = reward / 0.30
+    const estimatedTotalValueUSD = (reward / 1000) / USER_REWARD_SHARE;
+    const userShareUSD = estimatedTotalValueUSD * USER_REWARD_SHARE;
+    const adminProfitUSD = estimatedTotalValueUSD * ADMIN_PROFIT_MARGIN;
 
-    // Platform Revenue Estimation
-    const estimatedPlatformEarningUSD = (reward / 1000); 
-    const userShareUSD = estimatedPlatformEarningUSD * (sharePercent / 100);
-
-    // 1. Update User Balances (Real-time Skill Reward)
+    // 1. Update User Balances
     batch.update(userRef, {
       bonusBalance: increment(reward),
       coins: increment(reward),
@@ -42,21 +38,22 @@ export async function POST(request: Request) {
       pendingRevenueShare: increment(userShareUSD)
     });
 
-    // 2. Update Global Platform Stats (Operational Revenue tracking)
+    // 2. Global Operational Stats (Profit Hub)
     batch.set(statsRef, {
-      totalDailyRevenueUSD: increment(estimatedPlatformEarningUSD),
+      totalDailyRevenueUSD: increment(estimatedTotalValueUSD),
+      totalAdminProfitUSD: increment(adminProfitUSD),
       totalDistributedToUsersUSD: increment(userShareUSD),
       lastUpdated: new Date().toISOString()
     }, { merge: true });
 
-    // 3. Ledger Log
+    // 3. Ledger Sync
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
       type: 'skill_reward',
       amount: reward,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Bounty Unlock: Verified Activity Completion`,
-      profitShareUSD: userShareUSD
+      description: `Bounty Unlock: Verified Signal`,
+      profitSplit: '70/30'
     });
 
     await batch.commit();
@@ -64,10 +61,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       credit: reward,
-      shareUSD: userShareUSD
+      status: '70_PROFIT_LOCK'
     });
 
   } catch (error) {
-    return NextResponse.json({ error: 'Operational Node Offline' }, { status: 500 });
+    return NextResponse.json({ error: 'Engine Error' }, { status: 500 });
   }
 }
