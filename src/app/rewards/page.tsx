@@ -126,10 +126,13 @@ export default function RewardsPage() {
               <CardDescription className="text-muted-foreground uppercase font-bold text-[10px]">Spin for real supplemental assets</CardDescription>
            </CardHeader>
            <CardContent className="p-10 flex flex-col items-center gap-10">
-              <div className={cn(
-                "h-64 w-64 rounded-full border-8 border-white/5 bg-black/40 flex items-center justify-center relative shadow-[0_0_50px_rgba(255,123,0,0.1)] transition-transform duration-[2000ms] ease-out",
-                isSpinning ? "rotate-[1440deg]" : ""
-              )}>
+              <div 
+                className={cn(
+                  "h-64 w-64 rounded-full border-8 border-white/5 bg-black/40 flex items-center justify-center relative shadow-[0_0_50px_rgba(255,123,0,0.1)] transition-transform ease-out",
+                  isSpinning ? "rotate-[1440deg]" : ""
+                )}
+                style={{ transitionDuration: '2000ms' }}
+              >
                  <div className="absolute inset-0 rounded-full border-t-8 border-primary animate-spin opacity-20" style={{ animationDuration: '3s' }} />
                  <Zap className="h-16 w-16 text-primary drop-shadow-[0_0_15px_rgba(255,123,0,0.5)]" />
                  {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
