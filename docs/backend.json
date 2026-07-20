@@ -60,7 +60,7 @@
         "node_scholar_dividend": { "type": "boolean" },
         "node_quiz_arena": { "type": "boolean" },
         "node_global_cpa": { "type": "boolean" },
-        "node_micro_tasks: ": { "type": "boolean" },
+        "node_micro_tasks": { "type": "boolean" },
         "node_surveys": { "type": "boolean" },
         "node_ad_stream": { "type": "boolean" },
         "node_content_analysis": { "type": "boolean" },
