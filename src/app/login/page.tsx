@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldCheck, Eye, EyeOff, Smartphone, Mail, Hash, ShieldAlert, Zap, ShieldX } from 'lucide-react';
+import { Loader2, ShieldCheck, Eye, EyeOff, Mail, Hash, ShieldAlert, Zap, ShieldX, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 
@@ -50,12 +50,12 @@ function LoginContent() {
       const userDocRef = doc(firestore, 'users', firebaseUser.uid);
       const snap = await getDoc(userDocRef);
 
-      let ipData = { ip: 'Unknown', country: 'Global', region: 'Unknown', city: 'Unknown', proxy: false };
+      // --- INDUSTRIAL GEO-IP & VPN GATEWAY ---
+      let ipData = { ip: 'Unknown', country: 'Global', region: 'Unknown', city: 'Unknown', proxy: false, geo_region: 'Global' };
       try {
-         // --- INDUSTRIAL VPN/PROXY GUARD ---
          const res = await fetch('https://ipapi.co/json/');
          const data = await res.json();
-         // Basic Proxy check from common IP APIs
+         
          const isVpnDetected = data.security?.vpn || data.security?.proxy || data.org?.toLowerCase().includes('vpn') || data.org?.toLowerCase().includes('proxy');
          
          ipData = { 
@@ -63,7 +63,8 @@ function LoginContent() {
            country: data.country_name,
            region: data.region,
            city: data.city,
-           proxy: isVpnDetected || false
+           proxy: isVpnDetected || false,
+           geo_region: data.country_name === 'India' ? 'India' : 'Global'
          };
       } catch(e) {
          console.error("Geo-IP Node restricted");
@@ -71,7 +72,7 @@ function LoginContent() {
 
       if (ipData.proxy) {
          setIsSuspended(true);
-         toast({ variant: "destructive", title: "SECURITY BREACH", description: "VPN/Proxy detected. Account functionality frozen." });
+         toast({ variant: "destructive", title: "IDENTITY BLOCKED", description: "VPN or Proxy signal detected. High-performance access restricted." });
       }
 
       if (!snap.exists()) {
@@ -111,6 +112,9 @@ function LoginContent() {
           riskNoticeAccepted: false,
           lastIp: ipData.ip,
           country: ipData.country,
+          geo_region: ipData.geo_region,
+          preferredLanguage: ipData.geo_region === 'India' ? 'or' : 'en',
+          preferredEduSource: ipData.geo_region === 'India' ? 'NCERT' : 'OpenStax',
           isSuspended: ipData.proxy,
           joinedAt: new Date().toISOString()
         });
@@ -156,12 +160,12 @@ function LoginContent() {
             <ShieldX className="h-12 w-12 text-red-500 animate-pulse" />
          </div>
          <div className="space-y-4">
-            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Identity <span className="text-red-500">Frozen</span></h2>
+            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Identity <span className="text-red-500">Locked</span></h2>
             <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-               VPN or Proxy detection signal confirmed. Industrial integrity breach results in automatic account suspension.
+               Industrial Security Shield has detected a VPN/Proxy signal. Multi-accounting and automated traffic is strictly prohibited.
             </p>
          </div>
-         <Button onClick={() => window.location.reload()} className="h-14 px-8 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl">RELOAD ARENA</Button>
+         <Button onClick={() => window.location.reload()} className="h-14 px-8 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl">RETRY SIGNAL</Button>
       </div>
     );
   }
@@ -175,13 +179,13 @@ function LoginContent() {
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter">Identity <span className="text-primary">Gate</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Secure Student Hub Node</p>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Automated Regional Access Protocol</p>
       </div>
 
       <Tabs value={authMode} onValueChange={(val) => setAuthMode(val as any)} className="w-full">
         <TabsList className="grid grid-cols-2 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
-          <TabsTrigger value="login" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase"><Mail className="h-3 w-3 mr-1.5" /> Login</TabsTrigger>
-          <TabsTrigger value="signup" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase"><Hash className="h-3 w-3 mr-1.5" /> Register</TabsTrigger>
+          <TabsTrigger value="login" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase"><Mail className="h-3 w-3 mr-1.5" /> Login Hub</TabsTrigger>
+          <TabsTrigger value="signup" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase"><Hash className="h-3 w-3 mr-1.5" /> Register Node</TabsTrigger>
         </TabsList>
 
         <TabsContent value="login" className="mt-6">
@@ -211,7 +215,7 @@ function LoginContent() {
            <form onSubmit={handleEmailAuth} className="space-y-4">
               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Academic Email</Label>
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Identity Email</Label>
                     <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl font-bold" />
                  </div>
                  <div className="space-y-2">
@@ -219,8 +223,8 @@ function LoginContent() {
                     <Input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl font-mono" />
                  </div>
                  <div className="p-4 bg-primary/10 rounded-xl border border-primary/20 flex items-center gap-3">
-                    <Zap className="h-4 w-4 text-primary" />
-                    <p className="text-[9px] font-black uppercase text-white tracking-widest italic">₹20.00 Welcome Bonus (Locked)</p>
+                    <Globe className="h-4 w-4 text-primary" />
+                    <p className="text-[9px] font-black uppercase text-white tracking-widest italic">Regional Catalog Auto-Assignment Active</p>
                  </div>
                  <Button type="submit" disabled={isLoading} className="w-full h-16 bg-primary hover:bg-primary/90 font-black uppercase text-lg italic rounded-2xl shadow-xl">
                    {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : 'CREATE IDENTITY'}

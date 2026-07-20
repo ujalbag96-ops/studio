@@ -23,6 +23,7 @@ export interface UserProfile {
   mlmLevel?: number;
   vipLevel: number; 
   country?: string;
+  geo_region?: string;
   rank: UserRank;
   isSuspended?: boolean;
   
@@ -49,18 +50,24 @@ export interface UserProfile {
   
   riskNoticeAccepted?: boolean;
   matchLossCount?: number; 
-  preferredLanguage?: 'en' | 'or' | 'hi';
+  preferredLanguage?: 'en' | 'or' | 'hi' | 'es';
   kycStatus: KycStatus;
   isEliteAffiliate?: boolean;
   questCelebrationPending?: boolean;
   weeklyPointsEarned?: number;
   preferredEduSource?: EduSource;
+  lastIp?: string;
 }
 
 export interface PlatformRevenue {
   totalDailyRevenueUSD: number;
   totalDistributedToUsersUSD: number;
   lastUpdated: string;
+  api_status?: {
+    admob: 'active' | 'error' | 'latency';
+    cpalead: 'active' | 'error' | 'latency';
+    adgate: 'active' | 'error' | 'latency';
+  };
 }
 
 export interface AppSettings {
@@ -71,7 +78,7 @@ export interface AppSettings {
   adminUpiId: string;
   coinToInrRate: number; 
   
-  // 10-Node Architecture
+  // 10-Node Architecture Automation
   node_scholar_dividend: boolean;
   node_quiz_arena: boolean;
   node_global_cpa: boolean;

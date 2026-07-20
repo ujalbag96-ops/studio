@@ -18,13 +18,14 @@ import {
   Globe,
   Flag,
   Search,
-  Languages
+  Languages,
+  LayoutGrid
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { UserProfile, EduSource } from '@/app/lib/types';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const CLASSES = [
@@ -47,10 +48,18 @@ export default function CampusHomeScreen() {
   const firestore = useFirestore();
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
-  const { data: profile, isLoading } = useDoc<UserProfile>(userRef);
+  const { data: profile } = useDoc<UserProfile>(userRef);
 
-  const [eduSource, setEduSource] = useState<EduSource>(profile?.preferredEduSource || 'NCERT');
-  const [language, setLanguage] = useState<'en' | 'or' | 'hi' | 'es'>(profile?.preferredLanguage as any || 'en');
+  const [eduSource, setEduSource] = useState<EduSource>('NCERT');
+  const [language, setLanguage] = useState<'en' | 'or' | 'hi' | 'es'>('en');
+
+  // Auto-assignment based on geo_region
+  useEffect(() => {
+    if (profile) {
+      setEduSource(profile.preferredEduSource || (profile.geo_region === 'India' ? 'NCERT' : 'OpenStax'));
+      setLanguage(profile.preferredLanguage || (profile.geo_region === 'India' ? 'or' : 'en'));
+    }
+  }, [profile]);
 
   const updatePreference = async (source: EduSource) => {
     setEduSource(source);
@@ -73,17 +82,17 @@ export default function CampusHomeScreen() {
            <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-4">
                  <Badge className="bg-green-500/20 text-green-500 border-none uppercase font-black px-4 py-1 text-[9px] flex items-center gap-1.5 shadow-xl">
-                    <ShieldCheck className="h-3 w-3" /> GLOBAL SMART LIBRARY ACTIVE
+                    <ShieldCheck className="h-3 w-3" /> GLOBAL SMART VAULT ACTIVE
                  </Badge>
                  <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">
-                    <Globe className="h-3 w-3" /> All Language Books Unlocked
+                    <Globe className="h-3 w-3" /> Node: {profile?.geo_region || 'Global'} Detected
                  </div>
               </div>
               <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase italic text-white leading-none">
                 Academic <br /><span className="text-primary">Global Vault</span>
               </h1>
               <p className="text-muted-foreground font-medium text-lg max-w-2xl">
-                Access official curriculum from any region. Complete lessons to trigger the <span className="text-white font-bold italic border-b-2 border-primary">Scholar Dividend.</span>
+                Master any curriculum. Regional catalogs automatically synchronized based on industrial IP detection signals.
               </p>
            </div>
            
@@ -104,17 +113,17 @@ export default function CampusHomeScreen() {
                     </Select>
                  </div>
                  <div className="space-y-2 flex-1">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground ml-1">Learning Language</p>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground ml-1">Language Terminal</p>
                     <Select value={language} onValueChange={(v) => updateLanguage(v)}>
                        <SelectTrigger className="w-[160px] h-12 bg-black border-white/10 font-black text-xs uppercase rounded-xl">
                           <Languages className="h-4 w-4 mr-2 text-primary" />
                           <SelectValue />
                        </SelectTrigger>
                        <SelectContent className="bg-[#0a0a0f] border-white/10 text-white">
-                          <SelectItem value="en">English</SelectItem>
-                          <SelectItem value="hi">Hindi (हिंदी)</SelectItem>
-                          <SelectItem value="or">Odia (ଓଡ଼ିଆ)</SelectItem>
-                          <SelectItem value="es">Spanish (Español)</SelectItem>
+                          <SelectItem value="en">English (US/UK)</SelectItem>
+                          <SelectItem value="hi">Hindi (IN)</SelectItem>
+                          <SelectItem value="or">Odia (IN)</SelectItem>
+                          <SelectItem value="es">Spanish (Global)</SelectItem>
                        </SelectContent>
                     </Select>
                  </div>
@@ -122,10 +131,10 @@ export default function CampusHomeScreen() {
 
               <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/20 border-2 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden">
                  <div className="relative z-10 space-y-2">
-                    <p className="text-[9px] font-black uppercase text-muted-foreground">Scholar Signal</p>
+                    <p className="text-[9px] font-black uppercase text-muted-foreground">Scholar Signal Strength</p>
                     <div className="flex items-center justify-between">
                        <span className="text-3xl font-black text-white italic tabular-nums">{profile?.scholarPoints || 0}</span>
-                       <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase px-2">POINTS</Badge>
+                       <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase px-2">MASTERED</Badge>
                     </div>
                  </div>
               </Card>
@@ -159,23 +168,23 @@ export default function CampusHomeScreen() {
                <div className="h-10 w-10 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20 shadow-xl">
                   <BrainCircuit className="h-5 w-5 text-amber-500" />
                </div>
-               <h2 className="text-3xl font-black uppercase italic tracking-tighter">Career <span className="text-amber-500">Guidance</span></h2>
+               <h2 className="text-3xl font-black uppercase italic tracking-tighter">Regional <span className="text-amber-500">Mapping</span></h2>
             </div>
             <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-               Master academic foundations to unlock high-bandwidth career nodes like UPSC, JEE, and NEET. Available in all languages.
+               Content is dynamically ingested from region-specific industrial nodes. Library sync ensures zero-latency access to textbooks globally.
             </p>
             <div className="grid grid-cols-3 gap-3">
-               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">UPSC</div>
-               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">NEET</div>
-               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">JEE</div>
+               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">ODISHA Core</div>
+               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">USA Science</div>
+               <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center font-black text-[9px] uppercase tracking-widest text-white/60">NCERT Core</div>
             </div>
          </Card>
 
          <Card className="bg-primary/5 border-primary/20 border-2 p-10 rounded-[3rem] flex flex-col justify-center items-center text-center space-y-6">
             <Globe className="h-12 w-12 text-primary animate-pulse" />
             <div className="space-y-2">
-               <h4 className="text-2xl font-black uppercase italic tracking-tighter">Universal <span className="text-primary">Sync</span></h4>
-               <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] italic">OpenStax & NCERT Signal Integrated</p>
+               <h4 className="text-2xl font-black uppercase italic tracking-tighter">Universal <span className="text-primary">Sync v11.0</span></h4>
+               <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] italic">Geo-Calibration Node Fully Active</p>
             </div>
          </Card>
       </section>

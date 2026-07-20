@@ -30,7 +30,8 @@ import {
   Users,
   Search,
   BookOpen,
-  Gift
+  Gift,
+  LayoutGrid
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -115,30 +116,27 @@ export default function UserDashboard() {
       <main className="flex-1 lg:ml-80 p-6 md:p-12 lg:p-16 space-y-10 pb-32">
         <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-10">
           <div className="space-y-4">
-            <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter italic leading-none">Wallet <span className="text-primary">{combinedCashBalance}</span></h1>
-            <div className="flex gap-4">
-               <Badge className="bg-amber-500/10 text-amber-500 border-none font-black text-[10px] px-4 py-1.5 uppercase italic animate-pulse">
-                  Teacher Points: {profile?.teacherPoints || 0}
-               </Badge>
-               <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] px-4 py-1.5 uppercase italic">
-                  Market Sales: {profile?.marketSalesCount || 0}
+            <div className="flex items-center gap-3">
+               <Badge className="bg-primary/20 text-primary border-none font-black text-[9px] px-4 py-1.5 uppercase italic tracking-widest flex items-center gap-2 shadow-xl">
+                  <ShieldCheck className="h-3 w-3" /> Identity Verified: {profile?.country}
                </Badge>
             </div>
+            <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter italic leading-none">Wallet <span className="text-primary">{combinedCashBalance}</span></h1>
           </div>
           <div className="bg-black/40 border border-white/5 px-8 py-4 rounded-3xl backdrop-blur-xl">
-             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">My Rank</p>
+             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Account Rank</p>
              <div className="flex items-center gap-4">
                 <Crown className="h-4 w-4 text-amber-500" />
-                <span className="text-sm font-black text-white italic uppercase">{profile?.rank || 'Bronze I'}</span>
+                <span className="text-sm font-black text-white italic uppercase">{profile?.rank || 'Bronze I'} Node</span>
              </div>
           </div>
         </header>
 
-        {/* 30% REVENUE TRANSPARENCY HUD */}
+        {/* REVENUE CONTROLLER TRANSPARENCY HUD */}
         <section className="space-y-6">
            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><BarChart3 className="h-6 w-6 text-primary" /> Yield Transparency Hub</h3>
-              <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase px-4 italic animate-pulse">Live 70/30 Signal</Badge>
+              <h3 className="text-2xl font-black uppercase flex items-center gap-4 italic"><BarChart3 className="h-6 w-6 text-primary" /> Revenue Controller Status</h3>
+              <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase px-4 italic animate-pulse">Industrial S2S Live</Badge>
            </div>
            
            <Card className="bg-gradient-to-br from-[#0a0a0f] to-black border-primary/20 border-2 rounded-[3rem] p-10 grid md:grid-cols-2 gap-12 relative overflow-hidden group shadow-2xl">
@@ -148,18 +146,18 @@ export default function UserDashboard() {
 
               <div className="space-y-8 relative z-10">
                  <div className="space-y-2">
-                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.4em]">Global Ad Revenue Node</p>
+                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.4em]">Daily Platform Gross Yield</p>
                     <h4 className="text-6xl font-black italic text-white tabular-nums">${platformRevenueUSD.toFixed(2)}</h4>
                  </div>
                  
                  <div className="space-y-5 bg-white/5 border border-white/10 rounded-3xl p-6">
-                    <h5 className="text-[10px] font-black uppercase text-primary italic">Distribution Equation:</h5>
+                    <h5 className="text-[10px] font-black uppercase text-primary italic">Yield Distribution Formula:</h5>
                     <div className="space-y-3">
-                       <TransparencyRow label="Platform Share (70%)" value={`$${(platformRevenueUSD * 0.7).toFixed(2)}`} color="text-muted-foreground" />
-                       <TransparencyRow label="User Share Pool (30%)" value={`$${(platformRevenueUSD * 0.3).toFixed(2)}`} color="text-primary" />
+                       <TransparencyRow label="Platform Admin Lock (70%)" value={`$${(platformRevenueUSD * 0.7).toFixed(2)}`} color="text-muted-foreground" />
+                       <TransparencyRow label="User Shared Pool (30%)" value={`$${(platformRevenueUSD * 0.3).toFixed(2)}`} color="text-primary" />
                        <div className="h-px bg-white/10 my-2" />
                        <p className="text-[8px] font-bold text-muted-foreground uppercase leading-relaxed">
-                          Your share is calculated based on daily task verified weight across all 10 nodes.
+                          User share is automatically settled based on real-time task complexity and completion signals.
                        </p>
                     </div>
                  </div>
@@ -167,12 +165,12 @@ export default function UserDashboard() {
 
               <div className="space-y-8 relative z-10 bg-primary/10 border border-primary/20 rounded-[2.5rem] p-10 backdrop-blur-xl flex flex-col justify-center text-center">
                  <div className="space-y-2">
-                    <p className="text-[11px] font-black uppercase text-primary tracking-widest italic">My Personal Profit Signal</p>
+                    <p className="text-[11px] font-black uppercase text-primary tracking-widest italic">My Analytical Yield</p>
                     <h5 className="text-5xl font-black italic text-green-500 tabular-nums">${userShareUSD.toFixed(2)}</h5>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase mt-2">Verified via Industrial Audit Node</p>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase mt-2">Verified via Multi-Region S2S Shield</p>
                  </div>
                  <Button asChild className="w-full h-16 bg-green-600 hover:bg-green-500 text-white font-black uppercase italic rounded-2xl shadow-xl shadow-green-500/20">
-                    <Link href="/withdraw">EXECUTE WITHDRAWAL <ArrowUpRight className="h-5 w-5 ml-2" /></Link>
+                    <Link href="/withdraw">EXECUTE PAYOUT <ArrowUpRight className="h-5 w-5 ml-2" /></Link>
                  </Button>
               </div>
            </Card>
@@ -182,7 +180,7 @@ export default function UserDashboard() {
           <WalletCard label="Winning" value={profile?.winningBalance || 0} country={profile?.country} icon={<Trophy />} color="green" />
           <WalletCard label="Mission Rev." value={profile?.taskBalance || 0} country={profile?.country} icon={<CreditCard />} color="blue" />
           <WalletCard label="Total Coins" value={profile?.coins || 0} country={profile?.country} icon={<Coins />} color="amber" />
-          <WalletCard label="Teacher Pts" value={profile?.teacherPoints || 0} country={profile?.country} icon={<Users />} color="primary" />
+          <WalletCard label="Rank Mastery" value={profile?.scholarPoints || 0} country={profile?.country} icon={<Star />} color="primary" />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
@@ -197,10 +195,10 @@ export default function UserDashboard() {
                   </div>
                   <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
                      <div className="space-y-4">
-                        <Badge className="bg-amber-500/10 text-amber-500 border-none uppercase font-black px-3 py-1 text-[8px]">100% FREE REWARD</Badge>
-                        <h4 className="text-4xl font-black uppercase italic text-white">Elite Loot Drop</h4>
+                        <Badge className="bg-amber-500/10 text-amber-500 border-none uppercase font-black px-3 py-1 text-[8px]">FREE REWARD NODE</Badge>
+                        <h4 className="text-4xl font-black uppercase italic text-white">Industrial Loot Drop</h4>
                         <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest max-w-sm">
-                           No investment required. Claim your daily surprise coin bounty.
+                           Zero investment required. Collect your daily surprise asset drop verified via regional signal.
                         </p>
                      </div>
                      <Button onClick={() => setShowScratch(true)} className="h-16 px-12 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase italic rounded-2xl shadow-xl">
@@ -220,9 +218,10 @@ export default function UserDashboard() {
                 <ul className="space-y-4">
                    <SecurityLink active={profile?.riskNoticeAccepted || false} text="Legal Consent" />
                    <SecurityLink active={( (profile?.cpaTasksCount || 0) >= 5 )} text="VIP 1 Verified" />
+                   <SecurityLink active={!profile?.isSuspended} text="Anti-Proxy Clean" />
                 </ul>
                 <Button asChild className="w-full h-12 bg-primary rounded-xl font-black uppercase italic text-[10px] shadow-lg">
-                   <Link href="/withdraw">EXECUTE WITHDRAWAL <ArrowUpRight className="h-4 w-4 ml-2" /></Link>
+                   <Link href="/withdraw">EXECUTE SETTLEMENT <ArrowUpRight className="h-4 w-4 ml-2" /></Link>
                 </Button>
              </Card>
           </div>
