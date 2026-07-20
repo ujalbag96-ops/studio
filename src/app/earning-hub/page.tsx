@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -17,10 +16,11 @@ import {
   Globe,
   ArrowRight,
   Video,
-  PlayCircle,
   Share2,
   Gift,
-  Search
+  Search,
+  ShieldCheck,
+  Flag
 } from 'lucide-react';
 import { UserProfile } from '@/app/lib/types';
 import { useState } from 'react';
@@ -52,29 +52,31 @@ export default function EarningHub() {
       <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-12 pt-8">
         <div className="space-y-6 flex-1">
            <div className="flex flex-wrap gap-4">
-              <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-5 py-1.5 text-[10px]">Industrial Revenue Hub v5.0</Badge>
+              <Badge className="bg-primary/20 text-primary border-none uppercase font-black tracking-widest px-5 py-1.5 text-[10px]">
+                {isIndia ? 'Domestic Earning Hub (INR)' : 'Global Earning Hub (USD)'}
+              </Badge>
               <Badge className="bg-green-500/10 text-green-500 border-none uppercase font-black text-[10px] px-5 py-1.5 flex items-center gap-1.5">
-                 <CircleDollarSign className="h-3.5 w-3.5" /> 100% Free Share Node
+                 <ShieldCheck className="h-3.5 w-3.5" /> Industrial Profit Share Active
               </Badge>
            </div>
            <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-[0.85] text-white">
              Yield <br /> <span className="text-primary italic">Terminal</span>
            </h1>
            <p className="text-muted-foreground font-medium text-lg max-w-2xl uppercase tracking-tight opacity-80 leading-relaxed italic">
-             Participate in sponsored missions across 4 industrial sectors to generate local currency yield.
+             {isIndia ? 'Earn free pocket money via NCERT study and micro-missions.' : 'Maximize global revenue via high-pay CPA and video analytics.'}
            </p>
         </div>
 
         <Card className="w-full xl:w-96 bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
-              <Trophy className="h-32 w-32 text-primary" />
+              <Flag className="h-32 w-32 text-primary" />
            </div>
            <div className="relative z-10 space-y-6">
               <div className="flex items-center gap-3">
-                 <Flame className="h-5 w-5 text-orange-500 fill-orange-500 animate-pulse" />
-                 <span className="text-[11px] font-black uppercase text-white tracking-widest italic">Daily Streak: {profile?.dailyStreak || 0} Days</span>
+                 <Globe className="h-5 w-5 text-primary animate-pulse" />
+                 <span className="text-[11px] font-black uppercase text-white tracking-widest italic">Node: {profile?.country || 'Global'}</span>
               </div>
-              <h4 className="text-2xl font-black italic text-white uppercase">Bonus Pulse: {isIndia ? '₹10.00' : '$0.10'}</h4>
+              <h4 className="text-2xl font-black italic text-white uppercase">Reward: {isIndia ? '₹100 = 10k 🪙' : '$10 = 10k 🪙'}</h4>
               <div className="space-y-2 pt-2">
                  <div className="flex justify-between text-[9px] font-black uppercase text-muted-foreground tracking-widest">
                     <span>Weekly Dividend Progress</span>
@@ -98,8 +100,10 @@ export default function EarningHub() {
          {activeSector === 'tasks' && (
            <div className="space-y-12">
               <div className="p-12 bg-primary/5 border border-primary/20 rounded-[3rem] space-y-4">
-                 <h3 className="text-4xl font-black uppercase italic text-white leading-none">CPA Mediation <span className="text-primary">Waterfall</span></h3>
-                 <p className="text-sm text-muted-foreground font-black uppercase tracking-widest opacity-80 italic">High-yield app installs and lead generation. Optimized for {profile?.country || 'Global Node'}.</p>
+                 <h3 className="text-4xl font-black uppercase italic text-white leading-none">Global CPA <span className="text-primary">Mediation</span></h3>
+                 <p className="text-sm text-muted-foreground font-black uppercase tracking-widest opacity-80 italic">
+                   {isIndia ? 'Earn by installing apps like Paytm, Winzo, and Zomato.' : 'High-pay surveys and premium subscriptions for US/UK/EU regions.'}
+                 </p>
               </div>
               <OfferWall />
            </div>
@@ -108,13 +112,13 @@ export default function EarningHub() {
          {activeSector === 'education' && (
            <div className="space-y-12">
               <div className="p-12 bg-green-500/5 border border-green-500/20 rounded-[3rem] space-y-4">
-                 <h3 className="text-4xl font-black uppercase italic text-white leading-none">Academic <span className="text-green-500">Dividends</span></h3>
+                 <h3 className="text-4xl font-black uppercase italic text-white leading-none">Scholar <span className="text-green-500">Dividends</span></h3>
                  <p className="text-sm text-muted-foreground font-black uppercase tracking-widest opacity-80 italic">Earn by mastering industrial knowledge and verified reading sessions.</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                  <ModuleCard 
                    icon={<GraduationCap className="text-green-500" />}
-                   title="NCERT/Global Library"
+                   title={isIndia ? "NCERT / OSEPA Library" : "OpenStax Global Library"}
                    desc="Complete 30 min reading sessions to trigger the Scholar Dividend signal."
                    reward="10 Pts / Session"
                    link="/campus"
@@ -128,13 +132,13 @@ export default function EarningHub() {
                  />
                  <ModuleCard 
                    icon={<Share2 className="text-primary" />}
-                   title="Material Sharing"
+                   title="Viral Sharing"
                    desc="Broadcast book sessions to your network to earn viral dividends."
                    reward="2-5 Coins / Share"
                    link="/campus"
                  />
               </div>
-           </div>
+         </div>
          )}
 
          {activeSector === 'arcade' && (
@@ -148,7 +152,7 @@ export default function EarningHub() {
                    icon={<Video className="text-red-500" />}
                    title="Movie Analysis Yield"
                    desc="Watch 10-minute cinematic sessions verified by S2S signals for high-yield credit."
-                   reward="300 Coins (₹3.00)"
+                   reward={isIndia ? "300 Coins (₹3.00)" : "300 Coins ($0.30)"}
                    link="/watch-earn"
                  />
                  <ModuleCard 
@@ -163,7 +167,7 @@ export default function EarningHub() {
                    title="7-Day Flame Streak"
                    desc="Maintain consistent daily login signals to unlock the Weekly Mega Box."
                    reward="50-100 Coins Bonus"
-                   link="/rewards"
+                   link="/dashboard"
                  />
               </div>
            </div>
@@ -187,7 +191,7 @@ export default function EarningHub() {
                    icon={<Trophy className="text-amber-500" />}
                    title="Elite 35% Upgrade"
                    desc="Reach 1,000 network members to unlock 35% revenue share and cash prizes."
-                   reward="₹1,000 + 35% Share"
+                   reward={isIndia ? "₹1,000 + 35% Share" : "$100 + 35% Share"}
                    link="/refer"
                  />
               </div>

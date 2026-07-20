@@ -1,4 +1,3 @@
-
 'use client';
 
 export interface CurrencyData {
@@ -9,8 +8,8 @@ export interface CurrencyData {
 }
 
 /**
- * Industrial Currency & Geo-Calibration Engine v6.0
- * 70% ADMIN PROFIT LOCK LOGIC
+ * Industrial Currency & Geo-Calibration Engine v7.0
+ * PROFIT LOCK LOGIC:
  * - India Node: 100 Coins = 1 INR (User Share: 30%)
  * - Global Node: 1000 Coins = 1 USD (User Share: 32%)
  * - Minimum Withdrawal: 50,000 Coins (₹500 / $50)
@@ -29,7 +28,6 @@ export function getCurrencyData(country?: string): CurrencyData {
  * STRICT INDUSTRIAL PROFIT LOCK:
  * - India: 30% User Share (70% Admin Net Profit)
  * - Global: 32% User Share (68% Admin Net Profit)
- * - These ratios are hardcoded to ensure platform sustainability.
  */
 export function getPayoutPercentage(country?: string): number {
   if (country === 'India') return 0.30;
