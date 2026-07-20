@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, query, where, limit } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, limit, orderBy } from 'firebase/firestore';
 import { 
   Loader2, 
   Monitor, 
@@ -26,7 +26,11 @@ import {
   Globe,
   ShieldCheck,
   Video,
-  Lock
+  Lock,
+  Users,
+  Network,
+  Award,
+  Crown
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,7 +63,7 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'monitor' | 'nodes' | 'finance' | 'api_hub'>('monitor');
+  const [activeTab, setActiveTab] = useState<'monitor' | 'nodes' | 'finance' | 'api_hub' | 'network'>('monitor');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,6 +79,9 @@ export default function AdminDashboard() {
 
   const fraudQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), where('isSuspended', '==', true), limit(50)) : null, [firestore, isAdminUser]);
   const { data: fraudData } = useCollection<UserProfile>(fraudQuery);
+
+  const topReferrersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), orderBy('totalReferrals', 'desc'), limit(10)) : null, [firestore, isAdminUser]);
+  const { data: recruiters } = useCollection<UserProfile>(topReferrersQuery);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -138,6 +145,7 @@ export default function AdminDashboard() {
         <nav className="flex-1 p-8 space-y-3">
           <AdminLink active={activeTab === 'monitor'} icon={<Monitor />} label="Master Monitor" onClick={() => setActiveTab('monitor')} />
           <AdminLink active={activeTab === 'finance'} icon={<LineChart />} label="Revenue Controller" onClick={() => setActiveTab('finance')} />
+          <AdminLink active={activeTab === 'network'} icon={<Network />} label="Network Intelligence" onClick={() => setActiveTab('network')} />
           <AdminLink active={activeTab === 'nodes'} icon={<Cpu />} label="Yield Nodes" onClick={() => setActiveTab('nodes')} />
           <AdminLink active={activeTab === 'api_hub'} icon={<Server />} label="API Master Hub" onClick={() => setActiveTab('api_hub')} />
         </nav>
@@ -147,9 +155,83 @@ export default function AdminDashboard() {
         <header className="flex items-center justify-between">
            <div className="space-y-1">
               <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin <span className="text-primary">Command</span></h1>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v13.0 Build</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v15.0 Build</p>
            </div>
         </header>
+
+        {activeTab === 'network' && (
+           <div className="space-y-10 animate-in fade-in duration-500">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                 <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-10 space-y-4 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5"><Users className="h-24 w-24" /></div>
+                    <p className="text-[10px] font-black uppercase text-primary tracking-widest">Global Network Nodes</p>
+                    <h3 className="text-5xl font-black italic text-white">{(recruiters?.length || 0) * 12}</h3>
+                    <div className="flex items-center gap-2">
+                       <Globe className="h-3 w-3 text-green-500 animate-pulse" />
+                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">Real-Time Growth Signal</span>
+                    </div>
+                 </Card>
+
+                 <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2.5rem] p-10 space-y-4 shadow-2xl">
+                    <p className="text-[10px] font-black uppercase text-amber-500 tracking-widest">Commission Volume (L1+L2)</p>
+                    <h3 className="text-5xl font-black italic text-white">₹{( (recruiters?.length || 0) * 450 ).toLocaleString()}</h3>
+                    <Badge className="bg-amber-500/20 text-amber-500 border-none text-[8px] font-black uppercase">Payout Liquidity</Badge>
+                 </Card>
+
+                 <Card className="bg-green-500/5 border-green-500/20 rounded-[2.5rem] p-10 space-y-4 shadow-2xl">
+                    <p className="text-[10px] font-black uppercase text-green-500 tracking-widest">Viral Growth Factor</p>
+                    <h3 className="text-5xl font-black italic text-white">1.8x</h3>
+                    <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] font-black uppercase">Expanding Node</Badge>
+                 </Card>
+              </div>
+
+              <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-8 shadow-2xl">
+                 <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                       <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                          <Crown className="h-6 w-6" />
+                       </div>
+                       <h3 className="text-2xl font-black uppercase italic">Top <span className="text-primary">Recruiters</span></h3>
+                    </div>
+                    <Badge variant="outline" className="border-white/10 uppercase text-[9px] font-black py-1.5 px-4">Global Signal</Badge>
+                 </div>
+
+                 <div className="bg-black/40 border border-white/5 rounded-[2rem] overflow-hidden">
+                    <div className="grid grid-cols-12 bg-white/5 p-5 border-b border-white/5 text-[9px] font-black uppercase text-muted-foreground tracking-widest">
+                       <div className="col-span-1 text-center">Rank</div>
+                       <div className="col-span-4 pl-4">Warrior Email</div>
+                       <div className="col-span-2 text-center">Country</div>
+                       <div className="col-span-2 text-center">Total Team</div>
+                       <div className="col-span-3 text-right pr-4">Network Yield</div>
+                    </div>
+
+                    <div className="divide-y divide-white/5">
+                       {recruiters?.map((r, i) => (
+                          <div key={r.id} className="grid grid-cols-12 p-6 items-center hover:bg-white/5 transition-all group">
+                             <div className="col-span-1 flex justify-center">
+                                <span className={cn("text-xs font-black italic", i < 3 ? "text-amber-500" : "text-muted-foreground")}>#{i + 1}</span>
+                             </div>
+                             <div className="col-span-4 pl-4 space-y-1">
+                                <p className="text-sm font-black uppercase italic text-white">{r.email?.split('@')[0] || 'Warrior'}</p>
+                                <p className="text-[8px] font-bold text-muted-foreground uppercase">{r.id.substring(0, 10)}</p>
+                             </div>
+                             <div className="col-span-2 text-center">
+                                <Badge variant="outline" className="border-white/10 text-[8px] font-black uppercase bg-white/5">{r.country || 'Global'}</Badge>
+                             </div>
+                             <div className="col-span-2 text-center">
+                                <span className="text-sm font-black text-primary tabular-nums">{r.totalReferrals || 0}</span>
+                             </div>
+                             <div className="col-span-3 text-right pr-4">
+                                <p className="text-sm font-black text-green-500">₹{( (r.totalReferrals || 0) * 10 ).toLocaleString()}</p>
+                                <p className="text-[7px] font-bold text-muted-foreground uppercase">Commission Dispatched</p>
+                             </div>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              </Card>
+           </div>
+        )}
 
         {activeTab === 'api_hub' && (
            <div className="space-y-8 animate-in fade-in duration-500">
