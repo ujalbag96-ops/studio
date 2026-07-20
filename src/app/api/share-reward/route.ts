@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, increment, collection, getDoc, writeBatch, arrayUnion, addDoc } from 'firebase/firestore';
+import { doc, increment, collection, getDoc, writeBatch, arrayUnion } from 'firebase/firestore';
 
 /**
  * Viral Sharing Reward Gateway v2.0
@@ -26,41 +26,43 @@ export async function POST(request: Request) {
     }
 
     const userData = userSnap.data();
-    const today = new Date().toISOString().split('T')[0];
     
-    // Check Daily Limit (5 rewards per day)
-    const dailyCount = userData.lastShareDate === today ? (userData.dailyShareCount || 0) : 0;
-    
-    if (dailyCount >= 5) {
-       return NextResponse.json({ error: 'Daily Share Reward Limit Reached' }, { status: 429 });
+    // Stop sharing rewards for VPN/Proxy users
+    if (userData.isSuspended) {
+       return NextResponse.json({ error: 'Signal Locked: Identity Audit Failed' }, { status: 403 });
     }
 
-    const standardReward = 2;
+    const today = new Date().toISOString().split('T')[0];
+    const dailyCount = userData.lastShareDate === today ? (userData.dailyShareCount || 0) : 0;
+    
+    // Daily Limit: 5 rewarded shares to prevent spam
+    if (dailyCount >= 5) {
+       return NextResponse.json({ error: 'Daily Reward Limit Reached' }, { status: 429 });
+    }
+
+    const standardReward = 2; // Every share = 2 coins
     const totalShares = (userData.totalPagesShared || 0) + 1;
     const currentMilestones = userData.unlockedMilestones || [];
 
-    // Milestone Check Logic
+    // Milestone Logic
     const milestones = [
       { count: 10, reward: 10, name: 'Bronze Sharer' },
-      { count: 25, reward: 25, name: 'Silver Sharer' },
-      { count: 50, reward: 50, name: 'Gold Sharer' },
-      { count: 100, reward: 100, name: 'Elite Sharer' }
+      { count: 50, reward: 50, name: 'Elite Sharer' }
     ];
 
-    let milestoneBonus = 0;
+    let bonus = 0;
     let unlockedName = '';
-
     for (const m of milestones) {
-      if (totalShares >= m.count && !currentMilestones.includes(m.name)) {
-        milestoneBonus = m.reward;
+      if (totalShares === m.count && !currentMilestones.includes(m.name)) {
+        bonus = m.reward;
         unlockedName = m.name;
         break; 
       }
     }
 
-    const finalCredit = standardReward + milestoneBonus;
+    const finalCredit = standardReward + bonus;
 
-    // 1. Update Profile Stats
+    // 1. Update Profile
     batch.update(userRef, {
       coins: increment(finalCredit),
       bonusBalance: increment(finalCredit),
@@ -71,37 +73,25 @@ export async function POST(request: Request) {
       ...(unlockedName && { unlockedMilestones: arrayUnion(unlockedName) })
     });
 
-    // 2. Ledger Receipt
+    // 2. Formal Ledger
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
       type: 'share_reward',
       amount: finalCredit,
       date: today,
       status: 'completed',
       description: unlockedName 
-        ? `MILESTONE UNLOCKED: ${unlockedName} (+${finalCredit} 🪙)`
+        ? `MILESTONE: ${unlockedName} (+${finalCredit} 🪙)`
         : `Viral Sharing Reward (+2 🪙)`,
-      isPostbackVerified: true
+      isS2SVerified: true
     });
-
-    // 3. Notification if Milestone hit
-    if (unlockedName) {
-      const notifRef = doc(collection(firestore, 'notifications'));
-      batch.set(notifRef, {
-        userId,
-        title: `🏆 NEW MILESTONE: ${unlockedName}`,
-        body: `Congratulations! You've reached ${totalShares} total shares. We've added a special ${milestoneBonus} coin bonus to your vault.`,
-        timestamp: new Date().toISOString(),
-        type: 'mission'
-      });
-    }
 
     await batch.commit();
 
     return NextResponse.json({ 
       success: true, 
-      reward: finalCredit, 
-      milestone: unlockedName || null,
-      currentDaily: dailyCount + 1 
+      reward: finalCredit,
+      totalShares: totalShares,
+      milestone: unlockedName || null
     });
 
   } catch (error) {

@@ -57,6 +57,13 @@ export interface UserProfile {
   weeklyPointsEarned?: number;
   preferredEduSource?: EduSource;
   lastIp?: string;
+
+  // Viral Sharing Props
+  totalPagesShared?: number;
+  shareRewardsEarned?: number;
+  lastShareDate?: string;
+  dailyShareCount?: number;
+  unlockedMilestones?: string[];
 }
 
 export interface BookMetadata {
