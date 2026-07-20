@@ -86,7 +86,6 @@ export interface AppSettings {
   minWithdrawalAmount: number;
   coinToInrRate: number; 
   
-  // 10-Node Multi-Revenue Architecture
   node_scholar_dividend: boolean;
   node_quiz_arena: boolean;
   node_global_cpa: boolean;
@@ -97,102 +96,24 @@ export interface AppSettings {
   node_referral_engine: boolean;
   node_arcade_rewards: boolean;
   node_daily_checkin: boolean;
-
-  // API Nodes Status
-  cpaApiActive?: boolean;
-  adMobActive?: boolean;
-  ncertApiActive?: boolean;
-  osepaApiActive?: boolean;
-  vpnGuardActive?: boolean;
-  upiGatewayActive?: boolean;
 }
 
-export interface UserLedgerEntry {
-  id: string;
-  userId?: string;
-  type: string;
-  amount: number;
-  date: string;
-  status: 'pending' | 'completed' | 'failed';
-  description?: string;
-  currencySymbol?: string;
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctIndex: number;
 }
 
-export interface PayoutRequest {
+export interface QuizSession {
+  questions: QuizQuestion[];
+  difficulty: 'easy' | 'medium' | 'hard' | 'elite';
+}
+
+export interface LeaderboardEntry {
   id: string;
   userId: string;
   userEmail: string;
-  amount: number;
-  fee: number;
-  netAmount: number;
-  method: string;
-  destination: string;
-  status: 'pending' | 'completed' | 'failed';
-  timestamp: string;
-  vipLevel: number;
-  processedBy: 'manual' | 'automatic'; 
-  gatewayTransactionId?: string; 
-  geo?: string;
-}
-
-export interface Movie {
-  id: string;
-  title: string;
-  poster: string;
-  videoUrl: string;
-  category: string;
-  createdAt: string;
-}
-
-export interface ShopItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  category: string;
-  geo: string;
-}
-
-export interface CricketMatch {
-  id: string;
-  teamA: string;
-  teamB: string;
-  teamALogo: string;
-  teamBLogo: string;
-  startTime: string;
-  status: 'live' | 'upcoming' | 'completed';
-  series: string;
-  liveScore?: {
-    runsA: string;
-    runsB: string;
-    overs: string;
-    target?: string;
-    lastBalls?: string[];
-  };
-  winner?: string;
-}
-
-export interface PredictionPoll {
-  id: string;
-  question: string;
-  optionA: string;
-  optionB: string;
-  totalPool: number;
-  entryFee: number;
-  category: string;
-  expiry: string;
-  timestamp: string;
-}
-
-export interface SystemNotification {
-  id: string;
-  userId: string | null;
-  title: string;
-  body: string;
-  localizedBody?: string;
-  timestamp: string;
-  type: 'broadcast' | 'payout' | 'mission';
-  imageUrl?: string;
-  voucherCode?: string;
+  score: number;
+  rank: number;
+  lastUpdated: string;
 }
