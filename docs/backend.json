@@ -3,7 +3,7 @@
   "entities": {
     "UserProfile": {
       "title": "UserProfile",
-      "description": "User profile with academic focus, earnings, and security status.",
+      "description": "Master user identity with 10-node yield tracking and profit share allocation.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -12,16 +12,11 @@
         "winningBalance": { "type": "number" },
         "taskBalance": { "type": "number" },
         "bonusBalance": { "type": "number" },
-        "walletBalanceINR": { "type": "number" },
-        "pendingRevenueShare": { "type": "number" },
+        "pendingRevenueShare": { "type": "number", "description": "USD value based on 30% redistribution logic" },
         "country": { "type": "string" },
         "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] },
         "vipLevel": { "type": "number" },
         "isSuspended": { "type": "boolean" },
-        "teacherPoints": { "type": "number" },
-        "marketSalesCount": { "type": "number" },
-        "cpaTasksCount": { "type": "number" },
-        "generalTasksCount": { "type": "number" },
         "totalReferrals": { "type": "number" },
         "scholarPoints": { "type": "number" },
         "referralCode": { "type": "string" }
@@ -29,20 +24,22 @@
     },
     "AppSettings": {
       "title": "AppSettings",
-      "description": "Master system configuration for 10-node multi-revenue architecture.",
+      "description": "Master system config for 10-node multi-revenue architecture and 70/30 profit lock.",
       "type": "object",
       "properties": {
         "maintenanceMode": { "type": "boolean" },
         "reviewMode": { "type": "boolean" },
-        "userRevenueSharePercent": { "type": "number" },
-        "autoWithdrawalEnabled": { "type": "boolean" },
+        "userRevenueSharePercent": { "type": "number", "default": 30 },
         "node_scholar_dividend": { "type": "boolean" },
         "node_quiz_arena": { "type": "boolean" },
         "node_global_cpa": { "type": "boolean" },
         "node_micro_tasks": { "type": "boolean" },
-        "node_peer_connect": { "type": "boolean" },
-        "node_prize_arena": { "type": "boolean" },
-        "node_marketplace": { "type": "boolean" }
+        "node_surveys": { "type": "boolean" },
+        "node_ad_stream": { "type": "boolean" },
+        "node_content_analysis": { "type": "boolean" },
+        "node_referral_engine": { "type": "boolean" },
+        "node_arcade_rewards": { "type": "boolean" },
+        "node_daily_checkin": { "type": "boolean" }
       }
     }
   },
@@ -56,15 +53,7 @@
     },
     "/app_settings/global_config": {
       "schema": "AppSettings",
-      "description": "Industrial control node"
-    },
-    "/study_sessions/{sessionId}": {
-      "schema": "StudyBuddySession",
-      "description": "Peer-to-peer matching data"
-    },
-    "/market_assets/{assetId}": {
-      "schema": "MarketAsset",
-      "description": "UGC Knowledge Store data"
+      "description": "Industrial control node with 10-node switches"
     }
   }
 }

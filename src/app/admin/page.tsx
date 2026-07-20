@@ -24,7 +24,8 @@ import {
   Percent,
   Users,
   Trophy,
-  ShoppingBag
+  ShoppingBag,
+  Cpu
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,7 +45,7 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'monitor' | 'apis' | 'finance' | 'settings'>('monitor');
+  const [activeTab, setActiveTab] = useState<'monitor' | 'nodes' | 'finance' | 'settings'>('monitor');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -91,6 +92,7 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 p-8 space-y-3">
           <AdminLink active={activeTab === 'monitor'} icon={<Monitor />} label="Master Monitor" onClick={() => setActiveTab('monitor')} />
+          <AdminLink active={activeTab === 'nodes'} icon={<Cpu />} label="System Nodes" onClick={() => setActiveTab('nodes')} />
           <AdminLink active={activeTab === 'finance'} icon={<BarChart3 />} label="Profit Node" onClick={() => setActiveTab('finance')} />
           <AdminLink active={activeTab === 'settings'} icon={<Settings />} label="System Config" onClick={() => setActiveTab('settings')} />
         </nav>
@@ -100,27 +102,31 @@ export default function AdminDashboard() {
         <header className="flex items-center justify-between">
            <div className="space-y-1">
               <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin <span className="text-primary">Command</span></h1>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure Dashboard</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v10.0</p>
            </div>
         </header>
 
-        {activeTab === 'settings' && (
+        {activeTab === 'nodes' && (
           <div className="space-y-10 animate-in fade-in duration-700">
              <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] p-10 space-y-8 shadow-2xl">
                 <div className="flex items-center gap-4">
                    <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                       <Power className="h-6 w-6" />
                    </div>
-                   <h3 className="text-2xl font-black uppercase italic">Node <span className="text-primary">Toggles</span></h3>
+                   <h3 className="text-2xl font-black uppercase italic">10-Node <span className="text-primary">Yield Config</span></h3>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                   <NodeToggle label="EDU Node" active={settings?.node_scholar_dividend} onToggle={(v) => toggleSetting('node_scholar_dividend', v)} />
-                   <NodeToggle label="CPA Hub" active={settings?.node_global_cpa} onToggle={(v) => toggleSetting('node_global_cpa', v)} />
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                   <NodeToggle label="Scholar Div" active={settings?.node_scholar_dividend} onToggle={(v) => toggleSetting('node_scholar_dividend', v)} />
+                   <NodeToggle label="Quiz Arena" active={settings?.node_quiz_arena} onToggle={(v) => toggleSetting('node_quiz_arena', v)} />
+                   <NodeToggle label="Global CPA" active={settings?.node_global_cpa} onToggle={(v) => toggleSetting('node_global_cpa', v)} />
+                   <NodeToggle label="Micro Tasks" active={settings?.node_micro_tasks} onToggle={(v) => toggleSetting('node_micro_tasks', v)} />
+                   <NodeToggle label="Surveys" active={settings?.node_surveys} onToggle={(v) => toggleSetting('node_surveys', v)} />
                    <NodeToggle label="Ad Stream" active={settings?.node_ad_stream} onToggle={(v) => toggleSetting('node_ad_stream', v)} />
-                   <NodeToggle label="PeerConnect" active={settings?.node_peer_connect} onToggle={(v) => toggleSetting('node_peer_connect', v)} />
-                   <NodeToggle label="Prize Arena" active={settings?.node_prize_arena} onToggle={(v) => toggleSetting('node_prize_arena', v)} />
-                   <NodeToggle label="Marketplace" active={settings?.node_marketplace} onToggle={(v) => toggleSetting('node_marketplace', v)} />
+                   <NodeToggle label="Movie Yield" active={settings?.node_content_analysis} onToggle={(v) => toggleSetting('node_content_analysis', v)} />
+                   <NodeToggle label="Referral Sys" active={settings?.node_referral_engine} onToggle={(v) => toggleSetting('node_referral_engine', v)} />
+                   <NodeToggle label="Arcade Mile" active={settings?.node_arcade_rewards} onToggle={(v) => toggleSetting('node_arcade_rewards', v)} />
+                   <NodeToggle label="Check-in" active={settings?.node_daily_checkin} onToggle={(v) => toggleSetting('node_daily_checkin', v)} />
                 </div>
              </Card>
           </div>
@@ -151,7 +157,7 @@ export default function AdminDashboard() {
                        </div>
                        <div>
                           <p className="text-[9px] font-black uppercase text-muted-foreground">Override Share %</p>
-                          <p className="text-xs font-bold text-white uppercase italic">Distribution Engine</p>
+                          <p className="text-xs font-bold text-white uppercase italic">70% Admin Profit Lock</p>
                        </div>
                     </div>
                     <div className="flex gap-4">
@@ -162,7 +168,7 @@ export default function AdminDashboard() {
                         className="bg-black border-white/10 h-12 rounded-xl font-black text-lg text-primary w-24"
                        />
                        <p className="text-[8px] text-muted-foreground leading-relaxed uppercase font-medium">
-                          Current logic ensures {100 - (settings?.userRevenueSharePercent || 30)}% Admin Profit Lock.
+                          Current logic ensures {100 - (settings?.userRevenueSharePercent || 30)}% Net Margin.
                        </p>
                     </div>
                  </Card>
@@ -179,16 +185,16 @@ export default function AdminDashboard() {
                           <Activity className="h-6 w-6" />
                        </div>
                        <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-widest">Node <span className="text-primary">Monitor</span></h3>
+                          <h3 className="text-2xl font-black uppercase italic tracking-widest">Master <span className="text-primary">Monitor</span></h3>
                           <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">System Signal Integrity</p>
                        </div>
                     </div>
                  </div>
                  <div className="grid grid-cols-2 gap-4">
-                    <StatusPulse label="PEER Node" active={settings?.node_peer_connect} />
-                    <StatusPulse label="PRIZE Arena" active={settings?.node_prize_arena} />
-                    <StatusPulse label="MARKETPLACE" active={settings?.node_marketplace} />
-                    <StatusPulse label="AD STREAM" active={settings?.node_ad_stream} />
+                    <StatusPulse label="S2S Postback" active={true} />
+                    <StatusPulse label="Geo-IP Node" active={true} />
+                    <StatusPulse label="Library Sync" active={settings?.node_scholar_dividend} />
+                    <StatusPulse label="Yield Engine" active={true} />
                  </div>
               </Card>
 
@@ -197,10 +203,10 @@ export default function AdminDashboard() {
                     <h3 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
                        <ShieldX className="h-5 w-5 text-red-500" /> Fraud Shield
                     </h3>
-                    <Badge className="bg-red-500 text-white border-none text-[9px] animate-pulse">ALERTS ACTIVE</Badge>
+                    <Badge className="bg-red-500 text-white border-none text-[9px] animate-pulse">PROTECTED</Badge>
                  </div>
                  <p className="text-5xl font-black text-white italic">{fraudData?.length || 0}</p>
-                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest italic">Accounts Locked via VPN detection</p>
+                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest italic">Suspected Macros / Proxies Neutralized</p>
               </Card>
            </div>
         )}
@@ -211,11 +217,11 @@ export default function AdminDashboard() {
 
 function NodeToggle({ label, active, onToggle }: any) {
   return (
-    <div className="p-6 bg-black/40 rounded-2xl border border-white/5 flex flex-col gap-4">
-       <span className="text-[10px] font-black uppercase text-white/60 tracking-widest">{label}</span>
+    <div className="p-4 bg-black/40 rounded-2xl border border-white/5 flex flex-col gap-3">
+       <span className="text-[8px] font-black uppercase text-white/40 tracking-widest truncate">{label}</span>
        <div className="flex items-center justify-between">
-          <Switch checked={active} onCheckedChange={onToggle} />
-          <div className={cn("h-2 w-2 rounded-full", active ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" : "bg-red-500")} />
+          <Switch checked={active} onCheckedChange={onToggle} className="scale-75 origin-left" />
+          <div className={cn("h-1.5 w-1.5 rounded-full", active ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-red-500")} />
        </div>
     </div>
   );
@@ -225,7 +231,7 @@ function StatusPulse({ label, active }: any) {
    return (
       <div className="flex items-center justify-between p-4 bg-black/40 rounded-2xl border border-white/5">
          <span className="text-[10px] font-black uppercase text-white/60">{label}</span>
-         <div className={cn("h-2 w-2 rounded-full", active ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" : "bg-red-500")} />
+         <div className={cn("h-2 w-2 rounded-full", active ? "bg-green-500 animate-pulse" : "bg-red-500")} />
       </div>
    );
 }

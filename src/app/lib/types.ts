@@ -33,8 +33,8 @@ export interface UserProfile {
   tasksCompletedCount?: number;
   
   scholarPoints: number;
-  teacherPoints: number; // For helping others in PeerConnect
-  marketSalesCount: number; // Successful sales in marketplace
+  teacherPoints: number; 
+  marketSalesCount: number;
   
   dailyStudyMinutes: number;
   lastStudyDate?: string;
@@ -71,6 +71,7 @@ export interface AppSettings {
   adminUpiId: string;
   coinToInrRate: number; 
   
+  // 10-Node Architecture
   node_scholar_dividend: boolean;
   node_quiz_arena: boolean;
   node_global_cpa: boolean;
@@ -81,38 +82,15 @@ export interface AppSettings {
   node_referral_engine: boolean;
   node_arcade_rewards: boolean;
   node_daily_checkin: boolean;
-  
-  // v12.0 New Nodes
-  node_peer_connect: boolean;
-  node_prize_arena: boolean;
-  node_marketplace: boolean;
 }
 
-export interface LeaderboardEntry {
+export interface UserLedgerEntry {
   id: string;
-  userId: string;
-  userEmail: string;
-  score: number;
-  rank: number;
-  lastUpdated: string;
-}
-
-export interface MarketAsset {
-  id: string;
-  title: string;
-  authorId: string;
-  authorName: string;
-  price: number;
-  category: string;
-  downloads: number;
-  previewUrl: string;
-}
-
-export interface StudyBuddySession {
-  id: string;
-  topic: string;
-  studentId: string;
-  teacherId: string | null;
-  status: 'searching' | 'active' | 'completed';
-  timestamp: string;
+  userId?: string;
+  type: string;
+  amount: number;
+  date: string;
+  status: 'pending' | 'completed' | 'failed';
+  description?: string;
+  currencySymbol?: string;
 }
