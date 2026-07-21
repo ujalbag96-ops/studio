@@ -87,6 +87,7 @@ export interface AppSettings {
   maintenanceMode: boolean;
   reviewMode: boolean; 
   autoWithdrawalEnabled: boolean; 
+  razorpayAutoPayout: boolean;
   userRevenueSharePercent: number;
   adminUpiId: string;
   coinToInrRate: number; 
@@ -106,6 +107,7 @@ export interface AppSettings {
   api_cpalead_active: boolean;
   api_adgate_active: boolean;
   api_s2s_active: boolean;
+  api_razorpay_active: boolean;
 }
 
 export interface UserLedgerEntry {

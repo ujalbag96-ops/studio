@@ -48,6 +48,7 @@ import { UserProfile, AppSettings, PlatformRevenue } from '../lib/types';
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 const API_SLOTS = [
+  { id: 'api_razorpay_active', name: 'Razorpay Digital SDK', provider: 'Razorpay', isConfigured: true, icon: <CreditCard className="h-4 w-4" /> },
   { id: 'api_admob_active', name: 'AdMob Rewarded SDK', provider: 'Google', isConfigured: true, icon: <Zap className="h-4 w-4" /> },
   { id: 'api_cpalead_active', name: 'CPALead Global', provider: 'CPA Node', isConfigured: true, icon: <Signal className="h-4 w-4" /> },
   { id: 'api_adgate_active', name: 'AdGate Media', provider: 'Offerwall', isConfigured: true, icon: <Smartphone className="h-4 w-4" /> },
@@ -55,7 +56,6 @@ const API_SLOTS = [
   { id: 'api_notik_active', name: 'Notik.me SDK', provider: 'Installs', isConfigured: true, icon: <Activity className="h-4 w-4" /> },
   { id: 'api_bitreach_active', name: 'BitReach Node', provider: 'Gaming', isConfigured: true, icon: <Target className="h-4 w-4" /> },
   { id: 'api_s2s_active', name: 'S2S Postback Hub', provider: 'Internal', isConfigured: true, icon: <Lock className="h-4 w-4" /> },
-  { id: 'api_weather_active', name: 'Weather Intel', provider: 'OpenWeather', isConfigured: true, icon: <Globe className="h-4 w-4" /> },
   { id: 'api_scholar_sync_active', name: 'Scholar Vault', provider: 'Library', isConfigured: true, icon: <Server className="h-4 w-4" /> },
   { id: 'api_payout_gateway_active', name: 'Global Payout', provider: 'Multi-Node', isConfigured: true, icon: <CheckCircle2 className="h-4 w-4" /> },
 ];
@@ -159,7 +159,7 @@ export default function AdminDashboard() {
         <header className="flex items-center justify-between">
            <div className="space-y-1">
               <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin <span className="text-primary">Command</span></h1>
-              <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v18.0 Build</p>
+              <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v19.0 Build</p>
            </div>
            <div className="flex items-center gap-4">
               <div className="flex flex-col items-end">
@@ -184,21 +184,32 @@ export default function AdminDashboard() {
                     </div>
                  </div>
                  <div className="grid grid-cols-2 gap-6">
+                    <StatusItem label="Razorpay Signal" active={settings?.api_razorpay_active} />
                     <StatusItem label="S2S Postback" active={settings?.api_s2s_active} />
                     <StatusItem label="Identity Gate" active={true} />
                     <StatusItem label="Global Mediation" active={true} />
-                    <StatusItem label="Automatic Payout" active={settings?.autoWithdrawalEnabled} />
                  </div>
-                 <div className="pt-6 border-t border-white/5 space-y-4">
+                 <div className="pt-6 border-t border-white/5 space-y-6">
                     <div className="flex items-center justify-between">
                        <div className="space-y-1">
-                          <p className="text-sm font-black uppercase italic">Automatic Payment Control</p>
-                          <p className="text-[9px] font-bold text-muted-foreground uppercase">Process withdrawals without manual audit</p>
+                          <p className="text-sm font-black uppercase italic">Automatic Payout Control</p>
+                          <p className="text-[9px] font-bold text-muted-foreground uppercase">General automatic withdrawal engine</p>
                        </div>
                        <Switch 
                         checked={settings?.autoWithdrawalEnabled} 
                         onCheckedChange={(val) => toggleSetting('autoWithdrawalEnabled', val)}
                         className="data-[state=checked]:bg-green-600" 
+                       />
+                    </div>
+                    <div className="flex items-center justify-between">
+                       <div className="space-y-1">
+                          <p className="text-sm font-black uppercase italic text-primary">Razorpay Auto-Pay</p>
+                          <p className="text-[9px] font-bold text-muted-foreground uppercase">Instant bank settlement via Razorpay API</p>
+                       </div>
+                       <Switch 
+                        checked={settings?.razorpayAutoPayout} 
+                        onCheckedChange={(val) => toggleSetting('razorpayAutoPayout', val)}
+                        className="data-[state=checked]:bg-primary" 
                        />
                     </div>
                  </div>
