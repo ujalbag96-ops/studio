@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -11,13 +10,22 @@ import { UserProfile } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-export default function DailyStreak({ profile }: { profile: UserProfile }) {
+export default function DailyStreak({ profile }: { profile: UserProfile | null }) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isClaiming, setIsClaiming] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
+  
+  if (!profile) {
+    return (
+      <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 h-48 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+      </Card>
+    );
+  }
+
   const hasCheckedInToday = profile.lastCheckInDate === today;
   const currentStreak = profile.dailyStreak || 0;
 

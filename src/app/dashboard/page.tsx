@@ -162,7 +162,7 @@ export default function UserDashboard() {
           <div className="xl:col-span-2 space-y-12">
             <section className="space-y-6">
                <h3 className="text-xl font-bold uppercase flex items-center gap-4 italic tracking-tight"><Zap className="h-5 w-5 text-amber-500" /> Operational Daily Feed</h3>
-               <DailyStreak profile={profile!} />
+               <DailyStreak profile={profile} />
             </section>
           </div>
           
