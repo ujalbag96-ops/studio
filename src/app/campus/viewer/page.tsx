@@ -1,13 +1,13 @@
-
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment, addDoc, collection } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { 
   ArrowLeft, 
   Loader2, 
@@ -15,24 +15,24 @@ import {
   Clock, 
   Trophy,
   BrainCircuit,
-  Share2,
   ShieldCheck,
   Heart,
   Globe,
-  Lock,
   PlayCircle,
   X,
-  AlertCircle,
   Award,
-  Sparkles,
   Timer,
-  RefreshCw
+  MessageSquare,
+  Sparkles,
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz-flow';
-import { UserProfile, AppSettings } from '@/app/lib/types';
+import { askHumanTutor, type AskHumanTutorOutput } from '@/ai/flows/ask-human-tutor-flow';
+import { UserProfile } from '@/app/lib/types';
 
 const SUCCESS_SOUND = 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3';
 
@@ -46,6 +46,8 @@ function ViewerContent() {
   const url = searchParams.get('url') || 'https://ncert.nic.in/textbook/pdf/hemh101.pdf';
   
   const [secondsRead, setSecondsRead] = useState(0);
+  
+  // Quiz State
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizLoading, setQuizLoading] = useState(false);
   const [quizData, setQuizData] = useState<GenerateQuizOutput | null>(null);
@@ -54,11 +56,14 @@ function ViewerContent() {
   const [quizFinished, setQuizFinished] = useState(false);
   const [lives, setLives] = useState(3);
   const [timeLeft, setTimeLeft] = useState(20);
-  
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
-  const [verificationCountdown, setVerificationCountdown] = useState(0);
-  const [scholarRewardClaimed, setScholarRewardClaimed] = useState(false);
+
+  // Tutor State
+  const [showTutor, setShowTutor] = useState(false);
+  const [tutorQuery, setTutorQuery] = useState('');
+  const [tutorLoading, setTutorLoading] = useState(false);
+  const [tutorResponse, setTutorResponse] = useState<AskHumanTutorOutput | null>(null);
+  const [showAdInter, setShowAdInter] = useState(false);
+  const [adCountdown, setAdCountdown] = useState(8);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
@@ -74,7 +79,6 @@ function ViewerContent() {
     setQuizLoading(true);
     setQuizFinished(false);
     try {
-      // Pass difficulty based on profile rank
       const difficulty = profile.rank === 'Elite' ? 'Very High' : profile.rank === 'Gold' ? 'High' : 'Medium';
       const res = await generateQuiz({ 
         contentSummary: `Student Lesson Audit for URL: ${url}. Category: ${profile.geo_region}. Difficulty: ${difficulty}`,
@@ -90,6 +94,40 @@ function ViewerContent() {
       setShowQuiz(false);
     } finally {
       setQuizLoading(false);
+    }
+  };
+
+  const handleTutorSubmit = () => {
+    if (!tutorQuery.trim()) return;
+    setShowAdInter(true);
+    setAdCountdown(8);
+    
+    const interval = setInterval(() => {
+      setAdCountdown(p => {
+        if (p <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return p - 1;
+      });
+    }, 1000);
+  };
+
+  const callTutorAi = async () => {
+    setShowAdInter(false);
+    setTutorLoading(true);
+    setTutorResponse(null);
+    try {
+      const res = await askHumanTutor({
+        query: tutorQuery,
+        context: `Current Lesson Material: ${url}`,
+        preferredLanguage: profile?.preferredLanguage || 'en'
+      });
+      setTutorResponse(res);
+    } catch (e) {
+      toast({ variant: "destructive", title: "TUTOR NODE DISCONNECTED" });
+    } finally {
+      setTutorLoading(false);
     }
   };
 
@@ -117,13 +155,12 @@ function ViewerContent() {
     }
   };
 
-  // Timer Engine
   useEffect(() => {
     let timer: any;
     if (showQuiz && !quizLoading && !quizFinished && timeLeft > 0) {
       timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
     } else if (timeLeft === 0 && showQuiz && !quizFinished) {
-      handleAnswer(-1); // Timeout
+      handleAnswer(-1);
     }
     return () => clearInterval(timer);
   }, [showQuiz, quizLoading, quizFinished, timeLeft]);
@@ -142,11 +179,11 @@ function ViewerContent() {
         amount: 10,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
-        description: 'KBC-Style Lesson Mastery Reward'
+        description: 'Lesson Mastery Dividend'
       });
 
       playSound();
-      toast({ title: "DIVIDEND DISPATCHED", description: "10 Coins & 50 Pts added to wallet." });
+      toast({ title: "DIVIDEND DISPATCHED" });
       setShowQuiz(false);
     } catch (e) {
       console.error("Sync Error");
@@ -160,16 +197,13 @@ function ViewerContent() {
             <Button variant="ghost" onClick={() => router.back()} className="text-[10px] font-black uppercase text-muted-foreground">
                <ArrowLeft className="h-3 w-3 mr-2" /> EXIT VAULT
             </Button>
-            <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] font-black uppercase px-4 italic">FREE RESOURCE NODE</Badge>
+            <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] font-black uppercase px-4 italic">INDUSTRIAL RESOURCE NODE</Badge>
          </div>
 
          <div className="flex flex-wrap items-center gap-4">
-            <div className="bg-primary/5 border border-primary/20 rounded-xl px-5 py-2 flex items-center gap-4 shadow-xl">
-               <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-               <span className="text-[10px] font-black uppercase text-white tabular-nums">
-                  SESSION: {Math.floor(secondsRead/60)}m {secondsRead%60}s
-               </span>
-            </div>
+            <Button onClick={() => setShowTutor(true)} variant="outline" className="h-12 px-6 rounded-2xl border-primary/20 bg-primary/5 text-primary font-black text-[10px] uppercase shadow-lg">
+               <MessageSquare className="h-4 w-4 mr-2" /> ASK HUMAN TUTOR
+            </Button>
             <Button onClick={startAiQuiz} className="h-12 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase shadow-lg shadow-primary/20">
                <BrainCircuit className="h-4 w-4 mr-2" /> VAULT QUIZ (+10 🪙)
             </Button>
@@ -196,8 +230,8 @@ function ViewerContent() {
                      <span className="text-primary">{profile?.scholarPoints || 0} Pts</span>
                   </div>
                   <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                     <span className="text-muted-foreground">My Tier</span>
-                     <span className="text-amber-500 italic">{profile?.rank || 'Bronze'}</span>
+                     <span className="text-muted-foreground">Tutor Status</span>
+                     <span className="text-amber-500 italic">Unlimited</span>
                   </div>
                </div>
             </Card>
@@ -206,12 +240,121 @@ function ViewerContent() {
                <ShieldCheck className="h-8 w-8 text-amber-500 mx-auto animate-pulse" />
                <h4 className="text-sm font-black uppercase italic">Audit Node Active</h4>
                <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest italic leading-relaxed">
-                  Real Student Node: {profile?.geo_region} • All rewards synced with sound notification.
+                  Real Student Node: {profile?.geo_region} • 100% Monetized AI Interaction.
                </p>
             </Card>
          </div>
       </div>
 
+      {/* HUMAN TUTOR DIALOG */}
+      <Dialog open={showTutor} onOpenChange={setShowTutor}>
+        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-2xl rounded-[3rem] p-10 overflow-hidden shadow-2xl">
+           <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+           
+           <DialogHeader className="text-center space-y-3 relative z-10">
+              <div className="h-16 w-16 rounded-[1.5rem] bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-2">
+                 <GraduationCap className="h-8 w-8 text-primary" />
+              </div>
+              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Human <span className="text-primary">Tutor Node</span></DialogTitle>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Friendly Professor Persona • Auto-Language Detected</p>
+           </DialogHeader>
+
+           <div className="space-y-8 py-8 relative z-10">
+              {tutorResponse ? (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                   <div className="p-8 bg-white/5 border border-white/10 rounded-3xl space-y-4">
+                      <p className="text-sm text-white font-medium leading-relaxed italic">"{tutorResponse.explanation}"</p>
+                   </div>
+                   
+                   {tutorResponse.steps && tutorResponse.steps.length > 0 && (
+                     <div className="space-y-4">
+                        <p className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+                           <Sparkles className="h-3 w-3" /> Step-by-Step Logic Breakdown
+                        </p>
+                        <div className="space-y-3">
+                           {tutorResponse.steps.map((step, i) => (
+                             <div key={i} className="flex gap-4 items-start p-4 bg-black/40 border border-white/5 rounded-2xl group hover:border-primary/40 transition-all">
+                                <span className="h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center text-[10px] font-black text-primary border border-primary/20 shrink-0">{i+1}</span>
+                                <p className="text-xs text-muted-foreground font-medium">{step}</p>
+                             </div>
+                           ))}
+                        </div>
+                     </div>
+                   )}
+                   <Button onClick={() => { setTutorResponse(null); setTutorQuery(''); }} className="w-full h-16 bg-white/5 border border-white/10 hover:bg-primary text-white font-black uppercase italic rounded-2xl">
+                      NEW QUESTION SIGNAL
+                   </Button>
+                </div>
+              ) : tutorLoading ? (
+                <div className="py-20 flex flex-col items-center gap-8">
+                   <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                   <p className="text-[11px] font-black uppercase italic text-muted-foreground tracking-[0.4em]">PROFESSOR ANALYZING SIGNAL...</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                   <div className="space-y-2">
+                      <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">My Academic Query</Label>
+                      <textarea 
+                        value={tutorQuery} 
+                        onChange={e => setTutorQuery(e.target.value)}
+                        placeholder="E.G. EXPLAIN THE SECOND LAW OF THERMODYNAMICS WITH EXAMPLES OR SOLVE X^2 + 5X + 6 = 0..."
+                        className="w-full h-40 bg-black border-2 border-white/10 rounded-2xl p-6 font-bold text-sm text-white focus:border-primary/40 focus:ring-0 outline-none uppercase resize-none"
+                      />
+                   </div>
+                   <Button 
+                    onClick={handleTutorSubmit} 
+                    disabled={!tutorQuery.trim()}
+                    className="w-full h-20 bg-primary hover:bg-primary/90 font-black text-xl uppercase italic rounded-2xl shadow-xl shadow-primary/20 transition-all group"
+                   >
+                      <Zap className="mr-3 h-6 w-6 group-hover:fill-white" /> INITIALIZE TUTOR (FREE)
+                   </Button>
+                   <p className="text-[9px] font-bold text-center text-muted-foreground uppercase italic">100% Gated via Sponsored Signal Node</p>
+                </div>
+              )}
+           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AD INTERSTITIAL MODAL */}
+      {showAdInter && (
+        <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-500">
+           <Card className="max-w-md w-full bg-[#0d0d12] border-primary/20 border-2 rounded-[3rem] overflow-hidden relative shadow-2xl">
+              <div className="p-12 text-center space-y-10">
+                 <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
+                    <div 
+                      className="absolute inset-0 rounded-full border-t-4 border-primary transition-all duration-1000 ease-linear" 
+                      style={{ transform: `rotate(${(8 - adCountdown) * 45}deg)` }}
+                    />
+                    <Zap className="h-12 w-12 text-primary animate-pulse" />
+                 </div>
+
+                 <div className="space-y-4">
+                    <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white">Generating <span className="text-primary">Response...</span></h3>
+                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
+                       Sponsor signal verified. Your AI Tutor response is being decrypted.
+                    </p>
+                 </div>
+
+                 <div className="space-y-6">
+                    <p className="text-5xl font-black text-white italic tabular-nums">{adCountdown}s</p>
+                    <Button 
+                      disabled={adCountdown > 0} 
+                      onClick={callTutorAi}
+                      className={cn(
+                        "w-full h-20 rounded-2xl font-black text-xl uppercase italic shadow-2xl transition-all",
+                        adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce shadow-green-500/20" : "bg-white/5 text-white/20 border border-white/10"
+                      )}
+                    >
+                       {adCountdown === 0 ? "ACCESS TUTOR" : "VERIFYING SIGNAL..."}
+                    </Button>
+                 </div>
+              </div>
+           </Card>
+        </div>
+      )}
+
+      {/* QUIZ DIALOG */}
       <Dialog open={showQuiz} onOpenChange={setShowQuiz}>
         <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-2xl rounded-[3rem] p-10 overflow-hidden shadow-2xl">
            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
@@ -269,13 +412,6 @@ function ViewerContent() {
                        <Zap className="h-4 w-4 opacity-0 group-hover:opacity-100 text-primary transition-opacity" />
                     </button>
                   ))}
-                </div>
-
-                <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                   <p className="text-[9px] font-black uppercase text-muted-foreground italic">Powered by Industrial AI Lesson Auditor</p>
-                   <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="border-white/10 text-white font-black text-[8px] uppercase">Lvl: {profile?.rank}</Badge>
-                   </div>
                 </div>
              </div>
            ) : null}
