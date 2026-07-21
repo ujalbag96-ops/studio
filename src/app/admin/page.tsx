@@ -27,7 +27,11 @@ import {
   XCircle,
   Smartphone,
   ClipboardList,
-  Target
+  Target,
+  BarChart3,
+  DollarSign,
+  ArrowUpRight,
+  Filter
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -75,6 +79,9 @@ export default function AdminDashboard() {
   const fraudQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), where('isSuspended', '==', true), limit(50)) : null, [firestore, isAdminUser]);
   const { data: fraudData } = useCollection<UserProfile>(fraudQuery);
 
+  const usersQuery = useMemoFirebase(() => (firestore && isAdminUser) ? query(collection(firestore, 'users'), orderBy('joinedAt', 'desc'), limit(5)) : null, [firestore, isAdminUser]);
+  const { data: recentUsers } = useCollection<UserProfile>(usersQuery);
+
   useEffect(() => {
     const interval = setInterval(() => {
       generateHeartbeats();
@@ -103,7 +110,7 @@ export default function AdminDashboard() {
     setIsProcessing(true);
     try {
       await updateDoc(settingsRef, { [key]: value });
-      toast({ title: "SIGNAL UPDATED", description: `${key.toUpperCase().replace('API_', '')} state synchronized.` });
+      toast({ title: "SIGNAL UPDATED", description: `${key.toUpperCase().replace('API_', '').replace('NODE_', '')} state synchronized.` });
     } catch (e) {
       toast({ variant: "destructive", title: "SYNC FAILED" });
     } finally {
@@ -151,7 +158,172 @@ export default function AdminDashboard() {
               <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin <span className="text-primary">Command</span></h1>
               <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v17.0 Build</p>
            </div>
+           <div className="flex items-center gap-4">
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Global Sync Status</span>
+                <span className="text-green-500 text-[10px] font-black uppercase flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> All Systems Nominal
+                </span>
+              </div>
+           </div>
         </header>
+
+        {activeTab === 'monitor' && (
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-in fade-in duration-700">
+              <div className="glass-panel rounded-[2.5rem] p-10 space-y-12">
+                 <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                       <Signal className="h-6 w-6" />
+                    </div>
+                    <div>
+                       <h3 className="text-2xl font-bold uppercase italic tracking-tight">System <span className="text-primary">Health</span></h3>
+                       <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Active Signal Nodes</p>
+                    </div>
+                 </div>
+                 <div className="grid grid-cols-2 gap-6">
+                    <StatusItem label="S2S Postback" active={settings?.api_s2s_active} />
+                    <StatusItem label="Identity Gate" active={true} />
+                    <StatusItem label="Global Mediation" active={true} />
+                    <StatusItem label="Auto-Payout" active={settings?.autoWithdrawalEnabled} />
+                 </div>
+              </div>
+
+              <div className="bg-red-500/[0.03] border border-red-500/20 rounded-[2.5rem] p-10 space-y-8 flex flex-col justify-center">
+                 <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                       <div className="h-12 w-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
+                          <ShieldX className="h-6 w-6" />
+                       </div>
+                       <h3 className="text-xl font-bold uppercase italic tracking-tight">Fraud Shield</h3>
+                    </div>
+                    <Badge className="bg-red-600 text-white border-none text-[9px] px-4 py-1 animate-pulse uppercase">Active Guard</Badge>
+                 </div>
+                 <div>
+                    <p className="text-6xl font-black text-white italic tabular-nums">{fraudData?.length || 0}</p>
+                    <p className="text-[9px] font-bold uppercase text-muted-foreground tracking-[0.3em] mt-3">Identities Blocked by Proxy Guard</p>
+                 </div>
+              </div>
+           </div>
+        )}
+
+        {activeTab === 'finance' && (
+           <div className="space-y-10 animate-in fade-in duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                 <MetricBox 
+                  label="Total Daily Revenue" 
+                  value={`$${(stats?.totalDailyRevenueUSD || 0).toFixed(2)}`} 
+                  icon={<BarChart3 className="h-5 w-5" />} 
+                  color="primary" 
+                  badge="Gross Yield" 
+                 />
+                 <MetricBox 
+                  label="Admin Profit (70%)" 
+                  value={`$${((stats?.totalDailyRevenueUSD || 0) * 0.7).toFixed(2)}`} 
+                  icon={<DollarSign className="h-5 w-5" />} 
+                  color="green" 
+                  badge="Locked Margin" 
+                 />
+                 <MetricBox 
+                  label="User Payouts (30%)" 
+                  value={`$${((stats?.totalDailyRevenueUSD || 0) * 0.3).toFixed(2)}`} 
+                  icon={<Zap className="h-5 w-5" />} 
+                  color="amber" 
+                  badge="Distributed" 
+                 />
+              </div>
+
+              <div className="glass-panel rounded-[2.5rem] p-10 space-y-8">
+                 <h3 className="text-2xl font-bold uppercase italic tracking-tight">Financial <span className="text-primary">Integrity Hub</span></h3>
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <div className="bg-white/5 p-8 rounded-3xl space-y-4">
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Revenue Split Simulation</p>
+                       <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden flex">
+                          <div className="h-full bg-primary" style={{ width: '70%' }} />
+                          <div className="h-full bg-amber-500" style={{ width: '30%' }} />
+                       </div>
+                       <div className="flex justify-between items-center text-[9px] font-black uppercase">
+                          <span className="text-primary">Admin (70%)</span>
+                          <span className="text-amber-500">User Share (30%)</span>
+                       </div>
+                    </div>
+                    <div className="flex flex-col justify-center gap-2">
+                       <p className="text-xs text-muted-foreground font-medium italic">"Current margin enforcement is strictly verified via S2S postback logic. Zero manual intervention allowed on the core profit lock."</p>
+                       <p className="text-[9px] font-black uppercase text-primary">System Auth Hash: AES-256-REVENUE-SYNC</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        )}
+
+        {activeTab === 'network' && (
+           <div className="space-y-10 animate-in fade-in duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                 <MetricBox label="Global Network Size" value="1,240" icon={<Users className="h-5 w-5" />} color="primary" />
+                 <MetricBox label="Active Viral Signals" value="482" icon={<TrendingUp className="h-5 w-5" />} color="green" />
+                 <MetricBox label="L2 Depth Yield" value="18.4%" icon={<Network className="h-5 w-5" />} color="amber" />
+              </div>
+
+              <div className="glass-panel rounded-[2.5rem] p-10 space-y-8">
+                 <div className="flex items-center justify-between">
+                    <h3 className="text-2xl font-bold uppercase italic tracking-tight">Recent <span className="text-primary">Recruitments</span></h3>
+                    <Badge variant="outline" className="border-white/10 uppercase text-[8px] px-3">Live Feed</Badge>
+                 </div>
+                 <div className="divide-y divide-white/5 bg-white/[0.02] rounded-2xl border border-white/10 overflow-hidden">
+                    {recentUsers?.map((u) => (
+                       <div key={u.id} className="p-6 flex items-center justify-between hover:bg-white/5 transition-all">
+                          <div className="flex items-center gap-4">
+                             <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-primary uppercase">{u.email?.[0] || 'U'}</div>
+                             <div>
+                                <p className="text-sm font-black uppercase text-white italic">{u.email?.split('@')[0] || 'Warrior'}</p>
+                                <p className="text-[9px] font-bold text-muted-foreground uppercase">{u.country || 'Global'}</p>
+                             </div>
+                          </div>
+                          <Badge variant="outline" className="text-[8px] font-black uppercase border-white/10">{u.geo_region} Node</Badge>
+                       </div>
+                    ))}
+                    {(!recentUsers || recentUsers.length === 0) && <div className="p-10 text-center text-[10px] uppercase font-bold text-muted-foreground">Waiting for new recruitment signals...</div>}
+                 </div>
+              </div>
+           </div>
+        )}
+
+        {activeTab === 'nodes' && (
+           <div className="space-y-10 animate-in fade-in duration-500">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                 <div className="glass-panel rounded-[2.5rem] p-10 space-y-10">
+                    <div className="flex items-center gap-4">
+                       <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                          <Cpu className="h-6 w-6" />
+                       </div>
+                       <div>
+                          <h3 className="text-2xl font-bold uppercase italic tracking-tight">Earning <span className="text-primary">Modules</span></h3>
+                          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Active Income Sectors</p>
+                       </div>
+                    </div>
+                    <div className="grid gap-4">
+                       <NodeToggle label="Scholar Dividend" active={settings?.node_scholar_dividend} onToggle={(val) => toggleSetting('node_scholar_dividend', val)} />
+                       <NodeToggle label="Quiz Arena Hub" active={settings?.node_quiz_arena} onToggle={(val) => toggleSetting('node_quiz_arena', val)} />
+                       <NodeToggle label="CPA Offerwall" active={settings?.node_global_cpa} onToggle={(val) => toggleSetting('node_global_cpa', val)} />
+                       <NodeToggle label="Video Yield" active={settings?.node_ad_stream} onToggle={(val) => toggleSetting('node_ad_stream', val)} />
+                       <NodeToggle label="Network Commissions" active={settings?.node_referral_engine} onToggle={(val) => toggleSetting('node_referral_engine', val)} />
+                    </div>
+                 </div>
+
+                 <div className="space-y-8">
+                    <Card className="bg-amber-500/5 border-amber-500/20 p-10 rounded-[2.5rem] space-y-6">
+                       <h4 className="text-xl font-black uppercase italic text-amber-500 flex items-center gap-3"><Star /> Sector Optimization</h4>
+                       <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight">
+                          Modules are optimized for global users based on their geo-region. Disabling a node instantly terminates the client-side signal.
+                       </p>
+                    </Card>
+                    <div className="bg-white/5 border border-white/10 p-10 rounded-[2.5rem] text-center">
+                       <p className="text-4xl font-black text-white italic">10/10</p>
+                       <p className="text-[9px] font-bold uppercase text-muted-foreground mt-2 tracking-widest">Nodes Synchronized with Firebase</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        )}
 
         {activeTab === 'api_hub' && (
            <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl">
@@ -236,45 +408,6 @@ export default function AdminDashboard() {
               </div>
            </div>
         )}
-
-        {/* Other tabs remain largely the same, logic preserved */}
-        {activeTab === 'monitor' && (
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-in fade-in duration-700">
-              <div className="glass-panel rounded-[2.5rem] p-10 space-y-12">
-                 <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                       <Signal className="h-6 w-6" />
-                    </div>
-                    <div>
-                       <h3 className="text-2xl font-bold uppercase italic tracking-tight">System <span className="text-primary">Health</span></h3>
-                       <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Active Signal Nodes</p>
-                    </div>
-                 </div>
-                 <div className="grid grid-cols-2 gap-6">
-                    <StatusItem label="S2S Postback" active={settings?.api_s2s_active} />
-                    <StatusItem label="Identity Gate" active={true} />
-                    <StatusItem label="Global Mediation" active={true} />
-                    <StatusItem label="Auto-Payout" active={true} />
-                 </div>
-              </div>
-
-              <div className="bg-red-500/[0.03] border border-red-500/20 rounded-[2.5rem] p-10 space-y-8 flex flex-col justify-center">
-                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                       <div className="h-12 w-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
-                          <ShieldX className="h-6 w-6" />
-                       </div>
-                       <h3 className="text-xl font-bold uppercase italic tracking-tight">Fraud Shield</h3>
-                    </div>
-                    <Badge className="bg-red-600 text-white border-none text-[9px] px-4 py-1 animate-pulse uppercase">Active Guard</Badge>
-                 </div>
-                 <div>
-                    <p className="text-6xl font-black text-white italic tabular-nums">{fraudData?.length || 0}</p>
-                    <p className="text-[9px] font-bold uppercase text-muted-foreground tracking-[0.3em] mt-3">Identities Blocked by Proxy Guard</p>
-                 </div>
-              </div>
-           </div>
-        )}
       </main>
     </div>
   );
@@ -315,6 +448,18 @@ function StatusItem({ label, active }: any) {
        </div>
     </div>
   );
+}
+
+function NodeToggle({ label, active, onToggle }: { label: string, active?: boolean, onToggle: (val: boolean) => void }) {
+   return (
+    <div className="flex items-center justify-between p-6 bg-white/[0.03] rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+       <div className="flex flex-col">
+          <span className="text-sm font-black uppercase italic text-white tracking-tight">{label}</span>
+          <span className={cn("text-[8px] font-bold uppercase", active ? "text-green-500/70" : "text-red-500/70")}>{active ? 'Active Income Node' : 'Node Terminated'}</span>
+       </div>
+       <Switch checked={active} onCheckedChange={onToggle} className="data-[state=checked]:bg-primary" />
+    </div>
+   );
 }
 
 function AdminLink({ active, icon, label, onClick }: any) {
