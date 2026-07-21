@@ -36,6 +36,7 @@ import Hls from 'hls.js';
 
 const REWARD_AMOUNT = 300;
 const WATCH_DURATION_SECONDS = 600;
+const SUCCESS_SOUND = 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3';
 
 const LANGUAGE_SOURCES: Record<string, string> = {
   hi: "https://iptv-org.github.io/iptv/countries/in.m3u",
@@ -61,6 +62,11 @@ export default function WatchToEarnMovie() {
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
+
+  const playRewardSound = () => {
+    const audio = new Audio(SUCCESS_SOUND);
+    audio.play().catch(() => {});
+  };
 
   useEffect(() => {
     let interval: any;
@@ -135,12 +141,11 @@ export default function WatchToEarnMovie() {
 
       const result = await res.json();
       if (result.success) {
+        playRewardSound();
         toast({ 
           title: "300 COINS DISTRIBUTED", 
           description: "Movie session verified. Reward added to task balance." 
         });
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
-        audio.play().catch(() => {});
       }
     } catch (e) {
       toast({ variant: "destructive", title: "Reward Synchronization Failed" });

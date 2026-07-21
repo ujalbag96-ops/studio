@@ -25,13 +25,16 @@ import {
   AlertCircle,
   Award,
   Sparkles,
-  ZapOff
+  Timer,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz-flow';
 import { UserProfile, AppSettings } from '@/app/lib/types';
+
+const SUCCESS_SOUND = 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3';
 
 function ViewerContent() {
   const searchParams = useSearchParams();
@@ -50,6 +53,7 @@ function ViewerContent() {
   const [quizScore, setQuizScore] = useState(0);
   const [quizFinished, setQuizFinished] = useState(false);
   const [lives, setLives] = useState(3);
+  const [timeLeft, setTimeLeft] = useState(20);
   
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -57,103 +61,30 @@ function ViewerContent() {
   const [scholarRewardClaimed, setScholarRewardClaimed] = useState(false);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
-  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
-  
   const { data: profile } = useDoc<UserProfile>(userRef);
-  const { data: settings } = useDoc<AppSettings>(settingsRef);
 
-  const handleScholarPoints = useCallback(async () => {
-    if (!user || !userRef || scholarRewardClaimed || !settings?.node_scholar_dividend) return;
-    setIsVerifying(true);
-    setVerificationCountdown(10);
-  }, [user, userRef, scholarRewardClaimed, settings]);
-
-  const handleShare = async () => {
-    if (!user || isSharing) return;
-    setIsSharing(true);
-    try {
-      const shareText = `Check out this free educational material on CampusHub! Master your curriculum and earn rewards.`;
-      const shareUrl = window.location.href;
-      
-      if (navigator.share) {
-        await navigator.share({ title: 'CampusHub Resource', text: shareText, url: shareUrl });
-      } else {
-        await navigator.clipboard.writeText(shareUrl);
-        toast({ title: "Link Copied!" });
-      }
-
-      // Trigger Share Reward API
-      const res = await fetch('/api/share-reward', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid })
-      });
-      const data = await res.json();
-      
-      if (data.success) {
-        toast({ title: "REWARD SIGNAL SYNCED", description: `+${data.reward} Coins added for viral sharing.` });
-      }
-    } catch (e) {
-      console.error("Share failed");
-    } finally {
-      setIsSharing(false);
-    }
+  const playSound = () => {
+    const audio = new Audio(SUCCESS_SOUND);
+    audio.play().catch(() => {});
   };
-
-  useEffect(() => {
-    let interval: any;
-    if (isVerifying && verificationCountdown > 0) {
-      interval = setInterval(() => setVerificationCountdown(c => c - 1), 1000);
-    } else if (isVerifying && verificationCountdown === 0) {
-       finalizeReward();
-    }
-    return () => clearInterval(interval);
-  }, [isVerifying, verificationCountdown]);
-
-  const finalizeReward = async () => {
-    if (!user || !userRef || !firestore) return;
-    setIsVerifying(false);
-    try {
-      await updateDoc(userRef, {
-        scholarPoints: increment(10),
-        coins: increment(5),
-        lastStudyDate: new Date().toISOString().split('T')[0]
-      });
-      
-      await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
-        type: 'scholar_reward',
-        amount: 5,
-        date: new Date().toISOString().split('T')[0],
-        status: 'completed',
-        description: 'Scholar Dividend Node: Lesson Mastered (+10 Pts)'
-      });
-
-      setScholarRewardClaimed(true);
-      toast({ title: "DIVIDEND DISTRIBUTED", description: "+10 Pts & +5 Coins added." });
-    } catch (e) {
-      console.error("Sync Error");
-    }
-  };
-
-  useEffect(() => {
-    if (!user || showQuiz || isVerifying) return;
-    const interval = setInterval(() => {
-      setSecondsRead(prev => {
-        const next = prev + 1;
-        if (next === 1800) handleScholarPoints();
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [user, showQuiz, isVerifying, handleScholarPoints]);
 
   const startAiQuiz = async () => {
+    if (!profile) return;
     setShowQuiz(true);
     setQuizLoading(true);
     setQuizFinished(false);
     try {
-      const res = await generateQuiz({ contentSummary: "Curriculum Visual Audit for Bounty Unlock." });
+      // Pass difficulty based on profile rank
+      const difficulty = profile.rank === 'Elite' ? 'Very High' : profile.rank === 'Gold' ? 'High' : 'Medium';
+      const res = await generateQuiz({ 
+        contentSummary: `Student Lesson Audit for URL: ${url}. Category: ${profile.geo_region}. Difficulty: ${difficulty}`,
+        difficulty 
+      });
       setQuizData(res);
+      setCurrentQuestion(0);
+      setQuizScore(0);
+      setLives(3);
+      setTimeLeft(20);
     } catch (e) {
       toast({ variant: "destructive", title: "AI HUB OFFLINE" });
       setShowQuiz(false);
@@ -164,37 +95,66 @@ function ViewerContent() {
 
   const handleAnswer = async (idx: number) => {
     if (!quizData) return;
-    if (idx === quizData.questions[currentQuestion].correctIndex) {
+    const isCorrect = idx === quizData.questions[currentQuestion].correctIndex;
+    
+    if (isCorrect) {
       setQuizScore(s => s + 1);
-      if (currentQuestion < 4) setCurrentQuestion(c => c + 1);
-      else setQuizFinished(true);
+      if (currentQuestion < 4) {
+        setCurrentQuestion(c => c + 1);
+        setTimeLeft(20);
+        toast({ title: "SIGNAL MATCHED", description: "+10 Intelligence Points" });
+      } else {
+        setQuizFinished(true);
+      }
     } else {
       setLives(l => l - 1);
-      if (lives <= 1) setShowQuiz(false);
+      if (lives <= 1) {
+        setShowQuiz(false);
+        toast({ variant: "destructive", title: "SIGNAL LOST", description: "Audit failed. Try re-reading." });
+      } else {
+        toast({ variant: "destructive", title: "INCORRECT", description: "Heart signal depleted." });
+      }
+    }
+  };
+
+  // Timer Engine
+  useEffect(() => {
+    let timer: any;
+    if (showQuiz && !quizLoading && !quizFinished && timeLeft > 0) {
+      timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+    } else if (timeLeft === 0 && showQuiz && !quizFinished) {
+      handleAnswer(-1); // Timeout
+    }
+    return () => clearInterval(timer);
+  }, [showQuiz, quizLoading, quizFinished, timeLeft]);
+
+  const finalizeQuizReward = async () => {
+    if (!user || !userRef || !firestore) return;
+    try {
+      await updateDoc(userRef, {
+        coins: increment(10),
+        winningBalance: increment(10),
+        scholarPoints: increment(50)
+      });
+      
+      await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
+        type: 'quiz_reward',
+        amount: 10,
+        date: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        description: 'KBC-Style Lesson Mastery Reward'
+      });
+
+      playSound();
+      toast({ title: "DIVIDEND DISPATCHED", description: "10 Coins & 50 Pts added to wallet." });
+      setShowQuiz(false);
+    } catch (e) {
+      console.error("Sync Error");
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-8 pb-32">
-      {isVerifying && (
-        <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-8">
-           <Card className="max-w-md w-full bg-[#0d0d12] border-primary/20 border-2 rounded-[3rem] p-12 text-center space-y-10 shadow-2xl">
-              <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
-                 <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
-                 <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin" />
-                 <Zap className="h-12 w-12 text-primary animate-pulse" />
-              </div>
-              <div className="space-y-4">
-                 <h3 className="text-3xl font-black uppercase italic text-white leading-none">Bounty <span className="text-primary">Unlock</span></h3>
-                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                    Analyzing student session logs to authenticate coin credit. Please wait.
-                 </p>
-              </div>
-              <p className="text-5xl font-black text-white italic tabular-nums">{verificationCountdown}s</p>
-           </Card>
-        </div>
-      )}
-
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
          <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => router.back()} className="text-[10px] font-black uppercase text-muted-foreground">
@@ -210,11 +170,8 @@ function ViewerContent() {
                   SESSION: {Math.floor(secondsRead/60)}m {secondsRead%60}s
                </span>
             </div>
-            <Button onClick={handleShare} disabled={isSharing} className="h-12 px-6 rounded-2xl bg-white/5 hover:bg-white/10 text-primary font-black text-[10px] uppercase border border-primary/20">
-               {isSharing ? <Loader2 className="animate-spin" /> : <><Share2 className="h-4 w-4 mr-2" /> SHARE FOR +2 🪙</>}
-            </Button>
-            <Button className="h-12 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase shadow-lg shadow-primary/20" onClick={startAiQuiz}>
-               <BrainCircuit className="h-4 w-4 mr-2" /> VAULT QUIZ
+            <Button onClick={startAiQuiz} className="h-12 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase shadow-lg shadow-primary/20">
+               <BrainCircuit className="h-4 w-4 mr-2" /> VAULT QUIZ (+10 🪙)
             </Button>
          </div>
       </div>
@@ -232,61 +189,93 @@ function ViewerContent() {
          <div className="space-y-6">
             <Card className="bg-gradient-to-br from-primary/20 to-black border-primary/30 p-10 rounded-[3rem] space-y-8 shadow-2xl relative overflow-hidden group">
                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><Trophy className="h-32 w-32 text-primary" /></div>
-               <h3 className="text-xl font-black uppercase italic flex items-center gap-3 text-white"><Zap className="h-6 w-6 text-primary" /> Yield Stats</h3>
+               <h3 className="text-xl font-black uppercase italic flex items-center gap-3 text-white"><Zap className="h-6 w-6 text-primary" /> Yield Hub</h3>
                <div className="space-y-6 relative z-10">
                   <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                     <span className="text-muted-foreground">Study Goal</span>
-                     <span className="text-white">30 Min (+10 Pts)</span>
+                     <span className="text-muted-foreground">Mastery Score</span>
+                     <span className="text-primary">{profile?.scholarPoints || 0} Pts</span>
                   </div>
                   <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                     <span className="text-muted-foreground">Lives Hub</span>
-                     <span className="text-red-500 flex items-center gap-1.5">{lives} <Heart className="h-4 w-4 fill-red-500" /></span>
-                  </div>
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                     <span className="text-muted-foreground">Total Shares</span>
-                     <span className="text-primary">{profile?.totalPagesShared || 0}</span>
+                     <span className="text-muted-foreground">My Tier</span>
+                     <span className="text-amber-500 italic">{profile?.rank || 'Bronze'}</span>
                   </div>
                </div>
             </Card>
             
             <Card className="bg-amber-500/5 border-amber-500/20 border-2 p-10 rounded-[3rem] text-center space-y-4">
                <ShieldCheck className="h-8 w-8 text-amber-500 mx-auto animate-pulse" />
-               <h4 className="text-sm font-black uppercase italic">Student Identity Verified</h4>
+               <h4 className="text-sm font-black uppercase italic">Audit Node Active</h4>
                <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest italic leading-relaxed">
-                  Real Student Node: {profile?.geo_region} • Anti-Proxy Clear
+                  Real Student Node: {profile?.geo_region} • All rewards synced with sound notification.
                </p>
             </Card>
          </div>
       </div>
 
       <Dialog open={showQuiz} onOpenChange={setShowQuiz}>
-        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-xl rounded-[3rem] p-10 overflow-hidden shadow-2xl">
+        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-2xl rounded-[3rem] p-10 overflow-hidden shadow-2xl">
+           <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+           
            {quizLoading ? (
              <div className="py-24 flex flex-col items-center gap-8 relative z-10">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                <p className="text-[11px] font-black uppercase italic text-muted-foreground tracking-[0.4em]">AI AUDITING VAULT MATERIAL...</p>
+                <p className="text-[11px] font-black uppercase italic text-muted-foreground tracking-[0.4em]">AI AUDITING LESSON MATERIAL...</p>
              </div>
            ) : quizFinished ? (
-             <div className="space-y-10 text-center pt-10">
-                <Award className="h-14 w-14 text-green-500 mx-auto" />
-                <h3 className="text-3xl font-black uppercase italic tracking-tighter">Mastery <span className="text-primary">Authenticated</span></h3>
-                <Button onClick={() => { setIsVerifying(true); setVerificationCountdown(10); setShowQuiz(false); }} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
-                   TRIGGER DIVIDEND
+             <div className="space-y-10 text-center pt-10 animate-in zoom-in-95 duration-500 relative z-10">
+                <div className="h-24 w-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(34,197,94,0.3)]">
+                   <Award className="h-12 w-12 text-green-500" />
+                </div>
+                <div className="space-y-2">
+                   <h3 className="text-4xl font-black uppercase italic tracking-tighter">Lesson <span className="text-primary">Mastered</span></h3>
+                   <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest">Score: {quizScore}/5 Questions Correct</p>
+                </div>
+                <Button onClick={finalizeQuizReward} className="w-full h-20 bg-primary hover:bg-primary/90 font-black uppercase italic text-xl rounded-2xl shadow-xl shadow-primary/20 transition-all">
+                   COLLECT 10 COINS & EXIT
                 </Button>
              </div>
            ) : quizData ? (
-             <div className="space-y-8 pt-10">
-                <Badge className="bg-primary/20 text-primary uppercase font-black text-[9px] px-4 py-1">QUESTION {currentQuestion + 1} / 5</Badge>
-                <h3 className="text-2xl font-black uppercase italic text-white leading-tight">
+             <div className="space-y-8 pt-10 relative z-10">
+                <div className="flex justify-between items-center">
+                   <Badge className="bg-primary/20 text-primary uppercase font-black text-[9px] px-5 py-2">STAGE {currentQuestion + 1} / 5</Badge>
+                   <div className="flex items-center gap-6">
+                      <div className="flex gap-2">
+                         {[...Array(3)].map((_, i) => (
+                           <Heart key={i} className={cn("h-5 w-5", i < lives ? "fill-red-500 text-red-500" : "text-white/10")} />
+                         ))}
+                      </div>
+                      <div className="flex items-center gap-3 bg-white/5 px-5 py-2 rounded-xl border border-white/10">
+                         <Timer className={cn("h-4 w-4", timeLeft < 5 ? "text-red-500 animate-pulse" : "text-primary")} />
+                         <span className={cn("font-black tabular-nums text-lg", timeLeft < 5 ? "text-red-500" : "text-white")}>{timeLeft}s</span>
+                      </div>
+                   </div>
+                </div>
+
+                <h3 className="text-3xl font-black uppercase italic text-white leading-tight min-h-[120px] tracking-tight">
                   {quizData.questions[currentQuestion].question}
                 </h3>
+
                 <div className="grid gap-4">
                   {quizData.questions[currentQuestion].options.map((opt, i) => (
-                    <button key={i} onClick={() => handleAnswer(i)} className="w-full p-6 bg-white/5 border border-white/10 rounded-2xl text-left font-bold uppercase text-[11px] hover:border-primary hover:bg-primary/5 transition-all group flex items-center justify-between">
-                       <span className="text-white group-hover:text-primary transition-colors">{opt}</span>
-                       <Zap className="h-4 w-4 opacity-0 group-hover:opacity-100 text-primary" />
+                    <button 
+                      key={i} 
+                      onClick={() => handleAnswer(i)} 
+                      className="w-full p-6 bg-white/5 border border-white/10 rounded-2xl text-left font-bold uppercase text-[12px] hover:border-primary hover:bg-primary/5 transition-all group flex items-center justify-between"
+                    >
+                       <span className="flex items-center gap-6">
+                          <span className="h-10 w-10 rounded-xl bg-black border border-white/10 flex items-center justify-center text-primary font-black">{String.fromCharCode(65 + i)}</span>
+                          <span className="text-white group-hover:text-primary transition-colors max-w-[400px]">{opt}</span>
+                       </span>
+                       <Zap className="h-4 w-4 opacity-0 group-hover:opacity-100 text-primary transition-opacity" />
                     </button>
                   ))}
+                </div>
+
+                <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+                   <p className="text-[9px] font-black uppercase text-muted-foreground italic">Powered by Industrial AI Lesson Auditor</p>
+                   <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="border-white/10 text-white font-black text-[8px] uppercase">Lvl: {profile?.rank}</Badge>
+                   </div>
                 </div>
              </div>
            ) : null}
