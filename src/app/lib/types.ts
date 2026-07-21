@@ -3,7 +3,7 @@ export type TournamentStatus = 'active' | 'upcoming' | 'completed' | 'cancelled'
 export type GameType = 'BGMI' | 'Free Fire' | 'Ludo King' | 'Other';
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
 export type KycStatus = 'none' | 'pending' | 'approved' | 'rejected';
-export type EduSource = 'NCERT' | 'OpenStax' | 'OdiaMedium';
+export type EduSource = 'NCERT' | 'OpenStax' | 'OdiaMedium' | 'CBSE' | 'ICSE' | 'UKNational' | 'CommonCore' | 'IB' | 'Cambridge';
 
 export interface UserProfile {
   id: string;
@@ -74,7 +74,7 @@ export interface BookMetadata {
   source: EduSource;
   lang: string;
   chapters: number;
-  coverUrl: string;
+  coverUrl?: string;
 }
 
 export interface PlatformRevenue {
