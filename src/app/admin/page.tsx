@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -31,12 +30,14 @@ import {
   BarChart3,
   DollarSign,
   ArrowUpRight,
-  Filter
+  Filter,
+  Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -311,7 +312,7 @@ export default function AdminDashboard() {
 
                  <div className="space-y-8">
                     <Card className="bg-amber-500/5 border-amber-500/20 p-10 rounded-[2.5rem] space-y-6">
-                       <h4 className="text-xl font-black uppercase italic text-amber-500 flex items-center gap-3"><Star /> Sector Optimization</h4>
+                       <h4 className="text-xl font-black uppercase italic text-amber-500 flex items-center gap-3"><Star className="h-5 w-5" /> Sector Optimization</h4>
                        <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight">
                           Modules are optimized for global users based on their geo-region. Disabling a node instantly terminates the client-side signal.
                        </p>
