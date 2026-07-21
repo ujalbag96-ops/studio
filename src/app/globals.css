@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 0 0% 7.1%; /* #121212 - Deep Charcoal */
+    --background: 240 10% 3.9%; /* #09090b - Ultra Dark */
     --foreground: 0 0% 98%;
-    --card: 0 0% 9.5%; /* #181818 */
+    --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 7.1%;
+    --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 211 100% 50%; /* #007AFF - Electric Blue */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 142 71% 45%;
-    --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 211 100% 50%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14%;
-    --input: 0 0% 14%;
-    --ring: 211 100% 50%;
-    --radius: 1.25rem;
+    --primary: 217 91% 60%; /* Neon Blue */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 217 91% 60%;
+    --radius: 1.5rem;
   }
 }
 
@@ -32,34 +32,33 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased selection:bg-primary selection:text-white;
-    font-size: 15px; /* Ensuring minimum 14sp equivalent legibility */
-    line-height: 1.6;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-bold tracking-tight;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/30;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.glass-panel {
+  @apply bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-2xl;
 }
 
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-  100% { transform: translateY(0px); }
+.glass-card {
+  @apply bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] hover:border-primary/30 transition-all duration-500;
 }
 
-.animate-float {
-  animation: float 4s ease-in-out infinite;
+.status-pulse {
+  @apply relative flex h-2 w-2;
 }
 
-/* Industrial Card Hover */
-.industrial-card {
-  @apply bg-card border border-white/5 transition-all duration-300 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/5;
+.status-pulse-dot {
+  @apply animate-ping absolute inline-flex h-full w-full rounded-full opacity-75;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
 }
