@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -9,7 +8,6 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import SupportChat from '@/components/SupportChat';
 import { usePathname } from 'next/navigation';
 import { Loader2, ShieldAlert, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,7 +39,6 @@ export default function RootLayout({
               {children}
             </main>
             <Footer />
-            <SupportChat />
           </SystemGate>
         </FirebaseClientProvider>
       </body>
