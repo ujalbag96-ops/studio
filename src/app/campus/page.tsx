@@ -15,7 +15,8 @@ import {
   Search,
   Filter,
   Zap,
-  AlertTriangle
+  AlertTriangle,
+  User
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { fetchCollegeBooks } from '@/services/libraryApi';
 
 const FALLBACK_DATABASE: BookMetadata[] = [
   { id: 'fb-1', title: 'Standard Mathematics', class: 'Class 10', subject: 'Math', source: 'NCERT', lang: 'en', chapters: 12, coverUrl: '' },
@@ -57,6 +59,13 @@ export default function CampusHomeScreen() {
       setLoading(true);
       setIsFallback(false);
 
+      if (eduSource === 'OpenLibrary') {
+         const externalBooks = await fetchCollegeBooks(searchTerm || "college textbooks");
+         setBooks(externalBooks as BookMetadata[]);
+         setLoading(false);
+         return;
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
@@ -72,10 +81,16 @@ export default function CampusHomeScreen() {
         });
         const data = await res.json();
         clearTimeout(timeoutId);
+        
         if (data.success) {
-          setBooks(data.books);
+          if (data.useExternalService) {
+             const externalBooks = await fetchCollegeBooks(searchTerm || "college textbooks");
+             setBooks(externalBooks as BookMetadata[]);
+          } else {
+             setBooks(data.books);
+          }
         }
-      } catch (e) {
+      } catch (e: any) {
         if (e.name !== 'AbortError') {
           console.error("Vault Signal Lost, using cache.");
           setBooks(FALLBACK_DATABASE);
@@ -86,7 +101,7 @@ export default function CampusHomeScreen() {
       }
     }
     fetchVaultData();
-  }, [profile, language, eduSource]);
+  }, [profile, language, eduSource, searchTerm]);
 
   const updatePreference = async (source: string) => {
     setEduSource(source);
@@ -99,6 +114,9 @@ export default function CampusHomeScreen() {
 
   // Universal Search Filter Logic
   const filteredBooks = useMemo(() => {
+    // If using OpenLibrary, the API already filtered by searchTerm via the fetch effect
+    if (eduSource === 'OpenLibrary') return books;
+
     return books.filter(book => {
       const query = searchTerm.toLowerCase();
       return (
@@ -108,7 +126,7 @@ export default function CampusHomeScreen() {
         book.source.toLowerCase().includes(query)
       );
     });
-  }, [books, searchTerm]);
+  }, [books, searchTerm, eduSource]);
 
   return (
     <div className="max-w-7xl mx-auto p-8 md:p-12 space-y-16 pb-32">
@@ -141,6 +159,7 @@ export default function CampusHomeScreen() {
                     </SelectTrigger>
                     <SelectContent className="bg-background border-white/10 text-white">
                        <SelectItem value="all">All Available Signals</SelectItem>
+                       <SelectItem value="OpenLibrary">Open Library (Global Live)</SelectItem>
                        <SelectItem value="NCERT">NCERT (India)</SelectItem>
                        <SelectItem value="CBSE">CBSE Board</SelectItem>
                        <SelectItem value="ICSE">ICSE Board</SelectItem>
@@ -176,7 +195,7 @@ export default function CampusHomeScreen() {
            <Input 
              value={searchTerm}
              onChange={e => setSearchTerm(e.target.value)}
-             placeholder="Search books, subjects, or boards across the globe..." 
+             placeholder="Search books, subjects, or authors across the globe..." 
              className="h-20 bg-white/[0.02] border-white/10 rounded-[1.5rem] pl-16 text-xl font-bold uppercase tracking-tight focus:border-primary/40 focus:ring-0"
            />
         </div>
@@ -205,18 +224,27 @@ export default function CampusHomeScreen() {
            
            <div className="grid gap-px bg-white/10 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl">
              {filteredBooks.map((book) => (
-               <Link key={book.id} href={`/campus/${book.id}?source=${book.source}&lang=${book.lang}`} className="group bg-background hover:bg-white/[0.03] transition-all">
+               <Link key={book.id} href={`/campus/viewer?url=${encodeURIComponent(book.id)}`} className="group bg-background hover:bg-white/[0.03] transition-all">
                  <div className="p-8 flex flex-col md:flex-row md:items-center justify-between gap-8">
                     <div className="flex items-center gap-8">
-                       <div className="h-14 w-14 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-primary shadow-xl group-hover:scale-110 transition-transform">
-                          <BookOpen className="h-6 w-6" />
+                       <div className="h-20 w-16 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center text-primary shadow-xl group-hover:scale-110 transition-transform overflow-hidden">
+                          {book.coverUrl ? (
+                            <img src={book.coverUrl} className="w-full h-full object-cover" alt="Cover" />
+                          ) : (
+                            <BookOpen className="h-6 w-6" />
+                          )}
                        </div>
                        <div className="space-y-1">
                           <div className="flex items-center gap-3">
                              <h4 className="text-2xl font-black uppercase italic tracking-tighter text-white group-hover:text-primary transition-colors">{book.title}</h4>
                              <Badge variant="outline" className="border-primary/20 text-primary text-[7px] font-black uppercase px-2">{book.source}</Badge>
                           </div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{book.class} • {book.subject} • {book.chapters} Chapters</p>
+                          <div className="flex items-center gap-4">
+                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                                <User className="h-3 w-3" /> {book.author || book.class}
+                             </p>
+                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">• {book.subject} • {book.publishYear || `${book.chapters} Chapters`}</p>
+                          </div>
                        </div>
                     </div>
                     <div className="flex items-center gap-6">
