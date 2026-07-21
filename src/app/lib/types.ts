@@ -4,6 +4,7 @@ export type GameType = 'BGMI' | 'Free Fire' | 'Ludo King' | 'Other';
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
 export type KycStatus = 'none' | 'pending' | 'approved' | 'rejected';
 export type EduSource = 'NCERT' | 'OpenStax' | 'OdiaMedium' | 'CBSE' | 'ICSE' | 'UKNational' | 'CommonCore' | 'IB' | 'Cambridge' | 'OpenLibrary';
+export type LanguageCode = 'en' | 'or' | 'hi' | 'es' | 'fr' | 'de' | 'bn' | 'te' | 'ta' | 'mr';
 
 export interface UserProfile {
   id: string;
@@ -50,7 +51,7 @@ export interface UserProfile {
   
   riskNoticeAccepted?: boolean;
   matchLossCount?: number; 
-  preferredLanguage?: 'en' | 'or' | 'hi' | 'es';
+  preferredLanguage?: LanguageCode;
   kycStatus: KycStatus;
   isEliteAffiliate?: boolean;
   questCelebrationPending?: boolean;
@@ -125,34 +126,6 @@ export interface UserLedgerEntry {
   currencySymbol?: string;
 }
 
-export interface LeaderboardEntry {
-  id: string;
-  userId: string;
-  userEmail?: string;
-  score: number;
-  lastUpdated: string;
-}
-
-export interface StudyBuddySession {
-  id: string;
-  topic: string;
-  studentId: string;
-  studentEmail?: string;
-  teacherId: string | null;
-  status: 'searching' | 'active' | 'completed';
-  timestamp: string;
-}
-
-export interface MarketAsset {
-  id: string;
-  title: string;
-  category: string;
-  price: number;
-  authorId: string;
-  authorName: string;
-  downloads: number;
-}
-
 export interface SystemNotification {
   id: string;
   userId?: string;
@@ -163,16 +136,6 @@ export interface SystemNotification {
   type: 'broadcast' | 'personal' | 'payout';
   imageUrl?: string;
   voucherCode?: string;
-}
-
-export interface PredictionPoll {
-  id: string;
-  question: string;
-  category: string;
-  totalPool: number;
-  entryFee: number;
-  expiry: string;
-  timestamp: string;
 }
 
 export interface CricketMatch {
@@ -194,6 +157,70 @@ export interface CricketMatch {
   winner?: string;
 }
 
+export interface Movie {
+  id: string;
+  title: string;
+  poster: string;
+  videoUrl: string;
+  category: string;
+  createdAt: string;
+}
+
+export interface MarketAsset {
+  id: string;
+  title: string;
+  category: string;
+  price: number;
+  authorId: string;
+  authorName: string;
+  downloads: number;
+}
+
+export interface StudyBuddySession {
+  id: string;
+  topic: string;
+  studentId: string;
+  studentEmail?: string;
+  teacherId: string | null;
+  status: 'searching' | 'active' | 'completed';
+  timestamp: string;
+}
+
+export interface Registration {
+  id: string;
+  userId: string;
+  tournamentId: string;
+  gameId: string;
+  joinedAt: string;
+  feePaid: number;
+}
+
+export interface Tournament {
+  id: string;
+  name: string;
+  status: 'active' | 'upcoming' | 'completed' | 'cancelled';
+  gameType: 'BGMI' | 'Free Fire' | 'Ludo King' | 'Other';
+  prizePool: string;
+  entryFee: number;
+  startDate: string;
+  banner: string;
+  roomCredentials?: {
+    roomId: string;
+    roomPassword?: string;
+  };
+  streamUrl?: string;
+}
+
+export interface PredictionPoll {
+  id: string;
+  question: string;
+  category: string;
+  totalPool: number;
+  entryFee: number;
+  expiry: string;
+  timestamp: string;
+}
+
 export interface ESportsMatch {
   id: string;
   title: string;
@@ -210,4 +237,12 @@ export interface ESportsPoll {
   optionB: string;
   totalPool: number;
   entryFee: number;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  score: number;
+  lastUpdated: string;
 }

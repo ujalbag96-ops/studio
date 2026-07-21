@@ -16,11 +16,12 @@ import {
   Filter,
   Zap,
   AlertTriangle,
-  User
+  User,
+  Globe2
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { UserProfile, EduSource, BookMetadata } from '@/app/lib/types';
+import { UserProfile, EduSource, BookMetadata, LanguageCode } from '@/app/lib/types';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,6 +33,20 @@ const FALLBACK_DATABASE: BookMetadata[] = [
   { id: 'fb-2', title: 'Global Science Node', class: 'Higher Ed', subject: 'Science', source: 'OpenStax', lang: 'en', chapters: 15, coverUrl: '' }
 ];
 
+const LANGUAGES = [
+  { value: 'all', label: 'All Languages' },
+  { value: 'en', label: 'English' },
+  { value: 'hi', label: 'Hindi (हिंदी)' },
+  { value: 'or', label: 'Odia (ଓଡ଼ିଆ)' },
+  { value: 'bn', label: 'Bengali (বাংলা)' },
+  { value: 'es', label: 'Spanish (Español)' },
+  { value: 'fr', label: 'French (Français)' },
+  { value: 'de', label: 'German (Deutsch)' },
+  { value: 'te', label: 'Telugu (తెలుగు)' },
+  { value: 'ta', label: 'Tamil (தமிழ்)' },
+  { value: 'mr', label: 'Marathi (मराठी)' },
+];
+
 export default function CampusHomeScreen() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -40,16 +55,17 @@ export default function CampusHomeScreen() {
   const { data: profile } = useDoc<UserProfile>(userRef);
 
   const [eduSource, setEduSource] = useState<string>('all');
-  const [language, setLanguage] = useState<'en' | 'or' | 'hi' | 'es'>('en');
+  const [language, setLanguage] = useState<string>('all');
   const [books, setBooks] = useState<BookMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFallback, setIsFallback] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Auto-assignment based on geo_region
+  // Auto-assignment based on geo_region initially, then allow override
   useEffect(() => {
-    if (profile) {
-      setLanguage(profile.preferredLanguage || (profile.geo_region === 'India' ? 'or' : 'en'));
+    if (profile && language === 'all') {
+      const initialLang = profile.preferredLanguage || (profile.geo_region === 'India' ? 'or' : 'en');
+      setLanguage(initialLang);
     }
   }, [profile]);
 
@@ -72,7 +88,7 @@ export default function CampusHomeScreen() {
         setBooks(FALLBACK_DATABASE);
         setIsFallback(true);
         setLoading(false);
-      }, 2000); // 2-second industrial timeout
+      }, 2000); 
 
       try {
         const sourceQuery = eduSource === 'all' ? '' : `&source=${eduSource}`;
@@ -108,13 +124,14 @@ export default function CampusHomeScreen() {
   };
 
   const updateLanguage = async (lang: string) => {
-    setLanguage(lang as any);
-    if (userRef) await updateDoc(userRef, { preferredLanguage: lang });
+    setLanguage(lang);
+    if (userRef && lang !== 'all') {
+      await updateDoc(userRef, { preferredLanguage: lang as LanguageCode });
+    }
   };
 
   // Universal Search Filter Logic
   const filteredBooks = useMemo(() => {
-    // If using OpenLibrary, the API already filtered by searchTerm via the fetch effect
     if (eduSource === 'OpenLibrary') return books;
 
     return books.filter(book => {
@@ -123,7 +140,8 @@ export default function CampusHomeScreen() {
         book.title.toLowerCase().includes(query) ||
         book.subject.toLowerCase().includes(query) ||
         book.class.toLowerCase().includes(query) ||
-        book.source.toLowerCase().includes(query)
+        book.source.toLowerCase().includes(query) ||
+        book.lang.toLowerCase().includes(query)
       );
     });
   }, [books, searchTerm, eduSource]);
@@ -140,12 +158,15 @@ export default function CampusHomeScreen() {
                  <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-bold uppercase tracking-widest italic">
                     <Globe className="h-3 w-3" /> Node: {profile?.geo_region || 'Global'}
                  </div>
+                 <div className="flex items-center gap-2 text-primary text-[10px] font-black uppercase tracking-widest italic">
+                    <Globe2 className="h-3.5 w-3.5 animate-pulse" /> Universal Lang Sync Active
+                 </div>
               </div>
               <h1 className="text-6xl md:text-9xl font-black tracking-tighter uppercase italic text-white leading-[0.8]">
                 Academic <br /><span className="text-primary">Global Vault</span>
               </h1>
               <p className="text-muted-foreground font-medium text-lg max-w-xl uppercase tracking-tight opacity-70">
-                Unlock worldwide curricula signals. Optimized for international students and verified warriors.
+                Unlock worldwide curricula signals in any language. Multi-dialect search node is fully operational.
               </p>
            </div>
            
@@ -172,18 +193,17 @@ export default function CampusHomeScreen() {
                     </SelectContent>
                  </Select>
               </div>
-              <div className="space-y-2 flex-1 sm:w-44">
-                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Terminal Language</p>
-                 <Select value={language} onValueChange={(v) => updateLanguage(v)}>
+              <div className="space-y-2 flex-1 sm:w-56">
+                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Universal Language</p>
+                 <Select value={language} onValueChange={updateLanguage}>
                     <SelectTrigger className="h-12 bg-white/[0.05] border-white/10 font-bold text-[10px] uppercase rounded-xl">
                        <Languages className="h-3.5 w-3.5 mr-2 text-primary" />
                        <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-background border-white/10 text-white">
-                       <SelectItem value="en">English</SelectItem>
-                       <SelectItem value="hi">Hindi</SelectItem>
-                       <SelectItem value="or">Odia</SelectItem>
-                       <SelectItem value="es">Spanish</SelectItem>
+                       {LANGUAGES.map(lang => (
+                         <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
+                       ))}
                     </SelectContent>
                  </Select>
               </div>
@@ -195,7 +215,7 @@ export default function CampusHomeScreen() {
            <Input 
              value={searchTerm}
              onChange={e => setSearchTerm(e.target.value)}
-             placeholder="Search books, subjects, or authors across the globe..." 
+             placeholder="Search across all languages, subjects, or international boards..." 
              className="h-20 bg-white/[0.02] border-white/10 rounded-[1.5rem] pl-16 text-xl font-bold uppercase tracking-tight focus:border-primary/40 focus:ring-0"
            />
         </div>
@@ -244,6 +264,7 @@ export default function CampusHomeScreen() {
                                 <User className="h-3 w-3" /> {book.author || book.class}
                              </p>
                              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">• {book.subject} • {book.publishYear || `${book.chapters} Chapters`}</p>
+                             <Badge variant="secondary" className="bg-white/5 text-[7px] font-black uppercase">{LANGUAGES.find(l => l.value === book.lang)?.label || book.lang}</Badge>
                           </div>
                        </div>
                     </div>
@@ -261,8 +282,8 @@ export default function CampusHomeScreen() {
       ) : (
         <div className="py-40 text-center space-y-6 glass-panel rounded-[3rem] border-dashed">
            <Zap className="h-16 w-16 text-muted-foreground opacity-10 mx-auto" />
-           <p className="text-sm font-bold uppercase text-muted-foreground tracking-[0.4em] italic">No Curricula Signal Matching "{searchTerm}"</p>
-           <Button variant="outline" onClick={() => setSearchTerm('')} className="border-white/10 font-black uppercase text-[10px] rounded-xl h-10 px-8">Clear Search</Button>
+           <p className="text-sm font-bold uppercase text-muted-foreground tracking-[0.4em] italic">No Curricula Signal Matching "{searchTerm}" in this Language</p>
+           <Button variant="outline" onClick={() => { setSearchTerm(''); setLanguage('all'); }} className="border-white/10 font-black uppercase text-[10px] rounded-xl h-10 px-8">Clear Filter Node</Button>
         </div>
       )}
     </div>
