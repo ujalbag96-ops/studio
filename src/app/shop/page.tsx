@@ -6,51 +6,73 @@ import { doc, updateDoc, increment, collection, addDoc, writeBatch } from 'fireb
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, Loader2, ShieldCheck, CheckCircle2, Ticket, Globe, Landmark } from 'lucide-react';
+import { ShoppingBag, Loader2, ShieldCheck, CheckCircle2, Ticket, Globe, Landmark, CreditCard, Send, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { UserProfile, ShopItem } from '@/app/lib/types';
+import { UserProfile } from '@/app/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
-const DOMESTIC_ITEMS: ShopItem[] = [
-  { id: 's1', name: '₹100 Google Play (IN)', description: 'Digital Gift Code', price: 10000, category: 'Redeem Code', imageUrl: 'https://picsum.photos/seed/gp/400/200', geo: 'India' },
-  { id: 's2', name: 'Paytm Cash ₹500', description: 'Direct Wallet Transfer', price: 50000, category: 'Cash', imageUrl: 'https://picsum.photos/seed/paytm/400/200', geo: 'India' },
-];
+interface WithdrawalItem {
+  id: string;
+  name: string;
+  description: string;
+  minCoins: number;
+  category: 'UPI' | 'PayPal' | 'Voucher' | 'Crypto';
+  geo: string;
+  icon: React.ReactNode;
+}
 
-const GLOBAL_ITEMS: ShopItem[] = [
-  { id: 'g1', name: '$10 PayPal Cash', description: 'Instant PayPal Transfer', price: 10000, category: 'Cash', imageUrl: 'https://picsum.photos/seed/paypal/400/200', geo: 'Global' },
-  { id: 'g2', name: '$5 Amazon.com Card', description: 'US Region Voucher', price: 5000, category: 'Voucher', imageUrl: 'https://picsum.photos/seed/amazonus/400/200', geo: 'Global' },
-  { id: 'g3', name: '£10 Steam Wallet', description: 'UK Region Credit', price: 12000, category: 'Game Credit', imageUrl: 'https://picsum.photos/seed/steam/400/200', geo: 'United Kingdom' },
+const WITHDRAWAL_ITEMS: WithdrawalItem[] = [
+  // India Specific
+  { id: 'upi_1', name: 'UPI Digital Payout', description: 'G-Pay, PhonePe, Paytm', minCoins: 10000, category: 'UPI', geo: 'India', icon: <Smartphone className="h-6 w-6" /> },
+  { id: 'paytm_1', name: 'Paytm Wallet', description: 'Direct Wallet Transfer', minCoins: 5000, category: 'UPI', geo: 'India', icon: <Wallet className="h-6 w-6" /> },
+  
+  // Global
+  { id: 'paypal_1', name: 'PayPal Global', description: 'Verified Personal/Business', minCoins: 50000, category: 'PayPal', geo: 'Global', icon: <Send className="h-6 w-6" /> },
+  { id: 'usdt_1', name: 'USDT (TRC20)', description: 'Crypto Wallet Transfer', minCoins: 100000, category: 'Crypto', geo: 'Global', icon: <Landmark className="h-6 w-6" /> },
+  
+  // Vouchers
+  { id: 'amz_1', name: 'Amazon Gift Card', description: 'Digital Voucher Code', minCoins: 5000, category: 'Voucher', geo: 'Global', icon: <Ticket className="h-6 w-6" /> },
+  { id: 'play_1', name: 'Google Play Code', description: 'App Store Credit', minCoins: 10000, category: 'Voucher', geo: 'India', icon: <CreditCard className="h-6 w-6" /> },
 ];
 
 export default function ShopPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [activeCat, setActiveCat] = useState('All');
+  const [selectedItem, setSelectedItem] = useState<WithdrawalItem | null>(null);
+  const [destinationId, setDestinationId] = useState('');
   const [isRedeeming, setIsRedeeming] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ShopItem | null>(null);
-  const [deliveryId, setDeliveryId] = useState('');
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
-  const { data: profile } = useDoc<UserProfile>(userRef);
+  const { data: profile, isLoading: profileLoading } = useDoc<UserProfile>(userRef);
 
-  const isIndia = profile?.country === 'India';
-  const availableItems = isIndia ? DOMESTIC_ITEMS : GLOBAL_ITEMS;
+  const categories = ['All', 'UPI', 'PayPal', 'Voucher', 'Crypto'];
+  
+  const filteredItems = WITHDRAWAL_ITEMS.filter(item => {
+    const catMatch = activeCat === 'All' || item.category === activeCat;
+    const geoMatch = item.geo === 'Global' || item.geo === profile?.country;
+    return catMatch && geoMatch;
+  });
 
-  const handleRedeemInitiate = (item: ShopItem) => {
-    if (!user || !profile) return;
-    const userBalance = profile.winningBalance + profile.taskBalance;
-    if (userBalance < item.price) {
-      toast({ variant: "destructive", title: "Insufficient Coins", description: `You need ${item.price} coins for this.` });
+  const handleRedeemInitiate = (item: WithdrawalItem) => {
+    if (!user || !profile) {
+      toast({ variant: "destructive", title: "Identity Required" });
+      return;
+    }
+    if (profile.coins < item.minCoins) {
+      toast({ variant: "destructive", title: "Insufficient Assets", description: `You need at least ${item.minCoins} coins.` });
       return;
     }
     setSelectedItem(item);
   };
 
   const handleConfirmRedeem = async () => {
-    if (!user || !firestore || !userRef || !selectedItem || !deliveryId) return;
+    if (!user || !firestore || !userRef || !selectedItem || !destinationId) return;
 
     setIsRedeeming(true);
     try {
@@ -58,42 +80,38 @@ export default function ShopPage() {
       const timestamp = new Date().toISOString();
       const dateStr = timestamp.split('T')[0];
 
-      // Atomic Deduct (Deduct from Task Balance first, then winning)
-      let rem = selectedItem.price;
-      const taskDec = Math.min(profile!.taskBalance, rem);
-      rem -= taskDec;
-      const winDec = rem;
-
+      // Atomic Deduct
       batch.update(userRef, {
-        taskBalance: increment(-taskDec),
-        winningBalance: increment(-winDec),
-        coins: increment(-selectedItem.price)
+        coins: increment(-selectedItem.minCoins),
+        winningBalance: increment(-selectedItem.minCoins)
       });
 
+      // Log Withdrawal Request
       const payoutRef = doc(collection(firestore, 'payouts'));
       batch.set(payoutRef, {
         userId: user.uid,
         userEmail: user.email,
-        amount: selectedItem.price,
-        method: 'Global Shop Redemption',
-        destination: deliveryId,
+        amount: selectedItem.minCoins,
+        method: selectedItem.name,
+        destination: destinationId,
         status: 'pending',
         timestamp,
-        itemName: selectedItem.name,
         geo: profile?.country
       });
 
+      // Ledger Entry
       batch.set(doc(collection(firestore, 'users', user.uid, 'ledger')), {
         type: 'shop_redemption',
-        amount: selectedItem.price,
+        amount: selectedItem.minCoins,
         date: dateStr,
         status: 'pending',
-        description: `Redeemed: ${selectedItem.name}`
+        description: `Requested: ${selectedItem.name}`
       });
 
       await batch.commit();
-      toast({ title: "REDEEM REQUEST SENT", description: "Verification signal dispatched." });
+      toast({ title: "SIGNAL DISPATCHED", description: "Audit node will verify your credentials." });
       setSelectedItem(null);
+      setDestinationId('');
     } catch (e) {
       toast({ variant: "destructive", title: "Sync Failed" });
     } finally {
@@ -101,71 +119,114 @@ export default function ShopPage() {
     }
   };
 
+  if (profileLoading) return <div className="flex items-center justify-center min-h-screen bg-background"><Loader2 className="animate-spin text-primary h-12 w-12" /></div>;
+
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-12 pb-32">
       <header className="space-y-6 pt-12 text-center md:text-left">
-        <div className="flex items-center justify-center md:justify-start gap-4">
-           <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1 text-[9px] tracking-widest italic">
-             {isIndia ? 'Domestic Hub: INR' : 'Global Hub: USD/GBP'}
-           </Badge>
-           <Badge variant="outline" className="border-white/10 text-[9px] font-black uppercase text-muted-foreground">35% Revenue Share System</Badge>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
+           <div className="space-y-4">
+              <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1.5 text-[9px] tracking-widest italic">Industrial Reward Shop v18.0</Badge>
+              <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white">Redemption <span className="text-primary">Hub</span></h1>
+              <p className="text-muted-foreground font-medium text-lg max-w-2xl">
+                 Convert your shared yield into local currency and digital assets via global payout nodes.
+              </p>
+           </div>
+           <Card className="bg-white/[0.02] border-white/10 p-8 rounded-[2rem] flex items-center gap-8 shadow-2xl">
+              <div className="text-center">
+                 <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">My Assets</p>
+                 <p className="text-3xl font-black text-white italic tabular-nums">{profile?.coins?.toLocaleString() || 0} <span className="text-xs opacity-40">🪙</span></p>
+              </div>
+           </Card>
         </div>
-        <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white">Reward <span className="text-primary">Shop</span></h1>
-        <p className="text-muted-foreground font-medium text-lg max-w-2xl">
-          Redeem your shared mission revenue for regional gift cards and digital cash payouts.
-        </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {availableItems.map((item) => (
-          <Card key={item.id} className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden group hover:border-primary/40 transition-all shadow-2xl relative">
-            <div className="aspect-video relative overflow-hidden">
-               <img src={item.imageUrl} className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" alt={item.name} />
-               <div className="absolute top-4 right-4">
-                  <Badge className="bg-black/60 text-white border-none text-[8px] font-black uppercase px-2 py-1">{item.geo}</Badge>
-               </div>
-            </div>
-            <CardContent className="p-8 space-y-6">
-              <div>
-                 <h3 className="text-xl font-black uppercase italic text-white truncate">{item.name}</h3>
-                 <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">{item.description}</p>
-              </div>
-              <div className="flex items-center justify-between border-t border-white/5 pt-4">
-                 <div className="flex items-end gap-1">
-                    <span className="text-2xl font-black text-primary italic">{item.price}</span>
-                    <span className="text-[10px] font-bold opacity-40 mb-1">🪙</span>
+      <div className="flex flex-wrap items-center gap-3 border-b border-white/5 pb-8">
+         {categories.map(cat => (
+           <button 
+             key={cat}
+             onClick={() => setActiveCat(cat)}
+             className={cn(
+               "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+               activeCat === cat ? "bg-primary text-white shadow-xl italic" : "bg-white/5 text-muted-foreground hover:text-white"
+             )}
+           >
+              {cat}
+           </button>
+         ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+         {filteredItems.map((item) => (
+           <Card key={item.id} className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden group hover:border-primary/40 transition-all shadow-2xl relative">
+              <div className="aspect-video bg-gradient-to-br from-primary/20 to-black flex items-center justify-center relative overflow-hidden">
+                 <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                 <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary shadow-xl group-hover:scale-110 transition-transform">
+                    {item.icon}
                  </div>
-                 <Button onClick={() => handleRedeemInitiate(item)} className="h-10 px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-primary text-white font-black text-[10px] uppercase">REDEEM</Button>
+                 <div className="absolute top-4 right-4">
+                    <Badge className="bg-black/60 text-white border-none text-[8px] font-black uppercase px-3 py-1">{item.geo}</Badge>
+                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+              <CardContent className="p-8 space-y-6">
+                 <div className="space-y-1">
+                    <h3 className="text-xl font-black uppercase italic text-white leading-tight">{item.name}</h3>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{item.description}</p>
+                 </div>
+                 <div className="flex items-center justify-between border-t border-white/5 pt-4">
+                    <div>
+                       <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Required</p>
+                       <p className="text-xl font-black text-primary italic">{item.minCoins.toLocaleString()} 🪙</p>
+                    </div>
+                    <Button onClick={() => handleRedeemInitiate(item)} className="h-11 px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-primary text-white font-black text-[9px] uppercase">REDEEM</Button>
+                 </div>
+              </CardContent>
+           </Card>
+         ))}
       </div>
 
       <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
         <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] p-10">
-           <DialogHeader className="space-y-4">
-              <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-                 <Landmark className="h-8 w-8 text-primary" />
+           <div className="text-center space-y-8">
+              <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
+                 {selectedItem?.icon}
               </div>
-              <DialogTitle className="text-3xl font-black uppercase italic">Payer Identity</DialogTitle>
-           </DialogHeader>
-           <div className="py-6 space-y-6">
               <div className="space-y-2">
-                 <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Delivery Destination (Email/ID)</Label>
-                 <Input value={deliveryId} onChange={e => setDeliveryId(e.target.value)} placeholder="Enter PayPal or Amazon Email" className="h-16 bg-black border-white/10 rounded-2xl font-black text-lg focus:ring-primary" />
+                 <h3 className="text-3xl font-black uppercase italic leading-none">Payout Node</h3>
+                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{selectedItem?.name}</p>
               </div>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold text-center leading-relaxed">
-                 Signal verification takes 2-24 hours. Reward will be sent to your in-app inbox once settled.
-              </p>
-           </div>
-           <DialogFooter>
-              <Button onClick={handleConfirmRedeem} disabled={isRedeeming || !deliveryId} className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl">
-                 {isRedeeming ? <Loader2 className="animate-spin" /> : "CONFIRM REDEEM"}
+
+              <div className="space-y-4 text-left">
+                 <div className="space-y-2">
+                    <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">
+                       {selectedItem?.category === 'UPI' ? 'Enter UPI ID (e.g. name@bank)' : 'Enter Destination Email'}
+                    </Label>
+                    <Input 
+                      value={destinationId} 
+                      onChange={e => setDestinationId(e.target.value)} 
+                      placeholder={selectedItem?.category === 'UPI' ? "example@okaxis" : "paypal-email@example.com"}
+                      className="h-16 bg-black border-white/10 rounded-2xl font-black text-lg focus:ring-primary text-center" 
+                    />
+                 </div>
+                 <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                    <p className="text-[8px] font-bold text-amber-500 uppercase leading-relaxed text-center">
+                       Settle Time: 2-24 Hours. Your identity and activity will be audited before payment release.
+                    </p>
+                 </div>
+              </div>
+
+              <Button onClick={handleConfirmRedeem} disabled={isRedeeming || !destinationId} className="w-full h-20 bg-primary hover:bg-primary/90 font-black uppercase italic text-xl rounded-2xl shadow-xl">
+                 {isRedeeming ? <Loader2 className="animate-spin" /> : "CONFIRM SIGNAL"}
               </Button>
-           </DialogFooter>
+           </div>
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function Smartphone(props: any) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
   );
 }

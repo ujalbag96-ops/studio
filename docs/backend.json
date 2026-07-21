@@ -29,6 +29,7 @@
       "properties": {
         "maintenanceMode": { "type": "boolean" },
         "reviewMode": { "type": "boolean" },
+        "autoWithdrawalEnabled": { "type": "boolean", "default": false },
         "userRevenueSharePercent": { "type": "number", "default": 30 },
         "node_scholar_dividend": { "type": "boolean" },
         "node_quiz_arena": { "type": "boolean" },
