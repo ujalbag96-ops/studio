@@ -12,7 +12,8 @@ import {
   ClipboardList,
   Signal,
   Info,
-  CheckCircle2
+  CheckCircle2,
+  Target
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useMemoFirebase, useUser, useCollection, useDoc } from '@/firebase';
