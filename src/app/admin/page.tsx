@@ -26,7 +26,8 @@ import {
   CheckCircle2,
   XCircle,
   Smartphone,
-  ClipboardList
+  ClipboardList,
+  Target
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
