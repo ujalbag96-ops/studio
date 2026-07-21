@@ -7,7 +7,7 @@ import { doc, updateDoc, increment, addDoc, collection } from 'firebase/firestor
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, 
   Loader2, 
@@ -25,7 +25,9 @@ import {
   MessageSquare,
   Sparkles,
   BookOpen,
-  GraduationCap
+  GraduationCap,
+  ChevronRight,
+  School
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -44,8 +46,6 @@ function ViewerContent() {
   const { toast } = useToast();
   
   const url = searchParams.get('url') || 'https://ncert.nic.in/textbook/pdf/hemh101.pdf';
-  
-  const [secondsRead, setSecondsRead] = useState(0);
   
   // Quiz State
   const [showQuiz, setShowQuiz] = useState(false);
@@ -124,11 +124,17 @@ function ViewerContent() {
         preferredLanguage: profile?.preferredLanguage || 'en'
       });
       setTutorResponse(res);
+      trackAdminRevenue();
     } catch (e) {
       toast({ variant: "destructive", title: "TUTOR NODE DISCONNECTED" });
     } finally {
       setTutorLoading(false);
     }
+  };
+
+  const trackAdminRevenue = async () => {
+     // Mock tracking of 100% admin profit ad completion
+     console.log("[ADMIN MONETIZATION] Universal Tutor Session Verified. 100% Margin Collected.");
   };
 
   const handleAnswer = async (idx: number) => {
@@ -202,7 +208,7 @@ function ViewerContent() {
 
          <div className="flex flex-wrap items-center gap-4">
             <Button onClick={() => setShowTutor(true)} variant="outline" className="h-12 px-6 rounded-2xl border-primary/20 bg-primary/5 text-primary font-black text-[10px] uppercase shadow-lg">
-               <MessageSquare className="h-4 w-4 mr-2" /> ASK HUMAN TUTOR
+               <School className="h-4 w-4 mr-2" /> UNIVERSAL TUITION TEACHER
             </Button>
             <Button onClick={startAiQuiz} className="h-12 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase shadow-lg shadow-primary/20">
                <BrainCircuit className="h-4 w-4 mr-2" /> VAULT QUIZ (+10 🪙)
@@ -230,8 +236,8 @@ function ViewerContent() {
                      <span className="text-primary">{profile?.scholarPoints || 0} Pts</span>
                   </div>
                   <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                     <span className="text-muted-foreground">Tutor Status</span>
-                     <span className="text-amber-500 italic">Unlimited</span>
+                     <span className="text-muted-foreground">Advance Tutor</span>
+                     <span className="text-amber-500 italic">Universal Mode</span>
                   </div>
                </div>
             </Card>
@@ -240,7 +246,7 @@ function ViewerContent() {
                <ShieldCheck className="h-8 w-8 text-amber-500 mx-auto animate-pulse" />
                <h4 className="text-sm font-black uppercase italic">Audit Node Active</h4>
                <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest italic leading-relaxed">
-                  Real Student Node: {profile?.geo_region} • 100% Monetized AI Interaction.
+                  Advance Subject Expert Node • 100% Monetized AI Interaction.
                </p>
             </Card>
          </div>
@@ -255,8 +261,8 @@ function ViewerContent() {
               <div className="h-16 w-16 rounded-[1.5rem] bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-2">
                  <GraduationCap className="h-8 w-8 text-primary" />
               </div>
-              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Human <span className="text-primary">Tutor Node</span></DialogTitle>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Friendly Professor Persona • Auto-Language Detected</p>
+              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Advance <span className="text-primary">Tutor Node</span></DialogTitle>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Universal Subject Expert • Experienced Professor Persona</p>
            </DialogHeader>
 
            <div className="space-y-8 py-8 relative z-10">
@@ -269,7 +275,7 @@ function ViewerContent() {
                    {tutorResponse.steps && tutorResponse.steps.length > 0 && (
                      <div className="space-y-4">
                         <p className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
-                           <Sparkles className="h-3 w-3" /> Step-by-Step Logic Breakdown
+                           <Sparkles className="h-3 w-3" /> Expert Step-by-Step Breakdown
                         </p>
                         <div className="space-y-3">
                            {tutorResponse.steps.map((step, i) => (
@@ -282,22 +288,22 @@ function ViewerContent() {
                      </div>
                    )}
                    <Button onClick={() => { setTutorResponse(null); setTutorQuery(''); }} className="w-full h-16 bg-white/5 border border-white/10 hover:bg-primary text-white font-black uppercase italic rounded-2xl">
-                      NEW QUESTION SIGNAL
+                      NEW TUITION QUERY
                    </Button>
                 </div>
               ) : tutorLoading ? (
                 <div className="py-20 flex flex-col items-center gap-8">
                    <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                   <p className="text-[11px] font-black uppercase italic text-muted-foreground tracking-[0.4em]">PROFESSOR ANALYZING SIGNAL...</p>
+                   <p className="text-[11px] font-black uppercase italic text-muted-foreground tracking-[0.4em]">PROFESSOR ANALYZING SUBJECT SIGNAL...</p>
                 </div>
               ) : (
                 <div className="space-y-6">
                    <div className="space-y-2">
-                      <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">My Academic Query</Label>
+                      <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Ask any Subject (Math, Science, History, etc.)</Label>
                       <textarea 
                         value={tutorQuery} 
-                        onChange={e => setTutorQuery(e.target.value)}
-                        placeholder="E.G. EXPLAIN THE SECOND LAW OF THERMODYNAMICS WITH EXAMPLES OR SOLVE X^2 + 5X + 6 = 0..."
+                        onChange={e => setTutorQuery(e.target.value)} 
+                        placeholder="E.G. EXPLAIN THE FRENCH REVOLUTION IN ODIA OR SOLVE A CALCULUS PROBLEM..."
                         className="w-full h-40 bg-black border-2 border-white/10 rounded-2xl p-6 font-bold text-sm text-white focus:border-primary/40 focus:ring-0 outline-none uppercase resize-none"
                       />
                    </div>
@@ -306,9 +312,9 @@ function ViewerContent() {
                     disabled={!tutorQuery.trim()}
                     className="w-full h-20 bg-primary hover:bg-primary/90 font-black text-xl uppercase italic rounded-2xl shadow-xl shadow-primary/20 transition-all group"
                    >
-                      <Zap className="mr-3 h-6 w-6 group-hover:fill-white" /> INITIALIZE TUTOR (FREE)
+                      <Zap className="mr-3 h-6 w-6 group-hover:fill-white" /> START ADVANCE TUITION (AD)
                    </Button>
-                   <p className="text-[9px] font-bold text-center text-muted-foreground uppercase italic">100% Gated via Sponsored Signal Node</p>
+                   <p className="text-[9px] font-bold text-center text-muted-foreground uppercase italic">100% Gated for Admin Profit Management</p>
                 </div>
               )}
            </div>
@@ -330,9 +336,9 @@ function ViewerContent() {
                  </div>
 
                  <div className="space-y-4">
-                    <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white">Generating <span className="text-primary">Response...</span></h3>
+                    <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white">Generating <span className="text-primary">Tuition...</span></h3>
                     <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                       Sponsor signal verified. Your AI Tutor response is being decrypted.
+                       Sponsor signal verified. Your Universal Tutor response is being decrypted.
                     </p>
                  </div>
 
@@ -346,7 +352,7 @@ function ViewerContent() {
                         adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce shadow-green-500/20" : "bg-white/5 text-white/20 border border-white/10"
                       )}
                     >
-                       {adCountdown === 0 ? "ACCESS TUTOR" : "VERIFYING SIGNAL..."}
+                       {adCountdown === 0 ? "ACCESS TUITION" : "VERIFYING SIGNAL..."}
                     </Button>
                  </div>
               </div>

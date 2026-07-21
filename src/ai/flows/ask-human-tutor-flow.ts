@@ -1,23 +1,24 @@
 'use server';
 /**
- * @fileOverview AI Human Tutor Node.
- * Provides friendly, professor-like explanations with step-by-step math solving.
- * Supports auto-language detection based on user profile.
+ * @fileOverview Universal Advance AI Human Tutor Node.
+ * Provides friendly, senior professor-like explanations for ALL academic subjects.
+ * Includes step-by-step solving for Math, Science, and complex logical subjects.
+ * Supports auto-language detection and regional dialect adaptation.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const AskHumanTutorInputSchema = z.object({
-  query: z.string().describe('The student\'s question or topic to explain.'),
+  query: z.string().describe('The student\'s question or academic topic from any subject (Science, Math, History, etc.).'),
   context: z.string().optional().describe('Textbook or lesson context for the question.'),
   preferredLanguage: z.string().optional().default('en').describe('The language to respond in.'),
 });
 export type AskHumanTutorInput = z.infer<typeof AskHumanTutorInputSchema>;
 
 const AskHumanTutorOutputSchema = z.object({
-  explanation: z.string().describe('The tutor\'s response in a friendly, professor-like tone.'),
-  steps: z.array(z.string()).optional().describe('Step-by-step breakdown for math or complex logic.'),
+  explanation: z.string().describe('The tutor\'s response in a warm, expert professor tone with real-life analogies.'),
+  steps: z.array(z.string()).optional().describe('Subject-specific step-by-step breakdown (calculations, historical timelines, or logical stages).'),
   languageUsed: z.string().describe('The name of the language the response was provided in.'),
 });
 export type AskHumanTutorOutput = z.infer<typeof AskHumanTutorOutputSchema>;
@@ -30,16 +31,19 @@ const askHumanTutorPrompt = ai.definePrompt({
   name: 'askHumanTutorPrompt',
   input: { schema: AskHumanTutorInputSchema },
   output: { schema: AskHumanTutorOutputSchema },
-  prompt: `You are an elite, friendly, and experienced Senior Professor. 
+  prompt: `You are an elite, world-class Senior Professor specializing in all academic disciplines (STEM, Social Sciences, Languages, and Arts).
 
-Your goal is to explain the provided student query in a way that is easy to understand, using real-life examples and a warm, encouraging tone.
+Your goal is to provide deep, advance tuition-style explanations for the student's query.
 
 Guidelines:
 - Language: Respond strictly in the language specified: {{{preferredLanguage}}}.
-- Persona: Be a mentor. Start with a warm greeting like "Namaste", "Hello", or a regional equivalent.
-- Math/Logic: If the query is a mathematical or logical problem, provide a "Chalkboard Style" step-by-step breakdown.
-- Context: Use the provided context if available: {{{context}}}.
-- Conciseness: Be thorough but clear.
+- Persona: Be a warm mentor. Use encouraging phrases. Start with a regional greeting like "Namaste", "Hello", or "Kemitichha".
+- Depth: Do not give short answers. Provide context, real-life examples, and simple analogies that make complex topics easy.
+- Subject Mastery:
+  - If Math/Science: Provide a "Chalkboard Style" step-by-step calculation or logical derivation.
+  - If Humanities/History: Provide a "Narrative Style" with key dates and cause-effect relationships.
+  - If Language: Explain grammar or literature with emotional depth.
+- Context: Use the provided textbook context if available: {{{context}}}.
 
 Student Query: {{{query}}}
 
