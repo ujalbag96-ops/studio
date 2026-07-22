@@ -1,8 +1,10 @@
+
 'use server';
 /**
- * @fileOverview Universal Advance AI Human Tutor Node v3.0.
+ * @fileOverview Universal Advance AI Human Tutor Node v4.0.
  * Specialized Senior Professor Persona with Vision Capabilities.
  * Strictly provides 100% accurate, verified answers with step-by-step formulas.
+ * Supports Indian Boards (NCERT/CBSE) and Global Higher Education.
  */
 
 import { ai } from '@/ai/genkit';
@@ -11,7 +13,7 @@ import { z } from 'genkit';
 const AskHumanTutorInputSchema = z.object({
   query: z.string().optional().describe('The student\'s academic query.'),
   photoDataUri: z.string().optional().describe("A photo of an academic problem, as a data URI. Format: 'data:<mimetype>;base64,<encoded_data>'."),
-  context: z.string().optional().describe('Lesson context.'),
+  context: z.string().optional().describe('Lesson context (e.g. NCERT Class 10 Math, College Physics).'),
   preferredLanguage: z.string().optional().default('en').describe('Language of response.'),
 });
 export type AskHumanTutorInput = z.infer<typeof AskHumanTutorInputSchema>;
@@ -37,6 +39,7 @@ Your goal is to provide deep, high-fidelity academic tuition. You can analyze bo
 
 CRITICAL PROTOCOLS:
 - IMAGE ANALYSIS: If an image is provided ({{#if photoDataUri}}{{media url=photoDataUri}}{{/if}}), analyze the text or formulas within it with 100% precision.
+- CURRICULUM MASTERY: Use NCERT/CBSE standards for Indian students and OpenStax/College standards for global students.
 - LANGUAGE: Respond strictly in the student's chosen language: {{{preferredLanguage}}}. Start with a local warm greeting (e.g., Namaste, Kemitichha, Hello).
 - FORMULA INTEGRITY: For Math, Physics, or Chemistry, you MUST provide the standard formulas used. Use clear notations (e.g., E=mc², (a+b)², etc.).
 - ACCURACY: Every fact must be verified. Do not guess.
@@ -45,6 +48,7 @@ CRITICAL PROTOCOLS:
   - Math/Science: Use "Chalkboard Style" steps. 
   - History/Civics: Use "Timeline Narrative".
 
+Context: {{{context}}}
 Student Query: {{{query}}}
 
 Return a JSON object with 'explanation', 'steps' (array of strings), and 'languageUsed'.`,

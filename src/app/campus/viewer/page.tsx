@@ -26,12 +26,12 @@ import {
   Image as ImageIcon,
   Trash2,
   ShieldCheck,
-  Info
+  Info,
+  Target
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz-flow';
 import { askHumanTutor, type AskHumanTutorOutput } from '@/ai/flows/ask-human-tutor-flow';
 import { UserProfile } from '@/app/lib/types';
 
@@ -56,7 +56,7 @@ function ViewerContent() {
   const [tutorLoading, setTutorLoading] = useState(false);
   const [tutorResponse, setTutorResponse] = useState<AskHumanTutorOutput | null>(null);
   const [showAdInter, setShowAdInter] = useState(false);
-  const [adCountdown, setAdCountdown] = useState(8);
+  const [adCountdown, setAdCountdown] = useState(10);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,26 +80,30 @@ function ViewerContent() {
     }
   };
 
+  // --- AD-GATED TUTOR SUBMISSION ---
   const handleTutorSubmit = () => {
     if (!tutorQuery.trim() && !tutorImage) {
       toast({ variant: "destructive", title: "INPUT REQUIRED", description: "Please enter text or upload a photo." });
       return;
     }
+    // Open Ad Modal before AI Call
     setShowAdInter(true);
-    setAdCountdown(8);
-    
-    const interval = setInterval(() => {
-      setAdCountdown(p => {
-        if (p <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return p - 1;
-      });
-    }, 1000);
+    setAdCountdown(10); // Industrial 10s Ad Gate for Cost Recovery
   };
 
+  useEffect(() => {
+    let interval: any;
+    if (showAdInter && adCountdown > 0) {
+      interval = setInterval(() => {
+        setAdCountdown(p => p - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [showAdInter, adCountdown]);
+
   const callTutorAi = async () => {
+    if (adCountdown > 0) return; // Strict gating
+
     setShowAdInter(false);
     setTutorLoading(true);
     setTutorResponse(null);
@@ -107,12 +111,12 @@ function ViewerContent() {
       const res = await askHumanTutor({
         query: tutorQuery,
         photoDataUri: tutorImage || undefined,
-        context: `Student is reading: ${url}. Region: ${profile?.geo_region}`,
+        context: `Student is reading: ${url}. Region: ${profile?.geo_region}. Curriculum: NCERT/Global Mixed.`,
         preferredLanguage: profile?.preferredLanguage || 'en'
       });
       setTutorResponse(res);
     } catch (e) {
-      toast({ variant: "destructive", title: "TUTOR NODE ERROR" });
+      toast({ variant: "destructive", title: "TUTOR NODE ERROR", description: "Signal lost during decryption." });
     } finally {
       setTutorLoading(false);
     }
@@ -279,11 +283,10 @@ function ViewerContent() {
                           className="w-full h-40 bg-black border-2 border-white/10 rounded-[2rem] p-8 font-bold text-lg text-white focus:border-primary/40 focus:ring-0 outline-none uppercase resize-none shadow-inner"
                         />
                         
-                        {/* Image Upload Trigger */}
                         <div className="absolute bottom-4 right-4 flex items-center gap-3">
                            {tutorImage ? (
                              <div className="relative group/img">
-                                <img src={tutorImage} className="h-16 w-16 object-cover rounded-xl border border-primary/40 shadow-xl" />
+                                <img src={tutorImage} className="h-16 w-16 object-cover rounded-xl border border-primary/40 shadow-xl" alt="Preview" />
                                 <button onClick={() => setTutorImage(null)} className="absolute -top-2 -right-2 h-6 w-6 bg-red-600 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover/img:opacity-100 transition-opacity">
                                    <X className="h-3 w-3" />
                                 </button>
@@ -321,19 +324,23 @@ function ViewerContent() {
         </DialogContent>
       </Dialog>
 
+      {/* INDUSTRIAL AD-GATE MODAL (COST RECOVERY) */}
       {showAdInter && (
         <div className="fixed inset-0 z-[300] bg-black/98 flex items-center justify-center p-8 animate-in fade-in duration-500">
            <div className="max-w-md w-full text-center space-y-12">
               <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
                  <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-                 <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin" />
+                 <div 
+                  className="absolute inset-0 rounded-full border-t-4 border-primary transition-all duration-1000 ease-linear" 
+                  style={{ transform: `rotate(${(10 - adCountdown) * 36}deg)` }}
+                 />
                  <Zap className="h-14 w-14 text-primary animate-pulse" />
               </div>
 
               <div className="space-y-6">
                  <h3 className="text-4xl font-black uppercase italic tracking-tighter text-white leading-none">Verifying Tuition Signal...</h3>
                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                    Connecting to Senior Professor Network. High-accuracy visual decryption active via industrial signal.
+                    Connecting to Senior Professor Network. High-accuracy visual decryption active via industrial signal. Sponsored session.
                  </p>
               </div>
 

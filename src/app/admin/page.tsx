@@ -93,7 +93,7 @@ export default function AdminDashboard() {
       <main className="flex-1 ml-72 p-12 space-y-12 pb-32">
         <header className="space-y-1">
           <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin <span className="text-primary">Command</span></h1>
-          <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v31.0 Profit Matrix</p>
+          <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v32.0 Profit Matrix</p>
         </header>
 
         {activeTab === 'monitor' && (
@@ -145,7 +145,7 @@ export default function AdminDashboard() {
                        <Badge className="bg-primary text-white">100% Retention</Badge>
                     </div>
                     <p className="text-[10px] text-muted-foreground font-bold uppercase leading-relaxed">
-                       No user reward distributed. 100% of interstitial ad revenue is tracked as direct platform profit.
+                       No user reward distributed. 100% of interstitial ad revenue is tracked as direct platform profit to recover API costs.
                     </p>
                  </div>
               </div>
