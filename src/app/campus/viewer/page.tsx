@@ -4,7 +4,7 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, Suspense, useRef } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc, increment, addDoc, collection } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +23,9 @@ import {
   Camera,
   ShieldCheck,
   Info,
-  BookOpen
+  BookOpen,
+  PlayCircle,
+  Layout
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -111,7 +113,7 @@ function ViewerContent() {
 
   return (
     <div className={cn(
-      "min-h-screen flex flex-col",
+      "min-h-screen flex flex-col transition-colors duration-700",
       theme === 'white' ? "bg-[#f4f4f5]" : theme === 'sepia' ? "bg-[#f4ecd8]" : "bg-[#09090b]"
     )}>
       {/* DISTRACTION-FREE HEADER */}
@@ -134,13 +136,13 @@ function ViewerContent() {
       </header>
 
       {/* IMMERSIVE CANVAS */}
-      <main className="flex-1 flex items-center justify-center p-4 md:p-12 relative">
+      <main className="flex-1 flex items-center justify-center p-4 md:p-12 relative overflow-hidden">
          <div className={cn(
-           "relative max-w-5xl w-full aspect-[1.4/1] shadow-2xl rounded-lg transition-all duration-700",
+           "relative max-w-5xl w-full aspect-[1.4/1] shadow-[0_30px_100px_rgba(0,0,0,0.2)] rounded-lg transition-all duration-700",
            isPageTurning ? "scale-[0.98] blur-sm" : "scale-100 blur-0",
            theme === 'dark' ? "border-white/5" : "border-white"
          )}>
-            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-gradient-to-r from-transparent via-black/10 to-transparent z-20 pointer-events-none hidden md:block" />
+            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-gradient-to-r from-transparent via-black/5 to-transparent z-20 pointer-events-none hidden md:block" />
             
             <div className="flex h-full w-full bg-white overflow-hidden rounded-lg">
                <div className={cn(
@@ -164,18 +166,18 @@ function ViewerContent() {
                </div>
             </div>
 
-            <button onClick={() => handlePageTurn('prev')} className="absolute left-[-20px] top-1/2 -translate-y-1/2 h-20 w-8 bg-black/5 hover:bg-black/10 rounded-full flex items-center justify-center transition-all">
-               <ChevronLeft className="h-6 w-6 text-muted-foreground" />
+            <button onClick={() => handlePageTurn('prev')} className="absolute left-[-25px] top-1/2 -translate-y-1/2 h-24 w-10 bg-black/5 hover:bg-black/10 rounded-full flex items-center justify-center transition-all group z-30">
+               <ChevronLeft className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
             </button>
-            <button onClick={() => handlePageTurn('next')} className="absolute right-[-20px] top-1/2 -translate-y-1/2 h-20 w-8 bg-black/5 hover:bg-black/10 rounded-full flex items-center justify-center transition-all">
-               <ChevronRight className="h-6 w-6 text-muted-foreground" />
+            <button onClick={() => handlePageTurn('next')} className="absolute right-[-25px] top-1/2 -translate-y-1/2 h-24 w-10 bg-black/5 hover:bg-black/10 rounded-full flex items-center justify-center transition-all group z-30">
+               <ChevronRight className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
             </button>
          </div>
       </main>
 
       {/* CLEAN FLOATING TOOLBAR */}
-      <div className="fixed bottom-8 inset-x-0 flex justify-center z-[150] px-4 pointer-events-none">
-         <Card className="pointer-events-auto bg-black/90 backdrop-blur-xl border-white/10 rounded-2xl h-16 flex items-center px-6 gap-6 shadow-2xl animate-in slide-in-from-bottom-8">
+      <div className="fixed bottom-24 inset-x-0 flex justify-center z-[150] px-4 pointer-events-none">
+         <Card className="pointer-events-auto bg-black/90 backdrop-blur-xl border-white/10 rounded-2xl h-16 flex items-center px-6 gap-6 shadow-2xl animate-in slide-in-from-bottom-8 duration-500">
             <button onClick={() => setShowTutor(true)} className="flex items-center gap-3 text-primary hover:text-white transition-all group">
                <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
                   <School className="h-5 w-5" />
@@ -203,16 +205,21 @@ function ViewerContent() {
          </Card>
       </div>
 
-      {/* NON-INTRUSIVE BOTTOM BANNER */}
-      <div className="h-10 bg-black/5 border-t border-black/5 flex items-center justify-center overflow-hidden">
-         <p className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.6em] italic animate-pulse">
-            INDUSTRIAL BANNER SLOT v11.0 • SPONSORED CONTENT ZONE
-         </p>
+      {/* INDUSTRIAL BOTTOM BANNER SLOT */}
+      <div className="h-20 bg-[#0d0d12] border-t border-white/5 flex flex-col items-center justify-center overflow-hidden relative z-50">
+         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20 opacity-20" />
+         <div className="flex items-center gap-4">
+            <Badge variant="outline" className="border-primary/20 text-primary text-[7px] font-black uppercase px-2 italic">Sponsored Slot v11.0</Badge>
+            <p className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.4em] italic animate-pulse">
+               HIGH-YIELD REVENUE CHANNEL ACTIVE • SECURED SIGNAL
+            </p>
+         </div>
+         <p className="text-[7px] font-bold text-muted-foreground uppercase opacity-30 mt-2">Revenue from this node directly funds student scholarship dividends.</p>
       </div>
 
       {/* TUTOR DIALOG */}
       <Dialog open={showTutor} onOpenChange={setShowTutor}>
-        <DialogContent className="bg-[#0a0a0f] border-primary/20 text-white max-w-xl rounded-[2rem] p-8 overflow-hidden shadow-2xl">
+        <DialogContent className="bg-[#0a0a0f] border-primary/20 text-white max-w-xl rounded-[2.5rem] p-8 overflow-hidden shadow-2xl" title="Ask AI Tutor">
            <DialogHeader className="text-center space-y-2">
               <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto border border-primary/20">
                  <GraduationCap className="h-8 w-8 text-primary" />
@@ -236,7 +243,7 @@ function ViewerContent() {
                         ))}
                      </div>
                    )}
-                   <Button onClick={() => { setTutorResponse(null); setTutorQuery(''); }} className="w-full h-14 bg-white/5 border border-white/10 hover:bg-primary rounded-xl font-black uppercase italic text-xs">
+                   <Button onClick={() => { setTutorResponse(null); setTutorQuery(''); setTutorImage(null); }} className="w-full h-14 bg-white/5 border border-white/10 hover:bg-primary rounded-xl font-black uppercase italic text-xs">
                       NEW QUERY
                    </Button>
                 </div>
@@ -254,14 +261,22 @@ function ViewerContent() {
                         placeholder="ASK ANY PROBLEM OR UPLOAD PHOTO..."
                         className="w-full h-32 bg-black border border-white/10 rounded-2xl p-6 font-bold text-sm text-white focus:border-primary/40 outline-none uppercase resize-none"
                       />
-                      <div className="absolute bottom-3 right-3">
-                         <button onClick={() => fileInputRef.current?.click()} className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground hover:text-primary">
+                      <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                         {tutorImage && (
+                            <div className="relative h-10 w-10 rounded-lg overflow-hidden border border-primary/40">
+                               <img src={tutorImage} className="h-full w-full object-cover" alt="Query" />
+                               <button onClick={() => setTutorImage(null)} className="absolute inset-0 bg-black/60 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity">
+                                  <X className="h-3 w-3" />
+                               </button>
+                            </div>
+                         )}
+                         <button onClick={() => fileInputRef.current?.click()} className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground hover:text-primary transition-all">
                             <Camera className="h-5 w-5" />
                          </button>
-                         <input ref={fileInputRef} type="file" className="hidden" onChange={handleImageUpload} />
+                         <input ref={fileInputRef} type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
                       </div>
                    </div>
-                   <Button onClick={handleTutorSubmit} disabled={!tutorQuery.trim()} className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl">
+                   <Button onClick={handleTutorSubmit} disabled={!tutorQuery.trim() && !tutorImage} className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl hover:scale-[1.02] transition-transform">
                       <Zap className="mr-3 h-6 w-6" /> START TUITION
                    </Button>
                    <p className="text-[8px] font-bold text-muted-foreground uppercase text-center italic">
@@ -275,7 +290,7 @@ function ViewerContent() {
 
       {/* REWARDED AD GATE */}
       {showAdInter && (
-        <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-8 animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-8 animate-in fade-in duration-500 backdrop-blur-xl">
            <div className="max-w-md w-full text-center space-y-10">
               <div className="h-24 w-24 mx-auto relative flex items-center justify-center">
                  <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
@@ -319,3 +334,4 @@ export default function PdfViewScreen() {
     </Suspense>
   );
 }
+
