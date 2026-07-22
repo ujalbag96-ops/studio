@@ -6,7 +6,22 @@ import { doc, updateDoc, increment, collection, addDoc, writeBatch } from 'fireb
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, Loader2, ShieldCheck, CheckCircle2, Ticket, Globe, Landmark, CreditCard, Send, Wallet } from 'lucide-react';
+import { 
+  ShoppingBag, 
+  Loader2, 
+  ShieldCheck, 
+  CheckCircle2, 
+  Ticket, 
+  Globe, 
+  Landmark, 
+  CreditCard, 
+  Send, 
+  Wallet,
+  Smartphone,
+  Zap,
+  ArrowRight,
+  TrendingUp
+} from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { UserProfile } from '@/app/lib/types';
@@ -39,7 +54,7 @@ const WITHDRAWAL_ITEMS: WithdrawalItem[] = [
   { id: 'play_1', name: 'Google Play Code', description: 'App Store Credit', minCoins: 10000, category: 'Voucher', geo: 'India', icon: <CreditCard className="h-6 w-6" /> },
 ];
 
-export default function ShopPage() {
+export default function PayoutTerminal() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -101,15 +116,15 @@ export default function ShopPage() {
 
       // Ledger Entry
       batch.set(doc(collection(firestore, 'users', user.uid, 'ledger')), {
-        type: 'shop_redemption',
+        type: 'withdrawal_request',
         amount: selectedItem.minCoins,
         date: dateStr,
         status: 'pending',
-        description: `Requested: ${selectedItem.name}`
+        description: `Requested Payout: ${selectedItem.name}`
       });
 
       await batch.commit();
-      toast({ title: "SIGNAL DISPATCHED", description: "Audit node will verify your credentials." });
+      toast({ title: "SIGNAL DISPATCHED", description: "Audit node will verify your credentials shortly." });
       setSelectedItem(null);
       setDestinationId('');
     } catch (e) {
@@ -126,16 +141,20 @@ export default function ShopPage() {
       <header className="space-y-6 pt-12 text-center md:text-left">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
            <div className="space-y-4">
-              <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1.5 text-[9px] tracking-widest italic">Industrial Reward Shop v18.0</Badge>
-              <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white">Redemption <span className="text-primary">Hub</span></h1>
-              <p className="text-muted-foreground font-medium text-lg max-w-2xl">
-                 Convert your shared yield into local currency and digital assets via global payout nodes.
+              <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1.5 text-[9px] tracking-widest italic">Industrial Withdrawal Hub v26.0</Badge>
+              <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white leading-none">Withdrawal <span className="text-primary">Terminal</span></h1>
+              <p className="text-muted-foreground font-medium text-lg max-w-2xl italic">
+                 Convert your verified scholarly yield into local currency. Multi-node digital gateways are operational.
               </p>
            </div>
-           <Card className="bg-white/[0.02] border-white/10 p-8 rounded-[2rem] flex items-center gap-8 shadow-2xl">
+           <Card className="bg-white/[0.02] border-white/10 p-8 rounded-[2rem] flex items-center gap-8 shadow-2xl backdrop-blur-xl">
               <div className="text-center">
-                 <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">My Assets</p>
+                 <p className="text-[9px] font-black uppercase text-muted-foreground mb-1 italic">Available Liquidity</p>
                  <p className="text-3xl font-black text-white italic tabular-nums">{profile?.coins?.toLocaleString() || 0} <span className="text-xs opacity-40">🪙</span></p>
+              </div>
+              <div className="h-12 w-px bg-white/10" />
+              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                 <Zap className="h-6 w-6 animate-pulse" />
               </div>
            </Card>
         </div>
@@ -147,25 +166,25 @@ export default function ShopPage() {
              key={cat}
              onClick={() => setActiveCat(cat)}
              className={cn(
-               "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-               activeCat === cat ? "bg-primary text-white shadow-xl italic" : "bg-white/5 text-muted-foreground hover:text-white"
+               "px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2",
+               activeCat === cat ? "bg-primary/10 text-primary border-primary shadow-xl italic" : "bg-white/5 text-muted-foreground border-transparent hover:border-white/10"
              )}
            >
-              {cat}
+              {cat === 'Voucher' ? 'Gift Cards' : cat}
            </button>
          ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
          {filteredItems.map((item) => (
-           <Card key={item.id} className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden group hover:border-primary/40 transition-all shadow-2xl relative">
+           <Card key={item.id} className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden group hover:border-primary/40 transition-all shadow-2xl relative border-2">
               <div className="aspect-video bg-gradient-to-br from-primary/20 to-black flex items-center justify-center relative overflow-hidden">
                  <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                  <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary shadow-xl group-hover:scale-110 transition-transform">
                     {item.icon}
                  </div>
                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-black/60 text-white border-none text-[8px] font-black uppercase px-3 py-1">{item.geo}</Badge>
+                    <Badge className="bg-black/60 backdrop-blur-md text-white border-none text-[8px] font-black uppercase px-3 py-1 italic">{item.geo}</Badge>
                  </div>
               </div>
               <CardContent className="p-8 space-y-6">
@@ -175,10 +194,10 @@ export default function ShopPage() {
                  </div>
                  <div className="flex items-center justify-between border-t border-white/5 pt-4">
                     <div>
-                       <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Required</p>
+                       <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Floor Rate</p>
                        <p className="text-xl font-black text-primary italic">{item.minCoins.toLocaleString()} 🪙</p>
                     </div>
-                    <Button onClick={() => handleRedeemInitiate(item)} className="h-11 px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-primary text-white font-black text-[9px] uppercase">REDEEM</Button>
+                    <Button onClick={() => handleRedeemInitiate(item)} className="h-11 px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-primary text-white font-black text-[9px] uppercase shadow-lg">SETTLE</Button>
                  </div>
               </CardContent>
            </Card>
@@ -186,47 +205,42 @@ export default function ShopPage() {
       </div>
 
       <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
-        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] p-10">
+        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] p-10 shadow-2xl">
            <div className="text-center space-y-8">
               <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
                  {selectedItem?.icon}
               </div>
               <div className="space-y-2">
-                 <h3 className="text-3xl font-black uppercase italic leading-none">Payout Node</h3>
+                 <h3 className="text-3xl font-black uppercase italic leading-none">Payout Protocol</h3>
                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{selectedItem?.name}</p>
               </div>
 
               <div className="space-y-4 text-left">
                  <div className="space-y-2">
                     <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">
-                       {selectedItem?.category === 'UPI' ? 'Enter UPI ID (e.g. name@bank)' : 'Enter Destination Email'}
+                       {selectedItem?.category === 'UPI' ? 'Enter VPA / UPI ID' : 'Enter Settlement Target (Email/Wallet)'}
                     </Label>
                     <Input 
                       value={destinationId} 
                       onChange={e => setDestinationId(e.target.value)} 
-                      placeholder={selectedItem?.category === 'UPI' ? "example@okaxis" : "paypal-email@example.com"}
-                      className="h-16 bg-black border-white/10 rounded-2xl font-black text-lg focus:ring-primary text-center" 
+                      placeholder={selectedItem?.category === 'UPI' ? "E.G. USERNAME@BANK" : "E.G. EMAIL@DOMAIN.COM"}
+                      className="h-16 bg-black border-white/10 rounded-2xl font-black text-lg focus:ring-primary text-center uppercase text-xs" 
                     />
                  </div>
-                 <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl">
-                    <p className="text-[8px] font-bold text-amber-500 uppercase leading-relaxed text-center">
-                       Settle Time: 2-24 Hours. Your identity and activity will be audited before payment release.
+                 <div className="p-5 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-start gap-3">
+                    <ShieldCheck className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-[9px] font-bold text-amber-500 uppercase leading-relaxed italic">
+                       Manual Audit Node Active. Payouts are verified against mission integrity records before release (Est. 2-6 Hours).
                     </p>
                  </div>
               </div>
 
-              <Button onClick={handleConfirmRedeem} disabled={isRedeeming || !destinationId} className="w-full h-20 bg-primary hover:bg-primary/90 font-black uppercase italic text-xl rounded-2xl shadow-xl">
-                 {isRedeeming ? <Loader2 className="animate-spin" /> : "CONFIRM SIGNAL"}
+              <Button onClick={handleConfirmRedeem} disabled={isRedeeming || !destinationId} className="w-full h-20 bg-primary hover:bg-primary/90 font-black uppercase italic text-xl rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-95">
+                 {isRedeeming ? <Loader2 className="animate-spin h-6 w-6" /> : "FINALIZE SIGNAL"}
               </Button>
            </div>
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function Smartphone(props: any) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
   );
 }
