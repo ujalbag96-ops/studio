@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment, addDoc, collection } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
@@ -27,7 +27,13 @@ import {
   BookOpen,
   GraduationCap,
   ChevronRight,
-  School
+  ChevronLeft,
+  School,
+  Type,
+  Palette,
+  Layers,
+  Settings2,
+  Maximize2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +44,8 @@ import { UserProfile } from '@/app/lib/types';
 
 const SUCCESS_SOUND = 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3';
 
+type ReaderTheme = 'white' | 'sepia' | 'dark';
+
 function ViewerContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -47,6 +55,11 @@ function ViewerContent() {
   
   const url = searchParams.get('url') || 'https://ncert.nic.in/textbook/pdf/hemh101.pdf';
   
+  // UI States
+  const [theme, setTheme] = useState<ReaderTheme>('white');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPageTurning, setIsPageTurning] = useState(false);
+
   // Quiz State
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizLoading, setQuizLoading] = useState(false);
@@ -71,6 +84,12 @@ function ViewerContent() {
   const playSound = () => {
     const audio = new Audio(SUCCESS_SOUND);
     audio.play().catch(() => {});
+  };
+
+  const handlePageTurn = (direction: 'next' | 'prev') => {
+    setIsPageTurning(true);
+    setTimeout(() => setIsPageTurning(false), 600);
+    toast({ title: "PAGE SYNCED", description: "Navigating to next content block." });
   };
 
   const startAiQuiz = async () => {
@@ -124,17 +143,11 @@ function ViewerContent() {
         preferredLanguage: profile?.preferredLanguage || 'en'
       });
       setTutorResponse(res);
-      trackAdminRevenue();
     } catch (e) {
       toast({ variant: "destructive", title: "TUTOR NODE DISCONNECTED" });
     } finally {
       setTutorLoading(false);
     }
-  };
-
-  const trackAdminRevenue = async () => {
-     // Mock tracking of 100% admin profit ad completion
-     console.log("[ADMIN MONETIZATION] Universal Tutor Session Verified. 100% Margin Collected.");
   };
 
   const handleAnswer = async (idx: number) => {
@@ -197,59 +210,124 @@ function ViewerContent() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-8 pb-32">
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+    <div className={cn(
+      "min-h-screen transition-colors duration-500 flex flex-col",
+      theme === 'white' ? "bg-[#f8f9fa]" : theme === 'sepia' ? "bg-[#f4ecd8]" : "bg-[#09090b]"
+    )}>
+      {/* Immersive Header */}
+      <header className="h-16 border-b border-black/5 flex items-center justify-between px-6 backdrop-blur-md sticky top-0 z-50">
          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => router.back()} className="text-[10px] font-black uppercase text-muted-foreground">
-               <ArrowLeft className="h-3 w-3 mr-2" /> EXIT VAULT
+            <Button variant="ghost" onClick={() => router.back()} className="text-[10px] font-black uppercase text-muted-foreground hover:text-primary">
+               <ArrowLeft className="h-3 w-3 mr-2" /> EXIT ARENA
             </Button>
-            <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] font-black uppercase px-4 italic">INDUSTRIAL RESOURCE NODE</Badge>
+            <div className="h-4 w-px bg-black/10 mx-2" />
+            <h1 className="text-xs font-black uppercase italic tracking-tighter truncate max-w-[200px]">
+              {url.split('/').pop()}
+            </h1>
          </div>
 
-         <div className="flex flex-wrap items-center gap-4">
-            <Button onClick={() => setShowTutor(true)} variant="outline" className="h-12 px-6 rounded-2xl border-primary/20 bg-primary/5 text-primary font-black text-[10px] uppercase shadow-lg">
-               <School className="h-4 w-4 mr-2" /> UNIVERSAL TUITION TEACHER
-            </Button>
-            <Button onClick={startAiQuiz} className="h-12 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase shadow-lg shadow-primary/20">
-               <BrainCircuit className="h-4 w-4 mr-2" /> VAULT QUIZ (+10 🪙)
+         <div className="flex items-center gap-2">
+            <ThemeButton active={theme === 'white'} color="#ffffff" onClick={() => setTheme('white')} />
+            <ThemeButton active={theme === 'sepia'} color="#f4ecd8" onClick={() => setTheme('sepia')} />
+            <ThemeButton active={theme === 'dark'} color="#1a1a1a" onClick={() => setTheme('dark')} />
+            <div className="h-4 w-px bg-black/10 mx-2" />
+            <Button onClick={() => setIsFullscreen(!isFullscreen)} variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
+               <Maximize2 className="h-4 w-4" />
             </Button>
          </div>
-      </div>
+      </header>
 
-      <div className="grid lg:grid-cols-4 gap-8">
-         <div className="lg:col-span-3">
-            <Card className="bg-[#050508] border-2 border-white/5 rounded-[3rem] overflow-hidden shadow-2xl relative h-[850px]">
-               <iframe 
-                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`} 
-                  className="w-full h-full border-none filter invert-[0.85] grayscale"
-               />
-            </Card>
+      {/* Flipbook Reading Canvas */}
+      <main className="flex-1 flex items-center justify-center p-4 md:p-12 relative overflow-hidden">
+         <div className={cn(
+           "relative max-w-5xl w-full aspect-[3/4] md:aspect-[1.4/1] shadow-[0_50px_100px_rgba(0,0,0,0.2)] rounded-lg transition-all duration-700",
+           isPageTurning ? "scale-95 opacity-80" : "scale-100 opacity-100",
+           theme === 'dark' ? "shadow-primary/5 border border-white/5" : "border-white"
+         )}>
+            {/* Realistic Binding */}
+            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-gradient-to-r from-transparent via-black/10 to-transparent z-10 pointer-events-none hidden md:block" />
+            
+            <div className="flex h-full w-full bg-white overflow-hidden rounded-lg">
+               {/* Left Page (Simulated) */}
+               <div className={cn(
+                 "flex-1 relative transition-colors duration-500 hidden md:block",
+                 theme === 'white' ? "bg-white" : theme === 'sepia' ? "bg-[#fcf5e5]" : "bg-[#18181b]"
+               )}>
+                  <iframe 
+                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`} 
+                    className={cn(
+                      "w-full h-full border-none transition-all",
+                      theme === 'dark' && "filter invert-[0.85] grayscale"
+                    )}
+                  />
+                  <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-black/5 to-transparent" />
+               </div>
+
+               {/* Right Page (Active View) */}
+               <div className={cn(
+                 "flex-1 relative transition-colors duration-500",
+                 theme === 'white' ? "bg-white" : theme === 'sepia' ? "bg-[#fcf5e5]" : "bg-[#18181b]"
+               )}>
+                  <iframe 
+                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`} 
+                    className={cn(
+                      "w-full h-full border-none transition-all",
+                      theme === 'dark' && "filter invert-[0.85] grayscale"
+                    )}
+                  />
+                  <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-black/5 to-transparent" />
+               </div>
+            </div>
+
+            {/* Navigation Handles */}
+            <button 
+              onClick={() => handlePageTurn('prev')}
+              className="absolute left-[-20px] md:left-[-60px] top-1/2 -translate-y-1/2 h-20 w-20 rounded-full flex items-center justify-center hover:bg-black/5 transition-all text-muted-foreground hover:text-primary group"
+            >
+               <ChevronLeft className="h-10 w-10 group-hover:scale-125 transition-transform" />
+            </button>
+            <button 
+              onClick={() => handlePageTurn('next')}
+              className="absolute right-[-20px] md:right-[-60px] top-1/2 -translate-y-1/2 h-20 w-20 rounded-full flex items-center justify-center hover:bg-black/5 transition-all text-muted-foreground hover:text-primary group"
+            >
+               <ChevronRight className="h-10 w-10 group-hover:scale-125 transition-transform" />
+            </button>
          </div>
+      </main>
 
-         <div className="space-y-6">
-            <Card className="bg-gradient-to-br from-primary/20 to-black border-primary/30 p-10 rounded-[3rem] space-y-8 shadow-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><Trophy className="h-32 w-32 text-primary" /></div>
-               <h3 className="text-xl font-black uppercase italic flex items-center gap-3 text-white"><Zap className="h-6 w-6 text-primary" /> Yield Hub</h3>
-               <div className="space-y-6 relative z-10">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                     <span className="text-muted-foreground">Mastery Score</span>
-                     <span className="text-primary">{profile?.scholarPoints || 0} Pts</span>
+      {/* Floating Tactical Toolbar */}
+      <div className="fixed bottom-10 inset-x-0 flex justify-center z-[100] px-4 pointer-events-none">
+         <Card className="pointer-events-auto bg-black/80 backdrop-blur-2xl border-white/10 rounded-full h-16 md:h-20 flex items-center px-4 md:px-10 gap-4 md:gap-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-2">
+            <div className="flex items-center gap-2 md:gap-4 pr-4 md:pr-8 border-r border-white/10">
+               <button onClick={() => setShowTutor(true)} className="flex items-center gap-3 group text-primary hover:text-white transition-all">
+                  <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/20 group-hover:bg-primary group-hover:text-white transition-all">
+                     <School className="h-5 w-5" />
                   </div>
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                     <span className="text-muted-foreground">Advance Tutor</span>
-                     <span className="text-amber-500 italic">Universal Mode</span>
+                  <span className="text-[9px] md:text-[10px] font-black uppercase italic tracking-widest hidden sm:block">Ask Human Tutor</span>
+               </button>
+            </div>
+
+            <div className="flex items-center gap-4 md:gap-8">
+               <div className="flex flex-col items-center">
+                  <p className="text-[7px] md:text-[8px] font-black text-muted-foreground uppercase tracking-widest italic">Reader Pulse</p>
+                  <div className="flex items-center gap-3">
+                     <span className="text-sm md:text-lg font-black text-white italic tabular-nums">{profile?.scholarPoints || 0}</span>
+                     <Sparkles className="h-3 w-3 text-primary animate-pulse" />
                   </div>
                </div>
-            </Card>
-            
-            <Card className="bg-amber-500/5 border-amber-500/20 border-2 p-10 rounded-[3rem] text-center space-y-4">
-               <ShieldCheck className="h-8 w-8 text-amber-500 mx-auto animate-pulse" />
-               <h4 className="text-sm font-black uppercase italic">Audit Node Active</h4>
-               <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest italic leading-relaxed">
-                  Advance Subject Expert Node • 100% Monetized AI Interaction.
-               </p>
-            </Card>
-         </div>
+               
+               <Button onClick={startAiQuiz} className="h-10 md:h-12 px-6 rounded-full bg-primary hover:bg-primary/90 text-white font-black text-[9px] md:text-[10px] uppercase shadow-lg shadow-primary/20 italic">
+                  <BrainCircuit className="h-4 w-4 mr-2" /> Start Mastery Quiz
+               </Button>
+            </div>
+
+            <div className="pl-4 md:pl-8 border-l border-white/10 flex items-center gap-4">
+               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/5">
+                  <Layers className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-[9px] font-black text-white italic">CH 4</span>
+               </div>
+            </div>
+         </Card>
       </div>
 
       {/* HUMAN TUTOR DIALOG */}
@@ -424,6 +502,19 @@ function ViewerContent() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function ThemeButton({ active, color, onClick }: any) {
+  return (
+    <button 
+      onClick={onClick}
+      className={cn(
+        "h-6 w-6 rounded-full border transition-all",
+        active ? "ring-2 ring-primary ring-offset-2 scale-110" : "border-black/10 hover:scale-105"
+      )}
+      style={{ backgroundColor: color }}
+    />
   );
 }
 
