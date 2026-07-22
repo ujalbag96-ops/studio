@@ -1,6 +1,7 @@
 
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
 export type LanguageCode = 'en' | 'or' | 'hi' | 'es' | 'fr' | 'de' | 'bn' | 'te' | 'ta' | 'mr';
+export type UserIntent = 'student' | 'earner';
 
 export interface UserProfile {
   id: string;
@@ -19,6 +20,8 @@ export interface UserProfile {
   country?: string;
   geo_region?: string;
   rank: UserRank;
+  primaryIntent?: UserIntent;
+  agreementAccepted?: boolean;
   isSuspended?: boolean;
   riskNoticeAccepted?: boolean;
   cpaTasksCount: number;
@@ -27,6 +30,14 @@ export interface UserProfile {
   scholarPoints: number;
   preferredLanguage?: LanguageCode;
   joinedAt?: string;
+  dailyStreak?: number;
+  lastCheckInDate?: string;
+  matchLossCount?: number;
+  puzzleLevel?: number;
+  physicsLevel?: number;
+  runnerLevel?: number;
+  marketSalesCount?: number;
+  teacherPoints?: number;
 }
 
 export interface AppSettings {
@@ -45,6 +56,8 @@ export interface AppSettings {
   node_global_cpa: boolean;
   node_referral_engine: boolean;
   node_ad_stream: boolean;
+  adminUpiId?: string;
+  automaticGatewayEnabled?: boolean;
 }
 
 export interface PlatformRevenue {
@@ -61,6 +74,7 @@ export interface UserLedgerEntry {
   date: string;
   status: 'pending' | 'completed' | 'failed';
   description?: string;
+  currencySymbol?: string;
 }
 
 export interface CricketMatch {
@@ -94,4 +108,32 @@ export interface BookMetadata {
   lang: string;
   coverUrl?: string;
   author?: string;
+}
+
+export interface StudyBuddySession {
+  id: string;
+  topic: string;
+  studentId: string;
+  studentEmail: string;
+  teacherId: string | null;
+  status: 'searching' | 'active' | 'completed';
+  timestamp: string;
+}
+
+export interface MarketAsset {
+  id: string;
+  title: string;
+  category: string;
+  price: number;
+  authorId: string;
+  authorName: string;
+  downloads: number;
+  timestamp: string;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  userId: string;
+  userEmail: string;
+  score: number;
 }

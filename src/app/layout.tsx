@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -23,19 +24,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>CampusCompanion | Global Scholar & Yield Hub</title>
-        <meta name="description" content="The ultimate educational reward platform. Access global textbooks and earn industrial yield through verified skill missions." />
-        <meta name="keywords" content="Education, Rewards, NCERT, Odia Medium, CPA, Earning app, Student productivity" />
+        <title>CampusHub | Global Scholar & Yield Platform</title>
+        <meta name="description" content="Official CampusHub v11.0 Industrial Build. Integrated Scholar-Reward Utility." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased bg-background text-white min-h-screen flex flex-col">
         <FirebaseClientProvider>
           <Toaster />
           <SystemGate>
             <Navbar />
-            <main className="flex-1 pb-20 md:pb-0 md:pt-16">
+            <main className="flex-1 pb-24 md:pb-0 pt-16">
               {children}
             </main>
             <Footer />
@@ -51,24 +51,11 @@ function SystemGate({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const pathname = usePathname();
   
-  const settingsRef = useMemoFirebase(() => 
-    firestore ? doc(firestore, 'app_settings', 'global_config') : null, 
-    [firestore]
-  );
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
   const { data: settings, isLoading } = useDoc<AppSettings>(settingsRef);
 
   const isAdmin = user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-
-  const isReviewMode = settings?.reviewMode && !isAdmin;
-  const isMaintenance = settings?.maintenanceMode && !isAdmin && !pathname.startsWith('/auth') && !pathname.startsWith('/admin');
-
-  // Operational Node Control: Restrict high-performance modules during review
-  const isHighPerformancePath = pathname.startsWith('/tournaments') || 
-                               pathname.startsWith('/esports-live') || 
-                               pathname.startsWith('/cricket') ||
-                               pathname.startsWith('/games') ||
-                               pathname.startsWith('/lottery') ||
-                               pathname.startsWith('/predictions');
+  const isMaintenance = settings?.maintenanceMode && !isAdmin && !pathname.startsWith('/auth') && !pathname.startsWith('/admin') && !pathname.startsWith('/login');
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-screen bg-black">
@@ -88,22 +75,10 @@ function SystemGate({ children }: { children: React.ReactNode }) {
         </div>
         <div className="space-y-3">
            <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter text-white leading-none">Sector <span className="text-primary">Locked</span></h1>
-           <p className="text-muted-foreground font-black text-xs uppercase tracking-[0.4em] italic">System Update in Progress</p>
+           <p className="text-muted-foreground font-black text-xs uppercase tracking-[0.4em] italic">System Maintenance in Progress</p>
         </div>
       </div>
     );
-  }
-
-  if (isReviewMode && isHighPerformancePath) {
-     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-[#050508] p-10 text-center space-y-6">
-           <Monitor className="h-20 w-20 text-muted-foreground opacity-10" />
-           <p className="text-sm font-black uppercase text-muted-foreground tracking-widest italic">Signal Offline: Content under routine audit.</p>
-           <Button asChild variant="outline" className="h-12 px-8 rounded-xl border-white/10 text-white font-black uppercase italic">
-              <Link href="/">Back to Library</Link>
-           </Button>
-        </div>
-     );
   }
 
   return <>{children}</>;
