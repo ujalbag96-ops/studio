@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -17,7 +18,7 @@ import {
   PlayCircle
 } from 'lucide-react';
 import Link from 'next/link';
-import { UserProfile } from './lib/types';
+import { UserProfile, AppSettings } from './lib/types';
 import { cn } from '@/lib/utils';
 import LivePrizePool from '@/components/LivePrizePool';
 
@@ -26,7 +27,10 @@ export default function Home() {
   const firestore = useFirestore();
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
+  
   const { data: profile } = useDoc<UserProfile>(userRef);
+  const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const isIndia = profile?.country === 'India' || !profile?.country; 
   
@@ -79,30 +83,34 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Industrial Grid Refactor */}
+      {/* Industrial Grid Refactor with Visibility Logic */}
       <div className="space-y-4">
          <div className="flex items-center justify-between px-4">
             <h3 className="text-sm font-black uppercase tracking-[0.4em] text-muted-foreground italic">Platform Sectors</h3>
          </div>
          <div className="grid gap-px bg-white/10 border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl">
-            <SectorRow 
-              icon={isIndia ? <Library /> : <Zap />} 
-              label={isIndia ? "NCERT Resource Node" : "Global Task Node"} 
-              desc={isIndia ? "Access Class 1-12 Curriculum" : "High-Performance CPA Signals"} 
-              href={isIndia ? "/campus" : "/earning-hub"}
-            />
+            {(settings?.node_scholar_dividend ?? true) && (
+              <SectorRow 
+                icon={isIndia ? <Library /> : <Zap />} 
+                label={isIndia ? "NCERT Resource Node" : "Global Task Node"} 
+                desc={isIndia ? "Access Class 1-12 Curriculum" : "High-Performance CPA Signals"} 
+                href={isIndia ? "/campus" : "/earning-hub"}
+              />
+            )}
             <SectorRow 
               icon={<Gamepad2 />} 
               label="Skill Arcade Terminal" 
               desc="Gamified Retention Rewards" 
               href="/games"
             />
-            <SectorRow 
-              icon={<Trophy />} 
-              label="Daily Bounty Protocol" 
-              desc="Industrial Asset Loot Boxes" 
-              href="/dashboard"
-            />
+            {(settings?.node_daily_streak_visible ?? true) && (
+              <SectorRow 
+                icon={<Trophy />} 
+                label="Daily Bounty Protocol" 
+                desc="Industrial Asset Loot Boxes" 
+                href="/dashboard"
+              />
+            )}
             <SectorRow 
               icon={<ShoppingBag />} 
               label="Redemption Shop" 

@@ -25,19 +25,25 @@ import {
   ShieldCheck,
   LayoutDashboard
 } from 'lucide-react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
+import { AppSettings } from '@/app/lib/types';
 
 export default function NavigationDrawer() {
   const { user } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
+
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
+  const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const handleLogout = async () => {
     if (auth) {
@@ -47,15 +53,15 @@ export default function NavigationDrawer() {
   };
 
   const menuItems = [
-    { label: 'Profile Node', icon: <User />, href: '/dashboard' },
-    { label: 'Library & Books', icon: <Library />, href: '/campus' },
-    { label: 'AI Human Tutor', icon: <GraduationCap />, href: '/campus/viewer' },
-    { label: 'Pocket Money (CPA)', icon: <Zap />, href: '/earning-hub' },
-    { label: 'Quiz Arena Hub', icon: <Trophy />, href: '/quiz-arena' },
-    { label: 'Daily Milestones', icon: <Flame />, href: '/dashboard' },
-    { label: 'Refer & Earn', icon: <Users />, href: '/refer' },
-    { label: 'Wallet & Payout', icon: <Wallet />, href: '/shop' },
-    { label: 'System Settings', icon: <Settings />, href: '/settings' },
+    { label: 'Profile Node', icon: <User />, href: '/dashboard', visible: true },
+    { label: 'Library & Books', icon: <Library />, href: '/campus', visible: settings?.node_scholar_dividend ?? true },
+    { label: 'AI Human Tutor', icon: <GraduationCap />, href: '/campus/viewer', visible: settings?.node_tutor_visible ?? true },
+    { label: 'Pocket Money (CPA)', icon: <Zap />, href: '/earning-hub', visible: settings?.node_global_cpa ?? true },
+    { label: 'Quiz Arena Hub', icon: <Trophy />, href: '/quiz-arena', visible: settings?.node_quiz_arena ?? true },
+    { label: 'Daily Milestones', icon: <Flame />, href: '/dashboard', visible: settings?.node_daily_streak_visible ?? true },
+    { label: 'Refer & Earn', icon: <Users />, href: '/refer', visible: settings?.node_referral_engine ?? true },
+    { label: 'Wallet & Payout', icon: <Wallet />, href: '/shop', visible: true },
+    { label: 'System Settings', icon: <Settings />, href: '/settings', visible: true },
   ];
 
   return (
@@ -82,7 +88,7 @@ export default function NavigationDrawer() {
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2 no-scrollbar">
-             {menuItems.map((item) => (
+             {menuItems.filter(item => item.visible).map((item) => (
                <Link key={item.label} href={item.href}>
                   <div className={cn(
                     "flex items-center justify-between p-4 rounded-xl transition-all group",

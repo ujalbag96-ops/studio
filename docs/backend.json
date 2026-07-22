@@ -31,7 +31,7 @@
     },
     "AppSettings": {
       "title": "AppSettings",
-      "description": "Master system config for 10-node revenue architecture and margin controller.",
+      "description": "Master system config for 10-node revenue architecture and visibility controller.",
       "type": "object",
       "properties": {
         "maintenanceMode": { "type": "boolean" },
@@ -43,12 +43,14 @@
         "api_admob_active": { "type": "boolean" },
         "api_cpalead_active": { "type": "boolean" },
         "api_s2s_active": { "type": "boolean" },
-        "node_scholar_dividend": { "type": "boolean" },
-        "node_quiz_arena": { "type": "boolean" },
-        "node_global_cpa": { "type": "boolean" },
-        "node_referral_engine": { "type": "boolean" },
-        "node_ad_stream": { "type": "boolean" },
-        "node_book_download": { "type": "boolean" }
+        "node_scholar_dividend": { "type": "boolean", "description": "Library & Books visibility" },
+        "node_quiz_arena": { "type": "boolean", "description": "Quiz Arena visibility" },
+        "node_global_cpa": { "type": "boolean", "description": "Pocket Money / CPA Tasks visibility" },
+        "node_referral_engine": { "type": "boolean", "description": "Refer & Earn visibility" },
+        "node_ad_stream": { "type": "boolean", "description": "Video Ads visibility" },
+        "node_book_download": { "type": "boolean", "description": "Book Download button visibility" },
+        "node_tutor_visible": { "type": "boolean", "description": "AI Human Tutor visibility" },
+        "node_daily_streak_visible": { "type": "boolean", "description": "Daily Streak visibility" }
       }
     }
   },
