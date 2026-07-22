@@ -141,7 +141,7 @@ export default function CampusHomeScreen() {
                 Scholar <br /><span className="text-primary">Vault Hub</span>
               </h1>
               <p className="text-muted-foreground font-medium text-lg max-w-xl uppercase tracking-tight opacity-70">
-                Books calibrated to your region ({{{profile?.geo_region}}}). Read any global lesson signal instantly.
+                Books calibrated to your region ({profile?.geo_region}). Read any global lesson signal instantly.
               </p>
            </div>
            
