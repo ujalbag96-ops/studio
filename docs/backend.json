@@ -12,14 +12,21 @@
         "winningBalance": { "type": "number" },
         "taskBalance": { "type": "number" },
         "bonusBalance": { "type": "number" },
-        "pendingRevenueShare": { "type": "number", "description": "USD value based on redistribution logic" },
+        "depositBalance": { "type": "number" },
+        "walletBalanceINR": { "type": "number" },
+        "pendingRevenueShare": { "type": "number" },
         "country": { "type": "string" },
+        "geo_region": { "type": "string" },
         "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] },
         "vipLevel": { "type": "number" },
         "isSuspended": { "type": "boolean" },
+        "riskNoticeAccepted": { "type": "boolean" },
         "totalReferrals": { "type": "number" },
+        "cpaTasksCount": { "type": "number" },
+        "generalTasksCount": { "type": "number" },
         "scholarPoints": { "type": "number" },
-        "referralCode": { "type": "string" }
+        "referralCode": { "type": "string" },
+        "preferredLanguage": { "type": "string" }
       }
     },
     "AppSettings": {
@@ -29,25 +36,18 @@
       "properties": {
         "maintenanceMode": { "type": "boolean" },
         "reviewMode": { "type": "boolean" },
-        "autoWithdrawalEnabled": { "type": "boolean", "default": false },
-        "razorpayAutoPayout": { "type": "boolean", "default": false },
+        "autoWithdrawalEnabled": { "type": "boolean" },
+        "razorpayAutoPayout": { "type": "boolean" },
         "userRevenueSharePercent": { "type": "number", "default": 30 },
-        "api_razorpay_active": { "type": "boolean", "default": true },
+        "api_razorpay_active": { "type": "boolean" },
+        "api_admob_active": { "type": "boolean" },
+        "api_cpalead_active": { "type": "boolean" },
+        "api_s2s_active": { "type": "boolean" },
         "node_scholar_dividend": { "type": "boolean" },
         "node_quiz_arena": { "type": "boolean" },
-        "node_global_video_quiz": { "type": "boolean", "default": true },
         "node_global_cpa": { "type": "boolean" },
-        "node_micro_tasks": { "type": "boolean" },
-        "node_surveys": { "type": "boolean" },
-        "node_ad_stream": { "type": "boolean" },
-        "node_content_analysis": { "type": "boolean" },
         "node_referral_engine": { "type": "boolean" },
-        "node_arcade_rewards": { "type": "boolean" },
-        "node_daily_checkin": { "type": "boolean" },
-        "api_admob_active": { "type": "boolean", "default": true },
-        "api_cpalead_active": { "type": "boolean", "default": true },
-        "api_adgate_active": { "type": "boolean", "default": true },
-        "api_s2s_active": { "type": "boolean", "default": true }
+        "node_ad_stream": { "type": "boolean" }
       }
     }
   },
