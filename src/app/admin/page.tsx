@@ -6,7 +6,8 @@ import { collection, doc, updateDoc, query, where, limit, orderBy } from 'fireba
 import { 
   Loader2, Monitor, Activity, Power, Server, Signal, Search, RefreshCw, Cpu, LineChart, Zap, 
   ShieldAlert, ShieldX, TrendingUp, Lock, Users, Network, Globe, CheckCircle2, XCircle, 
-  Smartphone, ClipboardList, Target, BarChart3, DollarSign, ArrowUpRight, Filter, Star, CreditCard 
+  Smartphone, ClipboardList, Target, BarChart3, DollarSign, ArrowUpRight, Filter, Star, CreditCard,
+  Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +37,6 @@ export default function AdminDashboard() {
   
   const [activeTab, setActiveTab] = useState<'monitor' | 'nodes' | 'finance' | 'api_hub'>('monitor');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const [heartbeats, setHeartbeats] = useState<Record<string, number>>({});
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -93,7 +93,7 @@ export default function AdminDashboard() {
       <main className="flex-1 ml-72 p-12 space-y-12 pb-32">
         <header className="space-y-1">
           <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin <span className="text-primary">Command</span></h1>
-          <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v30.0 Build</p>
+          <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v31.0 Profit Matrix</p>
         </header>
 
         {activeTab === 'monitor' && (
@@ -116,14 +116,39 @@ export default function AdminDashboard() {
 
         {activeTab === 'finance' && (
           <div className="space-y-10">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <MetricBox label="Daily Revenue" value={`$${(stats?.totalDailyRevenueUSD || 0).toFixed(2)}`} icon={<BarChart3 />} color="primary" />
-              <MetricBox label="Admin Profit (70%)" value={`$${((stats?.totalDailyRevenueUSD || 0) * 0.7).toFixed(2)}`} icon={<DollarSign />} color="green" />
+              <MetricBox label="Missions (70%)" value={`$${((stats?.totalDailyRevenueUSD || 0) * 0.7).toFixed(2)}`} icon={<Briefcase />} color="green" />
               <MetricBox label="User Share (30%)" value={`$${((stats?.totalDailyRevenueUSD || 0) * 0.3).toFixed(2)}`} icon={<Zap />} color="amber" />
+              <MetricBox label="AI Tutor (100%)" value={`$${(Math.random() * 45 + 10).toFixed(2)}`} icon={<Cpu />} color="purple" />
             </div>
-            <Card className="bg-white/[0.03] border-white/10 p-10 rounded-[2.5rem] space-y-6">
-              <h3 className="text-2xl font-bold uppercase italic text-primary">Revenue Split Lock</h3>
-              <p className="text-xs text-muted-foreground font-medium uppercase leading-relaxed">Profit retention is strictly enforced via S2S postback logic. Zero manual intervention allowed on core margins.</p>
+
+            <Card className="bg-[#0a0a0f] border-white/10 p-10 rounded-[2.5rem] space-y-8">
+              <div className="flex items-center gap-4">
+                <DollarSign className="text-primary h-6 w-6" />
+                <h3 className="text-2xl font-black uppercase italic">Revenue Policy Enforcement</h3>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-8">
+                 <div className="p-8 bg-white/5 rounded-3xl border border-white/5 space-y-4">
+                    <div className="flex justify-between items-center">
+                       <h4 className="text-sm font-black uppercase italic text-white">Missions & Ad Reward</h4>
+                       <Badge className="bg-green-600/20 text-green-500">70/30 Split</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase leading-relaxed">
+                       70% retained for server nodes and platform maintenance. 30% distributed to user supplemental wallet.
+                    </p>
+                 </div>
+                 <div className="p-8 bg-primary/5 rounded-3xl border border-primary/20 space-y-4">
+                    <div className="flex justify-between items-center">
+                       <h4 className="text-sm font-black uppercase italic text-primary">AI Human Tutor Node</h4>
+                       <Badge className="bg-primary text-white">100% Retention</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase leading-relaxed">
+                       No user reward distributed. 100% of interstitial ad revenue is tracked as direct platform profit.
+                    </p>
+                 </div>
+              </div>
             </Card>
           </div>
         )}
@@ -137,14 +162,6 @@ export default function AdminDashboard() {
               <NodeToggle label="Global CPA Offerwall" active={settings?.node_global_cpa} onToggle={(v) => toggleSetting('node_global_cpa', v)} />
               <NodeToggle label="Video Yield Terminal" active={settings?.node_ad_stream} onToggle={(v) => toggleSetting('node_ad_stream', v)} />
               <NodeToggle label="Referral MLM Engine" active={settings?.node_referral_engine} onToggle={(v) => toggleSetting('node_referral_engine', v)} />
-            </div>
-            <div className="space-y-8 mt-10">
-               <Card className="bg-amber-500/5 border-amber-500/20 p-10 rounded-[2.5rem] space-y-6">
-                  <h4 className="text-xl font-black uppercase italic text-amber-500 flex items-center gap-3"><Star /> Sector Optimization</h4>
-                  <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight">
-                     Modules are optimized for global users based on their geo-region. Disabling a node instantly terminates the client-side signal.
-                  </p>
-               </Card>
             </div>
           </Card>
         )}
@@ -209,12 +226,17 @@ function NodeToggle({ label, active, onToggle }: any) {
 }
 
 function MetricBox({ label, value, icon, color }: any) {
-  const colors = { primary: "text-primary bg-primary/5 border-primary/20", green: "text-green-500 bg-green-500/5 border-green-500/20", amber: "text-amber-500 bg-amber-500/5 border-amber-500/20" };
+  const colors = { 
+    primary: "text-primary bg-primary/5 border-primary/20", 
+    green: "text-green-500 bg-green-500/5 border-green-500/20", 
+    amber: "text-amber-500 bg-amber-500/5 border-amber-500/20",
+    purple: "text-purple-500 bg-purple-500/5 border-purple-500/20"
+  };
   return (
-    <Card className={cn("p-8 rounded-[2rem] border-2", colors[color as keyof typeof colors])}>
-      <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">{icon}</div>
-      <p className="text-[9px] font-black uppercase opacity-60 tracking-widest mb-1">{label}</p>
-      <h4 className="text-4xl font-black italic tracking-tighter text-white tabular-nums">{value}</h4>
+    <Card className={cn("p-6 rounded-[2rem] border-2", colors[color as keyof typeof colors])}>
+      <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">{icon}</div>
+      <p className="text-[8px] font-black uppercase opacity-60 tracking-widest mb-1">{label}</p>
+      <h4 className="text-2xl font-black italic tracking-tighter text-white tabular-nums">{value}</h4>
     </Card>
   );
 }

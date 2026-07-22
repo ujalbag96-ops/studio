@@ -17,7 +17,9 @@ import {
   Coins, 
   ArrowRight,
   Layout,
-  Star
+  Star,
+  DollarSign,
+  Briefcase
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -34,6 +36,49 @@ export default function PlatformOverview() {
           CampusCompanion is a <b>Global Scholar-Reward Utility</b> that bridges the gap between official education and supplemental income through industrial-scale signal verification.
         </p>
       </header>
+
+      {/* REVENUE POLICY SECTION */}
+      <section className="space-y-8">
+         <div className="flex flex-col items-center text-center space-y-2">
+            <h2 className="text-3xl font-black uppercase italic text-white tracking-tighter">Industrial <span className="text-primary">Revenue Model</span></h2>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Transparency Report & Margin Breakdown</p>
+         </div>
+
+         <div className="grid md:grid-cols-2 gap-8">
+            <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[3rem] space-y-6 shadow-2xl group hover:border-primary/20 transition-all">
+               <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-xl">
+                  <Briefcase />
+               </div>
+               <div className="space-y-4">
+                  <h3 className="text-2xl font-black uppercase italic">Scholarship Dividend</h3>
+                  <div className="space-y-3">
+                     <RevenueRow label="User Reward" percent="30%" color="text-green-500" />
+                     <RevenueRow label="Admin Profit Retention" percent="70%" color="text-white" />
+                  </div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed italic border-t border-white/5 pt-4">
+                     *Applies to CPA Tasks, Video Ads, and Arcade Quizzes. 70% retention covers global server nodes and high-bandwidth signals.
+                  </p>
+               </div>
+            </Card>
+
+            <Card className="bg-primary/5 border-primary/20 p-10 rounded-[3rem] space-y-6 shadow-2xl relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-5"><Zap className="h-40 w-40 text-primary" /></div>
+               <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shadow-xl">
+                  <GraduationCap />
+               </div>
+               <div className="space-y-4 relative z-10">
+                  <h3 className="text-2xl font-black uppercase italic">AI Utility Node</h3>
+                  <div className="space-y-3">
+                     <RevenueRow label="User Reward" percent="0%" color="text-red-500" />
+                     <RevenueRow label="Admin Profit Retention" percent="100%" color="text-primary" />
+                  </div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed italic border-t border-white/5 pt-4">
+                     *Ask Human Tutor & Image Solver. These high-value AI services are purely ad-sponsored. 100% of revenue is retained by the platform admin.
+                  </p>
+               </div>
+            </Card>
+         </div>
+      </section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <FeatureCard 
@@ -54,52 +99,7 @@ export default function PlatformOverview() {
           desc="Global academic materials (NCERT/OSEPA/OpenStax) integrated with AI-powered retention quizzes." 
           badge="EXCLUSIVE"
         />
-        <FeatureCard 
-          icon={<Globe />} 
-          title="Geo-Calibration" 
-          desc="Automatic currency switching ($/£/₹) and industrial revenue share logic for global nodes." 
-          badge="DYNAMIC"
-        />
-        <FeatureCard 
-          icon={<Lock />} 
-          title="Security Shield" 
-          desc="VPN/Proxy detection, multi-accounting guard, and VIP 1 mandatory task verification." 
-          badge="ENFORCED"
-        />
-        <FeatureCard 
-          icon={<Users />} 
-          title="MLM Network" 
-          desc="Dual-level commission structure with a 1,000-user Elite Affiliate jackpot system." 
-          badge="UNLIMITED"
-        />
       </div>
-
-      <section className="bg-primary/5 border border-primary/20 rounded-[3rem] p-10 md:p-20 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-10 opacity-5">
-           <Zap className="h-64 w-64 text-primary" />
-        </div>
-        <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
-           <div className="space-y-6">
-              <h2 className="text-4xl md:text-5xl font-black uppercase italic text-white leading-tight">Industry-Standard <br /><span className="text-primary">Revenue Model</span></h2>
-              <p className="text-muted-foreground font-medium leading-relaxed">
-                We operate as a <b>B2B2C Data Mediation Node</b>. By participating in sponsored educational and entertainment sessions, you generate marketing value which is shared back as supplemental local currency.
-              </p>
-              <div className="flex flex-wrap gap-4">
-                 <Badge className="bg-white/10 text-white border-none font-black px-4 py-2 uppercase text-[10px]">Education Category</Badge>
-                 <Badge className="bg-white/10 text-white border-none font-black px-4 py-2 uppercase text-[10px]">Productivity Node</Badge>
-                 <Badge className="bg-amber-500 text-black border-none font-black px-4 py-2 uppercase text-[10px]">35% Elite Share</Badge>
-              </div>
-           </div>
-           <div className="space-y-4 bg-black/40 p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
-              <h3 className="text-xl font-black uppercase italic">Operational Protocol</h3>
-              <ul className="space-y-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-                 <li className="flex items-start gap-3"><span className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 shrink-0" /> No real money deposit required for base earnings.</li>
-                 <li className="flex items-start gap-3"><span className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 shrink-0" /> VIP 1 verification (5 CPA + 5 Ads + 5 Invites) required.</li>
-                 <li className="flex items-start gap-3"><span className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 shrink-0" /> Anti-Fraud Shield audit before every withdrawal.</li>
-              </ul>
-           </div>
-        </div>
-      </section>
 
       <div className="text-center">
          <Link href="/dashboard" className="inline-flex items-center gap-3 h-20 px-16 bg-primary hover:bg-primary/90 text-white font-black text-xl uppercase italic rounded-2xl shadow-2xl transition-all hover:scale-105">
@@ -125,4 +125,13 @@ function FeatureCard({ icon, title, desc, badge }: any) {
        </div>
     </Card>
   );
+}
+
+function RevenueRow({ label, percent, color }: any) {
+   return (
+      <div className="flex justify-between items-center bg-black/40 p-4 rounded-xl border border-white/5">
+         <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{label}</span>
+         <span className={cn("text-xl font-black italic", color)}>{percent}</span>
+      </div>
+   );
 }

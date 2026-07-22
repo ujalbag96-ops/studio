@@ -18,7 +18,8 @@ import {
   Target,
   Coins,
   Signal,
-  Filter
+  Filter,
+  Info
 } from 'lucide-react';
 import { UserProfile, AppSettings } from '@/app/lib/types';
 import { useState } from 'react';
@@ -48,7 +49,7 @@ export default function EarningHub() {
            <div className="space-y-4">
               <div className="flex flex-wrap gap-4">
                  <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-5 py-1.5 text-[10px] tracking-widest">
-                    Global Yield Terminal v17.0
+                    Global Yield Terminal v31.0
                  </Badge>
                  <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-bold uppercase tracking-widest italic">
                     <Globe className="h-3 w-3" /> Regional Node: {profile?.country || 'Global'}
@@ -57,9 +58,6 @@ export default function EarningHub() {
               <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase italic leading-[0.8] text-white">
                 Income <br /><span className="text-primary">Terminal</span>
               </h1>
-              <p className="text-muted-foreground font-medium text-lg max-w-xl uppercase tracking-tight opacity-70">
-                 {isIndia ? 'Complete localized missions with 100:1 INR scaling.' : 'Access premium US/Global CPA signals with 1000:1 USD scaling.'}
-              </p>
            </div>
            
            <Card className="bg-white/[0.02] border-white/10 rounded-[2rem] p-8 flex items-center gap-8 shadow-2xl backdrop-blur-xl">
@@ -75,45 +73,37 @@ export default function EarningHub() {
               </div>
               <div className="w-px h-10 bg-white/10" />
               <div>
-                 <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Exchange Rate</p>
-                 <p className="text-lg font-black text-primary italic">{isIndia ? '₹1 = 100 🪙' : '$1 = 1000 🪙'}</p>
+                 <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">User Share Rate</p>
+                 <p className="text-lg font-black text-primary italic">30% Dividend</p>
               </div>
            </Card>
         </div>
       </header>
 
-      {/* Industrial Mission Filter */}
+      {/* MARGIN TRANSPARENCY BANNER */}
+      <Card className="bg-primary/5 border-primary/20 p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl border-dashed">
+         <div className="flex items-start gap-5">
+            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+               <Info />
+            </div>
+            <div className="space-y-1">
+               <h3 className="text-lg font-black uppercase italic text-white tracking-tight">Skill Dividend Protocol</h3>
+               <p className="text-[10px] text-muted-foreground font-bold uppercase leading-relaxed">
+                  Mission rewards follow a <b>70/30 Margin Split</b>. 70% Admin Retention maintains platform infrastructure, while 30% is credited as your Scholarship Dividend.
+               </p>
+            </div>
+         </div>
+         <Badge className="bg-primary text-white border-none font-black px-6 py-2 rounded-xl text-[10px]">VERIFIED MODEL</Badge>
+      </Card>
+
       <div className="flex flex-wrap items-center gap-4 border-b border-white/5 pb-8">
          <SectorTab active={activeSector === 'missions'} label="Global CPA" icon={<Smartphone />} onClick={() => setActiveSector('missions')} />
          <SectorTab active={activeSector === 'surveys'} label="Premium Surveys" icon={<Filter />} onClick={() => setActiveSector('surveys')} />
-         <SectorTab active={activeSector === 'video'} label="Video Yield" icon={<Zap />} onClick={() => setActiveSector('video')} />
       </div>
 
       <main className="animate-in fade-in duration-700">
          <OfferWall filterType={activeSector} />
       </main>
-
-      {/* Yield Policy Transparency */}
-      <section className="pt-20">
-         <div className="p-12 rounded-[3rem] bg-gradient-to-r from-primary/5 to-transparent border border-white/5 flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl">
-            <div className="space-y-4 max-w-2xl">
-               <h3 className="text-3xl font-black uppercase italic text-white leading-tight">Skill Dividend <span className="text-primary">Protocol</span></h3>
-               <p className="text-muted-foreground text-sm font-medium leading-relaxed uppercase tracking-tight opacity-80">
-                  Every mission completion generates industrial marketing value. We utilize a **70/30 Margin Lock**: 70% sustains platform infrastructure, and 30% is shared directly with you as a verified student reward.
-               </p>
-            </div>
-            <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
-               <div className="p-6 bg-white/5 rounded-2xl border border-white/5 text-center">
-                  <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Admin Margin</p>
-                  <p className="text-2xl font-black text-white italic opacity-40">70%</p>
-               </div>
-               <div className="p-6 bg-white/10 rounded-2xl border border-primary/20 text-center shadow-lg">
-                  <p className="text-[8px] font-black uppercase text-primary mb-1">User Share</p>
-                  <p className="text-2xl font-black text-primary italic">30%</p>
-               </div>
-            </div>
-         </div>
-      </section>
     </div>
   );
 }

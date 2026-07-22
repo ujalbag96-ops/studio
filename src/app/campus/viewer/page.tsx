@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -23,7 +24,9 @@ import {
   GraduationCap,
   Camera,
   Image as ImageIcon,
-  Trash2
+  Trash2,
+  ShieldCheck,
+  Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -192,7 +195,7 @@ function ViewerContent() {
                </div>
                <div className="text-left hidden sm:block">
                   <p className="text-[10px] font-black uppercase italic tracking-[0.2em] leading-none">Universal Tutor</p>
-                  <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1">High-Accuracy Analysis</p>
+                  <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1">Platform Sponsored Node</p>
                </div>
             </button>
 
@@ -223,7 +226,9 @@ function ViewerContent() {
                  <GraduationCap className="h-10 w-10 text-primary animate-pulse" />
               </div>
               <DialogTitle className="text-4xl font-black uppercase italic tracking-tighter leading-none">Global <span className="text-primary">Tuition Node</span></DialogTitle>
-              <DialogDescription className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Professor Persona • Visual Problem Solver</DialogDescription>
+              <div className="flex items-center justify-center gap-4 mt-2">
+                 <Badge className="bg-primary/20 text-primary text-[8px] font-black uppercase tracking-widest px-3 border-none">100% Platform Yield Service</Badge>
+              </div>
            </DialogHeader>
 
            <div className="space-y-8 py-8 relative z-10">
@@ -261,7 +266,10 @@ function ViewerContent() {
               ) : (
                 <div className="space-y-6">
                    <div className="space-y-4">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2 italic tracking-widest">Ask any problem via text or photo</Label>
+                      <div className="flex items-center justify-between px-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground italic tracking-widest">Ask any problem via text or photo</Label>
+                        <Badge variant="outline" className="border-primary/20 text-primary text-[8px] font-black uppercase">Ad-Sponsored Access</Badge>
+                      </div>
                       
                       <div className="relative">
                         <textarea 
@@ -298,9 +306,15 @@ function ViewerContent() {
                     disabled={!tutorQuery.trim() && !tutorImage}
                     className="w-full h-24 bg-primary hover:bg-primary/90 font-black text-2xl uppercase italic rounded-3xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 group"
                    >
-                      <Zap className="mr-4 h-8 w-8 group-hover:fill-white" /> START TUITION SESSION (AD)
+                      <Zap className="mr-4 h-8 w-8 group-hover:fill-white" /> START TUITION SESSION
                    </Button>
-                   <p className="text-[9px] font-black text-center text-muted-foreground uppercase italic tracking-widest opacity-60">100% High-Accuracy Visual Node Active</p>
+                   
+                   <div className="p-5 bg-white/5 rounded-2xl border border-white/5 flex items-start gap-4">
+                      <Info className="h-5 w-5 text-primary shrink-0" />
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest italic">
+                         Revenue Disclosure: 100% of interstitial ad revenue from this node is retained by the platform to sustain premium AI professors. No user coin payout is issued for this specific utility.
+                      </p>
+                   </div>
                 </div>
               )}
            </div>
