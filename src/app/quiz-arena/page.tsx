@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, updateDoc, increment, collection, addDoc, query, orderBy, limit, setDoc } from 'firebase/firestore';
 import { 
@@ -11,14 +11,11 @@ import {
   Loader2, 
   ShieldCheck, 
   Crown,
-  Flame,
-  Target,
-  Gift,
-  Lock,
+  PlayCircle,
   Video,
-  Play,
-  ArrowRight,
-  Medal
+  Lock,
+  Medal,
+  CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz-flow';
@@ -27,7 +24,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
 
 export default function QuizArena() {
   const { user } = useUser();
@@ -41,9 +37,10 @@ export default function QuizArena() {
   const [lives, setLives] = useState(3);
   const [timeLeft, setTimeLeft] = useState(15);
   const [adCountdown, setAdCountdown] = useState(0);
-  const [videoTimer, setVideoTimer] = useState(15);
+  const [videoTimer, setVideoTimer] = useState(10);
   const [pendingLifeline, setPendingLifeline] = useState<'50-50' | 'skip' | null>(null);
   const [optionsVisible, setOptionsVisible] = useState([true, true, true, true]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const poolRef = useMemoFirebase(() => firestore ? doc(firestore, 'quiz_pool', 'current') : null, [firestore]);
@@ -53,7 +50,7 @@ export default function QuizArena() {
   const { data: pool } = useDoc<any>(poolRef);
   const { data: leaderboard } = useCollection<LeaderboardEntry>(leaderboardQuery);
 
-  const isVip1 = (profile?.vipLevel || 0) >= 1 || (profile?.tasksCompletedCount || 0) >= 10;
+  const isVip1 = (profile?.tasksCompletedCount || 0) >= 10 || (profile?.depositBalance || 0) > 0;
 
   useEffect(() => {
     let timer: any;
@@ -87,32 +84,17 @@ export default function QuizArena() {
 
   const initiateGame = async () => {
     if (!user || !profile || !isVip1) {
-      toast({ variant: "destructive", title: "SECURITY ACCESS DENIED", description: "VIP 1 status required for Scholarship Arena." });
+      toast({ variant: "destructive", title: "VIP 1 REQUIRED", description: "Complete 10 Tasks or Add Cash to enter." });
       return;
     }
-    if (profile.coins < 2) {
-      toast({ variant: "destructive", title: "INSUFFICIENT LIQUIDITY", description: "Standard entry protocol requires 2 assets." });
-      return;
-    }
-
-    if (userRef) {
-      await updateDoc(userRef, { 
-        coins: increment(-2),
-        winningBalance: increment(-2)
-      });
-      if (poolRef) {
-        await updateDoc(poolRef, { currentPrizeINR: increment(2) });
-      }
-    }
-
     setGameState('watching_video');
-    setVideoTimer(15);
+    setVideoTimer(10);
   };
 
   const startQuiz = async () => {
     setGameState('loading');
     try {
-      const res = await generateQuiz({ contentSummary: "Global Scholar Audit: Advanced Cognitive Logic. Difficulty: Technical-High." });
+      const res = await generateQuiz({ contentSummary: "Industrial Cognitive Audit: Scholarship Standard." });
       setQuizData(res);
       setGameState('playing');
       setScore(0);
@@ -120,7 +102,7 @@ export default function QuizArena() {
       setCurrentQuestion(0);
       setTimeLeft(15);
     } catch (e) {
-      toast({ variant: "destructive", title: "API HUB OFFLINE" });
+      toast({ variant: "destructive", title: "API SYNC FAILED" });
       setGameState('idle');
     }
   };
@@ -130,24 +112,76 @@ export default function QuizArena() {
     const isCorrect = idx === quizData.questions[currentQuestion].correctIndex;
 
     if (isCorrect) {
-      const bonus = (currentQuestion + 1) * 10;
-      setScore(prev => prev + bonus);
-      toast({ title: "SIGNAL MATCHED", description: `+${bonus} Accuracy Points` });
+      setScore(prev => prev + 10);
+      toast({ title: "SIGNAL MATCHED", description: "+10 Pts" });
       
       if (currentQuestion < 4) {
         setCurrentQuestion(prev => prev + 1);
         setTimeLeft(15);
         setOptionsVisible([true, true, true, true]);
       } else {
-        handleVictory();
+        handleVictoryInitiate();
       }
     } else {
       setLives(prev => prev - 1);
-      if (lives <= 1) {
-        setGameState('gameover');
-      } else {
-        toast({ variant: "destructive", title: "SIGNAL DEPLETED", description: "Incorrect response. Stay alert." });
+      if (lives <= 1) setGameState('gameover');
+      else toast({ variant: "destructive", title: "SIGNAL DEPLETED" });
+    }
+  };
+
+  const handleVictoryInitiate = () => {
+    setAdCountdown(10);
+    setGameState('ad_break'); // Force ad before final credit
+  };
+
+  const finalizeLifeline = async () => {
+    if (pendingLifeline) {
+      if (pendingLifeline === '50-50' && quizData) {
+        const correct = quizData.questions[currentQuestion].correctIndex;
+        const newVisibility = [false, false, false, false];
+        newVisibility[correct] = true;
+        let r = Math.floor(Math.random() * 4);
+        while (r === correct) r = Math.floor(Math.random() * 4);
+        newVisibility[r] = true;
+        setOptionsVisible(newVisibility);
+      } else if (pendingLifeline === 'skip') {
+        setCurrentQuestion(prev => prev + 1);
+        setTimeLeft(15);
       }
+      setGameState('playing');
+      setPendingLifeline(null);
+    } else {
+      // It was the final reward ad
+      await finalizeVictory();
+    }
+  };
+
+  const finalizeVictory = async () => {
+    if (!user || !firestore || !userRef) return;
+    setIsProcessing(true);
+    try {
+      await updateDoc(userRef, {
+        coins: increment(10),
+        winningBalance: increment(10)
+      });
+
+      const lbRef = doc(firestore, 'quiz_leaderboard', user.uid);
+      await setDoc(lbRef, {
+        userId: user.uid,
+        userEmail: user.email?.split('@')[0],
+        score: increment(score),
+        lastUpdated: new Date().toISOString()
+      }, { merge: true });
+
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+      audio.play().catch(() => {});
+
+      toast({ title: "ARENA MASTERED", description: "+10 Coins added to winnings." });
+      setGameState('gameover');
+    } catch (e) {
+      toast({ variant: "destructive", title: "SYNC FAILURE" });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -157,79 +191,29 @@ export default function QuizArena() {
     setGameState('ad_break');
   };
 
-  const finalizeLifeline = async () => {
-    await fetch('/api/quiz/pool-sync', { method: 'POST', body: JSON.stringify({ userId: user?.uid }) });
-
-    if (pendingLifeline === '50-50' && quizData) {
-      const correct = quizData.questions[currentQuestion].correctIndex;
-      const newVisibility = [false, false, false, false];
-      newVisibility[correct] = true;
-      let randomWrong = Math.floor(Math.random() * 4);
-      while (randomWrong === correct) randomWrong = Math.floor(Math.random() * 4);
-      newVisibility[randomWrong] = true;
-      setOptionsVisible(newVisibility);
-    } else if (pendingLifeline === 'skip') {
-      setCurrentQuestion(prev => prev + 1);
-      setTimeLeft(15);
-    }
-
-    setGameState('playing');
-    setPendingLifeline(null);
-    toast({ title: "LIFELINE DEPLOYED", description: "Signal synchronized via partner network." });
-  };
-
-  const handleVictory = async () => {
-    setGameState('gameover');
-    if (!user || !firestore) return;
-
-    const lbRef = doc(firestore, 'quiz_leaderboard', user.uid);
-    await setDoc(lbRef, {
-      userId: user.uid,
-      userEmail: user.email?.split('@')[0],
-      score: increment(score),
-      lastUpdated: new Date().toISOString()
-    }, { merge: true });
-
-    if (userRef) {
-      await updateDoc(userRef, {
-        coins: increment(10),
-        winningBalance: increment(10)
-      });
-    }
-
-    toast({ title: "ARENA MASTERED", description: "Accuracy logged for Weekly Scholarship Pool." });
-  };
-
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-12 pb-32">
       <header className="flex flex-col xl:flex-row justify-between items-center gap-10 pt-10">
          <div className="space-y-4 text-center xl:text-left">
-            <div className="flex flex-wrap items-center justify-center xl:justify-start gap-4">
-               <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-5 py-1.5 text-[10px] tracking-widest">
-                  SCHOLAR ARENA v2.3
-               </Badge>
-               <Badge className="bg-amber-500/10 text-amber-500 border-none uppercase font-black text-[10px] px-5 py-1.5 flex items-center gap-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5" /> VIP 1 MANDATORY
-               </Badge>
-            </div>
+            <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-5 py-1.5 text-[10px] tracking-widest">
+               HIGH-YIELD ARENA v11.5
+            </Badge>
             <h1 className="text-6xl md:text-8xl font-black uppercase italic tracking-tighter text-white leading-none">
-               Weekly <span className="text-primary italic">Rank Hub</span>
+               Weekly <span className="text-primary">Prize Hub</span>
             </h1>
             <p className="text-muted-foreground font-medium text-lg max-w-2xl italic">
-               Top 1-3 Warriors claim 30% of the industrial pool. Refer doston ko to increase your network rank.
+               Master lessons, watch rewarded signals, and claim your share of the ₹{(pool?.currentPrizeINR || 0).toFixed(0)} pool.
             </p>
          </div>
 
          <Card className="w-full xl:w-96 bg-gradient-to-br from-[#0a0a0f] to-black border-amber-500/30 border-2 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-1000">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                <Trophy className="h-40 w-48 text-amber-500" />
             </div>
             <div className="relative z-10 text-center space-y-4">
-               <p className="text-[10px] font-black uppercase text-amber-500 tracking-[0.4em]">Scholarship Yield Hub</p>
+               <p className="text-[10px] font-black uppercase text-amber-500 tracking-[0.4em]">Current Prize Pool</p>
                <h3 className="text-6xl font-black text-white italic tabular-nums">₹{(pool?.currentPrizeINR || 0).toFixed(0)}</h3>
-               <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-                  <p className="text-[8px] font-bold text-muted-foreground uppercase">Reward Cycle: Weekly Distribution (Top 3)</p>
-               </div>
+               <Badge className="bg-white/5 border-white/10 font-black text-[9px] px-3 uppercase italic">Payout: Monday 12:00 AM</Badge>
             </div>
          </Card>
       </header>
@@ -240,34 +224,30 @@ export default function QuizArena() {
                {gameState === 'idle' && (
                  <div className="text-center space-y-12 animate-in fade-in zoom-in-95 duration-700">
                     <div className="h-32 w-32 rounded-[3rem] bg-primary/10 border-2 border-primary/20 flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(99,102,241,0.2)]">
-                       <Video className="h-16 w-16 text-primary" />
+                       <Video className="h-16 w-16 text-primary animate-pulse" />
                     </div>
                     <div className="space-y-4">
-                       <h2 className="text-4xl font-black uppercase italic tracking-tighter">Scholarly Audit Arena</h2>
-                       <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest max-w-sm mx-auto">
-                          Entry Protocol: 2 Assets. High-fidelity verification of curriculum retention.
+                       <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Start Rewarded Audit</h2>
+                       <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest max-w-sm mx-auto leading-relaxed">
+                          Analyze 10s video signal to initialize scholarly test exam. High eCPM payout enabled.
                        </p>
                     </div>
-                    <div className="flex flex-col items-center gap-4">
-                       <Button onClick={initiateGame} className="h-24 px-20 bg-primary hover:bg-primary/90 font-black text-2xl uppercase italic rounded-3xl shadow-xl transition-all hover:scale-105 active:scale-95 group">
-                          {isVip1 ? "INITIALIZE SESSION" : <><Lock className="mr-3 h-6 w-6" /> VIP 1 REQUIRED</>}
-                       </Button>
-                    </div>
+                    <Button onClick={initiateGame} className="h-24 px-20 bg-primary hover:bg-primary/90 font-black text-2xl uppercase italic rounded-3xl shadow-xl transition-all hover:scale-105 active:scale-95 group">
+                       {isVip1 ? "INITIALIZE (AD)" : <><Lock className="mr-3 h-6 w-6" /> VIP 1 REQUIRED</>}
+                    </Button>
                  </div>
                )}
 
                {gameState === 'watching_video' && (
-                  <div className="space-y-12 animate-in fade-in duration-500">
-                     <div className="aspect-video bg-black rounded-3xl border border-white/10 flex items-center justify-center relative group overflow-hidden">
-                        <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
-                           <Play className="h-20 w-20 text-white fill-white animate-pulse" />
-                           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Buffering Intellectual Stream...</p>
-                        </div>
-                        <div className="absolute bottom-6 inset-x-6 flex items-center justify-between">
-                           <Badge className="bg-red-600 text-white border-none font-black px-4">SIGNAL ANALYSIS</Badge>
-                           <p className="text-3xl font-black text-white italic tabular-nums">{videoTimer}s</p>
-                        </div>
+                  <div className="text-center space-y-10 animate-in fade-in duration-500">
+                     <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+                        <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin" />
+                        <PlayCircle className="h-12 w-12 text-primary animate-pulse" />
+                     </div>
+                     <div className="space-y-4">
+                        <h3 className="text-3xl font-black uppercase italic text-white leading-none">Syncing Partner Stream...</h3>
+                        <p className="text-4xl font-black text-white italic tabular-nums">{videoTimer}s</p>
                      </div>
                   </div>
                )}
@@ -275,7 +255,7 @@ export default function QuizArena() {
                {gameState === 'loading' && (
                  <div className="text-center space-y-8 py-20">
                     <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto" />
-                    <p className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.4em] animate-pulse italic">AI GENERATING SCHOLARLY AUDIT...</p>
+                    <p className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.4em] animate-pulse italic">DECRYPTING COGNITIVE AUDIT...</p>
                  </div>
                )}
 
@@ -290,6 +270,7 @@ export default function QuizArena() {
                              ))}
                           </div>
                        </div>
+                       <Badge variant="outline" className="border-primary/20 text-primary font-black px-4 py-1 italic tracking-widest">{timeLeft}s SIGNAL</Badge>
                     </div>
 
                     <h3 className="text-3xl md:text-5xl font-black uppercase italic text-white leading-tight tracking-tighter min-h-[160px]">
@@ -307,22 +288,20 @@ export default function QuizArena() {
                              optionsVisible[i] ? "bg-white/5 border-white/10 hover:border-primary hover:bg-primary/5 hover:scale-[1.02]" : "opacity-10 grayscale border-transparent"
                            )}
                          >
-                            <span className="flex items-center gap-8">
-                               <span className="h-10 w-10 rounded-xl bg-black flex items-center justify-center text-primary font-black border border-white/5">
-                                  {String.fromCharCode(65 + i)}
-                               </span>
-                               <span className="max-w-[180px]">{opt}</span>
+                            <span className="flex items-center gap-6">
+                               <span className="h-8 w-8 rounded-lg bg-black flex items-center justify-center text-primary font-black border border-white/5">{String.fromCharCode(65 + i)}</span>
+                               <span>{opt}</span>
                             </span>
                          </button>
                        ))}
                     </div>
 
                     <div className="grid grid-cols-2 gap-6 pt-10">
-                       <Button onClick={() => triggerLifeline('50-50')} variant="outline" className="h-16 border-amber-500/20 bg-amber-500/5 text-amber-500 font-black uppercase italic text-[10px] rounded-2xl group">
-                          <Zap className="h-4 w-4 mr-2" /> ACTIVATE 50-50 (AD)
+                       <Button onClick={() => triggerLifeline('50-50')} variant="outline" className="h-16 border-amber-500/20 bg-amber-500/5 text-amber-500 font-black uppercase italic text-[10px] rounded-2xl">
+                          50-50 (VIDEO AD)
                        </Button>
-                       <Button onClick={() => triggerLifeline('skip')} variant="outline" className="h-16 border-primary/20 bg-primary/5 text-primary font-black uppercase italic text-[10px] rounded-2xl group">
-                          <Target className="h-4 w-4 mr-2" /> ACTIVATE SKIP (AD)
+                       <Button onClick={() => triggerLifeline('skip')} variant="outline" className="h-16 border-primary/20 bg-primary/5 text-primary font-black uppercase italic text-[10px] rounded-2xl">
+                          SKIP (VIDEO AD)
                        </Button>
                     </div>
                  </div>
@@ -330,8 +309,12 @@ export default function QuizArena() {
 
                {gameState === 'ad_break' && (
                  <div className="text-center space-y-12 py-20 animate-in fade-in duration-300">
-                    <Zap className="h-20 w-20 text-primary animate-pulse mx-auto" />
-                    <h3 className="text-4xl font-black uppercase italic tracking-tighter">Syncing Partner Signal...</h3>
+                    <div className="h-24 w-24 mx-auto relative">
+                       <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+                       <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin" />
+                       <Zap className="absolute inset-0 m-auto h-10 w-10 text-primary animate-pulse" />
+                    </div>
+                    <h3 className="text-4xl font-black uppercase italic tracking-tighter text-white">Verifying Reward Signal...</h3>
                     <p className="text-2xl font-black text-white italic tabular-nums">{adCountdown}s Remaining</p>
                  </div>
                )}
@@ -340,11 +323,11 @@ export default function QuizArena() {
                  <div className="text-center space-y-12 animate-in zoom-in-95 duration-500">
                     <Trophy className="h-16 w-16 text-primary mx-auto" />
                     <div className="space-y-4">
-                       <h2 className="text-5xl font-black uppercase italic tracking-tighter">Protocol <span className="text-primary">Settled</span></h2>
-                       <p className="text-xl font-black text-white italic">Final Accuracy: {score} PTS</p>
+                       <h2 className="text-5xl font-black uppercase italic tracking-tighter text-white">Bounty <span className="text-primary">Settled</span></h2>
+                       <p className="text-xl font-black text-white italic">Accuracy: {score} PTS</p>
                     </div>
                     <Button onClick={() => setGameState('idle')} className="h-20 px-20 bg-white/5 border border-white/10 hover:bg-primary text-white font-black text-xl uppercase italic rounded-3xl transition-all">
-                       RE-ENLIST
+                       RE-ENLIST (NEXT AD)
                     </Button>
                  </div>
                )}
@@ -358,7 +341,7 @@ export default function QuizArena() {
                      <Crown className="text-amber-500 h-6 w-6 animate-pulse" />
                      <h3 className="text-lg font-black uppercase italic tracking-widest text-white">Elite Top 3</h3>
                   </div>
-                  <Badge className="bg-amber-500 text-black border-none text-[8px] font-black uppercase px-3">WIN PRIZE</Badge>
+                  <Badge className="bg-amber-500 text-black border-none text-[8px] font-black uppercase px-3 italic">WIN PRIZE</Badge>
                </div>
                <div className="p-4 space-y-2">
                   {leaderboard?.slice(0, 3).map((entry, idx) => (
@@ -366,7 +349,7 @@ export default function QuizArena() {
                        <div className="flex items-center gap-6">
                           <span className={cn("text-xs font-black italic", idx === 0 ? "text-amber-500" : "text-muted-foreground")}>#{idx + 1}</span>
                           <div>
-                             <p className="text-sm font-black uppercase text-white italic">{entry.userEmail}</p>
+                             <p className="text-sm font-black uppercase text-white italic truncate max-w-[120px]">{entry.userEmail}</p>
                              <p className="text-[8px] font-bold text-muted-foreground uppercase">Rank {idx + 1} Warrior</p>
                           </div>
                        </div>
@@ -377,20 +360,17 @@ export default function QuizArena() {
             </Card>
 
             <Card className="bg-[#121212] border-white/5 rounded-[3rem] p-10 space-y-8 shadow-2xl relative overflow-hidden">
-               <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-4 relative z-10">
+               <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-4 relative z-10 text-white">
                   <Medal className="h-6 w-6 text-primary" /> Scholarship <span className="text-primary">Policy</span>
                </h3>
                <div className="space-y-6 relative z-10">
-                  <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-2">
-                     <p className="text-[9px] font-black uppercase text-primary italic tracking-widest">Growth Dividend Protocol</p>
-                     <p className="text-[11px] font-bold text-muted-foreground leading-relaxed uppercase">
-                        30% of weekly total pool is shared among the Top 3 Rankers. Refer friends to boost activity and increase the daily pool size.
-                     </p>
-                  </div>
+                  <p className="text-[11px] font-bold text-muted-foreground leading-relaxed uppercase italic">
+                     30% of weekly total pool is shared among the Top 3. Revenue is strictly derived from high-yield rewarded ad signals processed during sessions.
+                  </p>
                   <ul className="space-y-4 text-[10px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest italic opacity-80">
-                     <li className="flex items-start gap-4"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> One entry per session.</li>
-                     <li className="flex items-start gap-4"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Winners announced every Monday.</li>
-                     <li className="flex items-start gap-4"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Multi-account signals void prizes.</li>
+                     <li className="flex items-start gap-4"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> One entry per ad cycle.</li>
+                     <li className="flex items-start gap-4"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Ad completion is server-verified.</li>
+                     <li className="flex items-start gap-4"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Anti-automation node enabled.</li>
                   </ul>
                </div>
             </Card>
