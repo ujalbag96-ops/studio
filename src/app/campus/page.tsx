@@ -57,7 +57,6 @@ export default function CampusHomeScreen() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 1. Regional Initialization: Default to user's region/language but allow global search
   useEffect(() => {
     if (profile) {
       if (language === 'all') {
@@ -109,7 +108,6 @@ export default function CampusHomeScreen() {
     }
   };
 
-  // 2. Personalized Logic: Prioritize regional books in the list
   const filteredBooks = useMemo(() => {
     let list = [...books];
     if (searchTerm) {
@@ -117,7 +115,6 @@ export default function CampusHomeScreen() {
       list = list.filter(b => b.title.toLowerCase().includes(query) || b.subject.toLowerCase().includes(query));
     }
     
-    // Sort logic: regional books first
     return list.sort((a, b) => {
        const aMatches = a.lang === profile?.preferredLanguage ? 1 : 0;
        const bMatches = b.lang === profile?.preferredLanguage ? 1 : 0;
@@ -142,7 +139,7 @@ export default function CampusHomeScreen() {
                 Scholar <br /><span className="text-primary">Vault Hub</span>
               </h1>
               <p className="text-muted-foreground font-medium text-lg max-w-xl uppercase tracking-tight opacity-70">
-                Books calibrated to your region ({profile?.geo_region}). Read any global lesson signal instantly.
+                Books calibrated to your region ({profile?.geo_region || 'Global'}). Read any global lesson signal instantly.
               </p>
            </div>
            

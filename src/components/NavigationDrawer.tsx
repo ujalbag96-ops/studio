@@ -49,7 +49,7 @@ export default function NavigationDrawer() {
   const menuItems = [
     { label: 'Profile Node', icon: <User />, href: '/dashboard' },
     { label: 'Library & Books', icon: <Library />, href: '/campus' },
-    { label: 'AI Human Tutor', icon: <GraduationCap />, href: '/campus' },
+    { label: 'AI Human Tutor', icon: <GraduationCap />, href: '/campus/viewer' },
     { label: 'Pocket Money (CPA)', icon: <Zap />, href: '/earning-hub' },
     { label: 'Quiz Arena Hub', icon: <Trophy />, href: '/quiz-arena' },
     { label: 'Daily Milestones', icon: <Flame />, href: '/dashboard' },
@@ -83,7 +83,7 @@ export default function NavigationDrawer() {
 
           <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2 no-scrollbar">
              {menuItems.map((item) => (
-               <Link key={item.href} href={item.href}>
+               <Link key={item.label} href={item.href}>
                   <div className={cn(
                     "flex items-center justify-between p-4 rounded-xl transition-all group",
                     pathname === item.href ? "bg-primary/10 border border-primary/20" : "hover:bg-white/5"

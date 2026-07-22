@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/currency';
 import DailyStreak from '@/components/DailyStreak';
 import TrendingEarners from '@/components/TrendingEarners';
+import VipQuestDashboard from '@/components/VipQuestDashboard';
 
 export default function UserDashboard() {
   const { user, isUserLoading } = useUser();
@@ -89,9 +90,13 @@ export default function UserDashboard() {
            </div>
         </section>
 
+        {profile && (profile.cpaTasksCount < 10 || profile.totalReferrals < 5) && (
+           <VipQuestDashboard profile={profile} />
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12 pt-8">
           <div className="xl:col-span-2 space-y-12">
-            <DailyStreak profile={profile} />
+            <DailyStreak profile={profile || null} />
             <TrendingEarners />
           </div>
           <div className="space-y-8">
