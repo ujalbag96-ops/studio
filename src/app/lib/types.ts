@@ -56,6 +56,7 @@ export interface AppSettings {
   node_global_cpa: boolean;
   node_referral_engine: boolean;
   node_ad_stream: boolean;
+  node_book_download: boolean;
   adminUpiId?: string;
   automaticGatewayEnabled?: boolean;
 }

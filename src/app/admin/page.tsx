@@ -7,7 +7,7 @@ import {
   Loader2, Monitor, Activity, Power, Server, Signal, Search, RefreshCw, Cpu, LineChart, Zap, 
   ShieldAlert, ShieldX, TrendingUp, Lock, Users, Network, Globe, CheckCircle2, XCircle, 
   Smartphone, ClipboardList, Target, BarChart3, DollarSign, ArrowUpRight, Filter, Star, CreditCard,
-  Briefcase
+  Briefcase, Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -93,7 +93,7 @@ export default function AdminDashboard() {
       <main className="flex-1 ml-72 p-12 space-y-12 pb-32">
         <header className="space-y-1">
           <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin <span className="text-primary">Command</span></h1>
-          <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v32.0 Profit Matrix</p>
+          <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.5em] italic">Industrial Infrastructure v34.0 Profit Matrix</p>
         </header>
 
         {activeTab === 'monitor' && (
@@ -162,6 +162,7 @@ export default function AdminDashboard() {
               <NodeToggle label="Global CPA Offerwall" active={settings?.node_global_cpa} onToggle={(v) => toggleSetting('node_global_cpa', v)} />
               <NodeToggle label="Video Yield Terminal" active={settings?.node_ad_stream} onToggle={(v) => toggleSetting('node_ad_stream', v)} />
               <NodeToggle label="Referral MLM Engine" active={settings?.node_referral_engine} onToggle={(v) => toggleSetting('node_referral_engine', v)} />
+              <NodeToggle label="Book Download Node" active={settings?.node_book_download} onToggle={(v) => toggleSetting('node_book_download', v)} />
             </div>
           </Card>
         )}

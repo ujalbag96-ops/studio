@@ -47,7 +47,8 @@
         "node_quiz_arena": { "type": "boolean" },
         "node_global_cpa": { "type": "boolean" },
         "node_referral_engine": { "type": "boolean" },
-        "node_ad_stream": { "type": "boolean" }
+        "node_ad_stream": { "type": "boolean" },
+        "node_book_download": { "type": "boolean" }
       }
     }
   },

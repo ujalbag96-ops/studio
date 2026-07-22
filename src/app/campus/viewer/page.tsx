@@ -25,13 +25,14 @@ import {
   Info,
   BookOpen,
   PlayCircle,
-  Layout
+  Layout,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { askHumanTutor, type AskHumanTutorOutput } from '@/ai/flows/ask-human-tutor-flow';
-import { UserProfile } from '@/app/lib/types';
+import { UserProfile, AppSettings } from '@/app/lib/types';
 
 type ReaderTheme = 'white' | 'sepia' | 'dark';
 
@@ -52,13 +53,19 @@ function ViewerContent() {
   const [tutorImage, setTutorImage] = useState<string | null>(null);
   const [tutorLoading, setTutorLoading] = useState(false);
   const [tutorResponse, setTutorResponse] = useState<AskHumanTutorOutput | null>(null);
+  
+  // AD MODAL STATE
   const [showAdInter, setShowAdInter] = useState(false);
   const [adCountdown, setAdCountdown] = useState(10);
+  const [adType, setAdType] = useState<'tutor' | 'download'>('tutor');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
+  
   const { data: profile } = useDoc<UserProfile>(userRef);
+  const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const handlePageTurn = (direction: 'next' | 'prev') => {
     setIsPageTurning(true);
@@ -79,8 +86,15 @@ function ViewerContent() {
 
   const handleTutorSubmit = () => {
     if (!tutorQuery.trim() && !tutorImage) return;
+    setAdType('tutor');
     setShowAdInter(true);
     setAdCountdown(10); 
+  };
+
+  const handleDownloadInitiate = () => {
+    setAdType('download');
+    setShowAdInter(true);
+    setAdCountdown(10);
   };
 
   useEffect(() => {
@@ -91,23 +105,30 @@ function ViewerContent() {
     return () => clearInterval(interval);
   }, [showAdInter, adCountdown]);
 
-  const callTutorAi = async () => {
+  const handleActionAfterAd = async () => {
     if (adCountdown > 0) return;
     setShowAdInter(false);
-    setTutorLoading(true);
-    setTutorResponse(null);
-    try {
-      const res = await askHumanTutor({
-        query: tutorQuery,
-        photoDataUri: tutorImage || undefined,
-        context: `Book: ${url}. Region: ${profile?.geo_region}.`,
-        preferredLanguage: profile?.preferredLanguage || 'en'
-      });
-      setTutorResponse(res);
-    } catch (e) {
-      toast({ variant: "destructive", title: "TUTOR NODE ERROR" });
-    } finally {
-      setTutorLoading(false);
+
+    if (adType === 'tutor') {
+      setTutorLoading(true);
+      setTutorResponse(null);
+      try {
+        const res = await askHumanTutor({
+          query: tutorQuery,
+          photoDataUri: tutorImage || undefined,
+          context: `Book: ${url}. Region: ${profile?.geo_region}.`,
+          preferredLanguage: profile?.preferredLanguage || 'en'
+        });
+        setTutorResponse(res);
+      } catch (e) {
+        toast({ variant: "destructive", title: "TUTOR NODE ERROR" });
+      } finally {
+        setTutorLoading(false);
+      }
+    } else if (adType === 'download') {
+      // PROCEED TO DOWNLOAD PDF
+      toast({ title: "SIGNAL UNLOCKED", description: "Downloading book node for offline access." });
+      window.open(url, '_blank');
     }
   };
 
@@ -198,6 +219,13 @@ function ViewerContent() {
                      <Sparkles className="h-3 w-3 text-primary animate-pulse" />
                   </div>
                </div>
+               
+               {settings?.node_book_download && (
+                 <Button onClick={handleDownloadInitiate} className="h-10 px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-green-600 text-white font-black text-[9px] uppercase italic transition-all">
+                    <Download className="h-3 w-3 mr-2" /> PDF Node
+                 </Button>
+               )}
+
                <Button className="h-10 px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-primary text-white font-black text-[9px] uppercase italic">
                   <BookOpen className="h-3 w-3 mr-2" /> Index
                </Button>
@@ -298,14 +326,19 @@ function ViewerContent() {
                  <Zap className="h-10 w-10 text-primary animate-pulse" />
               </div>
               <div className="space-y-4">
-                 <h3 className="text-3xl font-black uppercase italic text-white leading-none">Syncing Signal...</h3>
+                 <h3 className="text-3xl font-black uppercase italic text-white leading-none">
+                   {adType === 'tutor' ? 'Syncing Tutor Signal...' : 'Decrypting Download Node...'}
+                 </h3>
                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                    Analyzing partner data stream. Tuition node will activate after the 10s countdown.
+                    {adType === 'tutor' ? 'Analyzing partner data stream. Tuition node will activate after the 10s countdown.' : 'Mandatory verification ad in progress. Download signal will open shortly.'}
                  </p>
+                 {adType === 'download' && (
+                    <Badge variant="outline" className="border-amber-500/20 text-amber-500 text-[8px] font-black uppercase px-2 italic">ZERO REWARD OFFLINE SESSION</Badge>
+                 )}
               </div>
               <p className="text-6xl font-black text-white italic tabular-nums">{adCountdown}s</p>
-              <Button disabled={adCountdown > 0} onClick={callTutorAi} className="w-full h-16 rounded-2xl font-black text-lg uppercase italic bg-primary shadow-xl">
-                 {adCountdown === 0 ? "START TUITION" : "WAITING..."}
+              <Button disabled={adCountdown > 0} onClick={handleActionAfterAd} className="w-full h-16 rounded-2xl font-black text-lg uppercase italic bg-primary shadow-xl">
+                 {adCountdown === 0 ? (adType === 'tutor' ? "START TUITION" : "OPEN DOWNLOAD") : "WAITING..."}
               </Button>
            </div>
         </div>
@@ -334,4 +367,3 @@ export default function PdfViewScreen() {
     </Suspense>
   );
 }
-
