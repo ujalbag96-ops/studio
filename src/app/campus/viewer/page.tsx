@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect, Suspense, useRef } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment, addDoc, collection } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
@@ -12,37 +12,22 @@ import {
   ArrowLeft, 
   Loader2, 
   Zap, 
-  Clock, 
-  Trophy,
-  BrainCircuit,
-  ShieldCheck,
-  Heart,
-  Globe,
-  PlayCircle,
-  X,
-  Award,
-  Timer,
-  MessageSquare,
+  BrainCircuit, 
+  Globe, 
+  X, 
   Sparkles,
-  BookOpen,
-  GraduationCap,
   ChevronRight,
   ChevronLeft,
   School,
-  Type,
-  Palette,
-  Layers,
-  Settings2,
-  Maximize2
+  Maximize2,
+  GraduationCap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz-flow';
 import { askHumanTutor, type AskHumanTutorOutput } from '@/ai/flows/ask-human-tutor-flow';
 import { UserProfile } from '@/app/lib/types';
-
-const SUCCESS_SOUND = 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3';
 
 type ReaderTheme = 'white' | 'sepia' | 'dark';
 
@@ -53,24 +38,13 @@ function ViewerContent() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
+  // High-Accuracy URL: Fallback to NCERT sample if signal is lost
   const url = searchParams.get('url') || 'https://ncert.nic.in/textbook/pdf/hemh101.pdf';
   
-  // UI States
   const [theme, setTheme] = useState<ReaderTheme>('white');
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPageTurning, setIsPageTurning] = useState(false);
 
-  // Quiz State
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [quizLoading, setQuizLoading] = useState(false);
-  const [quizData, setQuizData] = useState<GenerateQuizOutput | null>(null);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [quizScore, setQuizScore] = useState(0);
-  const [quizFinished, setQuizFinished] = useState(false);
-  const [lives, setLives] = useState(3);
-  const [timeLeft, setTimeLeft] = useState(20);
-
-  // Tutor State
+  // Tutor Node State
   const [showTutor, setShowTutor] = useState(false);
   const [tutorQuery, setTutorQuery] = useState('');
   const [tutorLoading, setTutorLoading] = useState(false);
@@ -81,39 +55,10 @@ function ViewerContent() {
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
-  const playSound = () => {
-    const audio = new Audio(SUCCESS_SOUND);
-    audio.play().catch(() => {});
-  };
-
   const handlePageTurn = (direction: 'next' | 'prev') => {
     setIsPageTurning(true);
-    setTimeout(() => setIsPageTurning(false), 600);
-    toast({ title: "PAGE SYNCED", description: "Navigating to next content block." });
-  };
-
-  const startAiQuiz = async () => {
-    if (!profile) return;
-    setShowQuiz(true);
-    setQuizLoading(true);
-    setQuizFinished(false);
-    try {
-      const difficulty = profile.rank === 'Elite' ? 'Very High' : profile.rank === 'Gold' ? 'High' : 'Medium';
-      const res = await generateQuiz({ 
-        contentSummary: `Student Lesson Audit for URL: ${url}. Category: ${profile.geo_region}. Difficulty: ${difficulty}`,
-        difficulty 
-      });
-      setQuizData(res);
-      setCurrentQuestion(0);
-      setQuizScore(0);
-      setLives(3);
-      setTimeLeft(20);
-    } catch (e) {
-      toast({ variant: "destructive", title: "AI HUB OFFLINE" });
-      setShowQuiz(false);
-    } finally {
-      setQuizLoading(false);
-    }
+    setTimeout(() => setIsPageTurning(false), 500);
+    toast({ title: "SIGNAL SYNCED", description: `Navigating to ${direction} content node.` });
   };
 
   const handleTutorSubmit = () => {
@@ -139,368 +84,226 @@ function ViewerContent() {
     try {
       const res = await askHumanTutor({
         query: tutorQuery,
-        context: `Current Lesson Material: ${url}`,
+        context: `Student is reading: ${url}. Region: ${profile?.geo_region}`,
         preferredLanguage: profile?.preferredLanguage || 'en'
       });
       setTutorResponse(res);
     } catch (e) {
-      toast({ variant: "destructive", title: "TUTOR NODE DISCONNECTED" });
+      toast({ variant: "destructive", title: "TUTOR NODE ERROR" });
     } finally {
       setTutorLoading(false);
-    }
-  };
-
-  const handleAnswer = async (idx: number) => {
-    if (!quizData) return;
-    const isCorrect = idx === quizData.questions[currentQuestion].correctIndex;
-    
-    if (isCorrect) {
-      setQuizScore(s => s + 1);
-      if (currentQuestion < 4) {
-        setCurrentQuestion(c => c + 1);
-        setTimeLeft(20);
-        toast({ title: "SIGNAL MATCHED", description: "+10 Intelligence Points" });
-      } else {
-        setQuizFinished(true);
-      }
-    } else {
-      setLives(l => l - 1);
-      if (lives <= 1) {
-        setShowQuiz(false);
-        toast({ variant: "destructive", title: "SIGNAL LOST", description: "Audit failed. Try re-reading." });
-      } else {
-        toast({ variant: "destructive", title: "INCORRECT", description: "Heart signal depleted." });
-      }
-    }
-  };
-
-  useEffect(() => {
-    let timer: any;
-    if (showQuiz && !quizLoading && !quizFinished && timeLeft > 0) {
-      timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-    } else if (timeLeft === 0 && showQuiz && !quizFinished) {
-      handleAnswer(-1);
-    }
-    return () => clearInterval(timer);
-  }, [showQuiz, quizLoading, quizFinished, timeLeft]);
-
-  const finalizeQuizReward = async () => {
-    if (!user || !userRef || !firestore) return;
-    try {
-      await updateDoc(userRef, {
-        coins: increment(10),
-        winningBalance: increment(10),
-        scholarPoints: increment(50)
-      });
-      
-      await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
-        type: 'quiz_reward',
-        amount: 10,
-        date: new Date().toISOString().split('T')[0],
-        status: 'completed',
-        description: 'Lesson Mastery Dividend'
-      });
-
-      playSound();
-      toast({ title: "DIVIDEND DISPATCHED" });
-      setShowQuiz(false);
-    } catch (e) {
-      console.error("Sync Error");
     }
   };
 
   return (
     <div className={cn(
       "min-h-screen transition-colors duration-500 flex flex-col",
-      theme === 'white' ? "bg-[#f8f9fa]" : theme === 'sepia' ? "bg-[#f4ecd8]" : "bg-[#09090b]"
+      theme === 'white' ? "bg-[#f4f4f5]" : theme === 'sepia' ? "bg-[#f4ecd8]" : "bg-[#09090b]"
     )}>
-      {/* Immersive Header */}
-      <header className="h-16 border-b border-black/5 flex items-center justify-between px-6 backdrop-blur-md sticky top-0 z-50">
+      {/* Immersive Navigation Header */}
+      <header className="h-16 border-b border-black/5 bg-background/50 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-[100]">
          <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => router.back()} className="text-[10px] font-black uppercase text-muted-foreground hover:text-primary">
-               <ArrowLeft className="h-3 w-3 mr-2" /> EXIT ARENA
+               <ArrowLeft className="h-3 w-3 mr-2" /> EXIT VAULT
             </Button>
             <div className="h-4 w-px bg-black/10 mx-2" />
-            <h1 className="text-xs font-black uppercase italic tracking-tighter truncate max-w-[200px]">
-              {url.split('/').pop()}
+            <h1 className="text-xs font-black uppercase italic tracking-tighter truncate max-w-[200px] text-primary">
+               LIVE LESSON SIGNAL
             </h1>
          </div>
 
-         <div className="flex items-center gap-2">
-            <ThemeButton active={theme === 'white'} color="#ffffff" onClick={() => setTheme('white')} />
-            <ThemeButton active={theme === 'sepia'} color="#f4ecd8" onClick={() => setTheme('sepia')} />
-            <ThemeButton active={theme === 'dark'} color="#1a1a1a" onClick={() => setTheme('dark')} />
-            <div className="h-4 w-px bg-black/10 mx-2" />
-            <Button onClick={() => setIsFullscreen(!isFullscreen)} variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
+         <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10">
+               <ThemeButton active={theme === 'white'} color="#ffffff" onClick={() => setTheme('white')} />
+               <ThemeButton active={theme === 'sepia'} color="#f4ecd8" onClick={() => setTheme('sepia')} />
+               <ThemeButton active={theme === 'dark'} color="#1a1a1a" onClick={() => setTheme('dark')} />
+            </div>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-primary/10">
                <Maximize2 className="h-4 w-4" />
             </Button>
          </div>
       </header>
 
-      {/* Flipbook Reading Canvas */}
-      <main className="flex-1 flex items-center justify-center p-4 md:p-12 relative overflow-hidden">
+      {/* Realistic Reading Canvas */}
+      <main className="flex-1 flex items-center justify-center p-6 md:p-12 relative overflow-hidden">
          <div className={cn(
-           "relative max-w-5xl w-full aspect-[3/4] md:aspect-[1.4/1] shadow-[0_50px_100px_rgba(0,0,0,0.2)] rounded-lg transition-all duration-700",
-           isPageTurning ? "scale-95 opacity-80" : "scale-100 opacity-100",
-           theme === 'dark' ? "shadow-primary/5 border border-white/5" : "border-white"
+           "relative max-w-6xl w-full aspect-[1.4/1] shadow-[0_50px_100px_rgba(0,0,0,0.3)] rounded-lg transition-all duration-700",
+           isPageTurning ? "scale-95 blur-sm" : "scale-100 blur-0",
+           theme === 'dark' ? "border-white/5" : "border-white"
          )}>
-            {/* Realistic Binding */}
-            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-gradient-to-r from-transparent via-black/10 to-transparent z-10 pointer-events-none hidden md:block" />
+            {/* Central Book Binding Effect */}
+            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-20 bg-gradient-to-r from-transparent via-black/15 to-transparent z-20 pointer-events-none hidden md:block" />
             
-            <div className="flex h-full w-full bg-white overflow-hidden rounded-lg">
-               {/* Left Page (Simulated) */}
+            <div className="flex h-full w-full bg-white overflow-hidden rounded-lg border-8 border-white">
+               {/* Left Visual Buffer (Desktop Only) */}
                <div className={cn(
-                 "flex-1 relative transition-colors duration-500 hidden md:block",
+                 "flex-1 relative hidden md:block",
                  theme === 'white' ? "bg-white" : theme === 'sepia' ? "bg-[#fcf5e5]" : "bg-[#18181b]"
                )}>
-                  <iframe 
-                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`} 
-                    className={cn(
-                      "w-full h-full border-none transition-all",
-                      theme === 'dark' && "filter invert-[0.85] grayscale"
-                    )}
-                  />
-                  <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-black/5 to-transparent" />
+                  <div className="absolute inset-0 bg-black/5 opacity-40" />
+                  <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-black/10 to-transparent" />
                </div>
 
-               {/* Right Page (Active View) */}
+               {/* Right Active Content (Original Signal) */}
                <div className={cn(
-                 "flex-1 relative transition-colors duration-500",
+                 "flex-[1.5] relative transition-colors duration-500",
                  theme === 'white' ? "bg-white" : theme === 'sepia' ? "bg-[#fcf5e5]" : "bg-[#18181b]"
                )}>
                   <iframe 
                     src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`} 
                     className={cn(
-                      "w-full h-full border-none transition-all",
-                      theme === 'dark' && "filter invert-[0.85] grayscale"
+                      "w-full h-full border-none transition-all shadow-inner",
+                      theme === 'dark' && "filter invert-[0.9] grayscale brightness-90"
                     )}
                   />
-                  <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-black/5 to-transparent" />
+                  <div className="absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-black/10 to-transparent" />
                </div>
             </div>
 
-            {/* Navigation Handles */}
-            <button 
-              onClick={() => handlePageTurn('prev')}
-              className="absolute left-[-20px] md:left-[-60px] top-1/2 -translate-y-1/2 h-20 w-20 rounded-full flex items-center justify-center hover:bg-black/5 transition-all text-muted-foreground hover:text-primary group"
-            >
-               <ChevronLeft className="h-10 w-10 group-hover:scale-125 transition-transform" />
+            {/* Navigation Overlays */}
+            <button onClick={() => handlePageTurn('prev')} className="absolute left-[-40px] top-1/2 -translate-y-1/2 h-32 w-12 bg-white/5 hover:bg-primary/20 rounded-full flex items-center justify-center transition-all group">
+               <ChevronLeft className="h-10 w-10 text-muted-foreground group-hover:text-primary group-hover:scale-125" />
             </button>
-            <button 
-              onClick={() => handlePageTurn('next')}
-              className="absolute right-[-20px] md:right-[-60px] top-1/2 -translate-y-1/2 h-20 w-20 rounded-full flex items-center justify-center hover:bg-black/5 transition-all text-muted-foreground hover:text-primary group"
-            >
-               <ChevronRight className="h-10 w-10 group-hover:scale-125 transition-transform" />
+            <button onClick={() => handlePageTurn('next')} className="absolute right-[-40px] top-1/2 -translate-y-1/2 h-32 w-12 bg-white/5 hover:bg-primary/20 rounded-full flex items-center justify-center transition-all group">
+               <ChevronRight className="h-10 w-10 text-muted-foreground group-hover:text-primary group-hover:scale-125" />
             </button>
          </div>
       </main>
 
-      {/* Floating Tactical Toolbar */}
-      <div className="fixed bottom-10 inset-x-0 flex justify-center z-[100] px-4 pointer-events-none">
-         <Card className="pointer-events-auto bg-black/80 backdrop-blur-2xl border-white/10 rounded-full h-16 md:h-20 flex items-center px-4 md:px-10 gap-4 md:gap-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-2">
-            <div className="flex items-center gap-2 md:gap-4 pr-4 md:pr-8 border-r border-white/10">
-               <button onClick={() => setShowTutor(true)} className="flex items-center gap-3 group text-primary hover:text-white transition-all">
-                  <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/20 group-hover:bg-primary group-hover:text-white transition-all">
-                     <School className="h-5 w-5" />
-                  </div>
-                  <span className="text-[9px] md:text-[10px] font-black uppercase italic tracking-widest hidden sm:block">Ask Human Tutor</span>
-               </button>
-            </div>
+      {/* Advanced Floating Tactical Toolbar */}
+      <div className="fixed bottom-12 inset-x-0 flex justify-center z-[150] px-4 pointer-events-none">
+         <Card className="pointer-events-auto bg-black/90 backdrop-blur-2xl border-primary/40 border-2 rounded-full h-20 flex items-center px-10 gap-10 shadow-[0_30px_60px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom-8 duration-700">
+            <button onClick={() => setShowTutor(true)} className="flex items-center gap-4 group text-primary hover:text-white transition-all">
+               <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/20 group-hover:bg-primary group-hover:text-white transition-all shadow-lg group-hover:rotate-12">
+                  <School className="h-6 w-6" />
+               </div>
+               <div className="text-left hidden sm:block">
+                  <p className="text-[10px] font-black uppercase italic tracking-[0.2em] leading-none">Universal Tutor</p>
+                  <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1">High-Accuracy Formulas</p>
+               </div>
+            </button>
 
-            <div className="flex items-center gap-4 md:gap-8">
+            <div className="h-10 w-px bg-white/10" />
+
+            <div className="flex items-center gap-8">
                <div className="flex flex-col items-center">
-                  <p className="text-[7px] md:text-[8px] font-black text-muted-foreground uppercase tracking-widest italic">Reader Pulse</p>
-                  <div className="flex items-center gap-3">
-                     <span className="text-sm md:text-lg font-black text-white italic tabular-nums">{profile?.scholarPoints || 0}</span>
+                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest italic">Reader Pulse</p>
+                  <div className="flex items-center gap-2">
+                     <span className="text-lg font-black text-white italic tabular-nums">{profile?.scholarPoints || 0}</span>
                      <Sparkles className="h-3 w-3 text-primary animate-pulse" />
                   </div>
                </div>
                
-               <Button onClick={startAiQuiz} className="h-10 md:h-12 px-6 rounded-full bg-primary hover:bg-primary/90 text-white font-black text-[9px] md:text-[10px] uppercase shadow-lg shadow-primary/20 italic">
-                  <BrainCircuit className="h-4 w-4 mr-2" /> Start Mastery Quiz
+               <Button className="h-12 px-8 rounded-full bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase shadow-xl italic tracking-widest group">
+                  <Zap className="h-4 w-4 mr-2 group-hover:animate-bounce" /> Lesson Audit
                </Button>
-            </div>
-
-            <div className="pl-4 md:pl-8 border-l border-white/10 flex items-center gap-4">
-               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/5">
-                  <Layers className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[9px] font-black text-white italic">CH 4</span>
-               </div>
             </div>
          </Card>
       </div>
 
-      {/* HUMAN TUTOR DIALOG */}
+      {/* ADVANCED TUITION DIALOG */}
       <Dialog open={showTutor} onOpenChange={setShowTutor}>
-        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-2xl rounded-[3rem] p-10 overflow-hidden shadow-2xl">
-           <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+        <DialogContent className="bg-[#0a0a0f] border-primary/30 text-white max-w-2xl rounded-[3rem] p-10 overflow-hidden shadow-2xl">
+           <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
            
-           <DialogHeader className="text-center space-y-3 relative z-10">
-              <div className="h-16 w-16 rounded-[1.5rem] bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-2">
-                 <GraduationCap className="h-8 w-8 text-primary" />
+           <DialogHeader className="text-center space-y-4 relative z-10">
+              <div className="h-20 w-20 rounded-[2rem] bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-2 shadow-2xl">
+                 <GraduationCap className="h-10 w-10 text-primary animate-pulse" />
               </div>
-              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Advance <span className="text-primary">Tutor Node</span></DialogTitle>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Universal Subject Expert • Experienced Professor Persona</p>
+              <DialogTitle className="text-4xl font-black uppercase italic tracking-tighter leading-none">Global <span className="text-primary">Tuition Node</span></DialogTitle>
+              <DialogDescription className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Professor Persona • All Subject Formulas • Multi-Lang</DialogDescription>
            </DialogHeader>
 
            <div className="space-y-8 py-8 relative z-10">
               {tutorResponse ? (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                   <div className="p-8 bg-white/5 border border-white/10 rounded-3xl space-y-4">
-                      <p className="text-sm text-white font-medium leading-relaxed italic">"{tutorResponse.explanation}"</p>
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+                   <div className="p-8 bg-white/5 border border-white/10 rounded-3xl space-y-6">
+                      <p className="text-base text-white font-medium leading-relaxed italic">"{tutorResponse.explanation}"</p>
                    </div>
                    
                    {tutorResponse.steps && tutorResponse.steps.length > 0 && (
-                     <div className="space-y-4">
-                        <p className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
-                           <Sparkles className="h-3 w-3" /> Expert Step-by-Step Breakdown
-                        </p>
-                        <div className="space-y-3">
+                     <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                           <div className="h-1 w-12 bg-primary rounded-full" />
+                           <p className="text-[10px] font-black uppercase text-primary tracking-widest italic">Subject Logical Breakdown (Formulas)</p>
+                        </div>
+                        <div className="space-y-4">
                            {tutorResponse.steps.map((step, i) => (
-                             <div key={i} className="flex gap-4 items-start p-4 bg-black/40 border border-white/5 rounded-2xl group hover:border-primary/40 transition-all">
-                                <span className="h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center text-[10px] font-black text-primary border border-primary/20 shrink-0">{i+1}</span>
-                                <p className="text-xs text-muted-foreground font-medium">{step}</p>
+                             <div key={i} className="flex gap-6 items-start p-6 bg-black/60 border border-white/5 rounded-2xl group hover:border-primary/40 transition-all shadow-inner">
+                                <span className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-xs font-black text-primary border border-primary/20 shrink-0 italic">{i+1}</span>
+                                <p className="text-sm text-muted-foreground font-semibold leading-relaxed tracking-tight">{step}</p>
                              </div>
                            ))}
                         </div>
                      </div>
                    )}
-                   <Button onClick={() => { setTutorResponse(null); setTutorQuery(''); }} className="w-full h-16 bg-white/5 border border-white/10 hover:bg-primary text-white font-black uppercase italic rounded-2xl">
+                   <Button onClick={() => { setTutorResponse(null); setTutorQuery(''); }} className="w-full h-20 bg-white/5 border border-white/10 hover:bg-primary text-white font-black uppercase italic rounded-2xl text-lg transition-all">
                       NEW TUITION QUERY
                    </Button>
                 </div>
               ) : tutorLoading ? (
-                <div className="py-20 flex flex-col items-center gap-8">
-                   <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                   <p className="text-[11px] font-black uppercase italic text-muted-foreground tracking-[0.4em]">PROFESSOR ANALYZING SUBJECT SIGNAL...</p>
+                <div className="py-24 flex flex-col items-center gap-10">
+                   <Loader2 className="h-20 w-20 animate-spin text-primary" />
+                   <p className="text-[12px] font-black uppercase italic text-muted-foreground tracking-[0.6em] animate-pulse">SENIOR PROFESSOR CALCULATING LOGIC...</p>
                 </div>
               ) : (
                 <div className="space-y-6">
-                   <div className="space-y-2">
-                      <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Ask any Subject (Math, Science, History, etc.)</Label>
+                   <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Ask any academic problem (STEM / Arts / Language)</Label>
                       <textarea 
                         value={tutorQuery} 
                         onChange={e => setTutorQuery(e.target.value)} 
-                        placeholder="E.G. EXPLAIN THE FRENCH REVOLUTION IN ODIA OR SOLVE A CALCULUS PROBLEM..."
-                        className="w-full h-40 bg-black border-2 border-white/10 rounded-2xl p-6 font-bold text-sm text-white focus:border-primary/40 focus:ring-0 outline-none uppercase resize-none"
+                        placeholder="E.G. EXPLAIN NEWTON'S 3RD LAW IN ODIA OR SOLVE (A+B)²..."
+                        className="w-full h-48 bg-black border-2 border-white/10 rounded-[2rem] p-8 font-bold text-lg text-white focus:border-primary/40 focus:ring-0 outline-none uppercase resize-none shadow-inner"
                       />
                    </div>
                    <Button 
                     onClick={handleTutorSubmit} 
                     disabled={!tutorQuery.trim()}
-                    className="w-full h-20 bg-primary hover:bg-primary/90 font-black text-xl uppercase italic rounded-2xl shadow-xl shadow-primary/20 transition-all group"
+                    className="w-full h-24 bg-primary hover:bg-primary/90 font-black text-2xl uppercase italic rounded-3xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 group"
                    >
-                      <Zap className="mr-3 h-6 w-6 group-hover:fill-white" /> START ADVANCE TUITION (AD)
+                      <Zap className="mr-4 h-8 w-8 group-hover:fill-white" /> START TUITION SESSION (AD)
                    </Button>
-                   <p className="text-[9px] font-bold text-center text-muted-foreground uppercase italic">100% Gated for Admin Profit Management</p>
+                   <p className="text-[9px] font-black text-center text-muted-foreground uppercase italic tracking-widest opacity-60">100% High-Accuracy Intelligence Node</p>
                 </div>
               )}
            </div>
         </DialogContent>
       </Dialog>
 
-      {/* AD INTERSTITIAL MODAL */}
+      {/* TUITION INTERSTITIAL */}
       {showAdInter && (
-        <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-500">
-           <Card className="max-w-md w-full bg-[#0d0d12] border-primary/20 border-2 rounded-[3rem] overflow-hidden relative shadow-2xl">
-              <div className="p-12 text-center space-y-10">
-                 <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
-                    <div 
-                      className="absolute inset-0 rounded-full border-t-4 border-primary transition-all duration-1000 ease-linear" 
-                      style={{ transform: `rotate(${(8 - adCountdown) * 45}deg)` }}
-                    />
-                    <Zap className="h-12 w-12 text-primary animate-pulse" />
-                 </div>
-
-                 <div className="space-y-4">
-                    <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white">Generating <span className="text-primary">Tuition...</span></h3>
-                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                       Sponsor signal verified. Your Universal Tutor response is being decrypted.
-                    </p>
-                 </div>
-
-                 <div className="space-y-6">
-                    <p className="text-5xl font-black text-white italic tabular-nums">{adCountdown}s</p>
-                    <Button 
-                      disabled={adCountdown > 0} 
-                      onClick={callTutorAi}
-                      className={cn(
-                        "w-full h-20 rounded-2xl font-black text-xl uppercase italic shadow-2xl transition-all",
-                        adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce shadow-green-500/20" : "bg-white/5 text-white/20 border border-white/10"
-                      )}
-                    >
-                       {adCountdown === 0 ? "ACCESS TUITION" : "VERIFYING SIGNAL..."}
-                    </Button>
-                 </div>
+        <div className="fixed inset-0 z-[300] bg-black/98 flex items-center justify-center p-8 animate-in fade-in duration-500">
+           <div className="max-w-md w-full text-center space-y-12">
+              <div className="h-32 w-32 mx-auto relative flex items-center justify-center">
+                 <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+                 <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin" />
+                 <Zap className="h-14 w-14 text-primary animate-pulse" />
               </div>
-           </Card>
+
+              <div className="space-y-6">
+                 <h3 className="text-4xl font-black uppercase italic tracking-tighter text-white leading-none">Verifying Tuition Signal...</h3>
+                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
+                    Connecting to Senior Professor Network. High-accuracy response being decrypted via industrial signal.
+                 </p>
+              </div>
+
+              <div className="space-y-8">
+                 <p className="text-7xl font-black text-white italic tabular-nums drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">{adCountdown}s</p>
+                 <Button 
+                   disabled={adCountdown > 0} 
+                   onClick={callTutorAi}
+                   className={cn(
+                     "w-full h-20 rounded-2xl font-black text-xl uppercase italic shadow-2xl transition-all",
+                     adCountdown === 0 ? "bg-green-600 hover:bg-green-500 animate-bounce shadow-green-500/20" : "bg-white/5 text-white/20 border border-white/10"
+                   )}
+                 >
+                    {adCountdown === 0 ? "START TUITION" : "ANALYZING SIGNAL..."}
+                 </Button>
+              </div>
+           </div>
         </div>
       )}
-
-      {/* QUIZ DIALOG */}
-      <Dialog open={showQuiz} onOpenChange={setShowQuiz}>
-        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-2xl rounded-[3rem] p-10 overflow-hidden shadow-2xl">
-           <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
-           
-           {quizLoading ? (
-             <div className="py-24 flex flex-col items-center gap-8 relative z-10">
-                <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                <p className="text-[11px] font-black uppercase italic text-muted-foreground tracking-[0.4em]">AI AUDITING LESSON MATERIAL...</p>
-             </div>
-           ) : quizFinished ? (
-             <div className="space-y-10 text-center pt-10 animate-in zoom-in-95 duration-500 relative z-10">
-                <div className="h-24 w-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(34,197,94,0.3)]">
-                   <Award className="h-12 w-12 text-green-500" />
-                </div>
-                <div className="space-y-2">
-                   <h3 className="text-4xl font-black uppercase italic tracking-tighter">Lesson <span className="text-primary">Mastered</span></h3>
-                   <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest">Score: {quizScore}/5 Questions Correct</p>
-                </div>
-                <Button onClick={finalizeQuizReward} className="w-full h-20 bg-primary hover:bg-primary/90 font-black uppercase italic text-xl rounded-2xl shadow-xl shadow-primary/20 transition-all">
-                   COLLECT 10 COINS & EXIT
-                </Button>
-             </div>
-           ) : quizData ? (
-             <div className="space-y-8 pt-10 relative z-10">
-                <div className="flex justify-between items-center">
-                   <Badge className="bg-primary/20 text-primary uppercase font-black text-[9px] px-5 py-2">STAGE {currentQuestion + 1} / 5</Badge>
-                   <div className="flex items-center gap-6">
-                      <div className="flex gap-2">
-                         {[...Array(3)].map((_, i) => (
-                           <Heart key={i} className={cn("h-5 w-5", i < lives ? "fill-red-500 text-red-500" : "text-white/10")} />
-                         ))}
-                      </div>
-                      <div className="flex items-center gap-3 bg-white/5 px-5 py-2 rounded-xl border border-white/10">
-                         <Timer className={cn("h-4 w-4", timeLeft < 5 ? "text-red-500 animate-pulse" : "text-primary")} />
-                         <span className={cn("font-black tabular-nums text-lg", timeLeft < 5 ? "text-red-500" : "text-white")}>{timeLeft}s</span>
-                      </div>
-                   </div>
-                </div>
-
-                <h3 className="text-3xl font-black uppercase italic text-white leading-tight min-h-[120px] tracking-tight">
-                  {quizData.questions[currentQuestion].question}
-                </h3>
-
-                <div className="grid gap-4">
-                  {quizData.questions[currentQuestion].options.map((opt, i) => (
-                    <button 
-                      key={i} 
-                      onClick={() => handleAnswer(i)} 
-                      className="w-full p-6 bg-white/5 border border-white/10 rounded-2xl text-left font-bold uppercase text-[12px] hover:border-primary hover:bg-primary/5 transition-all group flex items-center justify-between"
-                    >
-                       <span className="flex items-center gap-6">
-                          <span className="h-10 w-10 rounded-xl bg-black border border-white/10 flex items-center justify-center text-primary font-black">{String.fromCharCode(65 + i)}</span>
-                          <span className="text-white group-hover:text-primary transition-colors max-w-[400px]">{opt}</span>
-                       </span>
-                       <Zap className="h-4 w-4 opacity-0 group-hover:opacity-100 text-primary transition-opacity" />
-                    </button>
-                  ))}
-                </div>
-             </div>
-           ) : null}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -511,7 +314,7 @@ function ThemeButton({ active, color, onClick }: any) {
       onClick={onClick}
       className={cn(
         "h-6 w-6 rounded-full border transition-all",
-        active ? "ring-2 ring-primary ring-offset-2 scale-110" : "border-black/10 hover:scale-105"
+        active ? "ring-2 ring-primary ring-offset-2 scale-110" : "border-white/10 hover:scale-105"
       )}
       style={{ backgroundColor: color }}
     />
