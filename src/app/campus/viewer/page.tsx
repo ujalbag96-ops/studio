@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment, addDoc, collection } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
@@ -20,7 +20,10 @@ import {
   ChevronLeft,
   School,
   Maximize2,
-  GraduationCap
+  GraduationCap,
+  Camera,
+  Image as ImageIcon,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -38,7 +41,6 @@ function ViewerContent() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // High-Accuracy URL: Fallback to NCERT sample if signal is lost
   const url = searchParams.get('url') || 'https://ncert.nic.in/textbook/pdf/hemh101.pdf';
   
   const [theme, setTheme] = useState<ReaderTheme>('white');
@@ -47,10 +49,13 @@ function ViewerContent() {
   // Tutor Node State
   const [showTutor, setShowTutor] = useState(false);
   const [tutorQuery, setTutorQuery] = useState('');
+  const [tutorImage, setTutorImage] = useState<string | null>(null);
   const [tutorLoading, setTutorLoading] = useState(false);
   const [tutorResponse, setTutorResponse] = useState<AskHumanTutorOutput | null>(null);
   const [showAdInter, setShowAdInter] = useState(false);
   const [adCountdown, setAdCountdown] = useState(8);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
@@ -58,11 +63,25 @@ function ViewerContent() {
   const handlePageTurn = (direction: 'next' | 'prev') => {
     setIsPageTurning(true);
     setTimeout(() => setIsPageTurning(false), 500);
-    toast({ title: "SIGNAL SYNCED", description: `Navigating to ${direction} content node.` });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTutorImage(reader.result as string);
+        toast({ title: "IMAGE SIGNAL CAPTURED", description: "Tutor node ready for visual analysis." });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleTutorSubmit = () => {
-    if (!tutorQuery.trim()) return;
+    if (!tutorQuery.trim() && !tutorImage) {
+      toast({ variant: "destructive", title: "INPUT REQUIRED", description: "Please enter text or upload a photo." });
+      return;
+    }
     setShowAdInter(true);
     setAdCountdown(8);
     
@@ -84,6 +103,7 @@ function ViewerContent() {
     try {
       const res = await askHumanTutor({
         query: tutorQuery,
+        photoDataUri: tutorImage || undefined,
         context: `Student is reading: ${url}. Region: ${profile?.geo_region}`,
         preferredLanguage: profile?.preferredLanguage || 'en'
       });
@@ -100,7 +120,6 @@ function ViewerContent() {
       "min-h-screen transition-colors duration-500 flex flex-col",
       theme === 'white' ? "bg-[#f4f4f5]" : theme === 'sepia' ? "bg-[#f4ecd8]" : "bg-[#09090b]"
     )}>
-      {/* Immersive Navigation Header */}
       <header className="h-16 border-b border-black/5 bg-background/50 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-[100]">
          <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => router.back()} className="text-[10px] font-black uppercase text-muted-foreground hover:text-primary">
@@ -124,18 +143,15 @@ function ViewerContent() {
          </div>
       </header>
 
-      {/* Realistic Reading Canvas */}
       <main className="flex-1 flex items-center justify-center p-6 md:p-12 relative overflow-hidden">
          <div className={cn(
            "relative max-w-6xl w-full aspect-[1.4/1] shadow-[0_50px_100px_rgba(0,0,0,0.3)] rounded-lg transition-all duration-700",
            isPageTurning ? "scale-95 blur-sm" : "scale-100 blur-0",
            theme === 'dark' ? "border-white/5" : "border-white"
          )}>
-            {/* Central Book Binding Effect */}
             <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-20 bg-gradient-to-r from-transparent via-black/15 to-transparent z-20 pointer-events-none hidden md:block" />
             
             <div className="flex h-full w-full bg-white overflow-hidden rounded-lg border-8 border-white">
-               {/* Left Visual Buffer (Desktop Only) */}
                <div className={cn(
                  "flex-1 relative hidden md:block",
                  theme === 'white' ? "bg-white" : theme === 'sepia' ? "bg-[#fcf5e5]" : "bg-[#18181b]"
@@ -144,7 +160,6 @@ function ViewerContent() {
                   <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-black/10 to-transparent" />
                </div>
 
-               {/* Right Active Content (Original Signal) */}
                <div className={cn(
                  "flex-[1.5] relative transition-colors duration-500",
                  theme === 'white' ? "bg-white" : theme === 'sepia' ? "bg-[#fcf5e5]" : "bg-[#18181b]"
@@ -160,7 +175,6 @@ function ViewerContent() {
                </div>
             </div>
 
-            {/* Navigation Overlays */}
             <button onClick={() => handlePageTurn('prev')} className="absolute left-[-40px] top-1/2 -translate-y-1/2 h-32 w-12 bg-white/5 hover:bg-primary/20 rounded-full flex items-center justify-center transition-all group">
                <ChevronLeft className="h-10 w-10 text-muted-foreground group-hover:text-primary group-hover:scale-125" />
             </button>
@@ -170,7 +184,6 @@ function ViewerContent() {
          </div>
       </main>
 
-      {/* Advanced Floating Tactical Toolbar */}
       <div className="fixed bottom-12 inset-x-0 flex justify-center z-[150] px-4 pointer-events-none">
          <Card className="pointer-events-auto bg-black/90 backdrop-blur-2xl border-primary/40 border-2 rounded-full h-20 flex items-center px-10 gap-10 shadow-[0_30px_60px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom-8 duration-700">
             <button onClick={() => setShowTutor(true)} className="flex items-center gap-4 group text-primary hover:text-white transition-all">
@@ -179,7 +192,7 @@ function ViewerContent() {
                </div>
                <div className="text-left hidden sm:block">
                   <p className="text-[10px] font-black uppercase italic tracking-[0.2em] leading-none">Universal Tutor</p>
-                  <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1">High-Accuracy Formulas</p>
+                  <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1">High-Accuracy Analysis</p>
                </div>
             </button>
 
@@ -201,7 +214,6 @@ function ViewerContent() {
          </Card>
       </div>
 
-      {/* ADVANCED TUITION DIALOG */}
       <Dialog open={showTutor} onOpenChange={setShowTutor}>
         <DialogContent className="bg-[#0a0a0f] border-primary/30 text-white max-w-2xl rounded-[3rem] p-10 overflow-hidden shadow-2xl">
            <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
@@ -211,12 +223,12 @@ function ViewerContent() {
                  <GraduationCap className="h-10 w-10 text-primary animate-pulse" />
               </div>
               <DialogTitle className="text-4xl font-black uppercase italic tracking-tighter leading-none">Global <span className="text-primary">Tuition Node</span></DialogTitle>
-              <DialogDescription className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Professor Persona • All Subject Formulas • Multi-Lang</DialogDescription>
+              <DialogDescription className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Professor Persona • Visual Problem Solver</DialogDescription>
            </DialogHeader>
 
            <div className="space-y-8 py-8 relative z-10">
               {tutorResponse ? (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500 max-h-[400px] overflow-y-auto no-scrollbar">
                    <div className="p-8 bg-white/5 border border-white/10 rounded-3xl space-y-6">
                       <p className="text-base text-white font-medium leading-relaxed italic">"{tutorResponse.explanation}"</p>
                    </div>
@@ -225,7 +237,7 @@ function ViewerContent() {
                      <div className="space-y-6">
                         <div className="flex items-center gap-3">
                            <div className="h-1 w-12 bg-primary rounded-full" />
-                           <p className="text-[10px] font-black uppercase text-primary tracking-widest italic">Subject Logical Breakdown (Formulas)</p>
+                           <p className="text-[10px] font-black uppercase text-primary tracking-widest italic">Subject Logical Breakdown</p>
                         </div>
                         <div className="space-y-4">
                            {tutorResponse.steps.map((step, i) => (
@@ -237,41 +249,64 @@ function ViewerContent() {
                         </div>
                      </div>
                    )}
-                   <Button onClick={() => { setTutorResponse(null); setTutorQuery(''); }} className="w-full h-20 bg-white/5 border border-white/10 hover:bg-primary text-white font-black uppercase italic rounded-2xl text-lg transition-all">
+                   <Button onClick={() => { setTutorResponse(null); setTutorQuery(''); setTutorImage(null); }} className="w-full h-20 bg-white/5 border border-white/10 hover:bg-primary text-white font-black uppercase italic rounded-2xl text-lg transition-all">
                       NEW TUITION QUERY
                    </Button>
                 </div>
               ) : tutorLoading ? (
                 <div className="py-24 flex flex-col items-center gap-10">
                    <Loader2 className="h-20 w-20 animate-spin text-primary" />
-                   <p className="text-[12px] font-black uppercase italic text-muted-foreground tracking-[0.6em] animate-pulse">SENIOR PROFESSOR CALCULATING LOGIC...</p>
+                   <p className="text-[12px] font-black uppercase italic text-muted-foreground tracking-[0.6em] animate-pulse">DECRYPTING VISUAL LOGIC...</p>
                 </div>
               ) : (
                 <div className="space-y-6">
-                   <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Ask any academic problem (STEM / Arts / Language)</Label>
-                      <textarea 
-                        value={tutorQuery} 
-                        onChange={e => setTutorQuery(e.target.value)} 
-                        placeholder="E.G. EXPLAIN NEWTON'S 3RD LAW IN ODIA OR SOLVE (A+B)²..."
-                        className="w-full h-48 bg-black border-2 border-white/10 rounded-[2rem] p-8 font-bold text-lg text-white focus:border-primary/40 focus:ring-0 outline-none uppercase resize-none shadow-inner"
-                      />
+                   <div className="space-y-4">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2 italic tracking-widest">Ask any problem via text or photo</Label>
+                      
+                      <div className="relative">
+                        <textarea 
+                          value={tutorQuery} 
+                          onChange={e => setTutorQuery(e.target.value)} 
+                          placeholder="EXPLAIN THE PROBLEM OR FORMULA..."
+                          className="w-full h-40 bg-black border-2 border-white/10 rounded-[2rem] p-8 font-bold text-lg text-white focus:border-primary/40 focus:ring-0 outline-none uppercase resize-none shadow-inner"
+                        />
+                        
+                        {/* Image Upload Trigger */}
+                        <div className="absolute bottom-4 right-4 flex items-center gap-3">
+                           {tutorImage ? (
+                             <div className="relative group/img">
+                                <img src={tutorImage} className="h-16 w-16 object-cover rounded-xl border border-primary/40 shadow-xl" />
+                                <button onClick={() => setTutorImage(null)} className="absolute -top-2 -right-2 h-6 w-6 bg-red-600 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover/img:opacity-100 transition-opacity">
+                                   <X className="h-3 w-3" />
+                                </button>
+                             </div>
+                           ) : (
+                             <button 
+                              onClick={() => fileInputRef.current?.click()}
+                              className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-all shadow-xl"
+                             >
+                                <Camera className="h-6 w-6" />
+                             </button>
+                           )}
+                           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                        </div>
+                      </div>
                    </div>
+
                    <Button 
                     onClick={handleTutorSubmit} 
-                    disabled={!tutorQuery.trim()}
+                    disabled={!tutorQuery.trim() && !tutorImage}
                     className="w-full h-24 bg-primary hover:bg-primary/90 font-black text-2xl uppercase italic rounded-3xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 group"
                    >
                       <Zap className="mr-4 h-8 w-8 group-hover:fill-white" /> START TUITION SESSION (AD)
                    </Button>
-                   <p className="text-[9px] font-black text-center text-muted-foreground uppercase italic tracking-widest opacity-60">100% High-Accuracy Intelligence Node</p>
+                   <p className="text-[9px] font-black text-center text-muted-foreground uppercase italic tracking-widest opacity-60">100% High-Accuracy Visual Node Active</p>
                 </div>
               )}
            </div>
         </DialogContent>
       </Dialog>
 
-      {/* TUITION INTERSTITIAL */}
       {showAdInter && (
         <div className="fixed inset-0 z-[300] bg-black/98 flex items-center justify-center p-8 animate-in fade-in duration-500">
            <div className="max-w-md w-full text-center space-y-12">
@@ -284,7 +319,7 @@ function ViewerContent() {
               <div className="space-y-6">
                  <h3 className="text-4xl font-black uppercase italic tracking-tighter text-white leading-none">Verifying Tuition Signal...</h3>
                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                    Connecting to Senior Professor Network. High-accuracy response being decrypted via industrial signal.
+                    Connecting to Senior Professor Network. High-accuracy visual decryption active via industrial signal.
                  </p>
               </div>
 

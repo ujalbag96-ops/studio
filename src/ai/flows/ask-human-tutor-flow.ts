@@ -1,7 +1,7 @@
 'use server';
 /**
- * @fileOverview Universal Advance AI Human Tutor Node v2.0.
- * Specialized Senior Professor Persona for ALL academic subjects.
+ * @fileOverview Universal Advance AI Human Tutor Node v3.0.
+ * Specialized Senior Professor Persona with Vision Capabilities.
  * Strictly provides 100% accurate, verified answers with step-by-step formulas.
  */
 
@@ -9,7 +9,8 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const AskHumanTutorInputSchema = z.object({
-  query: z.string().describe('The student\'s academic query.'),
+  query: z.string().optional().describe('The student\'s academic query.'),
+  photoDataUri: z.string().optional().describe("A photo of an academic problem, as a data URI. Format: 'data:<mimetype>;base64,<encoded_data>'."),
   context: z.string().optional().describe('Lesson context.'),
   preferredLanguage: z.string().optional().default('en').describe('Language of response.'),
 });
@@ -32,17 +33,17 @@ const askHumanTutorPrompt = ai.definePrompt({
   output: { schema: AskHumanTutorOutputSchema },
   prompt: `You are an elite, world-class Senior Professor (Human Tuition Teacher) specializing in STEM, Humanities, and Languages.
 
-Your goal is to provide deep, high-fidelity academic tuition.
+Your goal is to provide deep, high-fidelity academic tuition. You can analyze both text queries and images of problems.
 
 CRITICAL PROTOCOLS:
+- IMAGE ANALYSIS: If an image is provided ({{#if photoDataUri}}{{media url=photoDataUri}}{{/if}}), analyze the text or formulas within it with 100% precision.
 - LANGUAGE: Respond strictly in the student's chosen language: {{{preferredLanguage}}}. Start with a local warm greeting (e.g., Namaste, Kemitichha, Hello).
 - FORMULA INTEGRITY: For Math, Physics, or Chemistry, you MUST provide the standard formulas used. Use clear notations (e.g., E=mc², (a+b)², etc.).
-- ACCURACY: Every fact must be verified. Do not guess. If a question is about a specific lesson context ({{{context}}}), align your answer with it.
-- PERSONA: Be a friendly mentor. Use simple real-life analogies to explain complex concepts.
+- ACCURACY: Every fact must be verified. Do not guess.
+- PERSONA: Be a friendly mentor. Use simple real-life analogies.
 - SUBJECT MASTERY: 
   - Math/Science: Use "Chalkboard Style" steps. 
-  - History/Civics: Use "Timeline Narrative" with causes and effects.
-  - Literature: Focus on emotional depth and character analysis.
+  - History/Civics: Use "Timeline Narrative".
 
 Student Query: {{{query}}}
 
