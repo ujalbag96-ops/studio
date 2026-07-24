@@ -1,12 +1,11 @@
 
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, increment, collection, getDoc, writeBatch, addDoc } from 'firebase/firestore';
-import { USER_REWARD_SHARE, ADMIN_PROFIT_MARGIN } from '@/lib/currency';
+import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Industrial CPA S2S Postback Node v2.0
- * Strictly enforces the 70% Profit Lock & Lifecycle Prompts.
+ * Industrial CPA S2S Postback Node v3.0
+ * Uses dynamic Admin-set rates & margins.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -24,20 +23,30 @@ export async function GET(request: Request) {
     
     const userRef = doc(firestore, 'users', userId);
     const statsRef = doc(firestore, 'platform_stats', 'revenue');
+    const settingsRef = doc(firestore, 'app_settings', 'global_config');
     const conversionRef = doc(collection(firestore, 'cpa_conversions'));
 
-    const userSnap = await getDoc(userRef);
+    const [userSnap, settingsSnap] = await Promise.all([
+      getDoc(userRef),
+      getDoc(settingsRef)
+    ]);
+
     if (!userSnap.exists()) {
       return NextResponse.json({ error: 'Identity Record Missing' }, { status: 404 });
     }
 
     const userData = userSnap.data();
+    const settings = settingsSnap.data();
 
-    // --- 70/30 PROFIT DISTRIBUTION ENGINE ---
-    const userShareUSD = rawRevenueUSD * USER_REWARD_SHARE; // 30% User Share
-    const adminProfitUSD = rawRevenueUSD * ADMIN_PROFIT_MARGIN; // 70% Admin Profit Locked
+    // --- DYNAMIC REVENUE SHARE ENGINE ---
+    const userSharePercent = settings?.cpaUserSharePercent || settings?.userRevenueSharePercent || 30;
+    const adminSharePercent = 100 - userSharePercent;
     
-    const rewardAmountCoins = Math.floor(userShareUSD * 1000); // Scale to coins (1000:1 USD)
+    const userShareUSD = rawRevenueUSD * (userSharePercent / 100); 
+    const adminProfitUSD = rawRevenueUSD * (adminSharePercent / 100); 
+    
+    const coinsPerUSD = settings?.coinsPerUSD || 1000;
+    const rewardAmountCoins = Math.floor(userShareUSD * coinsPerUSD);
 
     // 1. User Wallet Sync
     batch.update(userRef, {
@@ -45,14 +54,15 @@ export async function GET(request: Request) {
       coins: increment(rewardAmountCoins),
       cpaTasksCount: increment(1),
       tasksCompletedCount: increment(1),
-      pendingRevenueShare: increment(userShareUSD)
+      pendingRevenueShare: increment(userShareUSD),
+      totalRevenueGenerated: increment(rawRevenueUSD)
     });
 
-    // 2. Platform Revenue Registry (Admin Profit Focus)
+    // 2. Platform Revenue Registry
     batch.set(statsRef, {
       totalDailyRevenueUSD: increment(rawRevenueUSD),
       totalAdminProfitUSD: increment(adminProfitUSD),
-      totalDistributedToUsersUSD: increment(userShareUSD),
+      totalUserDividendUSD: increment(userShareUSD),
       lastUpdated: new Date().toISOString()
     }, { merge: true });
 
@@ -62,12 +72,12 @@ export async function GET(request: Request) {
       amount: rewardAmountCoins,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Verified Conversion: ${offerName}`,
-      profitSplit: '70/30 Lock',
+      description: `Verified CPA: ${offerName} (${userSharePercent}% Share)`,
+      profitSplit: `${adminSharePercent}/${userSharePercent} Lock`,
       userShareUSD: userShareUSD
     });
 
-    // 4. Live Tracking for Admin Dashboard
+    // 4. Live Tracking
     batch.set(conversionRef, {
       userId,
       userEmail: userData.email || 'Anonymous',
@@ -78,24 +88,13 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString()
     });
 
-    // 5. Post-Completion Lifecycle Prompt (Inbox)
-    const notifRef = doc(collection(firestore, 'notifications'));
-    batch.set(notifRef, {
-      userId: userId,
-      title: '✅ REWARD CLAIMED!',
-      body: `Success! ${rewardAmountCoins} coins added for "${offerName}". You can now safely uninstall the app to save storage.`,
-      timestamp: new Date().toISOString(),
-      type: 'system',
-      imageUrl: 'https://picsum.photos/seed/success/400/200'
-    });
-
     await batch.commit();
 
     return NextResponse.json({ 
       success: true, 
-      status: 'S2S_MARG_LOCKED',
+      status: 'S2S_DYNAMIC_LOCKED',
       userCredit: rewardAmountCoins,
-      lifecycle: 'UNINSTALL_PROMPT_SENT'
+      shareUsed: userSharePercent
     });
 
   } catch (error: any) {

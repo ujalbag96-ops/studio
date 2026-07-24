@@ -53,7 +53,9 @@ export interface AppSettings {
   reviewMode: boolean;
   autoWithdrawalEnabled: boolean;
   razorpayAutoPayout: boolean;
-  userRevenueSharePercent: number;
+  userRevenueSharePercent: number; // Global Fallback
+  cpaUserSharePercent?: number;    // Specific for CPA
+  videoUserSharePercent?: number;  // Specific for Videos
   broadcastMessage?: string;
   broadcastActive?: boolean;
   minAppVersion?: string;
@@ -79,12 +81,6 @@ export interface AppSettings {
   coinsPerUSD: number;
   cpaRewardMultiplier: number;
   videoRewardRateCoins: number;
-  rateHistory?: {
-    timestamp: string;
-    type: string;
-    oldValue: number;
-    newValue: number;
-  }[];
 }
 
 export interface PlatformRevenue {
@@ -130,4 +126,12 @@ export interface SystemNotification {
   imageUrl?: string;
   voucherCode?: string;
   localizedBody?: string;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  userId: string;
+  userEmail: string;
+  score: number;
+  lastUpdated: string;
 }
