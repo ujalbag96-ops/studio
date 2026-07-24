@@ -4,9 +4,13 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 import { USER_REWARD_SHARE, ADMIN_PROFIT_MARGIN } from '@/lib/currency';
 
+/**
+ * Industrial Skill Reward Gateway
+ * Manages the 70/30 Profit Lock for all activity-linked signals.
+ */
 export async function POST(request: Request) {
   try {
-    const { userId, reward } = await request.json();
+    const { userId, reward, type = 'skill_reward' } = await request.json();
 
     if (!userId || isNaN(reward)) {
       return NextResponse.json({ error: 'Invalid Signal' }, { status: 400 });
@@ -24,36 +28,34 @@ export async function POST(request: Request) {
     }
 
     // --- PROFIT LOCK ENGINE (70/30) ---
-    // If reward is 2 coins (~$0.002), it represents the 30% user share.
-    // Total Value = reward / 0.30
     const estimatedTotalValueUSD = (reward / 1000) / USER_REWARD_SHARE;
     const userShareUSD = estimatedTotalValueUSD * USER_REWARD_SHARE;
     const adminProfitUSD = estimatedTotalValueUSD * ADMIN_PROFIT_MARGIN;
 
-    // 1. Update User Balances
+    // 1. Real-time Wallet Update (Scholar Dividend)
     batch.update(userRef, {
-      bonusBalance: increment(reward),
+      taskBalance: increment(reward),
       coins: increment(reward),
       generalTasksCount: increment(1),
       pendingRevenueShare: increment(userShareUSD)
     });
 
-    // 2. Global Operational Stats (Profit Hub)
+    // 2. Platform Operational Stats (Admin Hub)
     batch.set(statsRef, {
-      totalDailyRevenueUSD: increment(estimatedTotalValueUSD),
+      totalOperationalRevenueUSD: increment(estimatedTotalValueUSD),
       totalAdminProfitUSD: increment(adminProfitUSD),
-      totalDistributedToUsersUSD: increment(userShareUSD),
+      totalUserDividendUSD: increment(userShareUSD),
       lastUpdated: new Date().toISOString()
     }, { merge: true });
 
-    // 3. Ledger Sync
+    // 3. Encrypted Ledger Entry
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
       type: 'skill_reward',
       amount: reward,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Bounty Unlock: Verified Signal`,
-      profitSplit: '70/30'
+      description: `Bounty Unlock: Verified Activity Signal`,
+      profitSplit: '70/30 Lock'
     });
 
     await batch.commit();
@@ -61,7 +63,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       credit: reward,
-      status: '70_PROFIT_LOCK'
+      status: 'SIGNAL_LOCKED_70_30'
     });
 
   } catch (error) {
