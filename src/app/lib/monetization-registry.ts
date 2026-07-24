@@ -25,7 +25,10 @@ import {
   ShieldCheck,
   MousePointer2,
   Terminal,
-  Gamepad2
+  Gamepad2,
+  Trophy,
+  MapPin,
+  UserCheck
 } from 'lucide-react';
 
 export type MonCategory = 'CPA' | 'Ads' | 'Surveys' | 'MicroTasks' | 'Fintech' | 'Gaming' | 'Premium';
@@ -151,5 +154,3 @@ export const MONETIZATION_REGISTRY: MonModule[] = [
   { id: 'fin_bridge', label: 'Bridge Node', provider: 'Cross-Chain', category: 'Fintech', visibilityKey: 'mon_bridge_active', icon: Share2, eCPMTier: 'Standard' },
   { id: 'fin_nexus', label: 'Nexus Profit', provider: 'Global Node', category: 'Fintech', visibilityKey: 'mon_nexus_active', icon: Activity, eCPMTier: 'High' },
 ];
-
-import { MapPin, UserCheck } from 'lucide-react';
