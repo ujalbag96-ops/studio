@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
@@ -21,16 +22,17 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { UserProfile, BookMetadata, LanguageCode } from '@/app/lib/types';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { fetchCollegeBooks } from '@/services/libraryApi';
 
 const INTERNAL_DATABASE: BookMetadata[] = [
-  { id: 'ncert-math-10', title: 'Mathematics (NCERT)', class: 'Class 10', subject: 'Math', source: 'NCERT', lang: 'en', chapters: 15, coverUrl: 'https://picsum.photos/seed/math10/200/300' },
+  { id: 'https://ncert.nic.in/textbook/pdf/hemh101.pdf', title: 'Mathematics (NCERT)', class: 'Class 10', subject: 'Math', source: 'NCERT', lang: 'en', chapters: 15, coverUrl: 'https://picsum.photos/seed/math10/200/300' },
+  { id: 'https://ncert.nic.in/textbook/pdf/hesc101.pdf', title: 'Science (NCERT)', class: 'Class 10', subject: 'Science', source: 'NCERT', lang: 'en', chapters: 12, coverUrl: 'https://picsum.photos/seed/sci10/200/300' },
+  { id: 'https://ncert.nic.in/textbook/pdf/hime101.pdf', title: 'History: India & World', class: 'Class 10', subject: 'Social', source: 'NCERT', lang: 'en', chapters: 8, coverUrl: 'https://picsum.photos/seed/hist10/200/300' },
   { id: 'osepa-odia-10', title: 'ସାହିତ୍ୟ ସିନ୍ଧୁ (Odia)', class: 'Class 10', subject: 'Language', source: 'OdiaMedium', lang: 'or', chapters: 14, coverUrl: 'https://picsum.photos/seed/odia10/200/300' },
-  { id: 'ncert-sci-9', title: 'Science Class 9', class: 'Class 9', subject: 'Science', source: 'NCERT', lang: 'en', chapters: 12, coverUrl: 'https://picsum.photos/seed/sci9/200/300' },
-  { id: 'ncert-math-hi-10', title: 'गणित Class 10', class: 'Class 10', subject: 'Math', source: 'NCERT', lang: 'hi', chapters: 15, coverUrl: 'https://picsum.photos/seed/mathhi10/200/300' }
+  { id: 'https://ncert.nic.in/textbook/pdf/jhmh101.pdf', title: 'गणित Class 10', class: 'Class 10', subject: 'Math', source: 'NCERT', lang: 'hi', chapters: 15, coverUrl: 'https://picsum.photos/seed/mathhi10/200/300' },
+  { id: 'https://ncert.nic.in/textbook/pdf/jhsc101.pdf', title: 'विज्ञान Class 10', class: 'Class 10', subject: 'Science', source: 'NCERT', lang: 'hi', chapters: 12, coverUrl: 'https://picsum.photos/seed/scihi10/200/300' }
 ];
 
 const LANGUAGES = [
@@ -55,18 +57,15 @@ export default function CampusHomeScreen() {
 
   useEffect(() => {
     async function fetchVaultData() {
-      if (!profile) return;
       setLoading(true);
 
-      // Handle External API for OpenLibrary
       if (eduSource === 'OpenLibrary') {
-         const externalBooks = await fetchCollegeBooks(searchTerm || "mathematics");
+         const externalBooks = await fetchCollegeBooks(searchTerm || "curriculum");
          setBooks(externalBooks as BookMetadata[]);
          setLoading(false);
          return;
       }
 
-      // Handle Internal Database
       try {
         let filtered = [...INTERNAL_DATABASE];
         if (eduSource !== 'all') {
@@ -83,7 +82,7 @@ export default function CampusHomeScreen() {
       }
     }
     fetchVaultData();
-  }, [profile, language, eduSource, searchTerm]);
+  }, [language, eduSource, searchTerm]);
 
   const updateLanguage = async (lang: string) => {
     setLanguage(lang);

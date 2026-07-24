@@ -1,6 +1,6 @@
-
 'use client';
 
+import React, { useState } from 'react';
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
@@ -18,7 +18,6 @@ import {
   Trophy
 } from 'lucide-react';
 import { UserProfile, AppSettings } from '@/app/lib/types';
-import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import OfferWall from '@/components/OfferWall';
