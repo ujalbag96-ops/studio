@@ -20,7 +20,8 @@ import {
   User,
   Globe2,
   Sparkles,
-  MapPin
+  MapPin,
+  Book
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -88,7 +89,7 @@ export default function CampusHomeScreen() {
         const res = await fetch(`/api/curriculum?region=${profile.geo_region || 'Global'}&lang=${language}${sourceQuery}`);
         const data = await res.json();
         
-        if (data.success) {
+        if (data.success && data.books) {
            setBooks(data.books);
         } else {
            setBooks(FALLBACK_DATABASE);
@@ -110,6 +111,7 @@ export default function CampusHomeScreen() {
   };
 
   const filteredBooks = useMemo(() => {
+    if (!books) return [];
     let list = [...books];
     if (searchTerm) {
       const query = searchTerm.toLowerCase();
@@ -202,40 +204,47 @@ export default function CampusHomeScreen() {
               </div>
            </div>
            
-           <div className="grid gap-6">
-             {filteredBooks.map((book) => (
-               <Link key={book.id} href={`/campus/viewer?url=${encodeURIComponent(book.id.includes('http') ? book.id : `https://ncert.nic.in/textbook/pdf/hemh101.pdf`)}`} className="group">
-                 <Card className="p-8 bg-[#0a0a0f] border-white/5 hover:border-primary/30 transition-all rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-8 group shadow-2xl relative overflow-hidden">
-                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="flex items-center gap-8 relative z-10">
-                       <div className="h-24 w-20 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-primary shadow-xl group-hover:scale-110 transition-transform overflow-hidden">
-                          {book.coverUrl ? (
-                            <img src={book.coverUrl} className="w-full h-full object-cover" alt="Cover" />
-                          ) : (
-                            <BookOpen className="h-8 w-8" />
-                          )}
-                       </div>
-                       <div className="space-y-1 text-left">
-                          <div className="flex items-center gap-3 mb-1">
-                             {book.lang === profile?.preferredLanguage && <Badge className="bg-green-500/20 text-green-500 text-[7px] font-black uppercase italic">Recommended for You</Badge>}
-                             <Badge variant="outline" className="border-primary/20 text-primary text-[7px] font-black uppercase px-2">{book.source}</Badge>
-                          </div>
-                          <h4 className="text-3xl font-black uppercase italic tracking-tighter text-white group-hover:text-primary transition-colors">{book.title}</h4>
-                          <div className="flex items-center gap-4 text-muted-foreground">
-                             <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5"><User className="h-3 w-3" /> {book.class} • {book.subject}</p>
-                          </div>
-                       </div>
-                    </div>
-                    <div className="flex items-center gap-6 relative z-10">
-                       <Badge variant="outline" className="border-white/10 text-[9px] font-bold uppercase py-1.5 px-6 italic text-white group-hover:bg-primary group-hover:text-black transition-all">READ LESSON</Badge>
-                       <div className="h-14 w-14 rounded-2xl bg-white/[0.05] flex items-center justify-center border border-white/10 opacity-0 group-hover:opacity-100 transition-all">
-                          <ChevronRight className="h-6 w-6 text-primary" />
-                       </div>
-                    </div>
-                 </Card>
-               </Link>
-             ))}
-           </div>
+           {filteredBooks.length > 0 ? (
+             <div className="grid gap-6">
+               {filteredBooks.map((book) => (
+                 <Link key={book.id} href={`/campus/viewer?url=${encodeURIComponent(book.id.includes('http') ? book.id : `https://ncert.nic.in/textbook/pdf/hemh101.pdf`)}`} className="group">
+                   <Card className="p-8 bg-[#0a0a0f] border-white/5 hover:border-primary/30 transition-all rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-8 group shadow-2xl relative overflow-hidden">
+                      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="flex items-center gap-8 relative z-10">
+                         <div className="h-24 w-20 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-primary shadow-xl group-hover:scale-110 transition-transform overflow-hidden">
+                            {book.coverUrl ? (
+                              <img src={book.coverUrl} className="w-full h-full object-cover" alt="Cover" />
+                            ) : (
+                              <BookOpen className="h-8 w-8" />
+                            )}
+                         </div>
+                         <div className="space-y-1 text-left">
+                            <div className="flex items-center gap-3 mb-1">
+                               {book.lang === profile?.preferredLanguage && <Badge className="bg-green-500/20 text-green-500 text-[7px] font-black uppercase italic">Recommended for You</Badge>}
+                               <Badge variant="outline" className="border-primary/20 text-primary text-[7px] font-black uppercase px-2">{book.source}</Badge>
+                            </div>
+                            <h4 className="text-3xl font-black uppercase italic tracking-tighter text-white group-hover:text-primary transition-colors">{book.title}</h4>
+                            <div className="flex items-center gap-4 text-muted-foreground">
+                               <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5"><User className="h-3 w-3" /> {book.class} • {book.subject}</p>
+                            </div>
+                         </div>
+                      </div>
+                      <div className="flex items-center gap-6 relative z-10">
+                         <Badge variant="outline" className="border-white/10 text-[9px] font-bold uppercase py-1.5 px-6 italic text-white group-hover:bg-primary group-hover:text-black transition-all">READ LESSON</Badge>
+                         <div className="h-14 w-14 rounded-2xl bg-white/[0.05] flex items-center justify-center border border-white/10 opacity-0 group-hover:opacity-100 transition-all">
+                            <ChevronRight className="h-6 w-6 text-primary" />
+                         </div>
+                      </div>
+                   </Card>
+                 </Link>
+               ))}
+             </div>
+           ) : (
+             <div className="py-40 text-center border-2 border-dashed border-white/10 rounded-[3rem] space-y-4">
+                <BookOpen className="h-16 w-16 text-muted-foreground opacity-20 mx-auto" />
+                <p className="text-xs font-black uppercase text-muted-foreground tracking-widest italic">No matching scholarly nodes detected.</p>
+             </div>
+           )}
         </div>
       )}
     </div>

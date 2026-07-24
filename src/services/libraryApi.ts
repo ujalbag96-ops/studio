@@ -11,6 +11,12 @@ export async function fetchCollegeBooks(query = "college textbooks") {
     const data = await response.json();
     
     // Map the results for the Global Vault UI grid
+    // Safety check to prevent "slice of undefined" error
+    if (!data || !data.docs) {
+      console.warn("OpenLibrary Signal: No documents found in response.");
+      return [];
+    }
+
     return data.docs.slice(0, 20).map((book: any) => ({
       id: book.key.replace('/works/', ''),
       title: book.title,
