@@ -43,6 +43,8 @@ export interface UserProfile {
   deviceId?: string;
   lastIp?: string;
   emailVerified?: boolean;
+  referralCommissionBalance?: number;
+  mlmLevel?: number;
 }
 
 export interface AppSettings {
@@ -61,6 +63,18 @@ export interface AppSettings {
   bookApiCategory?: string;
   node_book_api_active?: boolean;
   node_book_download?: boolean;
+  
+  // --- DYNAMIC CURRENCY & ECONOMY ---
+  coinsPerINR: number;
+  coinsPerUSD: number;
+  cpaRewardMultiplier: number;
+  videoRewardRateCoins: number;
+  rateHistory?: {
+    timestamp: string;
+    type: string;
+    oldValue: number;
+    newValue: number;
+  }[];
 }
 
 export interface PlatformRevenue {
@@ -68,6 +82,8 @@ export interface PlatformRevenue {
   totalAdminProfitUSD: number;
   totalUserDividendUSD: number;
   lastUpdated: string;
+  totalOperationalRevenueUSD?: number;
+  totalDistributedToUsersUSD?: number;
 }
 
 export interface UserLedgerEntry {
@@ -78,6 +94,9 @@ export interface UserLedgerEntry {
   status: 'pending' | 'completed' | 'failed';
   description?: string;
   currencySymbol?: string;
+  usdValue?: number;
+  profitSplit?: string;
+  userShareUSD?: number;
 }
 
 export interface PayoutRequest {
@@ -91,4 +110,85 @@ export interface PayoutRequest {
   status: 'pending' | 'completed' | 'failed';
   timestamp: string;
   geo?: string;
+  vipLevel?: number | string;
+}
+
+export interface CricketMatch {
+  id: string;
+  teamA: string;
+  teamB: string;
+  teamALogo: string;
+  teamBLogo: string;
+  startTime: string;
+  status: 'live' | 'upcoming' | 'completed';
+  series: string;
+  liveScore?: {
+    runsA: string;
+    runsB: string;
+    overs: string;
+    target?: string;
+    lastBalls?: string[];
+  };
+  winner?: string;
+}
+
+export interface Movie {
+  id: string;
+  title: string;
+  poster: string;
+  videoUrl: string;
+  category: string;
+  createdAt: string;
+}
+
+export interface MarketAsset {
+  id: string;
+  title: string;
+  category: string;
+  price: number;
+  authorId: string;
+  authorName: string;
+  downloads: number;
+  timestamp: string;
+}
+
+export interface StudyBuddySession {
+  id: string;
+  topic: string;
+  studentId: string;
+  studentEmail: string;
+  teacherId: string | null;
+  status: 'searching' | 'active' | 'completed';
+  timestamp: string;
+}
+
+export interface BookMetadata {
+  id: string;
+  title: string;
+  class: string;
+  subject: string;
+  source: string;
+  lang: string;
+  chapters: number;
+  coverUrl: string | null;
+}
+
+export interface SystemNotification {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  timestamp: string;
+  type: 'system' | 'payout' | 'promotion';
+  imageUrl?: string;
+  voucherCode?: string;
+  localizedBody?: string;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  userId: string;
+  userEmail: string;
+  score: number;
+  lastUpdated: string;
 }

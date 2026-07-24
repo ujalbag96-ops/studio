@@ -4,8 +4,8 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Industrial Revenue Share Gateway v2.0
- * Strictly enforces the 80/20 Profit Lock.
+ * Industrial Revenue Share Gateway v3.0
+ * Uses dynamic Admin-set rates & margins.
  */
 export async function POST(request: Request) {
   try {
@@ -32,17 +32,17 @@ export async function POST(request: Request) {
     }
 
     const settings = settingsSnap.data();
-    const userSharePercent = settings?.userRevenueSharePercent || 20; // Default 20%
+    const userSharePercent = settings?.userRevenueSharePercent || 20; 
     const adminSharePercent = 100 - userSharePercent;
+    const coinsPerUSD = settings?.coinsPerUSD || 1000;
 
     // --- REVENUE CALCULATION ENGINE ---
-    // Mapping coins back to approximate USD value for analytics
-    // In a real build, this would come from the Ad Network S2S payload
-    const estimatedTotalValueUSD = (reward / 1000) / (userSharePercent / 100);
+    // Mapping reward (coins) to USD based on dynamic coinsPerUSD setting
+    const estimatedTotalValueUSD = (reward / coinsPerUSD) / (userSharePercent / 100);
     const userShareUSD = estimatedTotalValueUSD * (userSharePercent / 100);
     const adminProfitUSD = estimatedTotalValueUSD * (adminSharePercent / 100);
 
-    // 1. User Wallet Sync (Coins + Revenue Share Analytics)
+    // 1. User Wallet Sync
     batch.update(userRef, {
       taskBalance: increment(reward),
       coins: increment(reward),

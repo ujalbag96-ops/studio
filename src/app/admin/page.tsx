@@ -2,11 +2,12 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection, query, orderBy, limit, writeBatch, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, orderBy, limit, arrayUnion } from 'firebase/firestore';
 import { 
   Loader2, Zap, Settings, Book, Database, RefreshCw, LayoutGrid, DollarSign, Wallet, 
   History, Globe, Info, Ban, Megaphone, Fingerprint, Activity, ClipboardCheck, 
-  Smartphone, Target, ShieldCheck, CheckCircle2, PieChart, BarChart3, TrendingUp
+  Smartphone, Target, ShieldCheck, CheckCircle2, PieChart, BarChart3, TrendingUp,
+  Coins, ArrowRightLeft, Percent, Calculator, ListTodo
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,20 +19,18 @@ import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { AppSettings, PayoutRequest, CpaConversion, PlatformRevenue } from '../lib/types';
+import { AppSettings, PayoutRequest, PlatformRevenue } from '../lib/types';
 import { MODULE_REGISTRY, ModuleCategory } from '../lib/module-registry';
-import { MONETIZATION_REGISTRY, MonCategory } from '../lib/monetization-registry';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 const APP_CATEGORIES: ModuleCategory[] = ['Learning', 'Skills', 'Earning', 'Productivity', 'System'];
-const MON_CATEGORIES: MonCategory[] = ['CPA', 'Ads', 'Surveys', 'MicroTasks', 'Fintech'];
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'visibility' | 'monetization' | 'revenue' | 'ops' | 'payouts' | 'book-api' | 'leads'>('visibility');
+  const [activeTab, setActiveTab] = useState<'visibility' | 'monetization' | 'revenue' | 'currency' | 'payouts' | 'leads'>('visibility');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -48,7 +47,16 @@ export default function AdminDashboard() {
     if (!settingsRef) return;
     setIsProcessing(key);
     try {
-      await updateDoc(settingsRef, { [key]: value });
+      const oldVal = (settings as any)?.[key];
+      await updateDoc(settingsRef, { 
+        [key]: value,
+        rateHistory: arrayUnion({
+          timestamp: new Date().toISOString(),
+          type: key,
+          oldValue: oldVal ?? 0,
+          newValue: value
+        })
+      });
       toast({ title: "SIGNAL SYNCED", description: `${key.toUpperCase()} updated.` });
     } catch (e) {
       toast({ variant: "destructive", title: "SYNC FAILED" });
@@ -67,62 +75,122 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <div>
                <p className="text-sm font-black uppercase italic leading-none">Admin <span className="text-primary">Hub</span></p>
-               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1">Revenue Manager v130.0</p>
+               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1">Economy Manager v140.0</p>
             </div>
          </div>
          <div className="flex items-center gap-4">
-            <Badge className="bg-green-600/20 text-green-500 border-none text-[8px] font-black uppercase px-3 italic">Profit Lock Active</Badge>
+            <Badge className="bg-green-600/20 text-green-500 border-none text-[8px] font-black uppercase px-3 italic">Economy Live</Badge>
          </div>
       </header>
 
       <main className="pt-28 px-4 md:px-6 space-y-10 max-w-6xl mx-auto">
          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
             <NavPill active={activeTab === 'visibility'} label="Modules" icon={<LayoutGrid className="h-3 w-3" />} onClick={() => setActiveTab('visibility')} />
+            <NavPill active={activeTab === 'currency'} label="Economy" icon={<ArrowRightLeft className="h-3 w-3" />} onClick={() => setActiveTab('currency')} />
             <NavPill active={activeTab === 'revenue'} label="Revenue" icon={<DollarSign className="h-3 w-3" />} onClick={() => setActiveTab('revenue')} />
-            <NavPill active={activeTab === 'monetization'} label="Earnings" icon={<Zap className="h-3 w-3" />} onClick={() => setActiveTab('monetization')} />
-            <NavPill active={activeTab === 'leads'} label="Live Leads" icon={<ClipboardCheck className="h-3 w-3" />} onClick={() => setActiveTab('leads')} />
-            <NavPill active={activeTab === 'book-api'} label="Book API" icon={<Book className="h-3 w-3" />} onClick={() => setActiveTab('book-api')} />
             <NavPill active={activeTab === 'payouts'} label="Payouts" icon={<Wallet className="h-3 w-3" />} onClick={() => setActiveTab('payouts')} />
          </div>
+
+         {activeTab === 'currency' && (
+           <div className="space-y-8 animate-in fade-in duration-500">
+              <div className="space-y-2">
+                 <h2 className="text-4xl font-black uppercase italic tracking-tighter">Currency <span className="text-primary">Terminal</span></h2>
+                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Dynamic Coin-to-Cash Calibration</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-8 shadow-2xl border-2">
+                    <h3 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
+                       <Calculator className="h-5 w-5 text-primary" /> Exchange Rates
+                    </h3>
+                    <div className="space-y-6">
+                       <div className="space-y-3">
+                          <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Coins Per 1 INR (₹)</Label>
+                          <Input 
+                            type="number" 
+                            defaultValue={settings?.coinsPerINR || 100} 
+                            onBlur={(e) => updateSetting('coinsPerINR', parseInt(e.target.value))}
+                            className="h-14 bg-black border-white/10 rounded-xl font-black text-2xl text-primary text-center" 
+                          />
+                          <p className="text-[8px] font-bold text-muted-foreground uppercase text-center italic">"Default: 100 Coins = ₹1"</p>
+                       </div>
+                       <div className="space-y-3">
+                          <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Coins Per 1 USD ($)</Label>
+                          <Input 
+                            type="number" 
+                            defaultValue={settings?.coinsPerUSD || 1000} 
+                            onBlur={(e) => updateSetting('coinsPerUSD', parseInt(e.target.value))}
+                            className="h-14 bg-black border-white/10 rounded-xl font-black text-2xl text-white text-center" 
+                          />
+                          <p className="text-[8px] font-bold text-muted-foreground uppercase text-center italic">"Default: 1000 Coins = $1"</p>
+                       </div>
+                    </div>
+                 </Card>
+
+                 <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-8 shadow-2xl border-2">
+                    <h3 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
+                       <Percent className="h-5 w-5 text-amber-500" /> Profit Margins
+                    </h3>
+                    <div className="space-y-6">
+                       <div className="space-y-3">
+                          <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">User Revenue Share (%)</Label>
+                          <Input 
+                            type="number" 
+                            defaultValue={settings?.userRevenueSharePercent || 20} 
+                            onBlur={(e) => updateSetting('userRevenueSharePercent', parseInt(e.target.value))}
+                            className="h-14 bg-black border-white/10 rounded-xl font-black text-2xl text-amber-500 text-center" 
+                          />
+                       </div>
+                       <div className="space-y-3">
+                          <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">CPA Reward Multiplier</Label>
+                          <Input 
+                            type="number" 
+                            step="0.1"
+                            defaultValue={settings?.cpaRewardMultiplier || 1.0} 
+                            onBlur={(e) => updateSetting('cpaRewardMultiplier', parseFloat(e.target.value))}
+                            className="h-14 bg-black border-white/10 rounded-xl font-black text-2xl text-white text-center" 
+                          />
+                       </div>
+                    </div>
+                 </Card>
+              </div>
+
+              <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                 <div className="bg-white/5 p-6 border-b border-white/5">
+                    <h4 className="text-[10px] font-black uppercase italic flex items-center gap-2">
+                       <History className="h-4 w-4 text-muted-foreground" /> Rate Audit History
+                    </h4>
+                 </div>
+                 <div className="divide-y divide-white/5 max-h-[300px] overflow-y-auto">
+                    {settings?.rateHistory?.slice().reverse().map((log, i) => (
+                      <div key={i} className="p-4 flex items-center justify-between">
+                         <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase text-white">{log.type.replace(/([A-Z])/g, ' $1')}</p>
+                            <p className="text-[8px] font-bold text-muted-foreground uppercase">{new Date(log.timestamp).toLocaleString()}</p>
+                         </div>
+                         <div className="flex items-center gap-4">
+                            <span className="text-[9px] font-bold text-muted-foreground line-through">{log.oldValue}</span>
+                            <span className="text-sm font-black text-primary italic">{log.newValue}</span>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+              </Card>
+           </div>
+         )}
 
          {activeTab === 'revenue' && (
             <div className="space-y-8 animate-in fade-in duration-500">
                <div className="space-y-2">
                   <h2 className="text-4xl font-black uppercase italic tracking-tighter">Profit <span className="text-primary">Analytics</span></h2>
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">80/20 Global Revenue Share Model</p>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Global Revenue Share Model</p>
                </div>
 
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <AnalyticsCard label="Total Ad Revenue" value={`$${(stats?.totalDailyRevenueUSD || 0).toFixed(2)}`} icon={<BarChart3 />} color="text-white" />
-                  <AnalyticsCard label="Admin Profit (80%)" value={`$${(stats?.totalAdminProfitUSD || 0).toFixed(2)}`} icon={<ShieldCheck />} color="text-primary" />
-                  <AnalyticsCard label="User Dividend (20%)" value={`$${(stats?.totalUserDividendUSD || 0).toFixed(2)}`} icon={<TrendingUp />} color="text-green-500" />
+                  <AnalyticsCard label="Admin Profit" value={`$${(stats?.totalAdminProfitUSD || 0).toFixed(2)}`} icon={<ShieldCheck />} color="text-primary" />
+                  <AnalyticsCard label="User Dividend" value={`$${(stats?.totalUserDividendUSD || 0).toFixed(2)}`} icon={<TrendingUp />} color="text-green-500" />
                </div>
-
-               <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6">
-                  <div className="flex items-center justify-between">
-                     <h3 className="text-xl font-black uppercase italic text-white flex items-center gap-3">
-                        <Settings className="h-5 w-5 text-primary" /> Model Configuration
-                     </h3>
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-8">
-                     <div className="space-y-3">
-                        <Label className="text-[9px] font-black uppercase text-muted-foreground">User Revenue Share (%)</Label>
-                        <div className="flex gap-4">
-                           <Input 
-                            type="number" 
-                            defaultValue={settings?.userRevenueSharePercent || 20} 
-                            onBlur={(e) => updateSetting('userRevenueSharePercent', parseInt(e.target.value))}
-                            className="h-14 bg-black border-white/10 rounded-xl font-black text-xl text-primary text-center w-32" 
-                           />
-                           <div className="flex-1 p-4 bg-white/5 rounded-xl border border-white/5 flex items-center">
-                              <p className="text-[8px] font-bold text-muted-foreground uppercase leading-tight italic">
-                                 "Changing this signal updates the split for all future impressions instantly."
-                              </p>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-               </Card>
             </div>
          )}
 
@@ -130,7 +198,7 @@ export default function AdminDashboard() {
            <div className="space-y-8 animate-in fade-in duration-500">
               <div className="space-y-2">
                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">Feature <span className="text-primary">Controller</span></h2>
-                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">50+ Modular Learning & Earning Nodes</p>
+                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Modular Node Management</p>
               </div>
               <Tabs defaultValue="Learning" className="w-full">
                  <TabsList className="w-full h-14 bg-white/5 p-1 rounded-2xl border border-white/10 flex overflow-x-auto no-scrollbar">
@@ -163,8 +231,6 @@ export default function AdminDashboard() {
               </Tabs>
            </div>
          )}
-
-         {/* Other tabs OMITTED for brevity but maintained in codebase */}
       </main>
     </div>
   );

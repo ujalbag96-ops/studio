@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
-import { UserProfile, PlatformRevenue } from '@/app/lib/types';
+import { UserProfile, PlatformRevenue, AppSettings } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/currency';
@@ -28,7 +28,10 @@ export default function UserDashboard() {
   const router = useRouter();
   
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
+  
   const { data: profile } = useDoc<UserProfile>(userRef);
+  const { data: settings } = useDoc<AppSettings>(settingsRef);
   
   const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'platform_stats', 'revenue') : null, [firestore]);
   const { data: stats } = useDoc<PlatformRevenue>(statsRef);
@@ -70,7 +73,7 @@ export default function UserDashboard() {
                </Badge>
             </div>
             <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter italic leading-[0.85]">
-               Wallet <br /> <span className="text-primary">{formatCurrency((profile?.winningBalance || 0) + (profile?.taskBalance || 0), profile?.country)}</span>
+               Wallet <br /> <span className="text-primary">{formatCurrency((profile?.winningBalance || 0) + (profile?.taskBalance || 0), profile?.country, settings)}</span>
             </h1>
           </div>
           <div className="bg-white/[0.03] border border-white/10 px-8 py-5 rounded-3xl backdrop-blur-2xl shadow-xl">
@@ -88,7 +91,7 @@ export default function UserDashboard() {
               <h3 className="text-xl font-black uppercase flex items-center gap-4 italic tracking-tight">
                  <DollarSign className="h-5 w-5 text-green-500" /> Revenue Sharing Node
               </h3>
-              <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase">80/20 Industrial Split</Badge>
+              <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase">{settings?.userRevenueSharePercent || 20}% Industrial Split</Badge>
            </div>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] space-y-4 shadow-xl border-2">
@@ -101,7 +104,7 @@ export default function UserDashboard() {
               <Card className="bg-[#0a0a0f] border-primary/20 p-8 rounded-[2rem] space-y-4 shadow-xl border-2">
                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><PieChart className="h-5 w-5" /></div>
                  <div>
-                    <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-1 italic">Your 20% Share (USD)</p>
+                    <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-1 italic">Your {settings?.userRevenueSharePercent || 20}% Share (USD)</p>
                     <h4 className="text-3xl font-black text-primary italic">${profile?.pendingRevenueShare?.toFixed(2) || '0.00'}</h4>
                  </div>
               </Card>
@@ -116,10 +119,10 @@ export default function UserDashboard() {
         <section className="space-y-6">
            <h3 className="text-xl font-black uppercase flex items-center gap-4 italic tracking-tight"><LineChart className="h-5 w-5 text-primary" /> Asset Breakdown</h3>
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <CompactWalletRow label="Winning Balance" value={profile?.winningBalance || 0} country={profile?.country} icon={<Trophy />} color="green" />
-              <CompactWalletRow label="Mission Yield" value={profile?.taskBalance || 0} country={profile?.country} icon={<CreditCard />} color="blue" />
-              <CompactWalletRow label="Total Coins" value={profile?.coins || 0} country={profile?.country} icon={<Coins />} color="amber" />
-              <CompactWalletRow label="Scholar Mastery" value={profile?.scholarPoints || 0} country={profile?.country} icon={<Star />} color="primary" />
+              <CompactWalletRow label="Winning Balance" value={profile?.winningBalance || 0} country={profile?.country} settings={settings} icon={<Trophy />} color="green" />
+              <CompactWalletRow label="Mission Yield" value={profile?.taskBalance || 0} country={profile?.country} settings={settings} icon={<CreditCard />} color="blue" />
+              <CompactWalletRow label="Total Coins" value={profile?.coins || 0} country={profile?.country} settings={settings} icon={<Coins />} color="amber" />
+              <CompactWalletRow label="Scholar Mastery" value={profile?.scholarPoints || 0} country={profile?.country} settings={settings} icon={<Star />} color="primary" />
            </div>
         </section>
 
@@ -151,7 +154,7 @@ export default function UserDashboard() {
   );
 }
 
-function CompactWalletRow({ label, value, country, icon, color }: any) {
+function CompactWalletRow({ label, value, country, settings, icon, color }: any) {
   const colors = { 
     blue: "border-blue-500/20 text-blue-400 bg-blue-500/5", 
     amber: "border-amber-500/20 text-amber-500 bg-amber-500/20", 
@@ -164,7 +167,7 @@ function CompactWalletRow({ label, value, country, icon, color }: any) {
           <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center border shadow-xl", colors[color as keyof typeof colors])}>{icon}</div>
           <div>
              <p className="text-[8px] font-black uppercase opacity-60 tracking-widest mb-1 italic">{label}</p>
-             <h4 className="text-2xl font-black text-white italic tabular-nums tracking-tight">{formatCurrency(value, country)}</h4>
+             <h4 className="text-2xl font-black text-white italic tabular-nums tracking-tight">{formatCurrency(value, country, settings)}</h4>
           </div>
        </div>
     </Card>
