@@ -18,7 +18,7 @@ import { Loader2, ShieldCheck, Eye, EyeOff, Mail, Hash, ShieldAlert, Zap, Shield
 import { useToast } from '@/hooks/use-toast';
 import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 import { cn } from '@/lib/utils';
-import { UserIntent } from '../lib/types';
+import { UserIntent, LanguageCode } from '../lib/types';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -37,7 +37,6 @@ function LoginContent() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
-  const [showLegalModal, setShowLegalModal] = useState(false);
   
   const [intent, setIntent] = useState<UserIntent>('student');
   const [agreedToAds, setAgreedToAds] = useState(false);
@@ -57,13 +56,14 @@ function LoginContent() {
 
       let ipData = { ip: 'Unknown', country: 'Global', region: 'Unknown', city: 'Unknown', proxy: false, geo_region: 'Global' };
       try {
+         // Industrial Geo-Detection Signal
          const res = await fetch('https://ipapi.co/json/');
          const data = await res.json();
          const isVpnDetected = data.security?.vpn || data.security?.proxy || data.org?.toLowerCase().includes('vpn') || data.org?.toLowerCase().includes('proxy');
          ipData = { 
            ip: data.ip, 
            country: data.country_name,
-           region: data.region,
+           region: data.region, // Expected: 'Odisha', 'Delhi', etc.
            city: data.city,
            proxy: isVpnDetected || false,
            geo_region: data.country_name === 'India' ? 'India' : 'Global'
@@ -91,6 +91,10 @@ function LoginContent() {
 
         const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         
+        // --- ODISHA AUTO-CALIBRATION LOGIC ---
+        const isOdisha = ipData.region.toLowerCase() === 'odisha';
+        const defaultLang: LanguageCode = isOdisha ? 'or' : 'en';
+
         await setDoc(userDocRef, {
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
@@ -109,12 +113,18 @@ function LoginContent() {
           cpaTasksCount: 0,
           generalTasksCount: 0,
           totalReferrals: 0,
+          scholarPoints: 0,
+          preferredLanguage: defaultLang,
           joinedAt: new Date().toISOString(),
           country: ipData.country,
-          geo_region: ipData.geo_region,
+          geo_region: ipData.region, // Store specific state/region
           lastIp: ipData.ip,
           isSuspended: ipData.proxy
         });
+
+        if (isOdisha) {
+           toast({ title: "ODISHA NODE DETECTED", description: "Curriculum calibrated to OSEPA & Odia Medium." });
+        }
       }
     } catch (err) { console.error("Identity instantiation failure", err); }
   };

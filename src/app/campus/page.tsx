@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -76,6 +77,19 @@ export default function CampusHomeScreen() {
   const [books, setBooks] = useState<BookMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // --- AUTOMATIC CALIBRATION EFFECT ---
+  useEffect(() => {
+    if (profile && eduSource === 'all' && language === 'all') {
+       // If Odisha student detected, auto-set preferences
+       if (profile.geo_region?.toLowerCase() === 'odisha') {
+          setEduSource('OdiaMedium');
+          setLanguage('or');
+       } else if (profile.preferredLanguage) {
+          setLanguage(profile.preferredLanguage);
+       }
+    }
+  }, [profile]);
 
   useEffect(() => {
     async function fetchVaultData() {
