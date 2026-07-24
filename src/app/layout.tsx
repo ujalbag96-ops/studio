@@ -16,8 +16,6 @@ import { useState } from 'react';
 import SupportChat from '@/components/SupportChat';
 import ThemeProvider from '@/components/ThemeProvider';
 
-const ADMIN_EMAIL = 'ujalbag96@gmail.com';
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -81,6 +79,7 @@ function SystemGate({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const { user } = useUser();
   const pathname = usePathname();
+  const ADMIN_EMAIL = 'ujalbag96@gmail.com';
   
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
   const { data: settings, isLoading } = useDoc<AppSettings>(settingsRef);
@@ -92,7 +91,7 @@ function SystemGate({ children }: { children: React.ReactNode }) {
     <div key="system-gate-loading" className="flex items-center justify-center min-h-screen bg-black">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="animate-spin text-primary h-12 w-12 opacity-50" />
-        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">Synchronizing Operational Signal...</p>
+        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">Synchronizing Bracket Battles Signal...</p>
       </div>
     </div>
   );
@@ -110,7 +109,7 @@ function SystemGate({ children }: { children: React.ReactNode }) {
         </div>
         <div key="maint-info-box" className="p-8 bg-white/5 border border-white/10 rounded-[2rem] max-sm">
            <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed italic">
-              "We are calibrating naye arena resources. Full access will restore shortly. All earnings are safe in the vault."
+              "We are calibrating naye arena resources. Bracket Battles will restore shortly. All earnings are safe in the vault."
            </p>
         </div>
         {isAdmin && (

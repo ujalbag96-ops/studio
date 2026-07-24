@@ -23,7 +23,8 @@ import {
   Flame,
   Layout,
   Coins,
-  Globe
+  Globe,
+  ShieldCheck
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -153,7 +154,7 @@ export default function ReferPage() {
                  <h3 className="text-2xl font-black uppercase italic flex items-center gap-4"><Info className="text-primary" /> Operational Briefing</h3>
                  <div className="space-y-6">
                     <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight">
-                       Every time your recruit completes a mission, video analysis, or quiz, the Bracket Battles settlement engine calculates your shared commission and credits it instantly. 
+                       Every time your recruit completes a mission on Bracket Battles, our settlement engine calculates your shared commission and credits it instantly. 
                     </p>
                     <div className="grid gap-4">
                        <BenefitItem icon={<Coins />} text="Direct 20% Joining Bonus" />
