@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
@@ -5,7 +6,8 @@ import { doc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   LayoutDashboard, Wallet, Trophy, Zap, Activity, Loader2, LogOut, CreditCard, Crown, Coins, 
-  ShieldCheck, Globe, ShoppingBag, ArrowUpRight, TrendingUp, Users, Star, LineChart, Target 
+  ShieldCheck, Globe, ShoppingBag, ArrowUpRight, TrendingUp, Users, Star, LineChart, Target,
+  DollarSign, PieChart, BarChart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +27,6 @@ export default function UserDashboard() {
   const firestore = useFirestore();
   const router = useRouter();
   
-  // FIXED: userProfileRef standardized to userRef for consistent hook usage
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
   
@@ -80,6 +81,37 @@ export default function UserDashboard() {
              </div>
           </div>
         </header>
+
+        {/* REVENUE SHARE TRANSPARENCY SECTION */}
+        <section className="space-y-6">
+           <div className="flex items-center justify-between">
+              <h3 className="text-xl font-black uppercase flex items-center gap-4 italic tracking-tight">
+                 <DollarSign className="h-5 w-5 text-green-500" /> Revenue Sharing Node
+              </h3>
+              <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase">80/20 Industrial Split</Badge>
+           </div>
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] space-y-4 shadow-xl border-2">
+                 <div className="h-10 w-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500"><BarChart className="h-5 w-5" /></div>
+                 <div>
+                    <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-1 italic">Total Revenue Created</p>
+                    <h4 className="text-3xl font-black text-white italic">${profile?.totalRevenueGenerated?.toFixed(2) || '0.00'}</h4>
+                 </div>
+              </Card>
+              <Card className="bg-[#0a0a0f] border-primary/20 p-8 rounded-[2rem] space-y-4 shadow-xl border-2">
+                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><PieChart className="h-5 w-5" /></div>
+                 <div>
+                    <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-1 italic">Your 20% Share (USD)</p>
+                    <h4 className="text-3xl font-black text-primary italic">${profile?.pendingRevenueShare?.toFixed(2) || '0.00'}</h4>
+                 </div>
+              </Card>
+              <Card className="bg-primary/5 border-primary/10 p-8 rounded-[2rem] flex flex-col justify-center items-center text-center space-y-2">
+                 <TrendingUp className="text-primary h-6 w-6 animate-pulse" />
+                 <p className="text-[9px] font-black uppercase text-white tracking-widest italic">Signal Integrity</p>
+                 <p className="text-[8px] font-bold text-muted-foreground uppercase leading-relaxed">Your dividends are automatically synced to your coin wallet.</p>
+              </Card>
+           </div>
+        </section>
 
         <section className="space-y-6">
            <h3 className="text-xl font-black uppercase flex items-center gap-4 italic tracking-tight"><LineChart className="h-5 w-5 text-primary" /> Asset Breakdown</h3>

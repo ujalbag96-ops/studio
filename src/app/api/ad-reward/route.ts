@@ -2,11 +2,10 @@
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
-import { USER_REWARD_SHARE, ADMIN_PROFIT_MARGIN } from '@/lib/currency';
 
 /**
- * Industrial Skill Reward Gateway
- * Manages the 70/30 Profit Lock for all activity-linked signals.
+ * Industrial Revenue Share Gateway v2.0
+ * Strictly enforces the 80/20 Profit Lock.
  */
 export async function POST(request: Request) {
   try {
@@ -21,26 +20,38 @@ export async function POST(request: Request) {
     
     const userRef = doc(firestore, 'users', userId);
     const statsRef = doc(firestore, 'platform_stats', 'revenue');
+    const settingsRef = doc(firestore, 'app_settings', 'global_config');
 
-    const userSnap = await getDoc(userRef);
+    const [userSnap, settingsSnap] = await Promise.all([
+      getDoc(userRef),
+      getDoc(settingsRef)
+    ]);
+
     if (!userSnap.exists()) {
       return NextResponse.json({ error: 'Identity Missing' }, { status: 404 });
     }
 
-    // --- PROFIT LOCK ENGINE (70/30) ---
-    const estimatedTotalValueUSD = (reward / 1000) / USER_REWARD_SHARE;
-    const userShareUSD = estimatedTotalValueUSD * USER_REWARD_SHARE;
-    const adminProfitUSD = estimatedTotalValueUSD * ADMIN_PROFIT_MARGIN;
+    const settings = settingsSnap.data();
+    const userSharePercent = settings?.userRevenueSharePercent || 20; // Default 20%
+    const adminSharePercent = 100 - userSharePercent;
 
-    // 1. Real-time Wallet Update (Scholar Dividend)
+    // --- REVENUE CALCULATION ENGINE ---
+    // Mapping coins back to approximate USD value for analytics
+    // In a real build, this would come from the Ad Network S2S payload
+    const estimatedTotalValueUSD = (reward / 1000) / (userSharePercent / 100);
+    const userShareUSD = estimatedTotalValueUSD * (userSharePercent / 100);
+    const adminProfitUSD = estimatedTotalValueUSD * (adminSharePercent / 100);
+
+    // 1. User Wallet Sync (Coins + Revenue Share Analytics)
     batch.update(userRef, {
       taskBalance: increment(reward),
       coins: increment(reward),
       generalTasksCount: increment(1),
-      pendingRevenueShare: increment(userShareUSD)
+      pendingRevenueShare: increment(userShareUSD),
+      totalRevenueGenerated: increment(estimatedTotalValueUSD)
     });
 
-    // 2. Platform Operational Stats (Admin Hub)
+    // 2. Global Platform Analytics
     batch.set(statsRef, {
       totalOperationalRevenueUSD: increment(estimatedTotalValueUSD),
       totalAdminProfitUSD: increment(adminProfitUSD),
@@ -48,14 +59,14 @@ export async function POST(request: Request) {
       lastUpdated: new Date().toISOString()
     }, { merge: true });
 
-    // 3. Encrypted Ledger Entry
+    // 3. Encrypted Ledger
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
-      type: 'skill_reward',
+      type: 'revenue_share_credit',
       amount: reward,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Bounty Unlock: Verified Activity Signal`,
-      profitSplit: '70/30 Lock'
+      description: `Video Ad Signal: ${userSharePercent}% Share Credited`,
+      usdValue: userShareUSD
     });
 
     await batch.commit();
@@ -63,10 +74,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       credit: reward,
-      status: 'SIGNAL_LOCKED_70_30'
+      userShareUSD,
+      status: `REVENUE_LOCKED_${adminSharePercent}_${userSharePercent}`
     });
 
   } catch (error) {
-    return NextResponse.json({ error: 'Engine Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Revenue Engine Error' }, { status: 500 });
   }
 }
