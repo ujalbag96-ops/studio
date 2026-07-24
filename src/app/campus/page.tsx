@@ -4,6 +4,7 @@
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { 
   Library, 
   ShieldCheck, 
