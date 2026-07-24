@@ -16,7 +16,12 @@ import {
   Sparkles,
   Languages,
   Book,
-  User
+  User,
+  GraduationCap,
+  Microscope,
+  Stethoscope,
+  Briefcase,
+  Palette
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -27,12 +32,16 @@ import { Input } from '@/components/ui/input';
 import { fetchCollegeBooks } from '@/services/libraryApi';
 
 const INTERNAL_DATABASE: BookMetadata[] = [
+  // School Tier
   { id: 'https://ncert.nic.in/textbook/pdf/hemh101.pdf', title: 'Mathematics (NCERT)', class: 'Class 10', subject: 'Math', source: 'NCERT', lang: 'en', chapters: 15, coverUrl: 'https://picsum.photos/seed/math10/200/300' },
   { id: 'https://ncert.nic.in/textbook/pdf/hesc101.pdf', title: 'Science (NCERT)', class: 'Class 10', subject: 'Science', source: 'NCERT', lang: 'en', chapters: 12, coverUrl: 'https://picsum.photos/seed/sci10/200/300' },
-  { id: 'https://ncert.nic.in/textbook/pdf/hime101.pdf', title: 'History: India & World', class: 'Class 10', subject: 'Social', source: 'NCERT', lang: 'en', chapters: 8, coverUrl: 'https://picsum.photos/seed/hist10/200/300' },
   { id: 'osepa-odia-10', title: 'ସାହିତ୍ୟ ସିନ୍ଧୁ (Odia)', class: 'Class 10', subject: 'Language', source: 'OdiaMedium', lang: 'or', chapters: 14, coverUrl: 'https://picsum.photos/seed/odia10/200/300' },
-  { id: 'https://ncert.nic.in/textbook/pdf/jhmh101.pdf', title: 'गणित Class 10', class: 'Class 10', subject: 'Math', source: 'NCERT', lang: 'hi', chapters: 15, coverUrl: 'https://picsum.photos/seed/mathhi10/200/300' },
-  { id: 'https://ncert.nic.in/textbook/pdf/jhsc101.pdf', title: 'विज्ञान Class 10', class: 'Class 10', subject: 'Science', source: 'NCERT', lang: 'hi', chapters: 12, coverUrl: 'https://picsum.photos/seed/scihi10/200/300' }
+  
+  // Higher Ed / University Tier
+  { id: 'college-phys-01', title: 'University Physics Vol 1', class: 'University', subject: 'Physics', source: 'OpenStax', lang: 'en', chapters: 17, coverUrl: 'https://picsum.photos/seed/physuni/200/300' },
+  { id: 'college-eng-01', title: 'Modern Engineering Math', class: 'University', subject: 'Engineering', source: 'HigherEd', lang: 'en', chapters: 12, coverUrl: 'https://picsum.photos/seed/engmath/200/300' },
+  { id: 'college-med-01', title: 'Human Anatomy & Physio', class: 'University', subject: 'Medical', source: 'HigherEd', lang: 'en', chapters: 20, coverUrl: 'https://picsum.photos/seed/anatomy/200/300' },
+  { id: 'college-comm-01', title: 'Financial Accounting 101', class: 'University', subject: 'Commerce', source: 'HigherEd', lang: 'en', chapters: 10, coverUrl: 'https://picsum.photos/seed/accounting/200/300' }
 ];
 
 const LANGUAGES = [
@@ -59,8 +68,9 @@ export default function CampusHomeScreen() {
     async function fetchVaultData() {
       setLoading(true);
 
-      if (eduSource === 'OpenLibrary') {
-         const externalBooks = await fetchCollegeBooks(searchTerm || "curriculum");
+      if (eduSource === 'OpenLibrary' || eduSource === 'HigherEd') {
+         const query = eduSource === 'HigherEd' ? (searchTerm || "college textbooks") : (searchTerm || "curriculum");
+         const externalBooks = await fetchCollegeBooks(query);
          setBooks(externalBooks as BookMetadata[]);
          setLoading(false);
          return;
@@ -111,20 +121,20 @@ export default function CampusHomeScreen() {
                     <MapPin className="h-3 w-3" /> Region Node: {profile?.geo_region || 'Analyzing...'}
                  </Badge>
                  <div className="flex items-center gap-2 text-primary text-[10px] font-black uppercase tracking-widest italic animate-pulse">
-                    <Sparkles className="h-3.5 w-3.5" /> Scholar API Node Active
+                    <Sparkles className="h-3.5 w-3.5" /> Global Vault Hub Active
                  </div>
               </div>
               <h1 className="text-6xl md:text-9xl font-black tracking-tighter uppercase italic text-white leading-[0.8]">
                 Scholar <br /><span className="text-primary">Vault Hub</span>
               </h1>
               <p className="text-muted-foreground font-medium text-lg max-w-xl uppercase tracking-tight opacity-70">
-                Books calibrated to your region ({profile?.geo_region || 'Global'}). Read any global lesson signal instantly.
+                Books calibrated to your region ({profile?.geo_region || 'Global'}). Now featuring school & higher ed modules.
               </p>
            </div>
            
            <div className="glass-panel p-6 rounded-[2rem] flex flex-col sm:flex-row items-center gap-6 w-full xl:w-auto border-2 border-primary/20">
               <div className="space-y-2 flex-1 sm:w-64">
-                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Source Select</p>
+                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Academic Tier</p>
                  <Select value={eduSource} onValueChange={setEduSource}>
                     <SelectTrigger className="h-12 bg-white/[0.05] border-white/10 font-bold text-[10px] uppercase rounded-xl">
                        <Library className="h-3.5 w-3.5 mr-2 text-primary" />
@@ -134,6 +144,7 @@ export default function CampusHomeScreen() {
                        <SelectItem value="all">All Boards</SelectItem>
                        <SelectItem value="NCERT">NCERT (India)</SelectItem>
                        <SelectItem value="OdiaMedium">OSEPA (Odisha)</SelectItem>
+                       <SelectItem value="HigherEd">Higher Ed / College</SelectItem>
                        <SelectItem value="OpenLibrary">Open Library (Global)</SelectItem>
                     </SelectContent>
                  </Select>
@@ -160,7 +171,7 @@ export default function CampusHomeScreen() {
            <Input 
              value={searchTerm}
              onChange={e => setSearchTerm(e.target.value)}
-             placeholder="Search subjects, topics, or textbooks..." 
+             placeholder="Search school boards, B.Tech, MBBS, Commerce topics..." 
              className="h-20 bg-white/[0.02] border-white/10 rounded-[1.5rem] pl-16 text-xl font-bold uppercase tracking-tight focus:border-primary/40 focus:ring-0"
            />
         </div>
@@ -200,7 +211,12 @@ export default function CampusHomeScreen() {
                       <div className="p-6 flex flex-col flex-1 justify-between gap-4">
                          <div className="space-y-1">
                             <h4 className="text-lg font-black uppercase italic tracking-tight text-white group-hover:text-primary transition-colors leading-tight line-clamp-2">{book.title}</h4>
-                            <p className="text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1.5"><User className="h-3 w-3" /> {book.class} • {book.subject}</p>
+                            <p className="text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                               {book.subject === 'Engineering' ? <Zap className="h-3 w-3" /> : 
+                                book.subject === 'Medical' ? <Stethoscope className="h-3 w-3" /> : 
+                                <User className="h-3 w-3" />}
+                               {book.class} • {book.subject}
+                            </p>
                          </div>
                          <Button className="w-full h-11 bg-white/5 border border-white/10 group-hover:bg-primary group-hover:text-white font-black text-[9px] uppercase tracking-widest rounded-xl transition-all">
                             OPEN LESSON <ChevronRight className="ml-2 h-3 w-3" />

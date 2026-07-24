@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
@@ -10,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { UserProfile, PlatformRevenue } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
@@ -26,7 +26,7 @@ export default function UserDashboard() {
   const router = useRouter();
   
   const userProfileRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
-  const { data: profile } = useDoc<UserProfile>(userProfileRef);
+  const { data: profile } = useDoc<UserProfile>(userRef);
   
   const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'platform_stats', 'revenue') : null, [firestore]);
   const { data: stats } = useDoc<PlatformRevenue>(statsRef);
@@ -49,7 +49,7 @@ export default function UserDashboard() {
           <SidebarItem active={true} icon={<LayoutDashboard />} label="Portfolio" onClick={() => {}} />
           <SidebarItem active={false} icon={<Users />} label="PeerConnect" onClick={() => router.push('/peer-connect')} />
           <SidebarItem active={false} icon={<Target />} label="Withdrawal Terminal" onClick={() => router.push('/shop')} />
-          <SidebarItem active={false} icon={<Trophy />} label="Scholar Hub" onClick={() => router.push('/marketplace')} />
+          <SidebarItem active={false} icon={<Trophy />} label="Scholar Hub" onClick={() => router.push('/campus')} />
           <SidebarItem active={false} icon={<Globe />} label="Referral Network" onClick={() => router.push('/refer')} />
         </nav>
         <div className="p-6 border-t border-white/10">
