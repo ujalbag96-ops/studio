@@ -22,7 +22,6 @@ import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import ConnectWalletModal from './ConnectWalletModal';
 import { formatCurrency } from '@/lib/currency';
 
 export default function WalletModal({ children }: { children?: React.ReactNode }) {
@@ -30,7 +29,6 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const [isConnectOpen, setIsConnectOpen] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [convertAmount, setConvertAmount] = useState('');
 
@@ -82,8 +80,6 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
 
   return (
     <>
-      <ConnectWalletModal isOpen={isConnectOpen} onOpenChange={setIsConnectOpen} />
-      
       <Dialog>
         <DialogTrigger asChild>
           {children || (
@@ -122,15 +118,9 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-               {isIndia ? (
-                 <Button onClick={() => setIsConnectOpen(true)} className="bg-primary hover:bg-primary/90 h-14 rounded-xl font-black uppercase text-xs">
-                    <Plus className="h-4 w-4 mr-2" /> Add Cash
-                 </Button>
-               ) : (
-                 <Button asChild className="bg-primary hover:bg-primary/90 h-14 rounded-xl font-black uppercase text-xs">
-                    <Link href="/earning-hub">Earn More</Link>
-                 </Button>
-               )}
+               <Button asChild className="bg-primary hover:bg-primary/90 h-14 rounded-xl font-black uppercase text-xs">
+                  <Link href="/earning-hub">Earn More</Link>
+               </Button>
                <Button asChild className="bg-white/5 border border-white/10 hover:bg-white/10 h-14 rounded-xl font-black uppercase text-xs">
                   <Link href={isIndia ? "/withdraw" : "/shop"} className="flex items-center justify-center">
                      {isIndia ? "Withdraw" : "Shop"} <ArrowUpRight className="h-4 w-4 ml-2" />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -50,7 +51,7 @@ export default function QuizArena() {
   const { data: pool } = useDoc<any>(poolRef);
   const { data: leaderboard } = useCollection<LeaderboardEntry>(leaderboardQuery);
 
-  const isVip1 = (profile?.tasksCompletedCount || 0) >= 10 || (profile?.depositBalance || 0) > 0;
+  const isVip1 = (profile?.tasksCompletedCount || 0) >= 10 || (profile?.totalReferrals || 0) >= 5;
 
   useEffect(() => {
     let timer: any;
@@ -84,7 +85,7 @@ export default function QuizArena() {
 
   const initiateGame = async () => {
     if (!user || !profile || !isVip1) {
-      toast({ variant: "destructive", title: "VIP 1 REQUIRED", description: "Complete 10 Tasks or Add Cash to enter." });
+      toast({ variant: "destructive", title: "VIP 1 REQUIRED", description: "Complete 10 Tasks or 5 Invites to enter." });
       return;
     }
     setGameState('watching_video');

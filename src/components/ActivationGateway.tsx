@@ -47,7 +47,7 @@ export default function ActivationGateway({ tasksCompleted, isActivated }: Activ
              </div>
              
              <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-lg">
-                Unlock full platform features and instant withdrawals. Either complete <span className="text-white font-bold">{activationGoal} CPA App Tasks</span> or make your first wallet deposit.
+                Unlock full platform features and instant withdrawals. You must complete <span className="text-white font-bold">{activationGoal} CPA App Tasks</span> to verify your industrial integrity.
              </p>
 
              <div className="space-y-3">
@@ -63,7 +63,7 @@ export default function ActivationGateway({ tasksCompleted, isActivated }: Activ
              <Button asChild className="h-16 px-10 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-red-600/20 transition-all hover:scale-105">
                 <Link href="/earning-hub">COMPLETE MISSIONS <Zap className="ml-2 h-5 w-5 fill-white" /></Link>
              </Button>
-             <p className="text-[9px] font-bold text-muted-foreground text-center uppercase tracking-widest italic">Free Alternative to Cash Deposit</p>
+             <p className="text-[9px] font-bold text-muted-foreground text-center uppercase tracking-widest italic">Verification via Tasks Required</p>
           </div>
        </div>
     </Card>
