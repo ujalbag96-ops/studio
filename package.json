@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "mobile:build": "next build && npx cap sync",
-    "mobile:android": "npx cap open android"
+    "mobile:android": "npx cap open android",
+    "mobile:add": "npx cap add android"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",

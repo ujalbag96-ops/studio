@@ -2,19 +2,19 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* production-grade build configuration */
+  output: 'export', // Required for Capacitor/Mobile builds
   typescript: {
-    ignoreBuildErrors: true, // Bypass errors for faster industrial deployment
+    ignoreBuildErrors: true, 
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true, // Required for static Capacitor export/builds
+    unoptimized: true, // Required for static Capacitor export
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**', // Allow all high-bandwidth media signals
+        hostname: '**',
       }
     ],
   },
