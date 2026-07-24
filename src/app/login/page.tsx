@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -7,16 +6,15 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs, limit, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldCheck, Eye, EyeOff, Mail, Hash, ShieldAlert, Zap, ShieldX, Globe, GraduationCap, Coins, CheckSquare, Square } from 'lucide-react';
+import { Loader2, ShieldCheck, CheckSquare, Square, GraduationCap, Coins, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 import { cn } from '@/lib/utils';
 import { UserIntent, LanguageCode } from '../lib/types';
 
@@ -35,7 +33,6 @@ function LoginContent() {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
   
   const [intent, setIntent] = useState<UserIntent>('student');
@@ -56,14 +53,13 @@ function LoginContent() {
 
       let ipData = { ip: 'Unknown', country: 'Global', region: 'Unknown', city: 'Unknown', proxy: false, geo_region: 'Global' };
       try {
-         // Industrial Geo-Detection Signal
          const res = await fetch('https://ipapi.co/json/');
          const data = await res.json();
          const isVpnDetected = data.security?.vpn || data.security?.proxy || data.org?.toLowerCase().includes('vpn') || data.org?.toLowerCase().includes('proxy');
          ipData = { 
            ip: data.ip, 
            country: data.country_name,
-           region: data.region, // Expected: 'Odisha', 'Delhi', etc.
+           region: data.region, 
            city: data.city,
            proxy: isVpnDetected || false,
            geo_region: data.country_name === 'India' ? 'India' : 'Global'
@@ -90,8 +86,6 @@ function LoginContent() {
         }
 
         const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        
-        // --- ODISHA AUTO-CALIBRATION LOGIC ---
         const isOdisha = ipData.region.toLowerCase() === 'odisha';
         const defaultLang: LanguageCode = isOdisha ? 'or' : 'en';
 
@@ -117,7 +111,7 @@ function LoginContent() {
           preferredLanguage: defaultLang,
           joinedAt: new Date().toISOString(),
           country: ipData.country,
-          geo_region: ipData.region, // Store specific state/region
+          geo_region: ipData.region, 
           lastIp: ipData.ip,
           isSuspended: ipData.proxy
         });
@@ -159,14 +153,14 @@ function LoginContent() {
         <div className="h-20 w-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Identity <span className="text-primary">Gate</span></h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Industrial Hybrid Hub v11.0</p>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Student <span className="text-primary">Portal</span></h1>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">100% Free - No Investment Required</p>
       </div>
 
       <Tabs value={authMode} onValueChange={(val) => setAuthMode(val as any)} className="w-full">
         <TabsList className="grid grid-cols-2 h-14 bg-white/5 p-1 rounded-2xl border border-white/5">
           <TabsTrigger value="login" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase">Login Hub</TabsTrigger>
-          <TabsTrigger value="signup" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase">Register Node</TabsTrigger>
+          <TabsTrigger value="signup" className="font-black text-[9px] data-[state=active]:bg-primary rounded-xl uppercase">Register Free</TabsTrigger>
         </TabsList>
 
         <TabsContent value="signup" className="mt-6 space-y-6">
@@ -200,11 +194,11 @@ function LoginContent() {
               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
                  <div className="space-y-4">
                     <div className="space-y-2">
-                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Email Terminal</Label>
+                       <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Email Terminal</Label>
                        <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Set Pass</Label>
+                       <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Set Pass</Label>
                        <Input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl" />
                     </div>
                  </div>
@@ -214,12 +208,12 @@ function LoginContent() {
                        {agreedToAds ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-muted-foreground" />}
                     </button>
                     <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">
-                       I agree that ads are used to maintain free scholar resources and fund my pocket money dividends.
+                       I agree that ads are used to maintain free scholar resources and fund my free dividends.
                     </p>
                  </div>
 
-                 <Button type="submit" disabled={isLoading || !agreedToAds} className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl">
-                   {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : 'INITIALIZE NODE'}
+                 <Button type="submit" disabled={isLoading || !agreedToAds} className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl">
+                   {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : 'INITIALIZE FREE NODE'}
                  </Button>
               </Card>
            </form>
@@ -230,11 +224,11 @@ function LoginContent() {
               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
                  <div className="space-y-4">
                     <div className="space-y-2">
-                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Email Terminal</Label>
+                       <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Email Terminal</Label>
                        <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                       <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Access Pass</Label>
+                       <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Access Pass</Label>
                        <Input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl" />
                     </div>
                  </div>

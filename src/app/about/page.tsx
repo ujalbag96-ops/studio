@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card } from '@/components/ui/card';
@@ -6,20 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { 
   ShieldCheck, 
   Zap, 
-  Trophy, 
   Globe, 
   GraduationCap, 
   Video, 
   Gamepad2, 
-  Users, 
-  Target, 
-  Lock, 
-  Coins, 
   ArrowRight,
-  Layout,
   Star,
-  DollarSign,
-  Briefcase
+  Briefcase,
+  Coins
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -30,34 +23,34 @@ export default function PlatformOverview() {
       <header className="space-y-6 pt-12 text-center">
         <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-primary/10 border border-primary/20 shadow-xl">
           <Star className="h-4 w-4 text-primary animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Official Platform Transparency Node v11.0</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Official Free Scholarship Protocol v12.0</span>
         </div>
-        <h1 className="text-6xl md:text-8xl font-black uppercase italic tracking-tighter text-white leading-none">Yield <span className="text-primary">Policy</span></h1>
+        <h1 className="text-6xl md:text-8xl font-black uppercase italic tracking-tighter text-white leading-none">Free <span className="text-primary">Yield</span></h1>
         <p className="text-muted-foreground font-medium text-lg max-w-2xl mx-auto leading-relaxed uppercase tracking-tight">
-          CampusHub is an <b>Industrial Scholar-Reward Utility</b> bridge. We maintain zero-discrepancy signals between global sponsors and student dividends.
+          CampusHub is an **Industrial Scholar-Reward Bridge**. We maintain a 100% free-to-earn model where students earn dividends via sponsored missions.
         </p>
       </header>
 
       {/* REVENUE POLICY SECTION */}
       <section className="space-y-8">
          <div className="flex flex-col items-center text-center space-y-2">
-            <h2 className="text-3xl font-black uppercase italic text-white tracking-tighter">Industrial <span className="text-primary">Margin Model</span></h2>
-            <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest italic">Profit Lock Audit & Dividend Breakdown</p>
+            <h2 className="text-3xl font-black uppercase italic text-white tracking-tighter">Zero <span className="text-primary">Investment</span></h2>
+            <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest italic">100% Sponsor-Funded Student Model</p>
          </div>
 
          <div className="grid md:grid-cols-2 gap-8">
             <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[3rem] space-y-6 shadow-2xl group hover:border-primary/20 transition-all">
                <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-xl">
-                  <Briefcase />
+                  <Coins />
                </div>
                <div className="space-y-4">
-                  <h3 className="text-2xl font-black uppercase italic text-white">Scholar Dividend</h3>
+                  <h3 className="text-2xl font-black uppercase italic text-white">Scholarship Payouts</h3>
                   <div className="space-y-3">
-                     <RevenueRow label="User Dividend" percent="30%" color="text-green-500" />
-                     <RevenueRow label="Operational Revenue" percent="70%" color="text-white" />
+                     <RevenueRow label="Student Dividend" percent="30%" color="text-green-500" />
+                     <RevenueRow label="System Operations" percent="70%" color="text-white" />
                   </div>
                   <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed italic border-t border-white/5 pt-4">
-                     *Applies to Verified Task Signals, System Verifications, and Arcade Quizzes. 70% retention covers global server high-bandwidth maintenance.
+                     *Earnings are 100% free. We never ask for money. 70% retention covers high-bandwidth global server maintenance and API costs.
                   </p>
                </div>
             </Card>
@@ -68,13 +61,13 @@ export default function PlatformOverview() {
                   <GraduationCap />
                </div>
                <div className="space-y-4 relative z-10">
-                  <h3 className="text-2xl font-black uppercase italic text-white">AI Utility Node</h3>
+                  <h3 className="text-2xl font-black uppercase italic text-white">Global Access</h3>
                   <div className="space-y-3">
-                     <RevenueRow label="User Dividend" percent="0%" color="text-red-500" />
-                     <RevenueRow label="Operational Revenue" percent="100%" color="text-primary" />
+                     <RevenueRow label="Entry Fee" percent="₹0.00" color="text-green-500" />
+                     <RevenueRow label="Platform Status" percent="FREE" color="text-primary" />
                   </div>
                   <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed italic border-t border-white/5 pt-4">
-                     *Ask AI Tutor & Problem Solver. These premium utility services are purely sponsor-funded. 100% of revenue is retained for LLM API costs.
+                     *All study resources and quiz battles are accessible without any deposit. Your hard work and time are the only inputs required.
                   </p>
                </div>
             </Card>
@@ -84,27 +77,27 @@ export default function PlatformOverview() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <FeatureCard 
           icon={<Gamepad2 />} 
-          title="Skill Arcade" 
-          desc="50-level mastery engine funded by verified sponsor signals. Zero-wagering, 100% skill-based yield." 
-          badge="HIGH YIELD"
+          title="Free Arcade" 
+          desc="50-level mastery engine funded by sponsor signals. No deposit, 100% skill-based free yield." 
+          badge="ZERO COST"
         />
         <FeatureCard 
           icon={<Video />} 
           title="Bounty Node" 
-          desc="Strategic signal analysis sessions verified by S2S logic for real-time wallet credits." 
+          desc="Strategic analysis sessions verified by S2S logic for real-time wallet credits. Always free." 
           badge="AUTOMATED"
         />
         <FeatureCard 
           icon={<GraduationCap />} 
           title="Scholar Hub" 
-          desc="Global academic repository integrated with industrial system verification rewards." 
+          desc="Global academic repository integrated with industrial system verification rewards for students." 
           badge="CERTIFIED"
         />
       </div>
 
       <div className="text-center pt-10">
          <Link href="/dashboard" className="inline-flex items-center gap-3 h-20 px-16 bg-primary hover:bg-primary/90 text-white font-black text-xl uppercase italic rounded-2xl shadow-2xl transition-all hover:scale-105 active:scale-95">
-            ENTER MY PORTFOLIO <ArrowRight className="h-6 w-6" />
+            START MY FREE PORTFOLIO <ArrowRight className="h-6 w-6" />
          </Link>
       </div>
     </div>
