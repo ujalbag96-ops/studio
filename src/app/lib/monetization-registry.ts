@@ -18,10 +18,17 @@ import {
   CreditCard,
   Twitter,
   Youtube,
-  PlayCircle
+  PlayCircle,
+  Activity,
+  Award,
+  BarChart3,
+  ShieldCheck,
+  MousePointer2,
+  Terminal,
+  Gamepad2
 } from 'lucide-react';
 
-export type MonCategory = 'CPA' | 'Ads' | 'Surveys' | 'MicroTasks' | 'Fintech';
+export type MonCategory = 'CPA' | 'Ads' | 'Surveys' | 'MicroTasks' | 'Fintech' | 'Gaming' | 'Premium';
 
 export interface MonModule {
   id: string;
@@ -34,7 +41,7 @@ export interface MonModule {
 }
 
 export const MONETIZATION_REGISTRY: MonModule[] = [
-  // --- 1. GLOBAL CPA & OFFER WALLS (1-10) ---
+  // --- 1. GLOBAL CPA & OFFER WALLS (1-20) ---
   { id: 'cpa_adgate', label: 'AdGate Media', provider: 'Global CPA', category: 'CPA', visibilityKey: 'mon_adgate_active', icon: Smartphone, eCPMTier: 'High' },
   { id: 'cpa_cpalead', label: 'CPALead', provider: 'Direct CPA', category: 'CPA', visibilityKey: 'mon_cpalead_active', icon: Zap, eCPMTier: 'High' },
   { id: 'cpa_offertoro', label: 'OfferToro', provider: 'Offerwall', category: 'CPA', visibilityKey: 'mon_offertoro_active', icon: Target, eCPMTier: 'Medium' },
@@ -45,8 +52,18 @@ export const MONETIZATION_REGISTRY: MonModule[] = [
   { id: 'cpa_bitlabs', label: 'BitLabs Wall', provider: 'Offer/Survey', category: 'CPA', visibilityKey: 'mon_bitlabs_wall_active', icon: Zap, eCPMTier: 'High' },
   { id: 'cpa_cpagrip', label: 'CPAGrip', provider: 'Content Lock', category: 'CPA', visibilityKey: 'mon_cpagrip_active', icon: Lock, eCPMTier: 'Medium' },
   { id: 'cpa_monlix', label: 'Monlix', provider: 'Ad Network', category: 'CPA', visibilityKey: 'mon_monlix_active', icon: Search, eCPMTier: 'High' },
+  { id: 'cpa_adgem', label: 'AdGem', provider: 'Mobile CPA', category: 'CPA', visibilityKey: 'mon_adgem_active', icon: Smartphone, eCPMTier: 'High' },
+  { id: 'cpa_aye_t', label: 'AyeT-Studios', provider: 'Offerwall', category: 'CPA', visibilityKey: 'mon_ayet_active', icon: Zap, eCPMTier: 'High' },
+  { id: 'cpa_kiwi', label: 'KiwiWall', provider: 'CPA/Survey', category: 'CPA', visibilityKey: 'mon_kiwi_active', icon: Target, eCPMTier: 'Standard' },
+  { id: 'cpa_personaly', label: 'Persona.ly', provider: 'Ad Network', category: 'CPA', visibilityKey: 'mon_personaly_active', icon: UserCheck, eCPMTier: 'Medium' },
+  { id: 'cpa_hangads', label: 'HangMyAds', provider: 'Global CPA', category: 'CPA', visibilityKey: 'mon_hangads_active', icon: Activity, eCPMTier: 'Medium' },
+  { id: 'cpa_loots', label: 'Lootably', provider: 'Offerwall', category: 'CPA', visibilityKey: 'mon_lootably_active', icon: Gift, eCPMTier: 'High' },
+  { id: 'cpa_torox', label: 'Torox', provider: 'Advanced Wall', category: 'CPA', visibilityKey: 'mon_torox_active', icon: Zap, eCPMTier: 'High' },
+  { id: 'cpa_mobi', label: 'MobiX', provider: 'Install Ads', category: 'CPA', visibilityKey: 'mon_mobix_active', icon: Download, eCPMTier: 'Standard' },
+  { id: 'cpa_gate', label: 'Gate Media', provider: 'CPA Direct', category: 'CPA', visibilityKey: 'mon_gate_active', icon: Lock, eCPMTier: 'Medium' },
+  { id: 'cpa_wall', label: 'Wall Ads', provider: 'Universal', category: 'CPA', visibilityKey: 'mon_wall_active', icon: Globe, eCPMTier: 'Standard' },
 
-  // --- 2. REWARDED VIDEO & INTERSTITIALS (11-20) ---
+  // --- 2. REWARDED VIDEO & INTERSTITIALS (21-40) ---
   { id: 'ads_admob', label: 'Google AdMob', provider: 'Waterfall', category: 'Ads', visibilityKey: 'mon_admob_active', icon: PlayCircle, eCPMTier: 'High' },
   { id: 'ads_unity', label: 'Unity Ads', provider: 'Gaming Video', category: 'Ads', visibilityKey: 'mon_unity_active', icon: Video, eCPMTier: 'High' },
   { id: 'ads_applovin', label: 'AppLovin MAX', provider: 'High Fill', category: 'Ads', visibilityKey: 'mon_applovin_active', icon: Zap, eCPMTier: 'High' },
@@ -57,8 +74,18 @@ export const MONETIZATION_REGISTRY: MonModule[] = [
   { id: 'ads_inmobi', label: 'InMobi', provider: 'Global Mobile', category: 'Ads', visibilityKey: 'mon_inmobi_active', icon: Globe, eCPMTier: 'High' },
   { id: 'ads_pangle', label: 'Pangle TikTok', provider: 'Video Node', category: 'Ads', visibilityKey: 'mon_pangle_active', icon: Video, eCPMTier: 'High' },
   { id: 'ads_yandex', label: 'Yandex Ads', provider: 'EU/Global', category: 'Ads', visibilityKey: 'mon_yandex_active', icon: Search, eCPMTier: 'Medium' },
+  { id: 'ads_mintegral', label: 'Mintegral', provider: 'Video AI', category: 'Ads', visibilityKey: 'mon_mintegral_active', icon: Cpu, eCPMTier: 'High' },
+  { id: 'ads_startapp', label: 'Start.io', provider: 'Direct Ads', category: 'Ads', visibilityKey: 'mon_startapp_active', icon: Zap, eCPMTier: 'Medium' },
+  { id: 'ads_fyber', label: 'Fyber', provider: 'Mediation', category: 'Ads', visibilityKey: 'mon_fyber_active', icon: Globe, eCPMTier: 'High' },
+  { id: 'ads_ogads', label: 'OGAds', provider: 'Locker Ads', category: 'Ads', visibilityKey: 'mon_ogads_active', icon: Lock, eCPMTier: 'High' },
+  { id: 'ads_adscend_v', label: 'Adscend Video', provider: 'Rewarded', category: 'Ads', visibilityKey: 'mon_adscend_v_active', icon: PlayCircle, eCPMTier: 'Medium' },
+  { id: 'ads_tapjoy', label: 'Tapjoy', provider: 'Wall/Video', category: 'Ads', visibilityKey: 'mon_tapjoy_active', icon: Gamepad2, eCPMTier: 'High' },
+  { id: 'ads_digital', label: 'Digital Turbine', provider: 'App Ads', category: 'Ads', visibilityKey: 'mon_digital_active', icon: Download, eCPMTier: 'High' },
+  { id: 'ads_smaato', label: 'Smaato', provider: 'Exchange', category: 'Ads', visibilityKey: 'mon_smaato_active', icon: Globe, eCPMTier: 'Medium' },
+  { id: 'ads_mobvista', label: 'Mobvista', provider: 'Global Node', category: 'Ads', visibilityKey: 'mon_mobvista_active', icon: Activity, eCPMTier: 'Medium' },
+  { id: 'ads_kidoz', label: 'Kidoz', provider: 'Safe Ads', category: 'Ads', visibilityKey: 'mon_kidoz_active', icon: ShieldCheck, eCPMTier: 'Standard' },
 
-  // --- 3. PAID SURVEYS & MARKET RESEARCH (21-30) ---
+  // --- 3. PAID SURVEYS & MARKET RESEARCH (41-60) ---
   { id: 'survey_pollfish', label: 'Pollfish', provider: 'Router', category: 'Surveys', visibilityKey: 'mon_pollfish_active', icon: ClipboardList, eCPMTier: 'High' },
   { id: 'survey_theorem', label: 'TheoremReach', provider: 'Paid Surveys', category: 'Surveys', visibilityKey: 'mon_theorem_active', icon: Target, eCPMTier: 'High' },
   { id: 'survey_cpx', label: 'CPX Research', provider: 'Survey Wall', category: 'Surveys', visibilityKey: 'mon_cpx_active', icon: Search, eCPMTier: 'High' },
@@ -69,8 +96,18 @@ export const MONETIZATION_REGISTRY: MonModule[] = [
   { id: 'survey_peanut', label: 'Peanut Labs', provider: 'Legacy Wall', category: 'Surveys', visibilityKey: 'mon_peanut_active', icon: ClipboardList, eCPMTier: 'Medium' },
   { id: 'survey_toluna', label: 'Toluna Insights', provider: 'Market Research', category: 'Surveys', visibilityKey: 'mon_toluna_active', icon: Search, eCPMTier: 'High' },
   { id: 'survey_brain', label: 'Brainly Survey', provider: 'Student Feed', category: 'Surveys', visibilityKey: 'mon_brainly_active', icon: Zap, eCPMTier: 'Medium' },
+  { id: 'survey_saybucks', label: 'SayBucks', provider: 'Fast Surveys', category: 'Surveys', visibilityKey: 'mon_saybucks_active', icon: Coins, eCPMTier: 'Standard' },
+  { id: 'survey_pollen', label: 'Pollen VC', provider: 'Research Node', category: 'Surveys', visibilityKey: 'mon_pollen_active', icon: Activity, eCPMTier: 'Medium' },
+  { id: 'survey_grab', label: 'GrabPoints', provider: 'Survey API', category: 'Surveys', visibilityKey: 'mon_grab_active', icon: MousePointer2, eCPMTier: 'Standard' },
+  { id: 'survey_dynata', label: 'Dynata', provider: 'Global Panel', category: 'Surveys', visibilityKey: 'mon_dynata_active', icon: Globe, eCPMTier: 'High' },
+  { id: 'survey_kantar', label: 'Kantar Node', provider: 'Corporate', category: 'Surveys', visibilityKey: 'mon_kantar_active', icon: BarChart3, eCPMTier: 'High' },
+  { id: 'survey_opinion', label: 'OpinionWorld', provider: 'Direct Router', category: 'Surveys', visibilityKey: 'mon_opinion_active', icon: MessageSquare, eCPMTier: 'Medium' },
+  { id: 'survey_ipsos', label: 'Ipsos iSay', provider: 'Elite Router', category: 'Surveys', visibilityKey: 'mon_ipsos_active', icon: Zap, eCPMTier: 'High' },
+  { id: 'survey_valued', label: 'Valued Opinions', provider: 'Direct Research', category: 'Surveys', visibilityKey: 'mon_valued_active', icon: Target, eCPMTier: 'High' },
+  { id: 'survey_panel', label: 'Panel Station', provider: 'Regional', category: 'Surveys', visibilityKey: 'mon_panel_active', icon: Globe, eCPMTier: 'Medium' },
+  { id: 'survey_quick', label: 'QuickSurveys', provider: 'Instant Pay', category: 'Surveys', visibilityKey: 'mon_quick_active', icon: Zap, eCPMTier: 'Standard' },
 
-  // --- 4. MICRO-TASK & GIG ECONOMY (31-40) ---
+  // --- 4. MICRO-TASK & GIG ECONOMY (61-80) ---
   { id: 'task_captcha', label: 'Captcha Solve', provider: 'Micro-Gig', category: 'MicroTasks', visibilityKey: 'mon_captcha_active', icon: Lock, eCPMTier: 'Standard' },
   { id: 'task_youtube', label: 'YT Engagement', provider: 'Watch/Sub', category: 'MicroTasks', visibilityKey: 'mon_youtube_active', icon: Youtube, eCPMTier: 'Standard' },
   { id: 'task_social', label: 'Social Echo', provider: 'Follow/Like', category: 'MicroTasks', visibilityKey: 'mon_social_echo_active', icon: Twitter, eCPMTier: 'Standard' },
@@ -81,8 +118,18 @@ export const MONETIZATION_REGISTRY: MonModule[] = [
   { id: 'task_files', label: 'File Rewards', provider: 'Upload/Earn', category: 'MicroTasks', visibilityKey: 'mon_files_active', icon: Download, eCPMTier: 'Standard' },
   { id: 'task_prompt', label: 'AI Prompter', provider: 'LLM Train', category: 'MicroTasks', visibilityKey: 'mon_ai_prompt_active', icon: MessageSquare, eCPMTier: 'High' },
   { id: 'task_transcribe', label: 'Transcription', provider: 'Audio Gig', category: 'MicroTasks', visibilityKey: 'mon_transcribe_active', icon: MessageSquare, eCPMTier: 'Medium' },
+  { id: 'task_qa', label: 'QA Tester', provider: 'App Testing', category: 'MicroTasks', visibilityKey: 'mon_qa_active', icon: Target, eCPMTier: 'High' },
+  { id: 'task_click', label: 'Click Profit', provider: 'Traffic Node', category: 'MicroTasks', visibilityKey: 'mon_click_active', icon: MousePointer2, eCPMTier: 'Standard' },
+  { id: 'task_micro', label: 'Microworkers', provider: 'Global Gig', category: 'MicroTasks', visibilityKey: 'mon_micro_active', icon: Globe, eCPMTier: 'Medium' },
+  { id: 'task_picowork', label: 'Picoworkers', provider: 'Micro-Task', category: 'MicroTasks', visibilityKey: 'mon_picowork_active', icon: Zap, eCPMTier: 'Medium' },
+  { id: 'task_hive', label: 'Hive Work', provider: 'Labeling AI', category: 'MicroTasks', visibilityKey: 'mon_hive_active', icon: Activity, eCPMTier: 'Medium' },
+  { id: 'task_remotasks', label: 'Remotasks', provider: 'Scale AI', category: 'MicroTasks', visibilityKey: 'mon_remotasks_active', icon: Cpu, eCPMTier: 'High' },
+  { id: 'task_mechanical', label: 'MTurk Proxy', provider: 'Amazon Tasks', category: 'MicroTasks', visibilityKey: 'mon_mturk_active', icon: Smartphone, eCPMTier: 'High' },
+  { id: 'task_appent', label: 'Appen Node', provider: 'Data Expert', category: 'MicroTasks', visibilityKey: 'mon_appen_active', icon: BarChart3, eCPMTier: 'High' },
+  { id: 'task_nevo', label: 'Nevo Tasks', provider: 'Local Gigs', category: 'MicroTasks', visibilityKey: 'mon_nevo_active', icon: MapPin, eCPMTier: 'Standard' },
+  { id: 'task_rapid', label: 'RapidWorkers', provider: 'Fast Gigs', category: 'MicroTasks', visibilityKey: 'mon_rapid_active', icon: Zap, eCPMTier: 'Standard' },
 
-  // --- 5. PASSIVE INCOME & FINTECH (41-50) ---
+  // --- 5. PASSIVE INCOME & FINTECH (81-100+) ---
   { id: 'fin_bandwidth', label: 'Bandwidth Hub', provider: 'Proxy Passive', category: 'Fintech', visibilityKey: 'mon_bandwidth_active', icon: Cpu, eCPMTier: 'Medium' },
   { id: 'fin_mining', label: 'Mining Sim', provider: 'Web3 Passive', category: 'Fintech', visibilityKey: 'mon_mining_active', icon: Coins, eCPMTier: 'Standard' },
   { id: 'fin_faucet', label: 'Crypto Faucet', provider: 'Claim Loop', category: 'Fintech', visibilityKey: 'mon_faucet_active', icon: Zap, eCPMTier: 'Standard' },
@@ -92,5 +139,17 @@ export const MONETIZATION_REGISTRY: MonModule[] = [
   { id: 'fin_promo', label: 'Promo Wall', provider: 'App Boost', category: 'Fintech', visibilityKey: 'mon_promo_active', icon: Target, eCPMTier: 'Medium' },
   { id: 'fin_spin', label: 'Ad Multiplier', provider: 'Spin-to-Win', category: 'Fintech', visibilityKey: 'mon_spin_ad_active', icon: PlayCircle, eCPMTier: 'Medium' },
   { id: 'fin_scratch', label: 'Scratch Layer', provider: 'Bounty Card', category: 'Fintech', visibilityKey: 'mon_scratch_layer_active', icon: Gift, eCPMTier: 'Medium' },
-  { id: 'fin_payout', label: 'Auto Payouts', provider: 'Instant Node', category: 'Fintech', visibilityKey: 'mon_auto_payout_active', icon: Landmark, eCPMTier: 'High' },
+  { id: 'fin_auto', label: 'Auto Payouts', provider: 'Instant Node', category: 'Fintech', visibilityKey: 'mon_auto_payout_active', icon: Landmark, eCPMTier: 'High' },
+  { id: 'fin_honey', label: 'Honey Proxy', provider: 'Passive WiFi', category: 'Fintech', visibilityKey: 'mon_honey_active', icon: Globe, eCPMTier: 'Medium' },
+  { id: 'fin_packet', label: 'PacketStream', provider: 'Data Share', category: 'Fintech', visibilityKey: 'mon_packet_active', icon: Activity, eCPMTier: 'Medium' },
+  { id: 'fin_earnapp', label: 'EarnApp', provider: 'Passive Yield', category: 'Fintech', visibilityKey: 'mon_earnapp_active', icon: Zap, eCPMTier: 'Medium' },
+  { id: 'fin_crypto', label: 'Crypto Reward', provider: 'Faucet Node', category: 'Fintech', visibilityKey: 'mon_crypto_active', icon: Coins, eCPMTier: 'Standard' },
+  { id: 'fin_stake', label: 'Stake Sim', provider: 'Web3 Gaming', category: 'Fintech', visibilityKey: 'mon_stake_active', icon: Target, eCPMTier: 'High' },
+  { id: 'fin_quest', label: 'Mega Quest', provider: 'Bounty Hub', category: 'Fintech', visibilityKey: 'mon_quest_active', icon: Trophy, eCPMTier: 'High' },
+  { id: 'fin_vault', label: 'Scholar Vault', provider: 'Asset Storage', category: 'Fintech', visibilityKey: 'mon_vault_active', icon: Lock, eCPMTier: 'Medium' },
+  { id: 'fin_radar', label: 'Market Radar', provider: 'Signals', category: 'Fintech', visibilityKey: 'mon_radar_active', icon: Search, eCPMTier: 'Medium' },
+  { id: 'fin_bridge', label: 'Bridge Node', provider: 'Cross-Chain', category: 'Fintech', visibilityKey: 'mon_bridge_active', icon: Share2, eCPMTier: 'Standard' },
+  { id: 'fin_nexus', label: 'Nexus Profit', provider: 'Global Node', category: 'Fintech', visibilityKey: 'mon_nexus_active', icon: Activity, eCPMTier: 'High' },
 ];
+
+import { MapPin, UserCheck } from 'lucide-react';

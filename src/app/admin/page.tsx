@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -6,7 +7,7 @@ import {
   Loader2, Zap, Wallet, LayoutGrid, DollarSign, ArrowRightLeft, 
   Search, Palette, CheckCircle2, 
   Star, Volume2, Music, Play, Bell, Eye, EyeOff, BarChart3, TrendingUp,
-  Users as UsersIcon, ShieldAlert, UserCheck, Globe, ShieldX
+  Users as UsersIcon, ShieldAlert, UserCheck, Globe, ShieldX, Terminal, Filter
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,18 +20,20 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { AppSettings, UserProfile, PlatformRevenue } from '../lib/types';
 import { MODULE_REGISTRY, ModuleCategory } from '../lib/module-registry';
+import { MONETIZATION_REGISTRY, MonCategory } from '../lib/monetization-registry';
 import { MASTER_THEMES } from '@/app/lib/themes';
 import { MASTER_SOUNDS } from '@/app/lib/sounds';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 const APP_CATEGORIES: ModuleCategory[] = ['Learning', 'Skills', 'Earning', 'Productivity', 'System'];
+const MON_CATEGORIES: MonCategory[] = ['Ads', 'CPA', 'Surveys', 'MicroTasks', 'Fintech', 'Gaming', 'Premium'];
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'visibility' | 'warriors' | 'wallets' | 'revenue' | 'currency' | 'branding' | 'sounds'>('visibility');
+  const [activeTab, setActiveTab] = useState<'visibility' | 'apis' | 'warriors' | 'wallets' | 'revenue' | 'currency' | 'branding' | 'sounds'>('visibility');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   // States for forms
@@ -41,6 +44,7 @@ export default function AdminDashboard() {
   const [adjustUnit, setAdjustUnit] = useState<'coin' | 'inr'>('coin');
   const [soundSearch, setSoundSearch] = useState('');
   const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [apiSearchTerm, setApiSearchTerm] = useState('');
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -158,6 +162,11 @@ export default function AdminDashboard() {
     w.referralCode?.toLowerCase().includes(userSearchTerm.toLowerCase())
   ) || [];
 
+  const filteredApis = MONETIZATION_REGISTRY.filter(m => 
+    m.label.toLowerCase().includes(apiSearchTerm.toLowerCase()) || 
+    m.provider.toLowerCase().includes(apiSearchTerm.toLowerCase())
+  );
+
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!isAdminUser) return <div className="min-h-screen bg-black text-red-500 flex items-center justify-center font-black">ACCESS DENIED</div>;
 
@@ -168,12 +177,13 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <p className="text-sm font-black uppercase italic">Admin <span className="text-primary">Hub</span></p>
          </div>
-         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase">v210.0 Active</Badge>
+         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase">v220.0 Active</Badge>
       </header>
 
       <main className="pt-28 px-4 md:px-6 space-y-10 max-w-6xl mx-auto">
          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
             <NavPill active={activeTab === 'visibility'} label="Modules" icon={<LayoutGrid className="h-3 w-3" />} onClick={() => setActiveTab('visibility')} />
+            <NavPill active={activeTab === 'apis'} label="APIs (100+)" icon={<Terminal className="h-3 w-3" />} onClick={() => setActiveTab('apis')} />
             <NavPill active={activeTab === 'warriors'} label="Warriors" icon={<UsersIcon className="h-3 w-3" />} onClick={() => setActiveTab('warriors')} />
             <NavPill active={activeTab === 'branding'} label="Themes" icon={<Palette className="h-3 w-3" />} onClick={() => setActiveTab('branding')} />
             <NavPill active={activeTab === 'sounds'} label="Sounds" icon={<Volume2 className="h-3 w-3" />} onClick={() => setActiveTab('sounds')} />
@@ -181,6 +191,64 @@ export default function AdminDashboard() {
             <NavPill active={activeTab === 'wallets'} label="Adjust" icon={<Wallet className="h-3 w-3" />} onClick={() => setActiveTab('wallets')} />
             <NavPill active={activeTab === 'currency'} label="Economy" icon={<ArrowRightLeft className="h-3 w-3" />} onClick={() => setActiveTab('currency')} />
          </div>
+
+         {/* APIs TAB (100+) */}
+         {activeTab === 'apis' && (
+            <div className="space-y-10 animate-in fade-in duration-500">
+               <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                  <div className="space-y-2">
+                     <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">API <span className="text-primary">Command Hub</span></h2>
+                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">100+ Monetization & Postback Signal Control</p>
+                  </div>
+                  <div className="relative w-full md:w-80">
+                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                     <Input 
+                       value={apiSearchTerm}
+                       onChange={e => setApiSearchTerm(e.target.value)}
+                       placeholder="SEARCH 100+ APIs..." 
+                       className="h-12 bg-black border-white/10 rounded-xl pl-12 font-black uppercase text-[10px] tracking-widest"
+                     />
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {MON_CATEGORIES.map(cat => {
+                    const catApis = filteredApis.filter(m => m.category === cat);
+                    if (catApis.length === 0) return null;
+                    
+                    return (
+                      <Card key={cat} className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6">
+                         <h3 className="text-lg font-black uppercase italic text-primary flex items-center gap-3">
+                            <Terminal className="h-4 w-4" /> {cat} Networks
+                         </h3>
+                         <div className="grid gap-3 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
+                            {catApis.map(api => (
+                              <div key={api.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 group hover:border-primary/20 transition-all">
+                                 <div className="flex items-center gap-4">
+                                    <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors border border-white/5">
+                                       <api.icon size={18} />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                       <p className="text-[10px] font-black uppercase tracking-widest text-white">{api.label}</p>
+                                       <div className="flex items-center gap-2">
+                                          <Badge variant="outline" className="text-[6px] font-black uppercase border-white/10 opacity-60">{api.provider}</Badge>
+                                          {api.eCPMTier === 'High' && <Badge className="bg-amber-500/20 text-amber-500 border-none text-[6px] font-black uppercase px-1.5 italic">ELITE</Badge>}
+                                       </div>
+                                    </div>
+                                 </div>
+                                 <Switch 
+                                   checked={!!(settings as any)?.[api.visibilityKey]} 
+                                   onCheckedChange={(v) => updateSetting(api.visibilityKey, v)} 
+                                 />
+                              </div>
+                            ))}
+                         </div>
+                      </Card>
+                    );
+                  })}
+               </div>
+            </div>
+         )}
 
          {/* WARRIORS LIST TAB */}
          {activeTab === 'warriors' && (
