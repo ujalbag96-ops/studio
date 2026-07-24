@@ -25,7 +25,7 @@ export default function UserDashboard() {
   const firestore = useFirestore();
   const router = useRouter();
   
-  const userProfileRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
   
   const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'platform_stats', 'revenue') : null, [firestore]);
@@ -138,7 +138,7 @@ function SecuritySignal({ active, text }: any) {
       <li className={cn("flex items-center justify-between text-[9px] font-black uppercase tracking-widest italic", active ? "text-white" : "text-muted-foreground opacity-40")}>
          {text}
          <div className="relative flex h-2 w-2">
-            <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", active ? "bg-green-500" : "bg-red-500")} />
+            <span className={cn("status-pulse-dot", active ? "bg-green-500" : "bg-red-500")} />
             <span className={cn("relative inline-flex rounded-full h-2 w-2", active ? "bg-green-500" : "bg-red-500")} />
          </div>
       </li>
