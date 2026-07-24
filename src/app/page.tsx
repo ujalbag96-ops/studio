@@ -7,13 +7,8 @@ import { Button } from '@/components/ui/button';
 import { 
   ArrowRight, 
   Zap, 
-  Trophy, 
   Globe, 
-  Gamepad2, 
   ShieldCheck, 
-  Library,
-  ShoppingBag,
-  GraduationCap,
   Sparkles,
   PlayCircle
 } from 'lucide-react';
@@ -21,6 +16,7 @@ import Link from 'next/link';
 import { UserProfile, AppSettings } from './lib/types';
 import { cn } from '@/lib/utils';
 import LivePrizePool from '@/components/LivePrizePool';
+import { MODULE_REGISTRY } from './lib/module-registry';
 
 export default function Home() {
   const { user } = useUser();
@@ -34,14 +30,15 @@ export default function Home() {
 
   const isIndia = profile?.country === 'India' || !profile?.country; 
   
+  // Dynamic sectors from registry based on visibility
+  const activeSectors = MODULE_REGISTRY.filter(m => (settings as any)?.[m.visibilityKey]).slice(0, 6);
+
   return (
     <div className="max-w-7xl mx-auto px-8 py-16 space-y-24 pb-40">
-      {/* Dynamic Bounty HUD */}
       <section className="animate-in fade-in slide-in-from-top-4 duration-1000">
          <LivePrizePool />
       </section>
 
-      {/* Industrial Hero Section */}
       <section className="relative glass-panel rounded-[4rem] p-12 md:p-24 overflow-hidden flex flex-col items-center text-center space-y-12">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] -mr-60 -mt-60" />
         
@@ -77,50 +74,25 @@ export default function Home() {
             </Link>
           </div>
         </div>
-
-        <div className="absolute -bottom-20 opacity-5 pointer-events-none select-none">
-           <Zap className="h-96 w-96 text-primary animate-pulse" />
-        </div>
       </section>
 
-      {/* Industrial Grid Refactor with Visibility Logic */}
       <div className="space-y-4">
          <div className="flex items-center justify-between px-4">
             <h3 className="text-sm font-black uppercase tracking-[0.4em] text-muted-foreground italic">Platform Sectors</h3>
          </div>
          <div className="grid gap-px bg-white/10 border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl">
-            {(settings?.node_scholar_dividend ?? true) && (
+            {activeSectors.map((module) => (
               <SectorRow 
-                icon={isIndia ? <Library /> : <Zap />} 
-                label={isIndia ? "NCERT Resource Node" : "Global Task Node"} 
-                desc={isIndia ? "Access Class 1-12 Curriculum" : "High-Performance CPA Signals"} 
-                href={isIndia ? "/campus" : "/earning-hub"}
+                key={module.id}
+                icon={<module.icon />} 
+                label={module.label} 
+                desc={module.desc} 
+                href={module.route}
               />
-            )}
-            <SectorRow 
-              icon={<Gamepad2 />} 
-              label="Skill Arcade Terminal" 
-              desc="Gamified Retention Rewards" 
-              href="/games"
-            />
-            {(settings?.node_daily_streak_visible ?? true) && (
-              <SectorRow 
-                icon={<Trophy />} 
-                label="Daily Bounty Protocol" 
-                desc="Industrial Asset Loot Boxes" 
-                href="/dashboard"
-              />
-            )}
-            <SectorRow 
-              icon={<ShoppingBag />} 
-              label="Redemption Shop" 
-              desc="Digital Voucher Liquidity" 
-              href="/shop"
-            />
+            ))}
          </div>
       </div>
 
-      {/* Trust Signals Minimalist */}
       <section className="grid md:grid-cols-3 gap-12 pt-12 border-t border-white/10">
          <TrustBlock icon={<PlayCircle />} title="S2S Verified" desc="Real-time postback signals ensure mission integrity." />
          <TrustBlock icon={<ShieldCheck />} title="Fraud Guard" desc="Identity Gate VPN detection for ecosystem security." />

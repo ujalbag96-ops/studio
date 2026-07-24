@@ -1,33 +1,28 @@
 
 'use client';
 
-import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, query, where, limit } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import { 
-  Loader2, Monitor, Activity, Power, Server, Signal, Cpu, LineChart, Zap, 
+  Loader2, Monitor, Activity, Power, Signal, Cpu, LineChart, Zap, 
   ShieldAlert, ShieldX, Lock, Users, Globe, Smartphone, ClipboardList, Target, 
-  Eye, EyeOff, LayoutGrid, LayoutList, CheckCircle2, ChevronRight, Menu
+  Eye, EyeOff, LayoutGrid, LayoutList, CheckCircle2, ChevronRight, Menu,
+  Settings, Briefcase, GraduationCap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
-import { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { UserProfile, AppSettings, PlatformRevenue } from '../lib/types';
+import { UserProfile, AppSettings } from '../lib/types';
+import { MODULE_REGISTRY, ModuleCategory } from '../lib/module-registry';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-const VISIBILITY_NODES = [
-  { id: 'node_scholar_dividend', name: 'Scholar Hub (NCERT)', icon: <LayoutGrid className="h-4 w-4" /> },
-  { id: 'node_tutor_visible', name: 'AI Tuition Teacher', icon: <Cpu className="h-4 w-4" /> },
-  { id: 'node_global_cpa', name: 'Pocket Money (CPA)', icon: <Smartphone className="h-4 w-4" /> },
-  { id: 'node_quiz_arena', name: 'Quiz Arena Hub', icon: <Target className="h-4 w-4" /> },
-  { id: 'node_daily_streak_visible', name: 'Daily Streak Node', icon: <Activity className="h-4 w-4" /> },
-  { id: 'node_referral_engine', name: 'Referral Network', icon: <Users className="h-4 w-4" /> },
-  { id: 'node_book_download', name: 'Offline PDF Download', icon: <Server className="h-4 w-4" /> },
-];
+const CATEGORIES: ModuleCategory[] = ['Learning', 'Skills', 'Earning', 'Productivity', 'System'];
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
@@ -50,7 +45,7 @@ export default function AdminDashboard() {
     setIsProcessing(key);
     try {
       await updateDoc(settingsRef, { [key]: value });
-      toast({ title: "NODE SYNCED", description: `${key.replace('node_', '').toUpperCase()} visibility updated.` });
+      toast({ title: "SIGNAL SYNCED", description: `${key.replace('node_', '').toUpperCase()} visibility updated.` });
     } catch (e) {
       toast({ variant: "destructive", title: "SYNC FAILED" });
     } finally {
@@ -68,13 +63,13 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <div>
                <p className="text-sm font-black uppercase italic leading-none">Master <span className="text-primary">Hub</span></p>
-               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1">Admin Control v36.0</p>
+               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1">Industrial Control v50.0</p>
             </div>
          </div>
-         <Badge className="bg-green-600/20 text-green-500 border-none text-[8px] font-black uppercase px-3 italic">Live Sync Active</Badge>
+         <Badge className="bg-green-600/20 text-green-500 border-none text-[8px] font-black uppercase px-3 italic">Hyper-Sync Active</Badge>
       </header>
 
-      <main className="pt-28 px-6 space-y-10 max-w-2xl mx-auto">
+      <main className="pt-28 px-6 space-y-10 max-w-4xl mx-auto">
          
          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
             <NavPill active={activeTab === 'visibility'} label="Visibility" icon={<Eye className="h-3 w-3" />} onClick={() => setActiveTab('visibility')} />
@@ -83,60 +78,72 @@ export default function AdminDashboard() {
          </div>
 
          {activeTab === 'visibility' && (
-           <div className="space-y-6 animate-in fade-in duration-500">
+           <div className="space-y-8 animate-in fade-in duration-500">
               <div className="space-y-2">
-                 <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white leading-none">Feature <span className="text-primary">Toggles</span></h2>
-                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Instant Node Management • Zero update required</p>
+                 <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white leading-none">Feature <span className="text-primary">Controller</span></h2>
+                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">50+ Modular Nodes • Zero Update Deployment</p>
               </div>
 
-              <div className="grid gap-4">
-                 {VISIBILITY_NODES.map((node) => {
-                    const isActive = (settings as any)?.[node.id];
-                    return (
-                       <Card key={node.id} className="bg-[#0a0a0f] border-white/5 rounded-3xl p-6 flex items-center justify-between group hover:border-primary/20 transition-all">
-                          <div className="flex items-center gap-5">
-                             <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all", isActive ? "bg-primary/10 text-primary border border-primary/20 shadow-lg" : "bg-white/5 text-muted-foreground border border-white/10")}>
-                                {node.icon}
-                             </div>
-                             <div>
-                                <p className={cn("text-sm font-black uppercase italic", isActive ? "text-white" : "text-muted-foreground opacity-50")}>{node.name}</p>
-                                <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1 tracking-widest">
-                                   {isActive ? "NODE VISIBLE" : "NODE HIDDEN"}
-                                </p>
-                             </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                             {isProcessing === node.id ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : (
-                               <Switch 
-                                checked={!!isActive} 
-                                onCheckedChange={(v) => toggleSetting(node.id, v)}
-                                className="data-[state=checked]:bg-primary"
-                               />
-                             )}
-                          </div>
-                       </Card>
-                    );
-                 })}
-              </div>
+              <Tabs defaultValue="Learning" className="w-full">
+                 <TabsList className="w-full h-14 bg-white/5 p-1 rounded-2xl border border-white/10 flex overflow-x-auto no-scrollbar">
+                    {CATEGORIES.map(cat => (
+                       <TabsTrigger key={cat} value={cat} className="flex-1 font-black text-[9px] uppercase data-[state=active]:bg-primary rounded-xl">
+                          {cat}
+                       </TabsTrigger>
+                    ))}
+                 </TabsList>
+
+                 {CATEGORIES.map(cat => (
+                    <TabsContent key={cat} value={cat} className="mt-8 space-y-4">
+                       <div className="grid gap-4 sm:grid-cols-2">
+                          {MODULE_REGISTRY.filter(m => m.category === cat).map((module) => {
+                             const isActive = (settings as any)?.[module.visibilityKey];
+                             return (
+                                <Card key={module.id} className="bg-[#0a0a0f] border-white/5 rounded-3xl p-6 flex items-center justify-between group hover:border-primary/20 transition-all">
+                                   <div className="flex items-center gap-5">
+                                      <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all", isActive ? "bg-primary/10 text-primary border border-primary/20 shadow-lg" : "bg-white/5 text-muted-foreground border border-white/10")}>
+                                         <module.icon className="h-5 w-5" />
+                                      </div>
+                                      <div>
+                                         <p className={cn("text-xs font-black uppercase italic", isActive ? "text-white" : "text-muted-foreground opacity-50")}>{module.label}</p>
+                                         <p className="text-[7px] font-bold text-muted-foreground uppercase mt-1 tracking-widest">
+                                            {isActive ? "ACTIVE NODE" : "DORMANT"}
+                                         </p>
+                                      </div>
+                                   </div>
+                                   <Switch 
+                                     checked={!!isActive} 
+                                     onCheckedChange={(v) => toggleSetting(module.visibilityKey, v)}
+                                     disabled={isProcessing === module.visibilityKey}
+                                     className="data-[state=checked]:bg-primary"
+                                   />
+                                </Card>
+                             );
+                          })}
+                       </div>
+                    </TabsContent>
+                 ))}
+              </Tabs>
            </div>
          )}
 
          {activeTab === 'monitor' && (
            <div className="space-y-8 animate-in fade-in duration-500">
               <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">Operational <span className="text-primary">Node</span></h2>
-              
-              <div className="grid gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                  <ModeRow label="Maintenance Mode" active={settings?.maintenanceMode} onToggle={(v) => toggleSetting('maintenanceMode', v)} icon={<Power />} />
                  <ModeRow label="Review Mode (Ads Off)" active={settings?.reviewMode} onToggle={(v) => toggleSetting('reviewMode', v)} icon={<Signal />} />
                  <ModeRow label="Razorpay Auto-Pay" active={settings?.razorpayAutoPayout} onToggle={(v) => toggleSetting('razorpayAutoPayout', v)} icon={<Cpu />} />
+                 <ModeRow label="Offline Download" active={settings?.node_book_download} onToggle={(v) => toggleSetting('node_book_download', v)} icon={<HardDrive />} />
               </div>
-
               <Card className="bg-red-500/5 border-red-500/20 p-8 rounded-3xl space-y-4">
                  <div className="flex justify-between items-center">
                     <ShieldX className="text-red-500 h-6 w-6" />
                     <Badge className="bg-red-600 text-[8px] font-black uppercase px-2 py-1">SECURITY LOCK</Badge>
                  </div>
-                 <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">VPN/Proxy Identity Lock Active. Automated account suspension enabled for high-risk signals.</p>
+                 <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
+                   VPN/Proxy Identity Lock Active. Automated account suspension enabled for high-risk signals.
+                 </p>
               </Card>
            </div>
          )}
@@ -160,7 +167,7 @@ export default function AdminDashboard() {
       <footer className="fixed bottom-0 inset-x-0 p-8 flex justify-center pointer-events-none">
          <div className="bg-black/80 backdrop-blur-xl border border-white/10 px-6 py-2 rounded-full flex items-center gap-3 shadow-2xl">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[9px] font-black uppercase text-white tracking-[0.4em] italic">CampusHub Global Signal Active</span>
+            <span className="text-[9px] font-black uppercase text-white tracking-[0.4em] italic">CampusHub Global Sync Active</span>
          </div>
       </footer>
     </div>

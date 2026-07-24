@@ -31,7 +31,7 @@
     },
     "AppSettings": {
       "title": "AppSettings",
-      "description": "Master system config for 10-node revenue architecture and visibility controller.",
+      "description": "Master system config for 50+ dynamic modules visibility control.",
       "type": "object",
       "properties": {
         "maintenanceMode": { "type": "boolean" },
@@ -39,18 +39,24 @@
         "autoWithdrawalEnabled": { "type": "boolean" },
         "razorpayAutoPayout": { "type": "boolean" },
         "userRevenueSharePercent": { "type": "number", "default": 30 },
-        "api_razorpay_active": { "type": "boolean" },
-        "api_admob_active": { "type": "boolean" },
-        "api_cpalead_active": { "type": "boolean" },
-        "api_s2s_active": { "type": "boolean" },
-        "node_scholar_dividend": { "type": "boolean", "description": "Library & Books visibility" },
-        "node_quiz_arena": { "type": "boolean", "description": "Quiz Arena visibility" },
-        "node_global_cpa": { "type": "boolean", "description": "Pocket Money / CPA Tasks visibility" },
-        "node_referral_engine": { "type": "boolean", "description": "Refer & Earn visibility" },
-        "node_ad_stream": { "type": "boolean", "description": "Video Ads visibility" },
-        "node_book_download": { "type": "boolean", "description": "Book Download button visibility" },
-        "node_tutor_visible": { "type": "boolean", "description": "AI Human Tutor visibility" },
-        "node_daily_streak_visible": { "type": "boolean", "description": "Daily Streak visibility" }
+        "node_scholar_dividend": { "type": "boolean" },
+        "node_tutor_visible": { "type": "boolean" },
+        "node_global_cpa": { "type": "boolean" },
+        "node_quiz_arena": { "type": "boolean" },
+        "node_daily_streak_visible": { "type": "boolean" },
+        "node_referral_engine": { "type": "boolean" },
+        "node_book_download": { "type": "boolean" },
+        "node_mock_tests": { "type": "boolean" },
+        "node_live_classroom": { "type": "boolean" },
+        "node_handwritten_notes": { "type": "boolean" },
+        "node_resume_builder": { "type": "boolean" },
+        "node_typing_master": { "type": "boolean" },
+        "node_spin_wheel": { "type": "boolean" },
+        "node_scratch_cards": { "type": "boolean" },
+        "node_pomodoro": { "type": "boolean" },
+        "node_gpa_calc": { "type": "boolean" },
+        "node_push_center": { "type": "boolean" },
+        "node_support_desk": { "type": "boolean" }
       }
     }
   },
@@ -64,7 +70,7 @@
     },
     "/app_settings/global_config": {
       "schema": "AppSettings",
-      "description": "Industrial control node with Revenue Controller master settings"
+      "description": "Industrial control node with 50+ module master switches"
     }
   }
 }

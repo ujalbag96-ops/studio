@@ -12,17 +12,9 @@ import {
 import { 
   Menu, 
   User, 
-  Library, 
-  GraduationCap, 
-  Zap, 
-  Trophy, 
-  Flame, 
-  Users, 
-  Wallet, 
-  Settings, 
+  ChevronRight, 
+  ShieldCheck, 
   LogOut,
-  ChevronRight,
-  ShieldCheck,
   LayoutDashboard
 } from 'lucide-react';
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -34,6 +26,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { AppSettings } from '@/app/lib/types';
+import { MODULE_REGISTRY } from '@/app/lib/module-registry';
 
 export default function NavigationDrawer() {
   const { user } = useUser();
@@ -52,17 +45,8 @@ export default function NavigationDrawer() {
     }
   };
 
-  const menuItems = [
-    { label: 'Profile Node', icon: <User />, href: '/dashboard', visible: true },
-    { label: 'Library & Books', icon: <Library />, href: '/campus', visible: settings?.node_scholar_dividend ?? true },
-    { label: 'AI Human Tutor', icon: <GraduationCap />, href: '/campus/viewer', visible: settings?.node_tutor_visible ?? true },
-    { label: 'Pocket Money (CPA)', icon: <Zap />, href: '/earning-hub', visible: settings?.node_global_cpa ?? true },
-    { label: 'Quiz Arena Hub', icon: <Trophy />, href: '/quiz-arena', visible: settings?.node_quiz_arena ?? true },
-    { label: 'Daily Milestones', icon: <Flame />, href: '/dashboard', visible: settings?.node_daily_streak_visible ?? true },
-    { label: 'Refer & Earn', icon: <Users />, href: '/refer', visible: settings?.node_referral_engine ?? true },
-    { label: 'Wallet & Payout', icon: <Wallet />, href: '/shop', visible: true },
-    { label: 'System Settings', icon: <Settings />, href: '/settings', visible: true },
-  ];
+  // Filter modules based on Admin Toggle states
+  const activeModules = MODULE_REGISTRY.filter(m => (settings as any)?.[m.visibilityKey]);
 
   return (
     <Sheet>
@@ -88,17 +72,30 @@ export default function NavigationDrawer() {
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2 no-scrollbar">
-             {menuItems.filter(item => item.visible).map((item) => (
-               <Link key={item.label} href={item.href}>
+             <Link href="/dashboard">
+                <div className={cn(
+                  "flex items-center justify-between p-4 rounded-xl transition-all group",
+                  pathname === '/dashboard' ? "bg-primary/10 border border-primary/20" : "hover:bg-white/5"
+                )}>
+                   <div className="flex items-center gap-4">
+                      <LayoutDashboard className={cn("h-4.5 w-4.5 text-muted-foreground group-hover:text-primary", pathname === '/dashboard' && "text-primary")} />
+                      <span className={cn("text-[11px] font-black uppercase tracking-widest italic", pathname === '/dashboard' ? "text-white" : "text-muted-foreground group-hover:text-white")}>Portfolio Hub</span>
+                   </div>
+                   <ChevronRight className="h-3 w-3 opacity-20" />
+                </div>
+             </Link>
+
+             {activeModules.map((item) => (
+               <Link key={item.id} href={item.route}>
                   <div className={cn(
                     "flex items-center justify-between p-4 rounded-xl transition-all group",
-                    pathname === item.href ? "bg-primary/10 border border-primary/20" : "hover:bg-white/5"
+                    pathname === item.route ? "bg-primary/10 border border-primary/20" : "hover:bg-white/5"
                   )}>
                      <div className="flex items-center gap-4">
-                        <span className={cn("text-muted-foreground group-hover:text-primary transition-colors", pathname === item.href && "text-primary")}>
-                           {React.cloneElement(item.icon as React.ReactElement, { size: 18 })}
+                        <span className={cn("text-muted-foreground group-hover:text-primary transition-colors", pathname === item.route && "text-primary")}>
+                           <item.icon size={18} />
                         </span>
-                        <span className={cn("text-[11px] font-black uppercase tracking-widest italic", pathname === item.href ? "text-white" : "text-muted-foreground group-hover:text-white")}>
+                        <span className={cn("text-[11px] font-black uppercase tracking-widest italic", pathname === item.route ? "text-white" : "text-muted-foreground group-hover:text-white")}>
                            {item.label}
                         </span>
                      </div>
@@ -110,7 +107,7 @@ export default function NavigationDrawer() {
 
           <div className="p-8 border-t border-white/5 space-y-6">
              <div className="flex items-center gap-3 text-[9px] font-black text-muted-foreground uppercase italic opacity-40">
-                <ShieldCheck className="h-3 w-3" /> CampusHub Industrial v11.0
+                <ShieldCheck className="h-3 w-3" /> CampusHub Industrial v50.0
              </div>
              <Button 
                onClick={handleLogout}
