@@ -1,13 +1,22 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ShieldCheck, Target, Zap, Activity, Info, Layout } from 'lucide-react';
 import RiskDisclosureModal from './RiskDisclosureModal';
 
 export default function Footer() {
   const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
+  const [currentYear, setCurrentYear] = useState(2026);
+
+  useEffect(() => {
+    // Hydration-safe dynamic year update
+    const year = new Date().getFullYear();
+    if (year > 2026) {
+      setCurrentYear(year);
+    }
+  }, []);
 
   return (
     <footer className="bg-[#0a0a0f] border-t border-white/5 py-12 pb-32 md:pb-12 mt-20">
@@ -79,7 +88,7 @@ export default function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto px-8 mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">© 2024 CampusCompanion Industrial. All Rights Reserved.</p>
+        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">© {currentYear} CampusCompanion Industrial. All Rights Reserved.</p>
         <div className="flex items-center gap-4 opacity-30">
            <Activity className="h-4 w-4" />
            <ShieldCheck className="h-4 w-4" />
