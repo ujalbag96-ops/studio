@@ -45,6 +45,7 @@ export interface UserProfile {
   emailVerified?: boolean;
   referralCommissionBalance?: number;
   mlmLevel?: number;
+  lastSpinTimestamp?: string;
 }
 
 export interface AppSettings {
@@ -68,6 +69,10 @@ export interface AppSettings {
   currentThemeId?: string;
   customLogoUrl?: string;
   festivalModeActive?: boolean;
+
+  // --- SONIC SETTINGS ---
+  globalRewardSoundUrl?: string;
+  globalNotifSoundUrl?: string;
   
   // --- DYNAMIC CURRENCY & ECONOMY ---
   coinsPerINR: number;
