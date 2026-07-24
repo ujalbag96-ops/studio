@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { useDoc, useFirestore, useMemoFirebase, useUser, useCollection } from '@/firebase';
+import { doc, updateDoc, collection, query as fsQuery, orderBy } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { 
@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { UserProfile, BookMetadata, LanguageCode } from '@/app/lib/types';
+import { UserProfile, BookMetadata, LanguageCode, AppSettings } from '@/app/lib/types';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -70,7 +70,12 @@ export default function CampusHomeScreen() {
   const firestore = useFirestore();
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
+  const customBooksQuery = useMemoFirebase(() => firestore ? fsQuery(collection(firestore, 'custom_books'), orderBy('timestamp', 'desc')) : null, [firestore]);
+  
   const { data: profile } = useDoc<UserProfile>(userRef);
+  const { data: settings } = useDoc<AppSettings>(settingsRef);
+  const { data: customBooks } = useCollection<BookMetadata>(customBooksQuery);
 
   const [eduSource, setEduSource] = useState<string>('all');
   const [language, setLanguage] = useState<string>('all');
@@ -95,9 +100,15 @@ export default function CampusHomeScreen() {
     async function fetchVaultData() {
       setLoading(true);
 
+      if (eduSource === 'CustomAPI') {
+         setBooks(customBooks || []);
+         setLoading(false);
+         return;
+      }
+
       if (eduSource === 'OpenLibrary' || eduSource === 'HigherEd') {
-         const query = eduSource === 'HigherEd' ? (searchTerm || "university textbooks") : (searchTerm || "curriculum");
-         const externalBooks = await fetchCollegeBooks(query);
+         const queryStr = eduSource === 'HigherEd' ? (searchTerm || "university textbooks") : (searchTerm || "curriculum");
+         const externalBooks = await fetchCollegeBooks(queryStr);
          setBooks(externalBooks as BookMetadata[]);
          setLoading(false);
          return;
@@ -119,7 +130,7 @@ export default function CampusHomeScreen() {
       }
     }
     fetchVaultData();
-  }, [language, eduSource, searchTerm]);
+  }, [language, eduSource, searchTerm, customBooks]);
 
   const updateLanguage = async (lang: string) => {
     setLanguage(lang);
@@ -131,11 +142,11 @@ export default function CampusHomeScreen() {
   const filteredBooks = useMemo(() => {
     if (!books) return [];
     if (!searchTerm) return books;
-    const query = searchTerm.toLowerCase();
+    const queryStr = searchTerm.toLowerCase();
     return books.filter(b => 
-      b.title.toLowerCase().includes(query) || 
-      b.subject.toLowerCase().includes(query) ||
-      b.class.toLowerCase().includes(query)
+      b.title.toLowerCase().includes(queryStr) || 
+      b.subject.toLowerCase().includes(queryStr) ||
+      b.class.toLowerCase().includes(queryStr)
     );
   }, [books, searchTerm]);
 
@@ -174,6 +185,9 @@ export default function CampusHomeScreen() {
                        <SelectItem value="OdiaMedium">School: OSEPA (Odisha)</SelectItem>
                        <SelectItem value="HigherEd">College: University Hub</SelectItem>
                        <SelectItem value="OpenLibrary">Global: Open Library</SelectItem>
+                       {settings?.node_book_api_active && (
+                          <SelectItem value="CustomAPI">{settings.bookApiCategory || "Partner API"}</SelectItem>
+                       )}
                     </SelectContent>
                  </Select>
               </div>

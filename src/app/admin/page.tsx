@@ -2,13 +2,13 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection, query, orderBy, limit } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, orderBy, limit, writeBatch, deleteDoc, getDocs } from 'firebase/firestore';
 import { 
   Loader2, Monitor, Activity, Power, Signal, Cpu, LineChart, Zap, 
   ShieldAlert, ShieldX, Lock, Users, Globe, Smartphone, ClipboardList, Target, 
   Eye, EyeOff, LayoutGrid, LayoutList, CheckCircle2, ChevronRight, Menu,
   Settings, Briefcase, GraduationCap, DollarSign, Wallet, Star, Mail, Megaphone,
-  AlertCircle, History, Clock, Fingerprint, Ban, CheckCircle
+  AlertCircle, History, Clock, Fingerprint, Ban, CheckCircle, Book, Database, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { UserProfile, AppSettings, PayoutRequest } from '../lib/types';
+import { UserProfile, AppSettings, PayoutRequest, BookMetadata } from '../lib/types';
 import { MODULE_REGISTRY, ModuleCategory } from '../lib/module-registry';
 import { MONETIZATION_REGISTRY, MonCategory } from '../lib/monetization-registry';
 
@@ -33,8 +33,9 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'visibility' | 'monetization' | 'ops' | 'payouts'>('visibility');
+  const [activeTab, setActiveTab] = useState<'visibility' | 'monetization' | 'ops' | 'payouts' | 'book-api'>('visibility');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -54,6 +55,51 @@ export default function AdminDashboard() {
       toast({ variant: "destructive", title: "SYNC FAILED" });
     } finally {
       setIsProcessing(null);
+    }
+  };
+
+  const handleSyncBooks = async () => {
+    if (!settings?.bookApiUrl || !firestore) {
+       toast({ variant: "destructive", title: "Config Missing", description: "Set API URL before sync." });
+       return;
+    }
+    
+    setIsSyncing(true);
+    try {
+      const res = await fetch(settings.bookApiUrl);
+      const data = await res.json();
+      
+      // Industrial Mapping for standard APIs (assuming array of books)
+      const booksToSync = (Array.isArray(data) ? data : data.docs || data.books || []).slice(0, 50);
+      
+      const batch = writeBatch(firestore);
+      const customBooksCol = collection(firestore, 'custom_books');
+      
+      // Clear old signals first (Simplified for prototype)
+      const existing = await getDocs(customBooksCol);
+      existing.forEach(d => batch.delete(d.ref));
+      
+      booksToSync.forEach((b: any) => {
+         const newBookRef = doc(customBooksCol);
+         batch.set(newBookRef, {
+            id: b.id || b.key || newBookRef.id,
+            title: b.title || "Untitled Lesson",
+            subject: settings.bookApiCategory || b.subject || "Global Node",
+            class: b.class || "University Hub",
+            source: "Admin-API",
+            lang: b.lang || "en",
+            coverUrl: b.coverUrl || b.image || `https://picsum.photos/seed/${Math.random()}/200/300`,
+            isCustom: true,
+            timestamp: new Date().toISOString()
+         });
+      });
+
+      await batch.commit();
+      toast({ title: "GLOBAL SYNC SUCCESS", description: `${booksToSync.length} scholarly nodes synced.` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "SYNC FAILURE", description: "Check API Endpoint integrity." });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -81,7 +127,7 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <div>
                <p className="text-sm font-black uppercase italic leading-none">Master <span className="text-primary">Hub</span></p>
-               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1">Industrial Intelligence v70.0</p>
+               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1">Industrial Intelligence v80.0</p>
             </div>
          </div>
          <Badge className="bg-green-600/20 text-green-500 border-none text-[8px] font-black uppercase px-3 italic">Global Sync Active</Badge>
@@ -91,10 +137,90 @@ export default function AdminDashboard() {
          
          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
             <NavPill active={activeTab === 'visibility'} label="Modules" icon={<LayoutGrid className="h-3 w-3" />} onClick={() => setActiveTab('visibility')} />
+            <NavPill active={activeTab === 'book-api'} label="Book API" icon={<Book className="h-3 w-3" />} onClick={() => setActiveTab('book-api')} />
             <NavPill active={activeTab === 'monetization'} label="Monetization" icon={<DollarSign className="h-3 w-3" />} onClick={() => setActiveTab('monetization')} />
             <NavPill active={activeTab === 'ops'} label="Operations" icon={<Settings className="h-3 w-3" />} onClick={() => setActiveTab('ops')} />
             <NavPill active={activeTab === 'payouts'} label="Payouts" icon={<Wallet className="h-3 w-3" />} onClick={() => setActiveTab('payouts')} />
          </div>
+
+         {activeTab === 'book-api' && (
+            <div className="space-y-10 animate-in fade-in duration-500">
+               <div className="space-y-2">
+                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">Book API <span className="text-primary">Manager</span></h2>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Configure Global Resource Signals</p>
+               </div>
+
+               <div className="grid gap-6 lg:grid-cols-2">
+                  <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-10 space-y-8 border-2 shadow-2xl">
+                     <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Database className="text-primary" /> Configuration</h3>
+                        <Switch 
+                          checked={!!settings?.node_book_api_active} 
+                          onCheckedChange={(v) => updateSetting('node_book_api_active', v)}
+                          className="data-[state=checked]:bg-primary"
+                        />
+                     </div>
+
+                     <div className="space-y-6">
+                        <div className="space-y-2">
+                           <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Endpoint URL</Label>
+                           <Input 
+                             value={settings?.bookApiUrl || ''} 
+                             onChange={e => updateSetting('bookApiUrl', e.target.value)} 
+                             className="h-14 bg-black border-white/10 font-bold text-xs" 
+                             placeholder="https://api.provider.com/v1/books" 
+                           />
+                        </div>
+                        <div className="space-y-2">
+                           <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Auth Header / Key</Label>
+                           <Input 
+                             value={settings?.bookApiKey || ''} 
+                             onChange={e => updateSetting('bookApiKey', e.target.value)} 
+                             type="password"
+                             className="h-14 bg-black border-white/10 font-bold text-xs" 
+                             placeholder="Bearer eyJhbGciOiJIUzI..." 
+                           />
+                        </div>
+                        <div className="space-y-2">
+                           <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Default Mapping Category</Label>
+                           <Input 
+                             value={settings?.bookApiCategory || ''} 
+                             onChange={e => updateSetting('bookApiCategory', e.target.value)} 
+                             className="h-14 bg-black border-white/10 font-black uppercase text-xs text-primary" 
+                             placeholder="E.G. ENGINEERING CORE" 
+                           />
+                        </div>
+                     </div>
+                  </Card>
+
+                  <div className="space-y-6">
+                     <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-10 flex flex-col justify-center items-center text-center space-y-8 shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-5"><RefreshCw className="h-40 w-40 text-primary" /></div>
+                        <div className="space-y-3 relative z-10">
+                           <h4 className="text-2xl font-black uppercase italic">Master Sync</h4>
+                           <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
+                              Push new scholarly signals from your configured API into the Global Vault instantly.
+                           </p>
+                        </div>
+                        <Button 
+                          onClick={handleSyncBooks}
+                          disabled={isSyncing || !settings?.bookApiUrl}
+                          className="w-full h-20 bg-primary hover:bg-primary/90 rounded-2xl font-black text-xl uppercase italic shadow-2xl transition-all active:scale-95 group"
+                        >
+                           {isSyncing ? <Loader2 className="animate-spin h-8 w-8" /> : <><RefreshCw className="mr-3 h-6 w-6 group-hover:rotate-180 transition-transform duration-500" /> INITIALIZE GLOBAL SYNC</>}
+                        </Button>
+                     </Card>
+
+                     <Card className="bg-[#121212] border-white/5 rounded-3xl p-8 flex items-start gap-4">
+                        <Info className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">
+                           Signal verification active. Any books synced will inherit the "Admin-API" source label and be displayed in the Scholar Hub under the custom mapping category.
+                        </p>
+                     </Card>
+                  </div>
+               </div>
+            </div>
+         )}
 
          {activeTab === 'visibility' && (
            <div className="space-y-8 animate-in fade-in duration-500">

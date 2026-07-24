@@ -51,7 +51,10 @@ export interface AppSettings {
   minAppVersion?: string;
   adminUpiId?: string;
   automaticGatewayEnabled?: boolean;
-  // Dynamic Keys for 100+ modules are handled via (settings as any)
+  bookApiUrl?: string;
+  bookApiKey?: string;
+  bookApiCategory?: string;
+  node_book_api_active?: boolean;
 }
 
 export interface PlatformRevenue {
@@ -115,25 +118,5 @@ export interface BookMetadata {
   lang: string;
   coverUrl?: string;
   author?: string;
-}
-
-export interface StudyBuddySession {
-  id: string;
-  topic: string;
-  studentId: string;
-  studentEmail: string;
-  teacherId: string | null;
-  status: 'searching' | 'active' | 'completed';
-  timestamp: string;
-}
-
-export interface MarketAsset {
-  id: string;
-  title: string;
-  category: string;
-  price: number;
-  authorId: string;
-  authorName: string;
-  downloads: number;
-  timestamp: string;
+  isCustom?: boolean;
 }
