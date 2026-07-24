@@ -26,7 +26,8 @@ import {
   PlayCircle,
   Layout,
   Download,
-  FileText
+  FileText,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -47,6 +48,7 @@ function ViewerContent() {
   
   const [theme, setTheme] = useState<ReaderTheme>('white');
   const [isPageTurning, setIsPageTurning] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
 
   const [showTutor, setShowTutor] = useState(false);
   const [tutorQuery, setTutorQuery] = useState('');
@@ -69,6 +71,11 @@ function ViewerContent() {
   const handlePageTurn = (direction: 'next' | 'prev') => {
     setIsPageTurning(true);
     setTimeout(() => setIsPageTurning(false), 500);
+  };
+
+  const handleRefresh = () => {
+    setIframeKey(prev => prev + 1);
+    toast({ title: "RE-SYNCING SIGNAL", description: "Refreshing PDF viewer node..." });
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,16 +139,18 @@ function ViewerContent() {
 
   return (
     <div className={cn(
-      "min-h-screen flex flex-col transition-colors duration-700",
+      "h-screen flex flex-col transition-colors duration-700 overflow-hidden",
       theme === 'white' ? "bg-[#f4f4f5]" : theme === 'sepia' ? "bg-[#f4ecd8]" : "bg-[#09090b]"
     )}>
       <header className="h-14 border-b border-black/5 bg-background/40 backdrop-blur-md flex items-center justify-between px-4 md:px-6 sticky top-0 z-[100]">
-         <div className="flex items-center gap-4">
+         <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" onClick={() => router.back()} className="h-9 rounded-lg text-[10px] font-black uppercase text-muted-foreground px-2">
                <ArrowLeft className="h-3 w-3 mr-1" /> EXIT
             </Button>
             <div className="h-4 w-px bg-black/10 hidden sm:block" />
-            <h1 className="text-[10px] font-black uppercase text-primary italic truncate max-w-[120px] hidden sm:block">SECURE STUDY SIGNAL</h1>
+            <Button variant="ghost" onClick={handleRefresh} className="h-9 rounded-lg text-[10px] font-black uppercase text-muted-foreground px-2">
+               <RefreshCw className="h-3 w-3 mr-1" /> SYNC
+            </Button>
          </div>
 
          <div className="flex items-center gap-4">
@@ -153,24 +162,26 @@ function ViewerContent() {
          </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-2 md:p-6 lg:p-10 relative overflow-hidden">
+      <main className="flex-1 relative p-1 sm:p-4 md:p-6 lg:p-8 flex flex-col items-center justify-center">
          <div className={cn(
-           "relative w-full max-w-7xl h-full flex-1 shadow-[0_30px_100px_rgba(0,0,0,0.2)] rounded-xl md:rounded-[2rem] transition-all duration-700 border-2 overflow-hidden bg-white",
+           "relative w-full max-w-7xl h-full shadow-[0_30px_100px_rgba(0,0,0,0.2)] rounded-xl md:rounded-[2.5rem] transition-all duration-700 border-2 overflow-hidden bg-white",
            isPageTurning ? "scale-[0.98] blur-sm" : "scale-100 blur-0",
            theme === 'dark' ? "border-white/5" : "border-white"
          )}>
             <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-gradient-to-r from-transparent via-black/5 to-transparent z-20 pointer-events-none hidden md:block" />
             
             <div className={cn(
-              "absolute inset-0 z-10 transition-all",
+              "absolute inset-0 z-10 transition-all pointer-events-none",
               theme === 'sepia' ? "bg-[#fcf5e5] mix-blend-multiply opacity-30" : 
               theme === 'dark' ? "bg-black opacity-0" : "bg-transparent"
             )} />
 
             <iframe 
+              key={iframeKey}
               src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`} 
+              style={{ width: '100%', height: '100%', border: 'none' }}
               className={cn(
-                "w-full h-full border-none transition-all",
+                "transition-all",
                 theme === 'dark' && "filter invert-[0.9] grayscale brightness-90"
               )}
             />
@@ -220,7 +231,7 @@ function ViewerContent() {
          </Card>
       </div>
 
-      <div className="h-16 bg-[#0d0d12] border-t border-white/5 flex flex-col items-center justify-center overflow-hidden relative z-50">
+      <div className="h-16 bg-[#0d0d12] border-t border-white/5 flex flex-col items-center justify-center overflow-hidden relative z-50 shrink-0">
          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20 opacity-20" />
          <div className="flex items-center gap-2 md:gap-4">
             <Badge variant="outline" className="border-primary/20 text-primary text-[7px] font-black uppercase px-2 italic hidden xs:inline-flex">Industrial Banner v11.0</Badge>
