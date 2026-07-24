@@ -54,7 +54,6 @@ function ViewerContent() {
   const [tutorLoading, setTutorLoading] = useState(false);
   const [tutorResponse, setTutorResponse] = useState<AskHumanTutorOutput | null>(null);
   
-  // AD MODAL STATE
   const [showAdInter, setShowAdInter] = useState(false);
   const [adCountdown, setAdCountdown] = useState(10);
   const [adType, setAdType] = useState<'tutor' | 'download'>('tutor');
@@ -126,7 +125,6 @@ function ViewerContent() {
         setTutorLoading(false);
       }
     } else if (adType === 'download') {
-      // PROCEED TO DOWNLOAD PDF (Zero Reward Activity)
       toast({ title: "SIGNAL UNLOCKED", description: "Downloading offline node (0 🪙 Reward)." });
       window.open(url, '_blank');
     }
@@ -137,14 +135,13 @@ function ViewerContent() {
       "min-h-screen flex flex-col transition-colors duration-700",
       theme === 'white' ? "bg-[#f4f4f5]" : theme === 'sepia' ? "bg-[#f4ecd8]" : "bg-[#09090b]"
     )}>
-      {/* DISTRACTION-FREE HEADER */}
-      <header className="h-14 border-b border-black/5 bg-background/40 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-[100]">
+      <header className="h-14 border-b border-black/5 bg-background/40 backdrop-blur-md flex items-center justify-between px-4 md:px-6 sticky top-0 z-[100]">
          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => router.back()} className="h-9 rounded-lg text-[10px] font-black uppercase text-muted-foreground">
-               <ArrowLeft className="h-3 w-3 mr-2" /> EXIT
+            <Button variant="ghost" onClick={() => router.back()} className="h-9 rounded-lg text-[10px] font-black uppercase text-muted-foreground px-2">
+               <ArrowLeft className="h-3 w-3 mr-1" /> EXIT
             </Button>
-            <div className="h-4 w-px bg-black/10" />
-            <h1 className="text-[10px] font-black uppercase text-primary italic truncate max-w-[140px]">SECURE STUDY SIGNAL</h1>
+            <div className="h-4 w-px bg-black/10 hidden sm:block" />
+            <h1 className="text-[10px] font-black uppercase text-primary italic truncate max-w-[120px] hidden sm:block">SECURE STUDY SIGNAL</h1>
          </div>
 
          <div className="flex items-center gap-4">
@@ -156,52 +153,42 @@ function ViewerContent() {
          </div>
       </header>
 
-      {/* IMMERSIVE CANVAS */}
-      <main className="flex-1 flex items-center justify-center p-4 md:p-12 relative overflow-hidden">
+      <main className="flex-1 flex flex-col items-center justify-center p-2 md:p-6 lg:p-10 relative overflow-hidden">
          <div className={cn(
-           "relative max-w-5xl w-full aspect-[1.4/1] shadow-[0_30px_100px_rgba(0,0,0,0.2)] rounded-lg transition-all duration-700",
+           "relative w-full max-w-7xl h-full flex-1 shadow-[0_30px_100px_rgba(0,0,0,0.2)] rounded-xl md:rounded-[2rem] transition-all duration-700 border-2 overflow-hidden bg-white",
            isPageTurning ? "scale-[0.98] blur-sm" : "scale-100 blur-0",
            theme === 'dark' ? "border-white/5" : "border-white"
          )}>
             <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-gradient-to-r from-transparent via-black/5 to-transparent z-20 pointer-events-none hidden md:block" />
             
-            <div className="flex h-full w-full bg-white overflow-hidden rounded-lg">
-               <div className={cn(
-                 "flex-1 relative hidden md:block",
-                 theme === 'white' ? "bg-white" : theme === 'sepia' ? "bg-[#fcf5e5]" : "bg-[#18181b]"
-               )}>
-                  <div className="absolute inset-0 bg-black/5 opacity-20" />
-               </div>
+            <div className={cn(
+              "absolute inset-0 z-10 transition-all",
+              theme === 'sepia' ? "bg-[#fcf5e5] mix-blend-multiply opacity-30" : 
+              theme === 'dark' ? "bg-black opacity-0" : "bg-transparent"
+            )} />
 
-               <div className={cn(
-                 "flex-[1.5] relative",
-                 theme === 'white' ? "bg-white" : theme === 'sepia' ? "bg-[#fcf5e5]" : "bg-[#18181b]"
-               )}>
-                  <iframe 
-                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`} 
-                    className={cn(
-                      "w-full h-full border-none transition-all",
-                      theme === 'dark' && "filter invert-[0.9] grayscale brightness-90"
-                    )}
-                  />
-               </div>
-            </div>
+            <iframe 
+              src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`} 
+              className={cn(
+                "w-full h-full border-none transition-all",
+                theme === 'dark' && "filter invert-[0.9] grayscale brightness-90"
+              )}
+            />
 
-            <button onClick={() => handlePageTurn('prev')} className="absolute left-[-25px] top-1/2 -translate-y-1/2 h-24 w-10 bg-black/5 hover:bg-black/10 rounded-full flex items-center justify-center transition-all group z-30">
-               <ChevronLeft className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+            <button onClick={() => handlePageTurn('prev')} className="absolute left-1 top-1/2 -translate-y-1/2 h-20 w-8 bg-black/10 hover:bg-black/20 rounded-full flex items-center justify-center transition-all group z-30 md:left-4">
+               <ChevronLeft className="h-6 w-6 text-white group-hover:text-primary transition-colors" />
             </button>
-            <button onClick={() => handlePageTurn('next')} className="absolute right-[-25px] top-1/2 -translate-y-1/2 h-24 w-10 bg-black/5 hover:bg-black/10 rounded-full flex items-center justify-center transition-all group z-30">
-               <ChevronRight className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+            <button onClick={() => handlePageTurn('next')} className="absolute right-1 top-1/2 -translate-y-1/2 h-20 w-8 bg-black/10 hover:bg-black/20 rounded-full flex items-center justify-center transition-all group z-30 md:right-4">
+               <ChevronRight className="h-6 w-6 text-white group-hover:text-primary transition-colors" />
             </button>
          </div>
       </main>
 
-      {/* CLEAN FLOATING TOOLBAR */}
       <div className="fixed bottom-24 inset-x-0 flex justify-center z-[150] px-4 pointer-events-none">
-         <Card className="pointer-events-auto bg-black/90 backdrop-blur-xl border-white/10 rounded-2xl h-16 flex items-center px-6 gap-6 shadow-2xl animate-in slide-in-from-bottom-8 duration-500">
+         <Card className="pointer-events-auto bg-black/90 backdrop-blur-xl border-white/10 rounded-2xl h-14 md:h-16 flex items-center px-4 md:px-6 gap-4 md:gap-6 shadow-2xl animate-in slide-in-from-bottom-8 duration-500">
             <button onClick={() => setShowTutor(true)} className="flex items-center gap-3 text-primary hover:text-white transition-all group">
-               <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                  <School className="h-5 w-5" />
+               <div className="h-9 w-9 md:h-10 md:w-10 rounded-xl bg-primary/20 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                  <School className="h-4 w-4 md:h-5 md:w-5" />
                </div>
                <div className="text-left hidden sm:block">
                   <p className="text-[10px] font-black uppercase italic tracking-widest leading-none">AI Tutor</p>
@@ -211,7 +198,7 @@ function ViewerContent() {
 
             <div className="h-8 w-px bg-white/10" />
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 md:gap-6">
                <div className="flex flex-col items-center">
                   <p className="text-[7px] font-black text-muted-foreground uppercase italic">Pulse</p>
                   <div className="flex items-center gap-1.5">
@@ -221,44 +208,41 @@ function ViewerContent() {
                </div>
                
                {(settings?.node_book_download ?? true) && (
-                 <Button onClick={handleDownloadInitiate} className="h-10 px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-green-600 text-white font-black text-[9px] uppercase italic transition-all">
-                    <Download className="h-3 w-3 mr-2" /> PDF Node
+                 <Button onClick={handleDownloadInitiate} className="h-9 md:h-10 px-4 md:px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-green-600 text-white font-black text-[9px] uppercase italic transition-all">
+                    <Download className="h-3 w-3 mr-1 md:mr-2" /> <span className="hidden xs:inline">PDF Node</span><span className="xs:hidden">PDF</span>
                  </Button>
                )}
 
-               <Button className="h-10 px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-primary text-white font-black text-[9px] uppercase italic">
-                  <BookOpen className="h-3 w-3 mr-2" /> Index
+               <Button className="h-9 md:h-10 px-4 md:px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-primary text-white font-black text-[9px] uppercase italic">
+                  <BookOpen className="h-3 w-3 mr-1 md:mr-2" /> <span className="hidden xs:inline">Index</span><span className="xs:hidden">List</span>
                </Button>
             </div>
          </Card>
       </div>
 
-      {/* INDUSTRIAL BOTTOM BANNER SLOT (Passive Revenue) */}
-      <div className="h-20 bg-[#0d0d12] border-t border-white/5 flex flex-col items-center justify-center overflow-hidden relative z-50">
+      <div className="h-16 bg-[#0d0d12] border-t border-white/5 flex flex-col items-center justify-center overflow-hidden relative z-50">
          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20 opacity-20" />
-         <div className="flex items-center gap-4">
-            <Badge variant="outline" className="border-primary/20 text-primary text-[7px] font-black uppercase px-2 italic">Standard Industrial Banner v11.0</Badge>
-            <p className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.4em] italic animate-pulse">
+         <div className="flex items-center gap-2 md:gap-4">
+            <Badge variant="outline" className="border-primary/20 text-primary text-[7px] font-black uppercase px-2 italic hidden xs:inline-flex">Industrial Banner v11.0</Badge>
+            <p className="text-[8px] md:text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em] md:tracking-[0.4em] italic animate-pulse">
                HIGH-YIELD REVENUE CHANNEL ACTIVE • PASSIVE SYNC
             </p>
          </div>
-         <p className="text-[7px] font-bold text-muted-foreground uppercase opacity-30 mt-2">Passive revenue feeds the platform reward pool for scholarship payouts.</p>
       </div>
 
-      {/* TUTOR DIALOG */}
       <Dialog open={showTutor} onOpenChange={setShowTutor}>
-        <DialogContent className="bg-[#0a0a0f] border-primary/20 text-white max-w-xl rounded-[2.5rem] p-8 overflow-hidden shadow-2xl" title="Ask AI Tutor">
+        <DialogContent className="bg-[#0a0a0f] border-primary/20 text-white max-w-xl rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 overflow-hidden shadow-2xl" title="Ask AI Tutor">
            <DialogHeader className="text-center space-y-2">
-              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto border border-primary/20">
-                 <GraduationCap className="h-8 w-8 text-primary" />
+              <div className="h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto border border-primary/20">
+                 <GraduationCap className="h-7 w-7 md:h-8 md:w-8 text-primary" />
               </div>
-              <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">Tuition <span className="text-primary">Node</span></DialogTitle>
+              <DialogTitle className="text-xl md:text-2xl font-black uppercase italic tracking-tighter">Tuition <span className="text-primary">Node</span></DialogTitle>
            </DialogHeader>
 
            <div className="space-y-6 py-4">
               {tutorResponse ? (
                 <div className="space-y-6 animate-in fade-in duration-500 max-h-[350px] overflow-y-auto no-scrollbar">
-                   <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+                   <div className="p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl">
                       <p className="text-sm text-white font-medium italic">"{tutorResponse.explanation}"</p>
                    </div>
                    {tutorResponse.steps && (
@@ -271,7 +255,7 @@ function ViewerContent() {
                         ))}
                      </div>
                    )}
-                   <Button onClick={() => { setTutorResponse(null); setTutorQuery(''); setTutorImage(null); }} className="w-full h-14 bg-white/5 border border-white/10 hover:bg-primary rounded-xl font-black uppercase italic text-xs">
+                   <Button onClick={() => { setTutorResponse(null); setTutorQuery(''); setTutorImage(null); }} className="w-full h-12 md:h-14 bg-white/5 border border-white/10 hover:bg-primary rounded-xl font-black uppercase italic text-xs">
                       NEW QUERY
                    </Button>
                 </div>
@@ -287,7 +271,7 @@ function ViewerContent() {
                         value={tutorQuery} 
                         onChange={e => setTutorQuery(e.target.value)} 
                         placeholder="ASK ANY PROBLEM OR UPLOAD PHOTO..."
-                        className="w-full h-32 bg-black border border-white/10 rounded-2xl p-6 font-bold text-sm text-white focus:border-primary/40 outline-none uppercase resize-none"
+                        className="w-full h-32 bg-black border border-white/10 rounded-2xl p-4 md:p-6 font-bold text-sm text-white focus:border-primary/40 outline-none uppercase resize-none"
                       />
                       <div className="absolute bottom-3 right-3 flex items-center gap-2">
                          {tutorImage && (
@@ -304,8 +288,8 @@ function ViewerContent() {
                          <input ref={fileInputRef} type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
                       </div>
                    </div>
-                   <Button onClick={handleTutorSubmit} disabled={!tutorQuery.trim() && !tutorImage} className="w-full h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl hover:scale-[1.02] transition-transform">
-                      <Zap className="mr-3 h-6 w-6" /> START TUITION
+                   <Button onClick={handleTutorSubmit} disabled={!tutorQuery.trim() && !tutorImage} className="w-full h-14 md:h-16 bg-primary font-black uppercase italic text-lg rounded-2xl shadow-xl hover:scale-[1.02] transition-transform">
+                      <Zap className="mr-2 md:mr-3 h-5 w-5 md:h-6 md:w-6" /> START TUITION
                    </Button>
                    <p className="text-[8px] font-bold text-muted-foreground uppercase text-center italic">
                       100% of ad revenue from this node is retained by Admin.
@@ -316,17 +300,16 @@ function ViewerContent() {
         </DialogContent>
       </Dialog>
 
-      {/* REWARDED AD GATE (System Verification) */}
       {showAdInter && (
-        <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-8 animate-in fade-in duration-500 backdrop-blur-xl">
-           <div className="max-w-md w-full text-center space-y-10">
-              <div className="h-24 w-24 mx-auto relative flex items-center justify-center">
+        <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-6 md:p-8 animate-in fade-in duration-500 backdrop-blur-xl">
+           <div className="max-w-md w-full text-center space-y-8 md:space-y-10">
+              <div className="h-20 w-20 md:h-24 md:w-24 mx-auto relative flex items-center justify-center">
                  <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
                  <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin" style={{ animationDuration: '3s' }} />
-                 <ShieldCheck className="h-10 w-10 text-primary animate-pulse" />
+                 <ShieldCheck className="h-8 w-8 md:h-10 md:w-10 text-primary animate-pulse" />
               </div>
               <div className="space-y-4">
-                 <h3 className="text-3xl font-black uppercase italic text-white leading-none">
+                 <h3 className="text-2xl md:text-3xl font-black uppercase italic text-white leading-none">
                    System Verification...
                  </h3>
                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
@@ -336,8 +319,8 @@ function ViewerContent() {
                     <Badge variant="outline" className="border-amber-500/20 text-amber-500 text-[8px] font-black uppercase px-2 italic">ZERO REWARD OFFLINE SESSION</Badge>
                  )}
               </div>
-              <p className="text-6xl font-black text-white italic tabular-nums">{adCountdown}s</p>
-              <Button disabled={adCountdown > 0} onClick={handleActionAfterAd} className="w-full h-16 rounded-2xl font-black text-lg uppercase italic bg-primary shadow-xl">
+              <p className="text-5xl md:text-6xl font-black text-white italic tabular-nums">{adCountdown}s</p>
+              <Button disabled={adCountdown > 0} onClick={handleActionAfterAd} className="w-full h-14 md:h-16 rounded-2xl font-black text-lg uppercase italic bg-primary shadow-xl">
                  {adCountdown === 0 ? (adType === 'tutor' ? "START TUITION" : "OPEN DOWNLOAD") : "VERIFYING SIGNAL..."}
               </Button>
            </div>
