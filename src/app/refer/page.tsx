@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
@@ -69,17 +68,6 @@ export default function ReferPage() {
   const totalShares = profile?.totalPagesShared || 0;
   const totalNetwork = (level1Users?.length || 0) + (level2Users?.length || 0);
   
-  // Milestone Definitions
-  const milestones = [
-    { count: 10, reward: 10, name: 'Bronze' },
-    { count: 25, reward: 25, name: 'Silver' },
-    { count: 50, reward: 50, name: 'Gold' },
-    { count: 100, reward: 100, name: 'Elite' }
-  ];
-
-  const nextMilestone = milestones.find(m => totalShares < m.count) || milestones[milestones.length - 1];
-  const progress = Math.min((totalShares / nextMilestone.count) * 100, 100);
-
   const handleShare = async () => {
     if (!profile?.referralCode) return;
     const shareText = `Play & Learn! Get free notes and earn scholarship rewards on Bracket Battles. Join using my link: ${referralLink}`;
@@ -105,7 +93,7 @@ export default function ReferPage() {
                </div>
                <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white leading-none">Refer <span className="text-primary">& Earn</span></h1>
                <p className="text-muted-foreground font-medium text-lg max-w-2xl">
-                  Build an industrial network of students. Earn 30% combined commission (L1 + L2) from every mission your team completes.
+                  Build an industrial network of students on Bracket Battles. Earn combined commission from every mission your team completes.
                </p>
             </div>
             <div className="flex items-center gap-2 p-1 bg-white/5 rounded-2xl border border-white/5 max-w-sm">
@@ -165,7 +153,7 @@ export default function ReferPage() {
                  <h3 className="text-2xl font-black uppercase italic flex items-center gap-4"><Info className="text-primary" /> Operational Briefing</h3>
                  <div className="space-y-6">
                     <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight">
-                       Every time your recruit completes a mission, video analysis, or quiz, the industrial settlement engine calculates your shared commission and credits it instantly. 
+                       Every time your recruit completes a mission, video analysis, or quiz, the Bracket Battles settlement engine calculates your shared commission and credits it instantly. 
                     </p>
                     <div className="grid gap-4">
                        <BenefitItem icon={<Coins />} text="Direct 20% Joining Bonus" />
