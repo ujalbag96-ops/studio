@@ -13,6 +13,7 @@ import { Loader2, ShieldAlert, Megaphone, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useState } from 'react';
+import SupportChat from '@/components/SupportChat';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -39,6 +40,7 @@ export default function RootLayout({
               <BroadcastBanner />
               {children}
             </main>
+            <SupportChat key="layout-support-chat" />
             <Footer key="layout-footer" />
           </SystemGate>
         </FirebaseClientProvider>
