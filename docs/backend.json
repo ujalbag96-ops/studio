@@ -3,7 +3,7 @@
   "entities": {
     "UserProfile": {
       "title": "UserProfile",
-      "description": "Master user identity with 10-node yield tracking and revenue share allocation.",
+      "description": "Master user identity with anti-fraud tracking and intent selection.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -26,7 +26,11 @@
         "generalTasksCount": { "type": "number" },
         "scholarPoints": { "type": "number" },
         "referralCode": { "type": "string" },
-        "preferredLanguage": { "type": "string" }
+        "preferredLanguage": { "type": "string" },
+        "primaryIntent": { "type": "string", "enum": ["student", "earner"] },
+        "deviceId": { "type": "string" },
+        "lastIp": { "type": "string" },
+        "emailVerified": { "type": "boolean" }
       }
     },
     "AppSettings": {
@@ -45,31 +49,21 @@
         "node_quiz_arena": { "type": "boolean" },
         "node_daily_streak_visible": { "type": "boolean" },
         "node_referral_engine": { "type": "boolean" },
-        "node_book_download": { "type": "boolean" },
-        "mon_adgate_active": { "type": "boolean" },
-        "mon_cpalead_active": { "type": "boolean" },
-        "mon_admob_active": { "type": "boolean" },
-        "mon_unity_active": { "type": "boolean" },
-        "mon_applovin_active": { "type": "boolean" },
-        "mon_pollfish_active": { "type": "boolean" },
-        "mon_cpx_active": { "type": "boolean" },
-        "mon_captcha_active": { "type": "boolean" },
-        "mon_bandwidth_active": { "type": "boolean" },
-        "mon_multi_referral_active": { "type": "boolean" }
+        "node_book_download": { "type": "boolean" }
       }
     }
   },
   "auth": {
-    "providers": ["password", "google", "phone"]
+    "providers": ["password", "google", "phone", "emailLink"]
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "Global user identity and asset ledger"
+      "description": "Global user identity and hardware ledger"
     },
     "/app_settings/global_config": {
       "schema": "AppSettings",
-      "description": "Enterprise control hub with 100+ module master switches"
+      "description": "Enterprise control hub"
     }
   }
 }

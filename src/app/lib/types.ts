@@ -39,6 +39,9 @@ export interface UserProfile {
   marketSalesCount?: number;
   teacherPoints?: number;
   tasksCompletedCount?: number;
+  deviceId?: string;
+  lastIp?: string;
+  emailVerified?: boolean;
 }
 
 export interface AppSettings {
@@ -165,4 +168,22 @@ export interface MarketAsset {
   authorName: string;
   downloads: number;
   timestamp: string;
+}
+
+export interface PredictionPoll {
+  id: string;
+  question: string;
+  category: string;
+  totalPool: number;
+  entryFee: number;
+  expiry: string;
+  timestamp: string;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  userId: string;
+  userEmail: string;
+  score: number;
+  lastUpdated: string;
 }
