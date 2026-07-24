@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -26,8 +25,8 @@ export default function LivePrizePool() {
 
   return (
     <div className="w-full space-y-6">
-       <Card className="bg-gradient-to-br from-amber-600/20 to-black border-amber-500/30 rounded-[2.5rem] p-10 overflow-hidden relative shadow-[0_0_50px_rgba(245,158,11,0.15)] group">
-          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-1000">
+       <Card className="bg-gradient-to-br from-amber-600/20 to-black border-amber-500/30 rounded-[2.5rem] p-10 overflow-hidden relative shadow-lg group">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-105 transition-transform duration-1000">
              <Trophy className="h-40 w-48 text-amber-500" />
           </div>
 
@@ -35,12 +34,12 @@ export default function LivePrizePool() {
              <div className="space-y-4 text-center md:text-left">
                 <div className="flex items-center justify-center md:justify-start gap-3">
                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                      <Zap className="h-5 w-5 text-amber-500 animate-pulse" />
+                      <Zap className="h-5 w-5 text-amber-500 opacity-80" />
                    </div>
                    <h3 className="text-xl font-black uppercase italic tracking-widest text-white">Daily Skill Bounty</h3>
                 </div>
                 <div>
-                   <p className="text-6xl md:text-8xl font-black text-amber-500 italic tracking-tighter drop-shadow-lg">
+                   <p className="text-6xl md:text-8xl font-black text-amber-500 italic tracking-tighter drop-shadow-md">
                       ₹{bountyPool.toFixed(0)}
                    </p>
                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] mt-2">Operational Integrity Active</p>
@@ -53,14 +52,14 @@ export default function LivePrizePool() {
              </div>
           </div>
 
-          {/* Running Marquee Effect */}
+          {/* Optimized Slow Marquee for battery efficiency */}
           <div className="mt-10 bg-black/40 border-y border-white/5 py-4 -mx-10 relative overflow-hidden">
-             <div className="flex animate-marquee whitespace-nowrap gap-20">
+             <div className="flex animate-marquee-slow whitespace-nowrap gap-20">
                 {Array(4).fill(0).map((_, i) => (
                    <div key={i} className="flex gap-20">
                       {mockWinners.map((winner, idx) => (
                          <div key={idx} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                            <div className="h-2 w-2 rounded-full bg-green-500 opacity-60" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-white/60">
                                Recent Credit: <span className="text-white italic">{winner.name}</span> earned <span className="text-green-500">₹{winner.amount}</span>
                             </span>
@@ -73,12 +72,12 @@ export default function LivePrizePool() {
        </Card>
 
        <style jsx global>{`
-          @keyframes marquee {
+          @keyframes marquee-slow {
              0% { transform: translateX(0); }
              100% { transform: translateX(-50%); }
           }
-          .animate-marquee {
-             animation: marquee 30s linear infinite;
+          .animate-marquee-slow {
+             animation: marquee-slow 60s linear infinite; /* Slowed down to 60s for CPU saving */
              display: flex;
              width: max-content;
           }

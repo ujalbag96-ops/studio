@@ -97,14 +97,12 @@ export default function SupportChat() {
         ticketId = newTicket.id;
       }
 
-      // 1. Add User Message
       await addDoc(collection(firestore, 'support_tickets', ticketId, 'messages'), {
         senderId: user.uid,
         text,
         timestamp: new Date().toISOString()
       });
 
-      // 2. Trigger AI Response
       setIsAiTyping(true);
       try {
         const aiResult = await supportChat({
@@ -188,12 +186,12 @@ export default function SupportChat() {
   return (
     <div className="fixed bottom-24 md:bottom-6 right-6 z-[100]">
       {isOpen ? (
-        <Card className="w-[320px] sm:w-[380px] h-[550px] bg-[#0d0d12] border-white/10 flex flex-col shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[2.5rem] overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+        <Card className="w-[320px] sm:w-[380px] h-[550px] bg-[#0d0d12] border-white/10 flex flex-col shadow-2xl rounded-[2.5rem] overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
           <CardHeader className="p-6 bg-primary/10 border-b border-white/5 flex flex-row items-center justify-between">
             <div className="flex items-center gap-3">
-               {view === 'chat' ? <Sparkles className="h-5 w-5 text-primary animate-pulse" /> : <CreditCard className="h-5 w-5 text-primary" />}
+               <Sparkles className="h-5 w-5 text-primary opacity-80" />
                <div>
-                  <CardTitle className="text-sm font-black uppercase italic tracking-widest">{view === 'chat' ? 'AI Assistant' : 'UPI Dispute'}</CardTitle>
+                  <CardTitle className="text-sm font-black uppercase italic tracking-widest text-white">AI Assistant</CardTitle>
                   <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-[0.3em]">Operational 24/7</p>
                </div>
             </div>
@@ -230,7 +228,7 @@ export default function SupportChat() {
                   </div>
                 ))}
                 {isAiTyping && (
-                  <div className="flex items-center gap-2 text-[9px] font-black uppercase text-primary italic animate-pulse">
+                  <div className="flex items-center gap-2 text-[9px] font-black uppercase text-primary italic opacity-70">
                      <Bot className="h-3 w-3" /> AI is decrypting response...
                   </div>
                 )}
@@ -294,11 +292,11 @@ export default function SupportChat() {
       ) : (
         <Button 
           onClick={() => setIsOpen(true)}
-          className="h-16 w-16 rounded-full bg-primary hover:bg-primary/90 shadow-[0_10px_30px_rgba(99,102,241,0.4)] flex items-center justify-center p-0 transition-all hover:scale-110 active:scale-95 group"
+          className="h-16 w-16 rounded-full bg-primary hover:bg-primary/90 shadow-xl flex items-center justify-center p-0 transition-all hover:scale-105 active:scale-95 group"
         >
           <div className="relative">
-            <Sparkles className="h-8 w-8 text-white group-hover:animate-pulse" />
-            <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full border-2 border-[#050508] animate-bounce" />
+            <Sparkles className="h-8 w-8 text-white" />
+            <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full border-2 border-[#050508]" />
           </div>
         </Button>
       )}

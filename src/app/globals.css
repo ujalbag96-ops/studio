@@ -37,12 +37,14 @@
   }
 }
 
+/* BATTERY OPTIMIZED UTILITIES */
 .glass-panel {
-  @apply bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-2xl;
+  @apply bg-white/[0.03] border border-white/[0.08] shadow-lg;
+  backdrop-filter: blur(8px); /* Reduced blur for performance */
 }
 
 .glass-card {
-  @apply bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] hover:border-primary/30 transition-all duration-500;
+  @apply bg-white/[0.02] border border-white/[0.05] hover:border-primary/30 transition-all duration-300;
 }
 
 .status-pulse {
@@ -50,7 +52,18 @@
 }
 
 .status-pulse-dot {
-  @apply animate-ping absolute inline-flex h-full w-full rounded-full opacity-75;
+  /* Slowed down from standard animate-ping for battery efficiency */
+  animation: ping 4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  @apply absolute inline-flex h-full w-full rounded-full opacity-75;
+}
+
+/* CUSTOM SLOW ANIMATIONS FOR POWER SAVING */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 ::-webkit-scrollbar {
