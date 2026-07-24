@@ -136,7 +136,7 @@ export default function NavigationDrawer() {
           <div className="p-8 border-t border-white/5 space-y-6 bg-black/40">
              <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-3 text-[9px] font-black text-muted-foreground uppercase italic opacity-40">
-                   <ShieldCheck className="h-3 w-3" /> Bracket Battles Industrial v60.0
+                   <ShieldCheck className="h-3 w-3" /> CampusHub Industrial v60.0
                 </div>
                 {user?.email?.toLowerCase() === 'ujalbag96@gmail.com' && (
                   <Link href="/admin" className="flex items-center gap-3 text-[9px] font-black text-primary uppercase italic hover:underline">

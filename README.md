@@ -1,7 +1,6 @@
+# CampusHub: Global Scholar & Yield Platform
 
-# Bracket Battles: Global Scholar & Yield Platform
-
-Bracket Battles is an industrial-grade "Super App" built for students and earning enthusiasts. It bridges official educational resources with a high-performance micro-earning ecosystem.
+CampusHub is an industrial-grade "Super App" built for students and earning enthusiasts. It bridges official educational resources with a high-performance micro-earning ecosystem.
 
 ## 🏗️ Architecture Overview
 

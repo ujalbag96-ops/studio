@@ -213,7 +213,7 @@ function LoginContent() {
         <div className="h-20 w-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Bracket<span className="text-primary">Battles</span> Identity</h1>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Campus<span className="text-primary">Hub</span> Identity</h1>
         <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">One Device • One Account • Industrial Security</p>
       </div>
 
