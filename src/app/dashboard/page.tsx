@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
@@ -71,6 +70,7 @@ export default function UserDashboard() {
                <Badge className="bg-primary/10 text-primary border-primary/20 font-black text-[9px] px-4 py-1.5 uppercase tracking-widest flex items-center gap-2 shadow-xl italic">
                   <ShieldCheck className="h-3 w-3" /> Identity Node: {profile?.country || 'Global'}
                </Badge>
+               <Badge className="bg-green-500/10 text-green-500 border-none font-black text-[8px] px-3 py-1 uppercase">100% Free Scholarship Mode</Badge>
             </div>
             <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter italic leading-[0.85]">
                Wallet <br /> <span className="text-primary">{formatCurrency((profile?.winningBalance || 0) + (profile?.taskBalance || 0), profile?.country, settings)}</span>
@@ -118,10 +118,9 @@ export default function UserDashboard() {
 
         <section className="space-y-6">
            <h3 className="text-xl font-black uppercase flex items-center gap-4 italic tracking-tight"><LineChart className="h-5 w-5 text-primary" /> Asset Breakdown</h3>
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <CompactWalletRow label="Winning Balance" value={profile?.winningBalance || 0} country={profile?.country} settings={settings} icon={<Trophy />} color="green" />
               <CompactWalletRow label="Mission Yield" value={profile?.taskBalance || 0} country={profile?.country} settings={settings} icon={<CreditCard />} color="blue" />
-              <CompactWalletRow label="Total Coins" value={profile?.coins || 0} country={profile?.country} settings={settings} icon={<Coins />} color="amber" />
               <CompactWalletRow label="Scholar Mastery" value={profile?.scholarPoints || 0} country={profile?.country} settings={settings} icon={<Star />} color="primary" />
            </div>
         </section>

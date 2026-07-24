@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -11,14 +10,13 @@ import {
 } from '@/components/ui/dialog';
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { Button } from '@/components/ui/button';
-import { Wallet, ArrowUpRight, Plus, CreditCard, Trophy, Zap, RefreshCcw, Loader2, Crown, Globe } from 'lucide-react';
+import { Wallet, ArrowUpRight, Trophy, Zap, RefreshCcw, Loader2, Globe, CreditCard } from 'lucide-react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
-import { UserProfile, AppSettings } from '@/app/lib/types';
+import { UserProfile } from '@/app/lib/types';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
-import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -35,11 +33,10 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
 
-  const depositBal = profile?.depositBalance || 0;
   const winningBal = profile?.winningBalance || 0;
   const taskBal = profile?.taskBalance || 0;
   
-  const totalDisplayBalance = formatCurrency(depositBal + winningBal, profile?.country);
+  const totalDisplayBalance = formatCurrency(winningBal + taskBal, profile?.country);
   const isIndia = profile?.country === 'India';
 
   const handleConvertTasks = async () => {
@@ -111,8 +108,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-               <BalanceRow label="DEPOSIT" value={depositBal} country={profile?.country} color="blue" />
+            <div className="grid grid-cols-2 gap-3">
                <BalanceRow label="MISSIONS" value={taskBal} country={profile?.country} color="amber" />
                <BalanceRow label="WINNINGS" value={winningBal} country={profile?.country} color="green" />
             </div>
@@ -147,6 +143,10 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                   </Button>
                </div>
             </div>
+            
+            <div className="p-4 bg-green-500/5 rounded-xl text-center border border-green-500/10">
+               <p className="text-[8px] font-bold text-green-500 uppercase tracking-widest italic">100% Free Scholar-Reward Protocol v200.0</p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -156,7 +156,6 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
 
 function BalanceRow({ label, value, country, color }: any) {
   const colorMap = {
-    blue: "text-blue-400 bg-blue-500/5 border-blue-500/20",
     amber: "text-amber-500 bg-amber-500/5 border-amber-500/20",
     green: "text-green-500 bg-green-500/5 border-green-500/20"
   };

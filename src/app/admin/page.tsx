@@ -1,27 +1,25 @@
-
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, collection, query, where, getDocs, limit, writeBatch, increment } from 'firebase/firestore';
 import { 
   Loader2, Zap, Wallet, LayoutGrid, DollarSign, ArrowRightLeft, 
-  Search, PlusCircle, MinusCircle, Palette, CheckCircle2, 
-  Star, Volume2, Music, Play, Bell
+  Search, Palette, CheckCircle2, 
+  Star, Volume2, Music, Play, Bell, Eye, EyeOff, BarChart3, TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { AppSettings, PlatformRevenue, UserProfile } from '../lib/types';
+import { AppSettings, UserProfile, PlatformRevenue } from '../lib/types';
 import { MODULE_REGISTRY, ModuleCategory } from '../lib/module-registry';
 import { MASTER_THEMES } from '@/app/lib/themes';
-import { MASTER_SOUNDS, SoundSignal } from '@/app/lib/sounds';
+import { MASTER_SOUNDS } from '@/app/lib/sounds';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 const APP_CATEGORIES: ModuleCategory[] = ['Learning', 'Skills', 'Earning', 'Productivity', 'System'];
@@ -47,6 +45,9 @@ export default function AdminDashboard() {
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
   
+  const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'platform_stats', 'revenue') : null, [firestore]);
+  const { data: stats } = useDoc<PlatformRevenue>(statsRef);
+
   const updateSetting = async (key: string, value: any) => {
     if (!settingsRef) return;
     setIsProcessing(key);
@@ -108,6 +109,7 @@ export default function AdminDashboard() {
       toast({ title: "WALLET CALIBRATED" });
       setTargetUser(null);
       setAdjustAmount('');
+      setAdjustRemark('');
     } catch (e) {
       toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
     } finally {
@@ -135,7 +137,7 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <p className="text-sm font-black uppercase italic">Admin <span className="text-primary">Hub</span></p>
          </div>
-         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase">v190.0 Active</Badge>
+         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase">v200.0 Active</Badge>
       </header>
 
       <main className="pt-28 px-4 md:px-6 space-y-10 max-w-6xl mx-auto">
@@ -143,10 +145,131 @@ export default function AdminDashboard() {
             <NavPill active={activeTab === 'visibility'} label="Modules" icon={<LayoutGrid className="h-3 w-3" />} onClick={() => setActiveTab('visibility')} />
             <NavPill active={activeTab === 'branding'} label="Themes" icon={<Palette className="h-3 w-3" />} onClick={() => setActiveTab('branding')} />
             <NavPill active={activeTab === 'sounds'} label="Sounds" icon={<Volume2 className="h-3 w-3" />} onClick={() => setActiveTab('sounds')} />
+            <NavPill active={activeTab === 'revenue'} label="Revenue" icon={<BarChart3 className="h-3 w-3" />} onClick={() => setActiveTab('revenue')} />
             <NavPill active={activeTab === 'wallets'} label="Adjust" icon={<Wallet className="h-3 w-3" />} onClick={() => setActiveTab('wallets')} />
             <NavPill active={activeTab === 'currency'} label="Economy" icon={<ArrowRightLeft className="h-3 w-3" />} onClick={() => setActiveTab('currency')} />
          </div>
 
+         {/* VISIBILITY TAB */}
+         {activeTab === 'visibility' && (
+            <div className="space-y-10 animate-in fade-in duration-500">
+               <div className="space-y-2 text-center md:text-left">
+                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">Module <span className="text-primary">Gate</span></h2>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Global Sector Visibility Control</p>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {APP_CATEGORIES.map(cat => (
+                    <Card key={cat} className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6">
+                       <h3 className="text-lg font-black uppercase italic text-primary flex items-center gap-3">
+                          <LayoutGrid className="h-4 w-4" /> {cat} Sector
+                       </h3>
+                       <div className="space-y-4">
+                          {MODULE_REGISTRY.filter(m => m.category === cat).map(module => (
+                            <div key={module.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 group hover:border-primary/20 transition-all">
+                               <div className="flex items-center gap-3">
+                                  <div className="h-8 w-8 rounded-lg bg-black flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">
+                                     <module.icon size={16} />
+                                  </div>
+                                  <span className="text-[10px] font-black uppercase tracking-widest">{module.label}</span>
+                               </div>
+                               <Switch 
+                                 checked={!!(settings as any)?.[module.visibilityKey]} 
+                                 onCheckedChange={(v) => updateSetting(module.visibilityKey, v)} 
+                               />
+                            </div>
+                          ))}
+                       </div>
+                    </Card>
+                  ))}
+               </div>
+            </div>
+         )}
+
+         {/* REVENUE TAB */}
+         {activeTab === 'revenue' && (
+            <div className="space-y-10 animate-in fade-in duration-500">
+               <div className="space-y-2">
+                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">Platform <span className="text-primary">Yield</span></h2>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Industrial Revenue Analytics</p>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <RevenueStat label="Total Operational Revenue" value={`$${(stats?.totalOperationalRevenueUSD || 0).toFixed(2)}`} icon={<DollarSign />} color="text-white" />
+                  <RevenueStat label="Admin Profit (80%)" value={`$${(stats?.totalAdminProfitUSD || 0).toFixed(2)}`} icon={<TrendingUp />} color="text-primary" />
+                  <RevenueStat label="User Dividends (20%)" value={`$${(stats?.totalUserDividendUSD || 0).toFixed(2)}`} icon={<Zap />} color="text-green-500" />
+               </div>
+
+               <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6">
+                  <h3 className="text-xl font-black uppercase italic flex items-center gap-3">Revenue Configuration</h3>
+                  <div className="space-y-4 max-w-sm">
+                     <div className="space-y-2">
+                        <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">User Share Percent (%)</Label>
+                        <Input 
+                          type="number" 
+                          value={settings?.userRevenueSharePercent || 20} 
+                          onChange={e => updateSetting('userRevenueSharePercent', parseFloat(e.target.value))} 
+                          className="h-12 bg-black border-white/10 rounded-xl font-black text-primary"
+                        />
+                     </div>
+                  </div>
+               </Card>
+            </div>
+         )}
+
+         {/* ECONOMY TAB */}
+         {activeTab === 'currency' && (
+            <div className="space-y-10 animate-in fade-in duration-500">
+               <div className="space-y-2">
+                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">Economy <span className="text-primary">Matrix</span></h2>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Dynamic Currency & Profit Ratios</p>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6">
+                     <h3 className="text-xl font-black uppercase italic">Coin Exchange Rates</h3>
+                     <div className="space-y-4">
+                        <div className="space-y-2">
+                           <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Coins per 1 INR (₹)</Label>
+                           <Input 
+                             type="number" 
+                             value={settings?.coinsPerINR || 100} 
+                             onChange={e => updateSetting('coinsPerINR', parseFloat(e.target.value))} 
+                             className="h-12 bg-black border-white/10 rounded-xl"
+                           />
+                        </div>
+                        <div className="space-y-2">
+                           <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Coins per 1 USD ($)</Label>
+                           <Input 
+                             type="number" 
+                             value={settings?.coinsPerUSD || 1000} 
+                             onChange={e => updateSetting('coinsPerUSD', parseFloat(e.target.value))} 
+                             className="h-12 bg-black border-white/10 rounded-xl"
+                           />
+                        </div>
+                     </div>
+                  </Card>
+
+                  <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6">
+                     <h3 className="text-xl font-black uppercase italic">Reward Multipliers</h3>
+                     <div className="space-y-4">
+                        <div className="space-y-2">
+                           <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">CPA Multiplier</Label>
+                           <Input 
+                             type="number" 
+                             step="0.1"
+                             value={settings?.cpaRewardMultiplier || 1.0} 
+                             onChange={e => updateSetting('cpaRewardMultiplier', parseFloat(e.target.value))} 
+                             className="h-12 bg-black border-white/10 rounded-xl"
+                           />
+                        </div>
+                     </div>
+                  </Card>
+               </div>
+            </div>
+         )}
+
+         {/* SOUNDS TAB */}
          {activeTab === 'sounds' && (
             <div className="space-y-10 animate-in fade-in duration-500">
                <div className="space-y-2">
@@ -198,6 +321,7 @@ export default function AdminDashboard() {
             </div>
          )}
 
+         {/* THEMES TAB */}
          {activeTab === 'branding' && (
             <div className="space-y-10 animate-in fade-in duration-500">
                <div className="space-y-2">
@@ -242,6 +366,7 @@ export default function AdminDashboard() {
             </div>
          )}
 
+         {/* WALLET ADJUST TAB */}
          {activeTab === 'wallets' && (
             <div className="space-y-10 animate-in fade-in duration-500">
                <div className="space-y-2">
@@ -296,5 +421,17 @@ function NavPill({ active, label, icon, onClick }: any) {
       >
          {icon} <span>{label}</span>
       </button>
+   );
+}
+
+function RevenueStat({ label, value, icon, color }: any) {
+   return (
+      <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2rem] space-y-4 shadow-xl border-2">
+         <div className={cn("h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center", color)}>{icon}</div>
+         <div>
+            <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-1 italic">{label}</p>
+            <h4 className={cn("text-3xl font-black italic", color)}>{value}</h4>
+         </div>
+      </Card>
    );
 }
