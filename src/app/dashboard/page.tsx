@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
@@ -26,6 +25,7 @@ export default function UserDashboard() {
   const firestore = useFirestore();
   const router = useRouter();
   
+  // FIXED: userProfileRef standardized to userRef for consistent hook usage
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<UserProfile>(userRef);
   
@@ -120,7 +120,12 @@ export default function UserDashboard() {
 }
 
 function CompactWalletRow({ label, value, country, icon, color }: any) {
-  const colors = { blue: "border-blue-500/20 text-blue-400 bg-blue-500/5", amber: "border-amber-500/20 text-amber-500 bg-amber-500/20", green: "border-green-500/20 text-green-500 bg-green-500/5", primary: "border-primary/20 text-primary bg-primary/5" };
+  const colors = { 
+    blue: "border-blue-500/20 text-blue-400 bg-blue-500/5", 
+    amber: "border-amber-500/20 text-amber-500 bg-amber-500/20", 
+    green: "border-green-500/20 text-green-500 bg-green-500/5", 
+    primary: "border-primary/20 text-primary bg-primary/5" 
+  };
   return (
     <Card className={cn("p-8 rounded-[2rem] border-2 transition-all hover:scale-[1.02] group", colors[color as keyof typeof colors])}>
        <div className="space-y-5">

@@ -1,9 +1,20 @@
-
 'use client';
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { CheckCircle2, Circle, Smartphone, Users, Zap, Info, ArrowRight, Trophy, Lock, Video, ShieldCheck } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  Circle, 
+  Smartphone, 
+  Users, 
+  Zap, 
+  Info, 
+  ArrowRight, 
+  Trophy, 
+  Lock, 
+  Video, 
+  ShieldCheck // FIXED: Added missing ShieldCheck import
+} from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

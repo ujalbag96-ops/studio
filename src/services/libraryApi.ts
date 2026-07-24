@@ -4,8 +4,9 @@
  * Global Library API Service
  * Intercepts real-world book signals from OpenLibrary.org
  */
-export async function fetchCollegeBooks(query = "college textbooks") {
+export async function fetchCollegeBooks(query = "university textbooks") {
   try {
+    // Increase limit to 20 for broader node discovery
     const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20`);
     const data = await response.json();
     
@@ -17,13 +18,14 @@ export async function fetchCollegeBooks(query = "college textbooks") {
 
     return data.docs.map((book: any) => {
       // Stream Mapping Logic
-      let category = 'Curriculum';
+      let category = 'University Core';
       const title = book.title.toLowerCase();
       
-      if (title.includes('engine') || title.includes('computer')) category = 'Engineering';
-      else if (title.includes('med') || title.includes('anatom')) category = 'Medical';
-      else if (title.includes('business') || title.includes('account')) category = 'Commerce';
-      else if (title.includes('art') || title.includes('hist')) category = 'Arts';
+      if (title.includes('engine') || title.includes('computer') || title.includes('algo')) category = 'Engineering';
+      else if (title.includes('med') || title.includes('anatom') || title.includes('physio')) category = 'Medical';
+      else if (title.includes('business') || title.includes('account') || title.includes('finan')) category = 'Commerce';
+      else if (title.includes('art') || title.includes('hist') || title.includes('paint')) category = 'Arts';
+      else if (title.includes('physic') || title.includes('chem') || title.includes('bio')) category = 'Science';
 
       return {
         id: book.key.replace('/works/', ''),
@@ -33,7 +35,7 @@ export async function fetchCollegeBooks(query = "college textbooks") {
         publishYear: book.first_publish_year || "Standard",
         source: 'OpenLibrary',
         subject: category,
-        class: 'University Node',
+        class: 'Global University Node',
         lang: 'en'
       };
     });

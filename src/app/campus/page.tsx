@@ -21,7 +21,9 @@ import {
   Microscope,
   Stethoscope,
   Briefcase,
-  Palette
+  Palette,
+  Terminal,
+  Globe
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -32,16 +34,27 @@ import { Input } from '@/components/ui/input';
 import { fetchCollegeBooks } from '@/services/libraryApi';
 
 const INTERNAL_DATABASE: BookMetadata[] = [
-  // School Tier
+  // --- SCHOOL TIER (NCERT/OSEPA) ---
   { id: 'https://ncert.nic.in/textbook/pdf/hemh101.pdf', title: 'Mathematics (NCERT)', class: 'Class 10', subject: 'Math', source: 'NCERT', lang: 'en', chapters: 15, coverUrl: 'https://picsum.photos/seed/math10/200/300' },
   { id: 'https://ncert.nic.in/textbook/pdf/hesc101.pdf', title: 'Science (NCERT)', class: 'Class 10', subject: 'Science', source: 'NCERT', lang: 'en', chapters: 12, coverUrl: 'https://picsum.photos/seed/sci10/200/300' },
   { id: 'osepa-odia-10', title: 'ସାହିତ୍ୟ ସିନ୍ଧୁ (Odia)', class: 'Class 10', subject: 'Language', source: 'OdiaMedium', lang: 'or', chapters: 14, coverUrl: 'https://picsum.photos/seed/odia10/200/300' },
   
-  // Higher Ed / University Tier
-  { id: 'college-phys-01', title: 'University Physics Vol 1', class: 'University', subject: 'Physics', source: 'OpenStax', lang: 'en', chapters: 17, coverUrl: 'https://picsum.photos/seed/physuni/200/300' },
-  { id: 'college-eng-01', title: 'Modern Engineering Math', class: 'University', subject: 'Engineering', source: 'HigherEd', lang: 'en', chapters: 12, coverUrl: 'https://picsum.photos/seed/engmath/200/300' },
-  { id: 'college-med-01', title: 'Human Anatomy & Physio', class: 'University', subject: 'Medical', source: 'HigherEd', lang: 'en', chapters: 20, coverUrl: 'https://picsum.photos/seed/anatomy/200/300' },
-  { id: 'college-comm-01', title: 'Financial Accounting 101', class: 'University', subject: 'Commerce', source: 'HigherEd', lang: 'en', chapters: 10, coverUrl: 'https://picsum.photos/seed/accounting/200/300' }
+  // --- HIGHER ED / UNIVERSITY TIER (ENGINEERING) ---
+  { id: 'eng-algo-01', title: 'Introduction to Algorithms', class: 'B.Tech / CSE', subject: 'Engineering', source: 'MIT Press', lang: 'en', chapters: 35, coverUrl: 'https://picsum.photos/seed/algo/200/300' },
+  { id: 'eng-thermo-01', title: 'Thermodynamics Node', class: 'B.Tech / ME', subject: 'Engineering', source: 'HigherEd', lang: 'en', chapters: 12, coverUrl: 'https://picsum.photos/seed/thermo/200/300' },
+  { id: 'eng-data-01', title: 'Database System Concepts', class: 'University', subject: 'Engineering', source: 'HigherEd', lang: 'en', chapters: 20, coverUrl: 'https://picsum.photos/seed/dbms/200/300' },
+  
+  // --- HIGHER ED / UNIVERSITY TIER (MEDICAL) ---
+  { id: 'med-anat-01', title: 'Gray\'s Anatomy for Students', class: 'MBBS / MD', subject: 'Medical', source: 'Elsevier', lang: 'en', chapters: 10, coverUrl: 'https://picsum.photos/seed/anatomy2/200/300' },
+  { id: 'med-phys-01', title: 'Guyton & Hall Physiology', class: 'MBBS', subject: 'Medical', source: 'HigherEd', lang: 'en', chapters: 15, coverUrl: 'https://picsum.photos/seed/physio/200/300' },
+  
+  // --- HIGHER ED / UNIVERSITY TIER (COMMERCE/MBA) ---
+  { id: 'comm-fin-01', title: 'Corporate Finance 101', class: 'B.Com / MBA', subject: 'Commerce', source: 'HigherEd', lang: 'en', chapters: 12, coverUrl: 'https://picsum.photos/seed/finance/200/300' },
+  { id: 'comm-eco-01', title: 'Macroeconomics Core', class: 'University', subject: 'Commerce', source: 'HigherEd', lang: 'en', chapters: 18, coverUrl: 'https://picsum.photos/seed/economics/200/300' },
+  
+  // --- HIGHER ED / UNIVERSITY TIER (ARTS/HUMANITIES) ---
+  { id: 'arts-hist-01', title: 'A Little History of the World', class: 'B.A. Arts', subject: 'Arts', source: 'Yale University', lang: 'en', chapters: 40, coverUrl: 'https://picsum.photos/seed/history/200/300' },
+  { id: 'arts-soc-01', title: 'Foundations of Sociology', class: 'University', subject: 'Arts', source: 'HigherEd', lang: 'en', chapters: 14, coverUrl: 'https://picsum.photos/seed/socio/200/300' }
 ];
 
 const LANGUAGES = [
@@ -69,7 +82,7 @@ export default function CampusHomeScreen() {
       setLoading(true);
 
       if (eduSource === 'OpenLibrary' || eduSource === 'HigherEd') {
-         const query = eduSource === 'HigherEd' ? (searchTerm || "college textbooks") : (searchTerm || "curriculum");
+         const query = eduSource === 'HigherEd' ? (searchTerm || "university textbooks") : (searchTerm || "curriculum");
          const externalBooks = await fetchCollegeBooks(query);
          setBooks(externalBooks as BookMetadata[]);
          setLoading(false);
@@ -79,7 +92,7 @@ export default function CampusHomeScreen() {
       try {
         let filtered = [...INTERNAL_DATABASE];
         if (eduSource !== 'all') {
-          filtered = filtered.filter(b => b.source === eduSource);
+          filtered = filtered.filter(b => b.source === eduSource || (eduSource === 'HigherEd' && b.class.includes('B.')));
         }
         if (language !== 'all') {
           filtered = filtered.filter(b => b.lang === language);
@@ -107,7 +120,8 @@ export default function CampusHomeScreen() {
     const query = searchTerm.toLowerCase();
     return books.filter(b => 
       b.title.toLowerCase().includes(query) || 
-      b.subject.toLowerCase().includes(query)
+      b.subject.toLowerCase().includes(query) ||
+      b.class.toLowerCase().includes(query)
     );
   }, [books, searchTerm]);
 
@@ -128,7 +142,7 @@ export default function CampusHomeScreen() {
                 Scholar <br /><span className="text-primary">Vault Hub</span>
               </h1>
               <p className="text-muted-foreground font-medium text-lg max-w-xl uppercase tracking-tight opacity-70">
-                Books calibrated to your region ({profile?.geo_region || 'Global'}). Now featuring school & higher ed modules.
+                Books calibrated to your region ({profile?.geo_region || 'Global'}). Read any global lesson signal instantly.
               </p>
            </div>
            
@@ -141,11 +155,11 @@ export default function CampusHomeScreen() {
                        <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-background border-white/10 text-white">
-                       <SelectItem value="all">All Boards</SelectItem>
-                       <SelectItem value="NCERT">NCERT (India)</SelectItem>
-                       <SelectItem value="OdiaMedium">OSEPA (Odisha)</SelectItem>
-                       <SelectItem value="HigherEd">Higher Ed / College</SelectItem>
-                       <SelectItem value="OpenLibrary">Open Library (Global)</SelectItem>
+                       <SelectItem value="all">All Boards & Tiers</SelectItem>
+                       <SelectItem value="NCERT">School: NCERT (India)</SelectItem>
+                       <SelectItem value="OdiaMedium">School: OSEPA (Odisha)</SelectItem>
+                       <SelectItem value="HigherEd">College: University Hub</SelectItem>
+                       <SelectItem value="OpenLibrary">Global: Open Library</SelectItem>
                     </SelectContent>
                  </Select>
               </div>
@@ -171,7 +185,7 @@ export default function CampusHomeScreen() {
            <Input 
              value={searchTerm}
              onChange={e => setSearchTerm(e.target.value)}
-             placeholder="Search school boards, B.Tech, MBBS, Commerce topics..." 
+             placeholder="Search Class 10, B.Tech Algorithms, MBBS, MBA Finance..." 
              className="h-20 bg-white/[0.02] border-white/10 rounded-[1.5rem] pl-16 text-xl font-bold uppercase tracking-tight focus:border-primary/40 focus:ring-0"
            />
         </div>
@@ -212,8 +226,10 @@ export default function CampusHomeScreen() {
                          <div className="space-y-1">
                             <h4 className="text-lg font-black uppercase italic tracking-tight text-white group-hover:text-primary transition-colors leading-tight line-clamp-2">{book.title}</h4>
                             <p className="text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
-                               {book.subject === 'Engineering' ? <Zap className="h-3 w-3" /> : 
-                                book.subject === 'Medical' ? <Stethoscope className="h-3 w-3" /> : 
+                               {book.subject === 'Engineering' ? <Terminal className="h-3 w-3 text-primary" /> : 
+                                book.subject === 'Medical' ? <Stethoscope className="h-3 w-3 text-red-500" /> : 
+                                book.subject === 'Commerce' ? <Briefcase className="h-3 w-3 text-amber-500" /> :
+                                book.subject === 'Arts' ? <Palette className="h-3 w-3 text-purple-500" /> :
                                 <User className="h-3 w-3" />}
                                {book.class} • {book.subject}
                             </p>
