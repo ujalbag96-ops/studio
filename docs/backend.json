@@ -31,7 +31,7 @@
     },
     "AppSettings": {
       "title": "AppSettings",
-      "description": "Master system config for 50+ dynamic modules visibility control.",
+      "description": "Master system config for 100+ dynamic modules visibility control.",
       "type": "object",
       "properties": {
         "maintenanceMode": { "type": "boolean" },
@@ -46,17 +46,16 @@
         "node_daily_streak_visible": { "type": "boolean" },
         "node_referral_engine": { "type": "boolean" },
         "node_book_download": { "type": "boolean" },
-        "node_mock_tests": { "type": "boolean" },
-        "node_live_classroom": { "type": "boolean" },
-        "node_handwritten_notes": { "type": "boolean" },
-        "node_resume_builder": { "type": "boolean" },
-        "node_typing_master": { "type": "boolean" },
-        "node_spin_wheel": { "type": "boolean" },
-        "node_scratch_cards": { "type": "boolean" },
-        "node_pomodoro": { "type": "boolean" },
-        "node_gpa_calc": { "type": "boolean" },
-        "node_push_center": { "type": "boolean" },
-        "node_support_desk": { "type": "boolean" }
+        "mon_adgate_active": { "type": "boolean" },
+        "mon_cpalead_active": { "type": "boolean" },
+        "mon_admob_active": { "type": "boolean" },
+        "mon_unity_active": { "type": "boolean" },
+        "mon_applovin_active": { "type": "boolean" },
+        "mon_pollfish_active": { "type": "boolean" },
+        "mon_cpx_active": { "type": "boolean" },
+        "mon_captcha_active": { "type": "boolean" },
+        "mon_bandwidth_active": { "type": "boolean" },
+        "mon_multi_referral_active": { "type": "boolean" }
       }
     }
   },
@@ -70,7 +69,7 @@
     },
     "/app_settings/global_config": {
       "schema": "AppSettings",
-      "description": "Industrial control node with 50+ module master switches"
+      "description": "Enterprise control hub with 100+ module master switches"
     }
   }
 }

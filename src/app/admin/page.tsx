@@ -7,7 +7,7 @@ import {
   Loader2, Monitor, Activity, Power, Signal, Cpu, LineChart, Zap, 
   ShieldAlert, ShieldX, Lock, Users, Globe, Smartphone, ClipboardList, Target, 
   Eye, EyeOff, LayoutGrid, LayoutList, CheckCircle2, ChevronRight, Menu,
-  Settings, Briefcase, GraduationCap
+  Settings, Briefcase, GraduationCap, DollarSign, Wallet, Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,17 +19,18 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { UserProfile, AppSettings } from '../lib/types';
 import { MODULE_REGISTRY, ModuleCategory } from '../lib/module-registry';
+import { MONETIZATION_REGISTRY, MonCategory } from '../lib/monetization-registry';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
-
-const CATEGORIES: ModuleCategory[] = ['Learning', 'Skills', 'Earning', 'Productivity', 'System'];
+const APP_CATEGORIES: ModuleCategory[] = ['Learning', 'Skills', 'Earning', 'Productivity', 'System'];
+const MON_CATEGORIES: MonCategory[] = ['CPA', 'Ads', 'Surveys', 'MicroTasks', 'Fintech'];
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'visibility' | 'monitor' | 'finance'>('visibility');
+  const [activeTab, setActiveTab] = useState<'visibility' | 'monetization' | 'monitor' | 'finance'>('visibility');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -45,7 +46,7 @@ export default function AdminDashboard() {
     setIsProcessing(key);
     try {
       await updateDoc(settingsRef, { [key]: value });
-      toast({ title: "SIGNAL SYNCED", description: `${key.replace('node_', '').toUpperCase()} visibility updated.` });
+      toast({ title: "SIGNAL SYNCED", description: `${key.toUpperCase()} state updated.` });
     } catch (e) {
       toast({ variant: "destructive", title: "SYNC FAILED" });
     } finally {
@@ -63,51 +64,52 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <div>
                <p className="text-sm font-black uppercase italic leading-none">Master <span className="text-primary">Hub</span></p>
-               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1">Industrial Control v50.0</p>
+               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1">Enterprise Command v60.0</p>
             </div>
          </div>
-         <Badge className="bg-green-600/20 text-green-500 border-none text-[8px] font-black uppercase px-3 italic">Hyper-Sync Active</Badge>
+         <Badge className="bg-green-600/20 text-green-500 border-none text-[8px] font-black uppercase px-3 italic">Global Sync Active</Badge>
       </header>
 
-      <main className="pt-28 px-6 space-y-10 max-w-4xl mx-auto">
+      <main className="pt-28 px-6 space-y-10 max-w-5xl mx-auto">
          
          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-            <NavPill active={activeTab === 'visibility'} label="Visibility" icon={<Eye className="h-3 w-3" />} onClick={() => setActiveTab('visibility')} />
+            <NavPill active={activeTab === 'visibility'} label="Modules" icon={<Eye className="h-3 w-3" />} onClick={() => setActiveTab('visibility')} />
+            <NavPill active={activeTab === 'monetization'} label="Monetization" icon={<DollarSign className="h-3 w-3" />} onClick={() => setActiveTab('monetization')} />
             <NavPill active={activeTab === 'monitor'} label="Operational" icon={<Monitor className="h-3 w-3" />} onClick={() => setActiveTab('monitor')} />
             <NavPill active={activeTab === 'finance'} label="Profit" icon={<LineChart className="h-3 w-3" />} onClick={() => setActiveTab('finance')} />
          </div>
 
          {activeTab === 'visibility' && (
            <div className="space-y-8 animate-in fade-in duration-500">
-              <div className="space-y-2">
+              <div className="space-y-2 text-center md:text-left">
                  <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white leading-none">Feature <span className="text-primary">Controller</span></h2>
-                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">50+ Modular Nodes • Zero Update Deployment</p>
+                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">50+ Modular Academic Nodes</p>
               </div>
 
               <Tabs defaultValue="Learning" className="w-full">
                  <TabsList className="w-full h-14 bg-white/5 p-1 rounded-2xl border border-white/10 flex overflow-x-auto no-scrollbar">
-                    {CATEGORIES.map(cat => (
+                    {APP_CATEGORIES.map(cat => (
                        <TabsTrigger key={cat} value={cat} className="flex-1 font-black text-[9px] uppercase data-[state=active]:bg-primary rounded-xl">
                           {cat}
                        </TabsTrigger>
                     ))}
                  </TabsList>
 
-                 {CATEGORIES.map(cat => (
+                 {APP_CATEGORIES.map(cat => (
                     <TabsContent key={cat} value={cat} className="mt-8 space-y-4">
-                       <div className="grid gap-4 sm:grid-cols-2">
+                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                           {MODULE_REGISTRY.filter(m => m.category === cat).map((module) => {
                              const isActive = (settings as any)?.[module.visibilityKey];
                              return (
                                 <Card key={module.id} className="bg-[#0a0a0f] border-white/5 rounded-3xl p-6 flex items-center justify-between group hover:border-primary/20 transition-all">
-                                   <div className="flex items-center gap-5">
-                                      <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all", isActive ? "bg-primary/10 text-primary border border-primary/20 shadow-lg" : "bg-white/5 text-muted-foreground border border-white/10")}>
-                                         <module.icon className="h-5 w-5" />
+                                   <div className="flex items-center gap-4">
+                                      <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center transition-all", isActive ? "bg-primary/10 text-primary border border-primary/20 shadow-lg" : "bg-white/5 text-muted-foreground border border-white/10")}>
+                                         <module.icon className="h-4 w-4" />
                                       </div>
                                       <div>
-                                         <p className={cn("text-xs font-black uppercase italic", isActive ? "text-white" : "text-muted-foreground opacity-50")}>{module.label}</p>
+                                         <p className={cn("text-[10px] font-black uppercase italic", isActive ? "text-white" : "text-muted-foreground opacity-50")}>{module.label}</p>
                                          <p className="text-[7px] font-bold text-muted-foreground uppercase mt-1 tracking-widest">
-                                            {isActive ? "ACTIVE NODE" : "DORMANT"}
+                                            {isActive ? "LIVE" : "DORMANT"}
                                          </p>
                                       </div>
                                    </div>
@@ -127,6 +129,59 @@ export default function AdminDashboard() {
            </div>
          )}
 
+         {activeTab === 'monetization' && (
+            <div className="space-y-8 animate-in fade-in duration-500">
+               <div className="space-y-2 text-center md:text-left">
+                  <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white leading-none">Monetization <span className="text-primary">Hub</span></h2>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">50+ Global Income Streams & Ad Waterfalls</p>
+               </div>
+
+               <Tabs defaultValue="CPA" className="w-full">
+                  <TabsList className="w-full h-14 bg-white/5 p-1 rounded-2xl border border-white/10 flex overflow-x-auto no-scrollbar">
+                     {MON_CATEGORIES.map(cat => (
+                        <TabsTrigger key={cat} value={cat} className="flex-1 font-black text-[9px] uppercase data-[state=active]:bg-primary rounded-xl px-6">
+                           {cat === 'MicroTasks' ? 'Tasks' : cat}
+                        </TabsTrigger>
+                     ))}
+                  </TabsList>
+
+                  {MON_CATEGORIES.map(cat => (
+                     <TabsContent key={cat} value={cat} className="mt-8 space-y-4">
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                           {MONETIZATION_REGISTRY.filter(m => m.category === cat).map((mon) => {
+                              const isActive = (settings as any)?.[mon.visibilityKey];
+                              return (
+                                 <Card key={mon.id} className="bg-[#0a0a0f] border-white/5 rounded-3xl p-6 flex items-center justify-between group hover:border-primary/30 transition-all border-2">
+                                    <div className="flex items-center gap-4">
+                                       <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center transition-all", isActive ? "bg-primary/10 text-primary border border-primary/20 shadow-lg" : "bg-white/5 text-muted-foreground border border-white/10")}>
+                                          <mon.icon className="h-4 w-4" />
+                                       </div>
+                                       <div>
+                                          <div className="flex items-center gap-2">
+                                             <p className={cn("text-[10px] font-black uppercase italic", isActive ? "text-white" : "text-muted-foreground opacity-50")}>{mon.label}</p>
+                                             {mon.eCPMTier === 'High' && <Badge className="bg-amber-500/10 text-amber-500 text-[6px] font-black uppercase px-1 border-none">$$$</Badge>}
+                                          </div>
+                                          <p className="text-[7px] font-bold text-muted-foreground uppercase mt-1 tracking-widest">
+                                             {mon.provider}
+                                          </p>
+                                       </div>
+                                    </div>
+                                    <Switch 
+                                      checked={!!isActive} 
+                                      onCheckedChange={(v) => toggleSetting(mon.visibilityKey, v)}
+                                      disabled={isProcessing === mon.visibilityKey}
+                                      className="data-[state=checked]:bg-primary"
+                                    />
+                                 </Card>
+                              );
+                           })}
+                        </div>
+                     </TabsContent>
+                  ))}
+               </Tabs>
+            </div>
+         )}
+
          {activeTab === 'monitor' && (
            <div className="space-y-8 animate-in fade-in duration-500">
               <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">Operational <span className="text-primary">Node</span></h2>
@@ -134,15 +189,15 @@ export default function AdminDashboard() {
                  <ModeRow label="Maintenance Mode" active={settings?.maintenanceMode} onToggle={(v) => toggleSetting('maintenanceMode', v)} icon={<Power />} />
                  <ModeRow label="Review Mode (Ads Off)" active={settings?.reviewMode} onToggle={(v) => toggleSetting('reviewMode', v)} icon={<Signal />} />
                  <ModeRow label="Razorpay Auto-Pay" active={settings?.razorpayAutoPayout} onToggle={(v) => toggleSetting('razorpayAutoPayout', v)} icon={<Cpu />} />
-                 <ModeRow label="Offline Download" active={settings?.node_book_download} onToggle={(v) => toggleSetting('node_book_download', v)} icon={<HardDrive />} />
+                 <ModeRow label="Offline Download" active={settings?.node_book_download} onToggle={(v) => toggleSetting('node_book_download', v)} icon={<Globe />} />
               </div>
               <Card className="bg-red-500/5 border-red-500/20 p-8 rounded-3xl space-y-4">
                  <div className="flex justify-between items-center">
                     <ShieldX className="text-red-500 h-6 w-6" />
-                    <Badge className="bg-red-600 text-[8px] font-black uppercase px-2 py-1">SECURITY LOCK</Badge>
+                    <Badge className="bg-red-600 text-[8px] font-black uppercase px-2 py-1">IDENTITY LOCK ACTIVE</Badge>
                  </div>
                  <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
-                   VPN/Proxy Identity Lock Active. Automated account suspension enabled for high-risk signals.
+                   VPN/Proxy detection enabled. High-risk signals will trigger automated account suspension logic.
                  </p>
               </Card>
            </div>
@@ -155,10 +210,10 @@ export default function AdminDashboard() {
                  <MiniMetric label="Operational Revenue" value={`$${(stats?.totalOperationalRevenueUSD || 0).toFixed(2)}`} color="primary" />
                  <MiniMetric label="Admin Profit (70%)" value={`$${(stats?.totalAdminProfitUSD || 0).toFixed(2)}`} color="green" />
                  <MiniMetric label="User Dividend (30%)" value={`$${(stats?.totalUserDividendUSD || 0).toFixed(2)}`} color="amber" />
-                 <MiniMetric label="Utility Margin" value="100%" color="purple" />
+                 <MiniMetric label="Waterfall Margin" value="100%" color="purple" />
               </div>
               <p className="text-[9px] font-bold text-muted-foreground uppercase text-center opacity-40 italic tracking-widest leading-relaxed">
-                 All calculations follow the established 70/30 Profit Lock policy. User Dividend is distributed as Scholarship Coins.
+                 All calculations follow the established 70/30 Profit Lock policy. Global user dividends are distributed as Scholarship Coins.
               </p>
            </div>
          )}
