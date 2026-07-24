@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -28,7 +27,7 @@ export default function RootLayout({
     <html lang="en">
       <head key="layout-head">
         <title key="head-title">Bracket Battles | Industrial Arena v1.0</title>
-        <meta key="head-meta-desc" name="description" content="Official Bracket Battles v1.0 Energy-Efficient Build. Low Battery Consumption Node." />
+        <meta key="head-meta-desc" name="description" content="Official Bracket Battles v1.0 Production Build. High-Performance Yield platform." />
         <link key="head-link-preconnect-1" rel="preconnect" href="https://fonts.googleapis.com" />
         <link key="head-link-preconnect-2" rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link key="head-link-fonts" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />

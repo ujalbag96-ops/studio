@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc, query, where, orderBy, limit, onSnapshot, doc, updateDoc } from 'firebase/firestore';
-import { MessageCircle, X, Send, Loader2, User, Bot, AlertCircle, FileText, CheckCircle2, LifeBuoy, CreditCard, Image as ImageIcon, ArrowLeft, Sparkles } from 'lucide-react';
+import { X, Send, Bot, CreditCard, Image as ImageIcon, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './ui/card';
@@ -25,7 +25,6 @@ export default function SupportChat() {
   const [isAiTyping, setIsAiTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Dispute Form State
   const [disputeData, setDisputeData] = useState({ utr: '', amount: '', receipt: '' });
 
   useEffect(() => {
@@ -209,7 +208,7 @@ export default function SupportChat() {
                 
                 {messages.length === 0 && !isAiTyping && (
                   <div className="bg-white/5 p-5 rounded-2xl text-[10px] text-muted-foreground border border-white/5 leading-relaxed font-bold uppercase tracking-widest text-center italic">
-                    "Namaste! I am your CampusHub AI. How can I help you earn or study today?"
+                    "Namaste! I am your Bracket Battles AI. How can I help you win today?"
                   </div>
                 )}
                 {messages.map((m) => (
@@ -301,5 +300,31 @@ export default function SupportChat() {
         </Button>
       )}
     </div>
+  );
+}
+
+function Loader2(props: any) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M12 2v4" />
+      <path d="m16.2 7.8 2.9-2.9" />
+      <path d="M18 12h4" />
+      <path d="m16.2 16.2 2.9 2.9" />
+      <path d="M12 18v4" />
+      <path d="m4.9 19.1 2.9-2.9" />
+      <path d="M2 12h4" />
+      <path d="m4.9 4.9 2.9 2.9" />
+    </svg>
   );
 }

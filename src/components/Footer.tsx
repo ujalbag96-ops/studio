@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Target, Zap, Activity, Info, Layout } from 'lucide-react';
+import { ShieldCheck, Zap, Info, Activity, Target } from 'lucide-react';
 import RiskDisclosureModal from './RiskDisclosureModal';
 
 export default function Footer() {
@@ -10,7 +10,6 @@ export default function Footer() {
   const [currentYear, setCurrentYear] = useState(2026);
 
   useEffect(() => {
-    // Hydration-safe dynamic year update
     const year = new Date().getFullYear();
     if (year > 2026) {
       setCurrentYear(year);
@@ -27,7 +26,7 @@ export default function Footer() {
             <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
               <Zap className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-black italic text-white uppercase tracking-tighter">CAMPUS<span className="text-primary">HUB</span></span>
+            <span className="text-2xl font-black italic text-white uppercase tracking-tighter">BRACKET<span className="text-primary">BATTLES</span></span>
           </Link>
           <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-3">
              <div className="flex items-center gap-2 text-primary">
@@ -35,7 +34,7 @@ export default function Footer() {
                 <span className="text-[8px] font-black uppercase tracking-widest">Legal Disclaimer</span>
              </div>
              <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">
-               This app is for educational purposes. All notes are user-contributed or collected from public domains.
+               Bracket Battles is an industrial-grade skill reward platform. All results are verified server-side.
              </p>
           </div>
         </div>
@@ -77,7 +76,7 @@ export default function Footer() {
                 </span>
              </div>
              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-muted-foreground">Library Sync</span>
+                <span className="text-[9px] font-black uppercase text-muted-foreground">Sync Engine</span>
                 <span className="flex items-center gap-1.5 text-[9px] font-black uppercase text-green-500">
                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Active
                 </span>
@@ -87,7 +86,7 @@ export default function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto px-8 mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">© {currentYear} CampusHub Industrial. All Rights Reserved.</p>
+        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">© {currentYear} Bracket Battles Industrial. All Rights Reserved.</p>
         <div className="flex items-center gap-4 opacity-30">
            <Activity className="h-4 w-4" />
            <ShieldCheck className="h-4 w-4" />

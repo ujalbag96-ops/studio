@@ -5,7 +5,6 @@ import { useUser, useFirestore, useAuth } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  sendEmailVerification,
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink
@@ -43,19 +42,17 @@ function LoginContent() {
   const [agreedToAds, setAgreedToAds] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
 
-  // --- UNIQUE DEVICE INTEGRITY ENGINE ---
   const getPersistentDeviceId = () => {
     if (typeof window === 'undefined') return 'unknown';
-    let id = localStorage.getItem('campushub_device_id');
+    let id = localStorage.getItem('bb_arena_device_id');
     if (!id) {
-      id = 'ID-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      localStorage.setItem('campushub_device_id', id);
+      id = 'BB-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('bb_arena_device_id', id);
     }
     return id;
   };
 
   useEffect(() => {
-    // Check if coming back from Email Verification Link
     if (auth && isSignInWithEmailLink(auth, window.location.href)) {
       let emailForVerification = window.localStorage.getItem('emailForSignIn');
       if (!emailForVerification) {
@@ -89,7 +86,6 @@ function LoginContent() {
       const userDocRef = doc(firestore, 'users', firebaseUser.uid);
       const snap = await getDoc(userDocRef);
 
-      // --- FRAUD DETECTION NODE ---
       let ipData = { ip: 'Unknown', country: 'Global', region: 'Unknown', city: 'Unknown', proxy: false, geo_region: 'Global' };
       try {
          const res = await fetch('https://ipapi.co/json/');
@@ -105,11 +101,10 @@ function LoginContent() {
          };
       } catch(e) { console.error("Geo-IP Node restricted"); }
 
-      // Check for duplicate device registrations
       const deviceQuery = query(collection(firestore, 'users'), where('deviceId', '==', deviceId), limit(5));
       const deviceSnap = await getDocs(deviceQuery);
       
-      const isMultiAccount = !snap.exists() && deviceSnap.size >= 1; // 1 Account per Device Limit
+      const isMultiAccount = !snap.exists() && deviceSnap.size >= 1; 
 
       if (ipData.proxy || isMultiAccount) {
          setIsSuspended(true);
@@ -167,7 +162,6 @@ function LoginContent() {
           emailVerified: firebaseUser.emailVerified || false
         });
       } else {
-        // Update existing user IP
         await setDoc(userDocRef, { 
           lastIp: ipData.ip, 
           isSuspended: ipData.proxy || snap.data().isSuspended 
@@ -188,7 +182,6 @@ function LoginContent() {
     setIsLoading(true);
     try {
       if (authMode === 'signup') {
-        // Send Verification Link to Gmail
         const actionCodeSettings = {
           url: window.location.origin + '/login',
           handleCodeInApp: true,
@@ -213,7 +206,7 @@ function LoginContent() {
         <div className="h-20 w-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Campus<span className="text-primary">Hub</span> Identity</h1>
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter">Bracket<span className="text-primary">Battles</span> Identity</h1>
         <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">One Device • One Account • Industrial Security</p>
       </div>
 

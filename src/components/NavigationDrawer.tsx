@@ -15,8 +15,6 @@ import {
   LogOut,
   LayoutDashboard,
   Zap,
-  Book,
-  Target,
   Settings
 } from 'lucide-react';
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -25,7 +23,6 @@ import { doc } from 'firebase/firestore';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { AppSettings } from '@/app/lib/types';
 import { MODULE_REGISTRY, ModuleCategory } from '@/app/lib/module-registry';
@@ -58,7 +55,6 @@ export default function NavigationDrawer() {
       </SheetTrigger>
       <SheetContent side="left" className="bg-[#050508] border-r border-white/5 text-white p-0 w-80 shadow-[20px_0_50px_rgba(0,0,0,0.5)]">
         <div className="flex flex-col h-full">
-          {/* USER HEADER */}
           <SheetHeader className="p-8 border-b border-white/5 bg-primary/5">
             <div className="flex items-center gap-4">
                <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center shadow-xl shadow-primary/20">
@@ -76,12 +72,10 @@ export default function NavigationDrawer() {
             </div>
           </SheetHeader>
 
-          {/* SCROLLABLE NAV CONTENT */}
           <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8 no-scrollbar">
              
-             {/* MAIN PORTFOLIO */}
              <div className="space-y-2">
-                <Link href="/dashboard" key="drawer-dashboard-link">
+                <Link href="/dashboard">
                    <div className={cn(
                      "flex items-center justify-between p-4 rounded-2xl transition-all group",
                      pathname === '/dashboard' ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-white/5 hover:bg-white/10"
@@ -95,7 +89,6 @@ export default function NavigationDrawer() {
                 </Link>
              </div>
 
-             {/* DYNAMIC CATEGORIES */}
              {categories.map((cat) => {
                 const catModules = MODULE_REGISTRY.filter(m => m.category === cat && (settings ? (settings as any)?.[m.visibilityKey] : true));
                 if (catModules.length === 0) return null;
@@ -132,11 +125,10 @@ export default function NavigationDrawer() {
              })}
           </div>
 
-          {/* DRAWER FOOTER */}
           <div className="p-8 border-t border-white/5 space-y-6 bg-black/40">
              <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-3 text-[9px] font-black text-muted-foreground uppercase italic opacity-40">
-                   <ShieldCheck className="h-3 w-3" /> CampusHub Industrial v60.0
+                   <ShieldCheck className="h-3 w-3" /> Bracket Battles Industrial v1.0
                 </div>
                 {user?.email?.toLowerCase() === 'ujalbag96@gmail.com' && (
                   <Link href="/admin" className="flex items-center gap-3 text-[9px] font-black text-primary uppercase italic hover:underline">
