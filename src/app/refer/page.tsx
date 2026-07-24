@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
@@ -85,10 +84,10 @@ export default function ReferPage() {
 
   const handleShare = async () => {
     if (!profile?.referralCode) return;
-    const shareText = `Play & Learn! Get free notes and earn pocket money on CampusCompanion. Join using my link: ${referralLink}`;
+    const shareText = `Play & Learn! Get free notes and earn pocket money on Bracket Battles. Join using my link: ${referralLink}`;
     
     if (navigator.share) {
-      await navigator.share({ title: 'CampusCompanion', text: shareText, url: referralLink }).catch(() => {});
+      await navigator.share({ title: 'Bracket Battles', text: shareText, url: referralLink }).catch(() => {});
     } else {
       await navigator.clipboard.writeText(referralLink);
       toast({ title: "Link Copied!" });
