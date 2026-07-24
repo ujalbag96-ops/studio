@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -35,12 +34,12 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <Toaster />
           <SystemGate>
-            <Navbar />
-            <main className="flex-1 pb-24 md:pb-0 pt-16 relative">
+            <Navbar key="layout-navbar" />
+            <main key="layout-main" className="flex-1 pb-24 md:pb-0 pt-16 relative">
               <BroadcastBanner />
               {children}
             </main>
-            <Footer />
+            <Footer key="layout-footer" />
           </SystemGate>
         </FirebaseClientProvider>
       </body>

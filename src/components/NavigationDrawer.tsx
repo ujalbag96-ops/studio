@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -72,7 +71,7 @@ export default function NavigationDrawer() {
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2 no-scrollbar">
-             <Link href="/dashboard">
+             <Link href="/dashboard" key="drawer-dashboard-link">
                 <div className={cn(
                   "flex items-center justify-between p-4 rounded-xl transition-all group",
                   pathname === '/dashboard' ? "bg-primary/10 border border-primary/20" : "hover:bg-white/5"
@@ -109,13 +108,12 @@ export default function NavigationDrawer() {
              <div className="flex items-center gap-3 text-[9px] font-black text-muted-foreground uppercase italic opacity-40">
                 <ShieldCheck className="h-3 w-3" /> CampusHub Industrial v50.0
              </div>
-             <Button 
+             <button 
                onClick={handleLogout}
-               variant="ghost" 
-               className="w-full h-12 rounded-xl bg-red-500/5 hover:bg-red-500 hover:text-white text-red-500 font-black uppercase text-[10px] italic border border-red-500/10"
+               className="w-full h-12 rounded-xl bg-red-500/5 hover:bg-red-500 hover:text-white text-red-500 font-black uppercase text-[10px] italic border border-red-500/10 flex items-center justify-center transition-all"
              >
                 <LogOut className="h-4 w-4 mr-3" /> Terminate Session
-             </Button>
+             </button>
           </div>
         </div>
       </SheetContent>
