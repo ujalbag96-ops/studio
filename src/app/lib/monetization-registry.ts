@@ -50,7 +50,7 @@ export const MONETIZATION_REGISTRY: MonModule[] = [
   { id: 'cpa_offertoro', label: 'OfferToro', provider: 'Offerwall', category: 'CPA', visibilityKey: 'mon_offertoro_active', icon: Target, eCPMTier: 'Medium' },
   { id: 'cpa_adscend', label: 'Adscend Media', provider: 'CPA/Video', category: 'CPA', visibilityKey: 'mon_adscend_active', icon: Globe, eCPMTier: 'High' },
   { id: 'cpa_wannads', label: 'Wannads', provider: 'Global Wall', category: 'CPA', visibilityKey: 'mon_wannads_active', icon: ClipboardList, eCPMTier: 'Medium' },
-  { id: 'cpa_notik', label: 'Notik.me', provider: 'App Installs', category: 'CPA', visibilityKey: 'mon_notik_active', icon: Download, eCPMTier: 'High' },
+  { id: 'cpa_notik', label: 'Notik.me', provider: 'App Installs', category: 'CPA', visibilityKey: 'mon_notik_active', icon: Signal, eCPMTier: 'High' },
   { id: 'cpa_revenue', label: 'RevenueWall', provider: 'CPA Node', category: 'CPA', visibilityKey: 'mon_revenue_active', icon: Coins, eCPMTier: 'Medium' },
   { id: 'cpa_bitlabs', label: 'BitLabs Wall', provider: 'Offer/Survey', category: 'CPA', visibilityKey: 'mon_bitlabs_wall_active', icon: Zap, eCPMTier: 'High' },
   { id: 'cpa_cpagrip', label: 'CPAGrip', provider: 'Content Lock', category: 'CPA', visibilityKey: 'mon_cpagrip_active', icon: Lock, eCPMTier: 'Medium' },
@@ -154,3 +154,5 @@ export const MONETIZATION_REGISTRY: MonModule[] = [
   { id: 'fin_bridge', label: 'Bridge Node', provider: 'Cross-Chain', category: 'Fintech', visibilityKey: 'mon_bridge_active', icon: Share2, eCPMTier: 'Standard' },
   { id: 'fin_nexus', label: 'Nexus Profit', provider: 'Global Node', category: 'Fintech', visibilityKey: 'mon_nexus_active', icon: Activity, eCPMTier: 'High' },
 ];
+
+import { Signal } from 'lucide-react';

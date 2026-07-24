@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
@@ -79,12 +80,9 @@ export default function ReferPage() {
   const nextMilestone = milestones.find(m => totalShares < m.count) || milestones[milestones.length - 1];
   const progress = Math.min((totalShares / nextMilestone.count) * 100, 100);
 
-  const megaGoal = 1000;
-  const megaProgress = Math.min((totalNetwork / megaGoal) * 100, 100);
-
   const handleShare = async () => {
     if (!profile?.referralCode) return;
-    const shareText = `Play & Learn! Get free notes and earn pocket money on Bracket Battles. Join using my link: ${referralLink}`;
+    const shareText = `Play & Learn! Get free notes and earn scholarship rewards on Bracket Battles. Join using my link: ${referralLink}`;
     
     if (navigator.share) {
       await navigator.share({ title: 'Bracket Battles', text: shareText, url: referralLink }).catch(() => {});
@@ -167,7 +165,7 @@ export default function ReferPage() {
                  <h3 className="text-2xl font-black uppercase italic flex items-center gap-4"><Info className="text-primary" /> Operational Briefing</h3>
                  <div className="space-y-6">
                     <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight">
-                       Every time your recruit completes a CPA task, video analysis, or quiz, the industrial settlement engine calculates your 30% share and credits it instantly. 
+                       Every time your recruit completes a mission, video analysis, or quiz, the industrial settlement engine calculates your shared commission and credits it instantly. 
                     </p>
                     <div className="grid gap-4">
                        <BenefitItem icon={<Coins />} text="Direct 20% Joining Bonus" />
