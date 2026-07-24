@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 import { useRouter, usePathname } from 'next/navigation';
 import WalletModal from './WalletModal';
 import { cn } from '@/lib/utils';
-import { UserProfile } from '@/app/lib/types';
+import { UserProfile, AppSettings } from '@/app/lib/types';
 import { doc } from 'firebase/firestore';
 import NavigationDrawer from './NavigationDrawer';
 
@@ -18,7 +18,10 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
+  
   const { data: profile } = useDoc<UserProfile>(userRef);
+  const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const isIndia = profile?.country === 'India';
 
@@ -30,10 +33,16 @@ export default function Navbar() {
           <div className="flex items-center gap-6">
             <NavigationDrawer />
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-                <Zap className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-black tracking-tighter text-white uppercase italic">Campus<span className="text-primary">Hub</span></span>
+              {settings?.customLogoUrl ? (
+                <img src={settings.customLogoUrl} className="h-8 w-auto object-contain" alt="CampusHub" />
+              ) : (
+                <>
+                  <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
+                    <Zap className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xl font-black tracking-tighter text-white uppercase italic">Campus<span className="text-primary">Hub</span></span>
+                </>
+              )}
             </Link>
           </div>
 
@@ -68,7 +77,11 @@ export default function Navbar() {
       <nav className="md:hidden fixed top-0 left-0 right-0 z-[100] h-16 bg-background/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6">
          <div className="flex items-center gap-4">
             <NavigationDrawer />
-            <span className="text-sm font-black italic tracking-tighter text-white uppercase">Campus<span className="text-primary">Hub</span></span>
+            {settings?.customLogoUrl ? (
+               <img src={settings.customLogoUrl} className="h-7 w-auto object-contain" alt="CampusHub" />
+            ) : (
+               <span className="text-sm font-black italic tracking-tighter text-white uppercase">Campus<span className="text-primary">Hub</span></span>
+            )}
          </div>
          <div className="flex items-center gap-3">
             {user && <WalletModal />}

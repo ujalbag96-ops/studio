@@ -12,8 +12,8 @@ export interface UserProfile {
   bonusBalance: number;
   taskBalance: number;
   walletBalanceINR: number;
-  pendingRevenueShare: number; // User's 20% cut in USD
-  totalRevenueGenerated: number; // Total value generated for platform
+  pendingRevenueShare: number;
+  totalRevenueGenerated: number;
   referralCode: string;
   referredBy?: string;
   referredByL2?: string;
@@ -52,7 +52,7 @@ export interface AppSettings {
   reviewMode: boolean;
   autoWithdrawalEnabled: boolean;
   razorpayAutoPayout: boolean;
-  userRevenueSharePercent: number; // Dynamic percentage control
+  userRevenueSharePercent: number;
   broadcastMessage?: string;
   broadcastActive?: boolean;
   minAppVersion?: string;
@@ -63,6 +63,11 @@ export interface AppSettings {
   bookApiCategory?: string;
   node_book_api_active?: boolean;
   node_book_download?: boolean;
+  
+  // --- THEME & BRANDING ---
+  currentThemeId?: string;
+  customLogoUrl?: string;
+  festivalModeActive?: boolean;
   
   // --- DYNAMIC CURRENCY & ECONOMY ---
   coinsPerINR: number;
@@ -99,69 +104,6 @@ export interface UserLedgerEntry {
   userShareUSD?: number;
 }
 
-export interface PayoutRequest {
-  id: string;
-  userId: string;
-  userEmail: string;
-  coinAmount: number;
-  localAmount: number;
-  method: string;
-  destination: string;
-  status: 'pending' | 'completed' | 'failed';
-  timestamp: string;
-  geo?: string;
-  vipLevel?: number | string;
-}
-
-export interface CricketMatch {
-  id: string;
-  teamA: string;
-  teamB: string;
-  teamALogo: string;
-  teamBLogo: string;
-  startTime: string;
-  status: 'live' | 'upcoming' | 'completed';
-  series: string;
-  liveScore?: {
-    runsA: string;
-    runsB: string;
-    overs: string;
-    target?: string;
-    lastBalls?: string[];
-  };
-  winner?: string;
-}
-
-export interface Movie {
-  id: string;
-  title: string;
-  poster: string;
-  videoUrl: string;
-  category: string;
-  createdAt: string;
-}
-
-export interface MarketAsset {
-  id: string;
-  title: string;
-  category: string;
-  price: number;
-  authorId: string;
-  authorName: string;
-  downloads: number;
-  timestamp: string;
-}
-
-export interface StudyBuddySession {
-  id: string;
-  topic: string;
-  studentId: string;
-  studentEmail: string;
-  teacherId: string | null;
-  status: 'searching' | 'active' | 'completed';
-  timestamp: string;
-}
-
 export interface BookMetadata {
   id: string;
   title: string;
@@ -183,12 +125,4 @@ export interface SystemNotification {
   imageUrl?: string;
   voucherCode?: string;
   localizedBody?: string;
-}
-
-export interface LeaderboardEntry {
-  id: string;
-  userId: string;
-  userEmail: string;
-  score: number;
-  lastUpdated: string;
 }
