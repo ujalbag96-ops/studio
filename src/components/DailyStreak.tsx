@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Flame, CheckCircle2, Gift, Loader2, PlayCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { UserProfile } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
@@ -19,7 +19,15 @@ export default function DailyStreak({ profile }: { profile: UserProfile | null }
   const [adCountdown, setAdCountdown] = useState(10);
 
   const today = new Date().toISOString().split('T')[0];
-  
+
+  useEffect(() => {
+    let timer: any;
+    if (showAd && adCountdown > 0) {
+      timer = setInterval(() => setAdCountdown(c => c - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [showAd, adCountdown]);
+
   if (!profile) {
     return (
       <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] p-8 h-48 flex items-center justify-center">
@@ -30,14 +38,6 @@ export default function DailyStreak({ profile }: { profile: UserProfile | null }
 
   const hasCheckedInToday = profile.lastCheckInDate === today;
   const currentStreak = profile.dailyStreak || 0;
-
-  useEffect(() => {
-    let timer: any;
-    if (showAd && adCountdown > 0) {
-      timer = setInterval(() => setAdCountdown(c => c - 1), 1000);
-    }
-    return () => clearInterval(timer);
-  }, [showAd, adCountdown]);
 
   const initiateCheckIn = () => {
     if (hasCheckedInToday) return;
