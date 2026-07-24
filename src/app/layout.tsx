@@ -25,20 +25,22 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>CampusHub | Global Scholar & Yield Platform</title>
-        <meta name="description" content="Official CampusHub v70.0 Enterprise Build. Comprehensive Scholar-Reward Utility." />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+        <title key="head-title">CampusHub | Global Scholar & Yield Platform</title>
+        <meta key="head-meta-desc" name="description" content="Official CampusHub v70.0 Enterprise Build. Comprehensive Scholar-Reward Utility." />
+        <link key="head-link-preconnect-1" rel="preconnect" href="https://fonts.googleapis.com" />
+        <link key="head-link-preconnect-2" rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link key="head-link-fonts" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased bg-background text-white min-h-screen flex flex-col overflow-x-hidden">
         <FirebaseClientProvider>
-          <Toaster />
-          <SystemGate>
+          <Toaster key="layout-toaster" />
+          <SystemGate key="layout-system-gate">
             <Navbar key="layout-navbar" />
             <main key="layout-main" className="flex-1 pb-24 md:pb-0 pt-16 relative">
-              <BroadcastBanner />
-              {children}
+              <BroadcastBanner key="layout-broadcast-banner" />
+              <div key="layout-children-container">
+                {children}
+              </div>
             </main>
             <SupportChat key="layout-support-chat" />
             <Footer key="layout-footer" />
@@ -95,21 +97,21 @@ function SystemGate({ children }: { children: React.ReactNode }) {
   if (isMaintenance) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center space-y-8 bg-[#050508]">
-        <div className="h-28 w-28 bg-primary/10 rounded-[3rem] flex items-center justify-center border border-primary/20 shadow-2xl animate-pulse relative">
+        <div key="maint-icon-container" className="h-28 w-28 bg-primary/10 rounded-[3rem] flex items-center justify-center border border-primary/20 shadow-2xl animate-pulse relative">
            <ShieldAlert className="h-12 w-12 text-primary" />
            <div className="absolute inset-0 rounded-[3rem] border border-primary/40 animate-ping opacity-20" />
         </div>
-        <div className="space-y-3">
+        <div key="maint-text-container" className="space-y-3">
            <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter text-white leading-none">Sector <span className="text-primary">Locked</span></h1>
            <p className="text-muted-foreground font-black text-xs uppercase tracking-[0.4em] italic">Industrial Maintenance in Progress</p>
         </div>
-        <div className="p-8 bg-white/5 border border-white/10 rounded-[2rem] max-w-sm">
+        <div key="maint-info-box" className="p-8 bg-white/5 border border-white/10 rounded-[2rem] max-w-sm">
            <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed italic">
               "We are calibrating naye scholar resources. Full access will restore shortly. All earnings are safe in the vault."
            </p>
         </div>
         {isAdmin && (
-           <Button asChild variant="outline" className="border-primary/20 text-primary font-black uppercase italic text-[10px]">
+           <Button key="maint-admin-btn" asChild variant="outline" className="border-primary/20 text-primary font-black uppercase italic text-[10px]">
               <Link href="/admin">Enter Override Node</Link>
            </Button>
         )}
