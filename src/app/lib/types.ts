@@ -46,25 +46,18 @@ export interface AppSettings {
   autoWithdrawalEnabled: boolean;
   razorpayAutoPayout: boolean;
   userRevenueSharePercent: number;
-  api_razorpay_active: boolean;
-  api_admob_active: boolean;
-  api_cpalead_active: boolean;
-  api_adgate_active: boolean;
-  api_s2s_active: boolean;
-  node_scholar_dividend: boolean;
-  node_quiz_arena: boolean;
-  node_global_cpa: boolean;
-  node_referral_engine: boolean;
-  node_ad_stream: boolean;
-  node_book_download: boolean;
+  broadcastMessage?: string;
+  broadcastActive?: boolean;
+  minAppVersion?: string;
   adminUpiId?: string;
   automaticGatewayEnabled?: boolean;
+  // Dynamic Keys for 100+ modules are handled via (settings as any)
 }
 
 export interface PlatformRevenue {
   totalDailyRevenueUSD: number;
   totalAdminProfitUSD: number;
-  totalDistributedToUsersUSD: number;
+  totalUserDividendUSD: number;
   lastUpdated: string;
 }
 
@@ -76,6 +69,19 @@ export interface UserLedgerEntry {
   status: 'pending' | 'completed' | 'failed';
   description?: string;
   currencySymbol?: string;
+}
+
+export interface PayoutRequest {
+  id: string;
+  userId: string;
+  userEmail: string;
+  coinAmount: number;
+  localAmount: number;
+  method: string;
+  destination: string;
+  status: 'pending' | 'completed' | 'failed';
+  timestamp: string;
+  geo?: string;
 }
 
 export interface CricketMatch {
@@ -130,11 +136,4 @@ export interface MarketAsset {
   authorName: string;
   downloads: number;
   timestamp: string;
-}
-
-export interface LeaderboardEntry {
-  id: string;
-  userId: string;
-  userEmail: string;
-  score: number;
 }
