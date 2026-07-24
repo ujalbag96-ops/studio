@@ -38,6 +38,7 @@ export interface UserProfile {
   runnerLevel?: number;
   marketSalesCount?: number;
   teacherPoints?: number;
+  tasksCompletedCount?: number;
 }
 
 export interface AppSettings {
@@ -55,6 +56,7 @@ export interface AppSettings {
   bookApiKey?: string;
   bookApiCategory?: string;
   node_book_api_active?: boolean;
+  node_book_download?: boolean;
 }
 
 export interface PlatformRevenue {
@@ -85,6 +87,17 @@ export interface PayoutRequest {
   status: 'pending' | 'completed' | 'failed';
   timestamp: string;
   geo?: string;
+}
+
+export interface CpaConversion {
+  id: string;
+  userId: string;
+  userEmail: string;
+  offerName: string;
+  payoutUSD: number;
+  userShareCoins: number;
+  timestamp: string;
+  status: 'Completed' | 'Credited';
 }
 
 export interface CricketMatch {
@@ -119,4 +132,37 @@ export interface BookMetadata {
   coverUrl?: string;
   author?: string;
   isCustom?: boolean;
+}
+
+export interface SystemNotification {
+  id: string;
+  userId: string | null;
+  title: string;
+  body: string;
+  localizedBody?: string;
+  timestamp: string;
+  type: 'broadcast' | 'payout' | 'system';
+  imageUrl?: string;
+  voucherCode?: string;
+}
+
+export interface StudyBuddySession {
+  id: string;
+  topic: string;
+  studentId: string;
+  studentEmail: string;
+  teacherId: string | null;
+  status: 'searching' | 'active' | 'completed';
+  timestamp: string;
+}
+
+export interface MarketAsset {
+  id: string;
+  title: string;
+  category: string;
+  price: number;
+  authorId: string;
+  authorName: string;
+  downloads: number;
+  timestamp: string;
 }
