@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -7,21 +6,16 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { 
   Library, 
-  ShieldCheck, 
   ChevronRight, 
-  Globe, 
-  Languages, 
   Loader2, 
   BookOpen, 
   Search,
-  Filter,
   Zap,
-  AlertTriangle,
-  User,
-  Globe2,
-  Sparkles,
   MapPin,
-  Book
+  Sparkles,
+  Languages,
+  Book,
+  User
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -32,18 +26,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { fetchCollegeBooks } from '@/services/libraryApi';
 
-const FALLBACK_DATABASE: BookMetadata[] = [
-  { id: 'ncert-math-10', title: 'Class 10 Mathematics', class: 'Class 10', subject: 'Math', source: 'NCERT', lang: 'en', chapters: 15, coverUrl: '' },
-  { id: 'osepa-odia-10', title: 'ସାହିତ୍ୟ ସିନ୍ଧୁ (Literature)', class: 'Class 10', subject: 'Language', source: 'OdiaMedium', lang: 'or', chapters: 14, coverUrl: '' },
-  { id: 'ncert-sci-9', title: 'Class 9 Science', class: 'Class 9', subject: 'Science', source: 'NCERT', lang: 'hi', chapters: 12, coverUrl: '' }
+const INTERNAL_DATABASE: BookMetadata[] = [
+  { id: 'ncert-math-10', title: 'Mathematics (NCERT)', class: 'Class 10', subject: 'Math', source: 'NCERT', lang: 'en', chapters: 15, coverUrl: 'https://picsum.photos/seed/math10/200/300' },
+  { id: 'osepa-odia-10', title: 'ସାହିତ୍ୟ ସିନ୍ଧୁ (Odia)', class: 'Class 10', subject: 'Language', source: 'OdiaMedium', lang: 'or', chapters: 14, coverUrl: 'https://picsum.photos/seed/odia10/200/300' },
+  { id: 'ncert-sci-9', title: 'Science Class 9', class: 'Class 9', subject: 'Science', source: 'NCERT', lang: 'en', chapters: 12, coverUrl: 'https://picsum.photos/seed/sci9/200/300' },
+  { id: 'ncert-math-hi-10', title: 'गणित Class 10', class: 'Class 10', subject: 'Math', source: 'NCERT', lang: 'hi', chapters: 15, coverUrl: 'https://picsum.photos/seed/mathhi10/200/300' }
 ];
 
 const LANGUAGES = [
-  { value: 'all', label: 'All Languages' },
+  { value: 'all', label: 'All Global Signals' },
   { value: 'en', label: 'English' },
   { value: 'hi', label: 'Hindi (हिंदी)' },
   { value: 'or', label: 'Odia (ଓଡ଼ିଆ)' },
-  { value: 'bn', label: 'Bengali (বাংলা)' },
 ];
 
 export default function CampusHomeScreen() {
@@ -60,42 +54,30 @@ export default function CampusHomeScreen() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (profile) {
-      if (language === 'all') {
-        const initialLang = profile.preferredLanguage || (profile.geo_region === 'India' ? 'or' : 'en');
-        setLanguage(initialLang);
-      }
-      if (eduSource === 'all') {
-        const initialSource = profile.geo_region === 'India' ? 'NCERT' : 'OpenLibrary';
-        setEduSource(initialSource);
-      }
-    }
-  }, [profile]);
-
-  useEffect(() => {
     async function fetchVaultData() {
       if (!profile) return;
       setLoading(true);
 
+      // Handle External API for OpenLibrary
       if (eduSource === 'OpenLibrary') {
-         const externalBooks = await fetchCollegeBooks(searchTerm || "academic textbooks");
+         const externalBooks = await fetchCollegeBooks(searchTerm || "mathematics");
          setBooks(externalBooks as BookMetadata[]);
          setLoading(false);
          return;
       }
 
+      // Handle Internal Database
       try {
-        const sourceQuery = eduSource === 'all' ? '' : `&source=${eduSource}`;
-        const res = await fetch(`/api/curriculum?region=${profile.geo_region || 'Global'}&lang=${language}${sourceQuery}`);
-        const data = await res.json();
-        
-        if (data.success && data.books) {
-           setBooks(data.books);
-        } else {
-           setBooks(FALLBACK_DATABASE);
+        let filtered = [...INTERNAL_DATABASE];
+        if (eduSource !== 'all') {
+          filtered = filtered.filter(b => b.source === eduSource);
         }
+        if (language !== 'all') {
+          filtered = filtered.filter(b => b.lang === language);
+        }
+        setBooks(filtered);
       } catch (e) {
-        setBooks(FALLBACK_DATABASE);
+        setBooks(INTERNAL_DATABASE);
       } finally {
         setLoading(false);
       }
@@ -106,24 +88,19 @@ export default function CampusHomeScreen() {
   const updateLanguage = async (lang: string) => {
     setLanguage(lang);
     if (userRef && lang !== 'all') {
-      await updateDoc(userRef, { preferredLanguage: lang as LanguageCode });
+      updateDoc(userRef, { preferredLanguage: lang as LanguageCode });
     }
   };
 
   const filteredBooks = useMemo(() => {
     if (!books) return [];
-    let list = [...books];
-    if (searchTerm) {
-      const query = searchTerm.toLowerCase();
-      list = list.filter(b => b.title.toLowerCase().includes(query) || b.subject.toLowerCase().includes(query));
-    }
-    
-    return list.sort((a, b) => {
-       const aMatches = a.lang === profile?.preferredLanguage ? 1 : 0;
-       const bMatches = b.lang === profile?.preferredLanguage ? 1 : 0;
-       return bMatches - aMatches;
-    });
-  }, [books, searchTerm, profile]);
+    if (!searchTerm) return books;
+    const query = searchTerm.toLowerCase();
+    return books.filter(b => 
+      b.title.toLowerCase().includes(query) || 
+      b.subject.toLowerCase().includes(query)
+    );
+  }, [books, searchTerm]);
 
   return (
     <div className="max-w-7xl mx-auto p-8 md:p-12 space-y-12 pb-32">
@@ -132,10 +109,10 @@ export default function CampusHomeScreen() {
            <div className="space-y-6">
               <div className="flex flex-wrap items-center gap-4">
                  <Badge className="bg-primary/10 text-primary border-primary/20 uppercase font-black px-4 py-1.5 text-[9px] flex items-center gap-2 backdrop-blur-md">
-                    <MapPin className="h-3 w-3" /> Region Node: {profile?.geo_region || 'Global'}
+                    <MapPin className="h-3 w-3" /> Region Node: {profile?.geo_region || 'Analyzing...'}
                  </Badge>
                  <div className="flex items-center gap-2 text-primary text-[10px] font-black uppercase tracking-widest italic animate-pulse">
-                    <Sparkles className="h-3.5 w-3.5" /> High-Accuracy Tuition Teacher Node Active
+                    <Sparkles className="h-3.5 w-3.5" /> Scholar API Node Active
                  </div>
               </div>
               <h1 className="text-6xl md:text-9xl font-black tracking-tighter uppercase italic text-white leading-[0.8]">
@@ -148,22 +125,22 @@ export default function CampusHomeScreen() {
            
            <div className="glass-panel p-6 rounded-[2rem] flex flex-col sm:flex-row items-center gap-6 w-full xl:w-auto border-2 border-primary/20">
               <div className="space-y-2 flex-1 sm:w-64">
-                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Universal Source</p>
+                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Source Select</p>
                  <Select value={eduSource} onValueChange={setEduSource}>
                     <SelectTrigger className="h-12 bg-white/[0.05] border-white/10 font-bold text-[10px] uppercase rounded-xl">
                        <Library className="h-3.5 w-3.5 mr-2 text-primary" />
                        <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-background border-white/10 text-white">
-                       <SelectItem value="all">All Global Boards</SelectItem>
+                       <SelectItem value="all">All Boards</SelectItem>
                        <SelectItem value="NCERT">NCERT (India)</SelectItem>
                        <SelectItem value="OdiaMedium">OSEPA (Odisha)</SelectItem>
-                       <SelectItem value="OpenLibrary">Open Library (Live)</SelectItem>
+                       <SelectItem value="OpenLibrary">Open Library (Global)</SelectItem>
                     </SelectContent>
                  </Select>
               </div>
               <div className="space-y-2 flex-1 sm:w-56">
-                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Native Language</p>
+                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Medium</p>
                  <Select value={language} onValueChange={updateLanguage}>
                     <SelectTrigger className="h-12 bg-white/[0.05] border-white/10 font-bold text-[10px] uppercase rounded-xl">
                        <Languages className="h-3.5 w-3.5 mr-2 text-primary" />
@@ -184,7 +161,7 @@ export default function CampusHomeScreen() {
            <Input 
              value={searchTerm}
              onChange={e => setSearchTerm(e.target.value)}
-             placeholder="Search any subject, formula, or textbook across all languages..." 
+             placeholder="Search subjects, topics, or textbooks..." 
              className="h-20 bg-white/[0.02] border-white/10 rounded-[1.5rem] pl-16 text-xl font-bold uppercase tracking-tight focus:border-primary/40 focus:ring-0"
            />
         </div>
@@ -193,47 +170,42 @@ export default function CampusHomeScreen() {
       {loading ? (
         <div className="py-40 flex flex-col items-center gap-6">
            <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
-           <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.4em] italic animate-pulse">Syncing worldwide knowledge signals...</p>
+           <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.4em] italic">Synchronizing Scholarship Signals...</p>
         </div>
       ) : (
         <div className="space-y-12">
            <div className="flex items-center justify-between px-2 border-l-4 border-primary pl-6">
               <div>
                  <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Resource Stream</h3>
-                 <p className="text-[9px] font-bold text-muted-foreground uppercase">Showing {filteredBooks.length} High-Accuracy Nodes</p>
+                 <p className="text-[9px] font-bold text-muted-foreground uppercase">Found {filteredBooks.length} High-Accuracy Nodes</p>
               </div>
            </div>
            
            {filteredBooks.length > 0 ? (
-             <div className="grid gap-6">
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                {filteredBooks.map((book) => (
                  <Link key={book.id} href={`/campus/viewer?url=${encodeURIComponent(book.id.includes('http') ? book.id : `https://ncert.nic.in/textbook/pdf/hemh101.pdf`)}`} className="group">
-                   <Card className="p-8 bg-[#0a0a0f] border-white/5 hover:border-primary/30 transition-all rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-8 group shadow-2xl relative overflow-hidden">
-                      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="flex items-center gap-8 relative z-10">
-                         <div className="h-24 w-20 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-primary shadow-xl group-hover:scale-110 transition-transform overflow-hidden">
-                            {book.coverUrl ? (
-                              <img src={book.coverUrl} className="w-full h-full object-cover" alt="Cover" />
-                            ) : (
-                              <BookOpen className="h-8 w-8" />
-                            )}
-                         </div>
-                         <div className="space-y-1 text-left">
-                            <div className="flex items-center gap-3 mb-1">
-                               {book.lang === profile?.preferredLanguage && <Badge className="bg-green-500/20 text-green-500 text-[7px] font-black uppercase italic">Recommended for You</Badge>}
-                               <Badge variant="outline" className="border-primary/20 text-primary text-[7px] font-black uppercase px-2">{book.source}</Badge>
-                            </div>
-                            <h4 className="text-3xl font-black uppercase italic tracking-tighter text-white group-hover:text-primary transition-colors">{book.title}</h4>
-                            <div className="flex items-center gap-4 text-muted-foreground">
-                               <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5"><User className="h-3 w-3" /> {book.class} • {book.subject}</p>
-                            </div>
+                   <Card className="bg-[#0a0a0f] border-white/5 hover:border-primary/30 transition-all rounded-[2.5rem] overflow-hidden group shadow-2xl relative flex flex-col h-full">
+                      <div className="aspect-[3/4] bg-white/5 relative overflow-hidden">
+                         {book.coverUrl ? (
+                           <img src={book.coverUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={book.title} />
+                         ) : (
+                           <div className="w-full h-full flex items-center justify-center text-primary/20">
+                              <BookOpen className="h-20 w-20" />
+                           </div>
+                         )}
+                         <div className="absolute top-4 left-4">
+                            <Badge variant="outline" className="bg-black/60 backdrop-blur-md border-white/10 text-white text-[7px] font-black uppercase px-2">{book.source}</Badge>
                          </div>
                       </div>
-                      <div className="flex items-center gap-6 relative z-10">
-                         <Badge variant="outline" className="border-white/10 text-[9px] font-bold uppercase py-1.5 px-6 italic text-white group-hover:bg-primary group-hover:text-black transition-all">READ LESSON</Badge>
-                         <div className="h-14 w-14 rounded-2xl bg-white/[0.05] flex items-center justify-center border border-white/10 opacity-0 group-hover:opacity-100 transition-all">
-                            <ChevronRight className="h-6 w-6 text-primary" />
+                      <div className="p-6 flex flex-col flex-1 justify-between gap-4">
+                         <div className="space-y-1">
+                            <h4 className="text-lg font-black uppercase italic tracking-tight text-white group-hover:text-primary transition-colors leading-tight line-clamp-2">{book.title}</h4>
+                            <p className="text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1.5"><User className="h-3 w-3" /> {book.class} • {book.subject}</p>
                          </div>
+                         <Button className="w-full h-11 bg-white/5 border border-white/10 group-hover:bg-primary group-hover:text-white font-black text-[9px] uppercase tracking-widest rounded-xl transition-all">
+                            OPEN LESSON <ChevronRight className="ml-2 h-3 w-3" />
+                         </Button>
                       </div>
                    </Card>
                  </Link>

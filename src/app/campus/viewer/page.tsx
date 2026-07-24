@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -26,7 +25,8 @@ import {
   BookOpen,
   PlayCircle,
   Layout,
-  Download
+  Download,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -126,8 +126,8 @@ function ViewerContent() {
         setTutorLoading(false);
       }
     } else if (adType === 'download') {
-      // PROCEED TO DOWNLOAD PDF
-      toast({ title: "SIGNAL UNLOCKED", description: "Downloading book node for offline access." });
+      // PROCEED TO DOWNLOAD PDF (Zero Reward Activity)
+      toast({ title: "SIGNAL UNLOCKED", description: "Downloading offline node (0 🪙 Reward)." });
       window.open(url, '_blank');
     }
   };
@@ -205,7 +205,7 @@ function ViewerContent() {
                </div>
                <div className="text-left hidden sm:block">
                   <p className="text-[10px] font-black uppercase italic tracking-widest leading-none">AI Tutor</p>
-                  <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1">Sponsored</p>
+                  <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1">Platform Sponsored</p>
                </div>
             </button>
 
@@ -220,7 +220,7 @@ function ViewerContent() {
                   </div>
                </div>
                
-               {settings?.node_book_download && (
+               {(settings?.node_book_download ?? true) && (
                  <Button onClick={handleDownloadInitiate} className="h-10 px-6 rounded-xl bg-white/5 border border-white/10 hover:bg-green-600 text-white font-black text-[9px] uppercase italic transition-all">
                     <Download className="h-3 w-3 mr-2" /> PDF Node
                  </Button>
@@ -233,16 +233,16 @@ function ViewerContent() {
          </Card>
       </div>
 
-      {/* INDUSTRIAL BOTTOM BANNER SLOT */}
+      {/* INDUSTRIAL BOTTOM BANNER SLOT (Passive Revenue) */}
       <div className="h-20 bg-[#0d0d12] border-t border-white/5 flex flex-col items-center justify-center overflow-hidden relative z-50">
          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20 opacity-20" />
          <div className="flex items-center gap-4">
-            <Badge variant="outline" className="border-primary/20 text-primary text-[7px] font-black uppercase px-2 italic">Sponsored Slot v11.0</Badge>
+            <Badge variant="outline" className="border-primary/20 text-primary text-[7px] font-black uppercase px-2 italic">Standard Industrial Banner v11.0</Badge>
             <p className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.4em] italic animate-pulse">
-               HIGH-YIELD REVENUE CHANNEL ACTIVE • SECURED SIGNAL
+               HIGH-YIELD REVENUE CHANNEL ACTIVE • PASSIVE SYNC
             </p>
          </div>
-         <p className="text-[7px] font-bold text-muted-foreground uppercase opacity-30 mt-2">Revenue from this node directly funds student scholarship dividends.</p>
+         <p className="text-[7px] font-bold text-muted-foreground uppercase opacity-30 mt-2">Passive revenue feeds the platform reward pool for scholarship payouts.</p>
       </div>
 
       {/* TUTOR DIALOG */}
@@ -316,21 +316,21 @@ function ViewerContent() {
         </DialogContent>
       </Dialog>
 
-      {/* REWARDED AD GATE */}
+      {/* REWARDED AD GATE (System Verification) */}
       {showAdInter && (
         <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-8 animate-in fade-in duration-500 backdrop-blur-xl">
            <div className="max-w-md w-full text-center space-y-10">
               <div className="h-24 w-24 mx-auto relative flex items-center justify-center">
                  <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
                  <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin" style={{ animationDuration: '3s' }} />
-                 <Zap className="h-10 w-10 text-primary animate-pulse" />
+                 <ShieldCheck className="h-10 w-10 text-primary animate-pulse" />
               </div>
               <div className="space-y-4">
                  <h3 className="text-3xl font-black uppercase italic text-white leading-none">
-                   {adType === 'tutor' ? 'Syncing Tutor Signal...' : 'Decrypting Download Node...'}
+                   System Verification...
                  </h3>
                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-relaxed">
-                    {adType === 'tutor' ? 'Analyzing partner data stream. Tuition node will activate after the 10s countdown.' : 'Mandatory verification ad in progress. Download signal will open shortly.'}
+                    {adType === 'tutor' ? 'Establishing high-bandwidth tuition signal. Tutor node will activate after the countdown.' : 'Decrypting download node for offline access. Mandatory verification in progress.'}
                  </p>
                  {adType === 'download' && (
                     <Badge variant="outline" className="border-amber-500/20 text-amber-500 text-[8px] font-black uppercase px-2 italic">ZERO REWARD OFFLINE SESSION</Badge>
@@ -338,7 +338,7 @@ function ViewerContent() {
               </div>
               <p className="text-6xl font-black text-white italic tabular-nums">{adCountdown}s</p>
               <Button disabled={adCountdown > 0} onClick={handleActionAfterAd} className="w-full h-16 rounded-2xl font-black text-lg uppercase italic bg-primary shadow-xl">
-                 {adCountdown === 0 ? (adType === 'tutor' ? "START TUITION" : "OPEN DOWNLOAD") : "WAITING..."}
+                 {adCountdown === 0 ? (adType === 'tutor' ? "START TUITION" : "OPEN DOWNLOAD") : "VERIFYING SIGNAL..."}
               </Button>
            </div>
         </div>
