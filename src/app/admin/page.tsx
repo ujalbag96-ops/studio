@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection, query, orderBy, limit, arrayUnion, where, getDocs, writeBatch, increment } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, orderBy, limit, arrayUnion, where, getDocs, writeBatch, increment, getDoc } from 'firebase/firestore';
 import { 
   Loader2, Zap, Settings, Book, Database, RefreshCw, LayoutGrid, DollarSign, Wallet, 
   History, Globe, Info, Ban, Megaphone, Fingerprint, Activity, ClipboardCheck, 
@@ -36,6 +36,18 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'visibility' | 'wallets' | 'revenue' | 'currency' | 'branding'>('visibility');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
+  // Search & Adjustment States
+  const [searchQuery, setSearchTerm] = useState('');
+  const [targetUser, setTargetUser] = useState<UserProfile | null>(null);
+  const [adjustAmount, setAdjustAmount] = useState('');
+  const [adjustRemark, setAdjustRemark] = useState('');
+  const [adjustUnit, setAdjustUnit] = useState<'coin' | 'inr'>('coin');
+
+  // Economy States
+  const [coinsPerINR, setCoinsPerINR] = useState('');
+  const [coinsPerUSD, setCoinsPerUSD] = useState('');
+  const [revShare, setRevShare] = useState('');
+
   // Branding States
   const [logoUrl, setLogoUrl] = useState('');
   const [themeSearch, setThemeSearch] = useState('');
@@ -53,9 +65,93 @@ export default function AdminDashboard() {
     setIsProcessing(key);
     try {
       await updateDoc(settingsRef, { [key]: value });
-      toast({ title: "SIGNAL SYNCED", description: "Settings updated successfully." });
+      toast({ title: "SIGNAL SYNCED", description: `${key} updated successfully.` });
     } catch (e) {
-      toast({ variant: "destructive", title: "SYNC FAILED" });
+      console.error(e);
+      toast({ variant: "destructive", title: "SYNC FAILED", description: "Database rejected the signal." });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleUserSearch = async () => {
+    if (!firestore || !searchQuery.trim()) return;
+    setIsProcessing('search');
+    setTargetUser(null);
+    try {
+      const q = query(collection(firestore, 'users'), where('email', '==', searchQuery.trim().toLowerCase()), limit(1));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        setTargetUser({ id: snap.docs[0].id, ...snap.docs[0].data() } as UserProfile);
+      } else {
+        toast({ variant: "destructive", title: "WARRIOR NOT FOUND", description: "No record matches this email node." });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "SEARCH ERROR" });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleWalletAdjustment = async (mode: 'credit' | 'debit') => {
+    if (!firestore || !targetUser || !adjustAmount || !adjustRemark) {
+      toast({ variant: "destructive", title: "VALIDATION FAILED", description: "Fill all mandatory adjustment fields." });
+      return;
+    }
+
+    const amt = parseFloat(adjustAmount);
+    if (isNaN(amt) || amt <= 0) {
+      toast({ variant: "destructive", title: "INVALID VOLUME", description: "Amount must be a positive signal." });
+      return;
+    }
+
+    setIsProcessing('adjustment');
+    try {
+      const finalCoinAmount = adjustUnit === 'coin' ? amt : amt * (settings?.coinsPerINR || 100);
+      const finalInrAmount = adjustUnit === 'inr' ? amt : amt / (settings?.coinsPerINR || 100);
+      
+      const multiplier = mode === 'credit' ? 1 : -1;
+      const batch = writeBatch(firestore);
+      const userRef = doc(firestore, 'users', targetUser.id);
+      
+      batch.update(userRef, {
+        coins: increment(finalCoinAmount * multiplier),
+        winningBalance: increment(finalCoinAmount * multiplier),
+        walletBalanceINR: increment(finalInrAmount * multiplier)
+      });
+
+      const auditRef = doc(collection(firestore, 'admin_adjustments'));
+      batch.set(auditRef, {
+        adminId: user?.uid,
+        targetUserId: targetUser.id,
+        amount: finalCoinAmount * multiplier,
+        unit: adjustUnit,
+        remark: adjustRemark,
+        mode,
+        timestamp: new Date().toISOString()
+      });
+
+      // User Ledger Node
+      const ledgerRef = doc(collection(firestore, 'users', targetUser.id, 'ledger'));
+      batch.set(ledgerRef, {
+        type: mode === 'credit' ? 'admin_credit' : 'admin_debit',
+        amount: finalCoinAmount,
+        date: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        description: `Manual Node Adjustment: ${adjustRemark}`
+      });
+
+      await batch.commit();
+      
+      toast({ title: "WALLET CALIBRATED", description: `Successfully ${mode}ed assets to warrior portfolio.` });
+      
+      // Reset Form Safely
+      setAdjustAmount('');
+      setAdjustRemark('');
+      setTargetUser(null);
+      setSearchTerm('');
+    } catch (e) {
+      toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
     } finally {
       setIsProcessing(null);
     }
@@ -81,9 +177,12 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <div>
                <p className="text-sm font-black uppercase italic leading-none">Admin <span className="text-primary">Hub</span></p>
-               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1">Enterprise Command v160.0</p>
+               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1">Industrial Command v185.0</p>
             </div>
          </div>
+         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase flex items-center gap-1.5">
+            <div className="h-1 w-1 rounded-full bg-green-500 animate-pulse" /> Persistence: Active
+         </Badge>
       </header>
 
       <main className="pt-28 px-4 md:px-6 space-y-10 max-w-6xl mx-auto">
@@ -94,6 +193,153 @@ export default function AdminDashboard() {
             <NavPill active={activeTab === 'currency'} label="Economy" icon={<ArrowRightLeft className="h-3 w-3" />} onClick={() => setActiveTab('currency')} />
             <NavPill active={activeTab === 'revenue'} label="Revenue" icon={<DollarSign className="h-3 w-3" />} onClick={() => setActiveTab('revenue')} />
          </div>
+
+         {activeTab === 'currency' && (
+            <div className="space-y-10 animate-in fade-in duration-500">
+               <div className="space-y-2">
+                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">Economy <span className="text-primary">Matrix</span></h2>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Dynamic Exchange & Profit CALIBRATION</p>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <EconomyCard 
+                    label="Coins per Rupee" 
+                    value={coinsPerINR || settings?.coinsPerINR?.toString() || '100'} 
+                    onChange={setCoinsPerINR} 
+                    onSave={() => updateSetting('coinsPerINR', parseFloat(coinsPerINR))}
+                    icon={<Coins />}
+                    isSaving={isProcessing === 'coinsPerINR'}
+                  />
+                  <EconomyCard 
+                    label="Coins per USD" 
+                    value={coinsPerUSD || settings?.coinsPerUSD?.toString() || '1000'} 
+                    onChange={setCoinsPerUSD} 
+                    onSave={() => updateSetting('coinsPerUSD', parseFloat(coinsPerUSD))}
+                    icon={<Globe />}
+                    isSaving={isProcessing === 'coinsPerUSD'}
+                  />
+                  <EconomyCard 
+                    label="Rev-Share User %" 
+                    value={revShare || settings?.userRevenueSharePercent?.toString() || '20'} 
+                    onChange={setRevShare} 
+                    onSave={() => updateSetting('userRevenueSharePercent', parseFloat(revShare))}
+                    icon={<Percent />}
+                    isSaving={isProcessing === 'userRevenueSharePercent'}
+                  />
+               </div>
+            </div>
+         )}
+
+         {activeTab === 'wallets' && (
+            <div className="space-y-10 animate-in fade-in duration-500">
+               <div className="space-y-2">
+                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">Wallet <span className="text-primary">Mastery</span></h2>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Manual Warrior Portfolio Intervention</p>
+               </div>
+
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* SEARCH NODE */}
+                  <Card className="lg:col-span-1 bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6 border-2">
+                     <h3 className="text-xl font-black uppercase italic flex items-center gap-3"><Search className="text-primary" /> User Hub</h3>
+                     <div className="space-y-4">
+                        <div className="space-y-2">
+                           <Label className="text-[9px] font-black uppercase text-muted-foreground">Warrior Email</Label>
+                           <Input 
+                              value={searchQuery} 
+                              onChange={e => setSearchTerm(e.target.value)} 
+                              placeholder="Enter email..." 
+                              className="bg-black border-white/10 h-12 rounded-xl" 
+                           />
+                        </div>
+                        <Button onClick={handleUserSearch} disabled={isProcessing === 'search'} className="w-full h-12 bg-primary font-black uppercase italic rounded-xl">
+                           {isProcessing === 'search' ? <Loader2 className="animate-spin" /> : "INSPECT SIGNAL"}
+                        </Button>
+                     </div>
+
+                     {targetUser && (
+                        <div className="p-6 bg-white/5 border border-white/10 rounded-2xl space-y-4 animate-in slide-in-from-top-4">
+                           <div className="space-y-1">
+                              <p className="text-[10px] font-black uppercase text-muted-foreground">Target Profile</p>
+                              <p className="text-sm font-black text-white truncate">{targetUser.email}</p>
+                           </div>
+                           <div className="grid grid-cols-2 gap-4">
+                              <div className="text-center">
+                                 <p className="text-[8px] font-black text-muted-foreground uppercase">Coins</p>
+                                 <p className="text-lg font-black text-primary italic">{targetUser.coins.toLocaleString()}</p>
+                              </div>
+                              <div className="text-center">
+                                 <p className="text-[8px] font-black text-muted-foreground uppercase">Rev Share</p>
+                                 <p className="text-lg font-black text-green-500 italic">${targetUser.pendingRevenueShare.toFixed(2)}</p>
+                              </div>
+                           </div>
+                        </div>
+                     )}
+                  </Card>
+
+                  {/* ADJUSTMENT TERMINAL */}
+                  <Card className={cn(
+                    "lg:col-span-2 bg-[#0a0a0f] border-white/5 p-10 rounded-[2.5rem] space-y-8 border-2 transition-all",
+                    !targetUser && "opacity-30 grayscale pointer-events-none"
+                  )}>
+                     <h3 className="text-2xl font-black uppercase italic flex items-center gap-4"><Zap className="text-amber-500" /> Adjustment Terminal</h3>
+                     
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                           <div className="space-y-2">
+                              <Label className="text-[9px] font-black uppercase text-muted-foreground">Adjustment Volume</Label>
+                              <div className="relative">
+                                 <Input 
+                                   type="number" 
+                                   value={adjustAmount} 
+                                   onChange={e => setAdjustAmount(e.target.value)} 
+                                   placeholder="0.00" 
+                                   className="h-16 bg-black border-white/10 rounded-2xl font-black text-2xl text-primary" 
+                                 />
+                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    <button onClick={() => setAdjustUnit('coin')} className={cn("px-3 py-1 rounded-lg text-[8px] font-black uppercase transition-all", adjustUnit === 'coin' ? "bg-primary text-white" : "bg-white/5 text-muted-foreground")}>COIN</button>
+                                    <button onClick={() => setAdjustUnit('inr')} className={cn("px-3 py-1 rounded-lg text-[8px] font-black uppercase transition-all", adjustUnit === 'inr' ? "bg-green-500 text-white" : "bg-white/5 text-muted-foreground")}>INR</button>
+                                 </div>
+                              </div>
+                           </div>
+                           <div className="space-y-2">
+                              <Label className="text-[9px] font-black uppercase text-muted-foreground">Audit Remark (Mandatory)</Label>
+                              <Input 
+                                value={adjustRemark} 
+                                onChange={e => setAdjustRemark(e.target.value)} 
+                                placeholder="E.G. COMPENSATION REWARD" 
+                                className="h-12 bg-black border-white/10 rounded-xl font-bold uppercase text-[10px]" 
+                              />
+                           </div>
+                        </div>
+
+                        <div className="flex flex-col gap-4 justify-center">
+                           <Button 
+                             onClick={() => handleWalletAdjustment('credit')} 
+                             disabled={isProcessing === 'adjustment'}
+                             className="h-16 bg-green-600 hover:bg-green-500 font-black uppercase italic text-lg rounded-2xl shadow-xl flex items-center justify-center gap-3"
+                           >
+                              {isProcessing === 'adjustment' ? <Loader2 className="animate-spin" /> : <><PlusCircle /> CREDIT FUNDS</>}
+                           </Button>
+                           <Button 
+                             onClick={() => handleWalletAdjustment('debit')} 
+                             disabled={isProcessing === 'adjustment'}
+                             className="h-16 bg-red-600 hover:bg-red-500 font-black uppercase italic text-lg rounded-2xl shadow-xl flex items-center justify-center gap-3"
+                           >
+                              {isProcessing === 'adjustment' ? <Loader2 className="animate-spin" /> : <><MinusCircle /> DEBIT FUNDS</>}
+                           </Button>
+                        </div>
+                     </div>
+
+                     <div className="p-5 bg-white/5 border border-white/5 rounded-2xl flex items-start gap-4">
+                        <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest italic">
+                           Each adjustment node generates a double-entry signal: One in the warrior's ledger and one in the encrypted admin audit hub. Signals are immutable once finalized.
+                        </p>
+                     </div>
+                  </Card>
+               </div>
+            </div>
+         )}
 
          {activeTab === 'branding' && (
             <div className="space-y-10 animate-in fade-in duration-500">
@@ -235,5 +481,32 @@ function NavPill({ active, label, icon, onClick }: any) {
       >
          {icon} <span>{label}</span>
       </button>
+   );
+}
+
+function EconomyCard({ label, value, onChange, onSave, icon, isSaving }: any) {
+   return (
+      <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6 border-2 hover:border-primary/20 transition-all group">
+         <div className="flex items-center justify-between">
+            <div className="h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+               {icon}
+            </div>
+            <Badge variant="outline" className="text-[7px] font-black uppercase tracking-widest border-white/10 opacity-40">Industrial Node</Badge>
+         </div>
+         <div className="space-y-2">
+            <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">{label}</Label>
+            <div className="flex gap-2">
+               <Input 
+                 type="number" 
+                 value={value} 
+                 onChange={e => onChange(e.target.value)} 
+                 className="bg-black border-white/10 h-12 rounded-xl font-black text-xl text-primary text-center" 
+               />
+               <Button onClick={onSave} disabled={isSaving} className="h-12 w-12 bg-white/5 border border-white/10 rounded-xl hover:bg-primary transition-all">
+                  {isSaving ? <Loader2 className="animate-spin h-4 w-4" /> : <CheckCircle2 className="h-5 w-5" />}
+               </Button>
+            </div>
+         </div>
+      </Card>
    );
 }
