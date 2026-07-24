@@ -209,7 +209,7 @@ export default function SupportChat() {
                 
                 {messages.length === 0 && !isAiTyping && (
                   <div className="bg-white/5 p-5 rounded-2xl text-[10px] text-muted-foreground border border-white/5 leading-relaxed font-bold uppercase tracking-widest text-center italic">
-                    "Namaste! I am your CampusHub AI. How can I help you earn or study today?"
+                    "Namaste! I am your Bracket Battles AI. How can I help you earn or study today?"
                   </div>
                 )}
                 {messages.map((m) => (

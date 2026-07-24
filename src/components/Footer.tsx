@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -28,7 +27,7 @@ export default function Footer() {
             <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
               <Zap className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-black italic text-white uppercase tracking-tighter">CAMPUS<span className="text-primary">HUB</span></span>
+            <span className="text-2xl font-black italic text-white uppercase tracking-tighter">BRACKET<span className="text-primary">BATTLES</span></span>
           </Link>
           <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-3">
              <div className="flex items-center gap-2 text-primary">
@@ -88,7 +87,7 @@ export default function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto px-8 mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">© {currentYear} CampusCompanion Industrial. All Rights Reserved.</p>
+        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">© {currentYear} Bracket Battles Industrial. All Rights Reserved.</p>
         <div className="flex items-center gap-4 opacity-30">
            <Activity className="h-4 w-4" />
            <ShieldCheck className="h-4 w-4" />
