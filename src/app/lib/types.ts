@@ -46,6 +46,8 @@ export interface UserProfile {
   referralCommissionBalance?: number;
   mlmLevel?: number;
   lastSpinTimestamp?: string;
+  totalPagesShared?: number;
+  unlockedMilestones?: string[];
 }
 
 export interface AppSettings {
@@ -53,9 +55,9 @@ export interface AppSettings {
   reviewMode: boolean;
   autoWithdrawalEnabled: boolean;
   razorpayAutoPayout: boolean;
-  userRevenueSharePercent: number; // Global Fallback
-  cpaUserSharePercent?: number;    // Specific for CPA
-  videoUserSharePercent?: number;  // Specific for Videos
+  userRevenueSharePercent: number;
+  cpaUserSharePercent?: number;
+  videoUserSharePercent?: number;
   broadcastMessage?: string;
   broadcastActive?: boolean;
   minAppVersion?: string;
@@ -66,21 +68,16 @@ export interface AppSettings {
   bookApiCategory?: string;
   node_book_api_active?: boolean;
   node_book_download?: boolean;
-  
-  // --- THEME & BRANDING ---
   currentThemeId?: string;
   customLogoUrl?: string;
   festivalModeActive?: boolean;
-
-  // --- SONIC SETTINGS ---
   globalRewardSoundUrl?: string;
   globalNotifSoundUrl?: string;
-  
-  // --- DYNAMIC CURRENCY & ECONOMY ---
   coinsPerINR: number;
   coinsPerUSD: number;
   cpaRewardMultiplier: number;
   videoRewardRateCoins: number;
+  videoUserSharePercent_manual?: number;
 }
 
 export interface PlatformRevenue {
@@ -134,4 +131,44 @@ export interface LeaderboardEntry {
   userEmail: string;
   score: number;
   lastUpdated: string;
+}
+
+export interface CricketMatch {
+  id: string;
+  teamA: string;
+  teamB: string;
+  teamALogo: string;
+  teamBLogo: string;
+  startTime: string;
+  status: 'live' | 'upcoming' | 'completed';
+  series: string;
+  liveScore?: {
+    runsA: string;
+    runsB: string;
+    overs: string;
+    target?: string;
+    lastBalls?: string[];
+  };
+  winner?: string;
+}
+
+export interface MarketAsset {
+  id: string;
+  title: string;
+  category: string;
+  price: number;
+  authorId: string;
+  authorName: string;
+  downloads: number;
+  timestamp: string;
+}
+
+export interface StudyBuddySession {
+  id: string;
+  topic: string;
+  studentId: string;
+  studentEmail: string;
+  teacherId: string | null;
+  status: 'searching' | 'active' | 'completed';
+  timestamp: string;
 }

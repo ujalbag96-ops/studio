@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -26,8 +27,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head key="layout-head">
-        <title key="head-title">CampusHub | Global Scholar & Yield Platform</title>
-        <meta key="head-meta-desc" name="description" content="Official CampusHub v170.0 Energy-Efficient Build. Low Battery Consumption Node." />
+        <title key="head-title">Bracket Battles | Industrial Arena v1.0</title>
+        <meta key="head-meta-desc" name="description" content="Official Bracket Battles v1.0 Energy-Efficient Build. Low Battery Consumption Node." />
         <link key="head-link-preconnect-1" rel="preconnect" href="https://fonts.googleapis.com" />
         <link key="head-link-preconnect-2" rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link key="head-link-fonts" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
@@ -110,7 +111,7 @@ function SystemGate({ children }: { children: React.ReactNode }) {
         </div>
         <div key="maint-info-box" className="p-8 bg-white/5 border border-white/10 rounded-[2rem] max-sm">
            <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed italic">
-              "We are calibrating naye scholar resources. Full access will restore shortly. All earnings are safe in the vault."
+              "We are calibrating naye arena resources. Full access will restore shortly. All earnings are safe in the vault."
            </p>
         </div>
         {isAdmin && (
