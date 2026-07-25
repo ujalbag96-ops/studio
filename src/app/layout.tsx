@@ -24,8 +24,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head key="layout-head">
-        <title key="head-title">Bracket Battles | Industrial Arena v1.0</title>
-        <meta key="head-meta-desc" name="description" content="Official Bracket Battles v1.0 Production Build. High-Performance Scholar-Reward Platform." />
+        <title key="head-title">CampusHub | Industrial Scholar Arena v1.0</title>
+        <meta key="head-meta-desc" name="description" content="Official CampusHub v1.0 Production Build. High-Performance Scholar-Reward Platform." />
         <link key="head-link-preconnect-1" rel="preconnect" href="https://fonts.googleapis.com" />
         <link key="head-link-preconnect-2" rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link key="head-link-fonts" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
@@ -91,7 +91,7 @@ function SystemGate({ children }: { children: React.ReactNode }) {
     <div key="system-gate-loading" className="flex items-center justify-center min-h-screen bg-black">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="animate-spin text-primary h-12 w-12 opacity-50" />
-        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">Synchronizing Bracket Battles Signal...</p>
+        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.4em] italic">Synchronizing CampusHub Signal...</p>
       </div>
     </div>
   );
@@ -109,7 +109,7 @@ function SystemGate({ children }: { children: React.ReactNode }) {
         </div>
         <div key="maint-info-box" className="p-8 bg-white/5 border border-white/10 rounded-[2rem] max-sm">
            <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed italic">
-              "We are calibrating naye arena resources. Bracket Battles will restore shortly. All earnings are safe in the vault."
+              "We are calibrating naye arena resources. CampusHub will restore shortly. All earnings are safe in the vault."
            </p>
         </div>
         {isAdmin && (

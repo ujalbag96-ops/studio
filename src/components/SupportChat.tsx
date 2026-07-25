@@ -190,7 +190,7 @@ export default function SupportChat() {
             <div className="flex items-center gap-3">
                <Sparkles className="h-5 w-5 text-primary opacity-80" />
                <div>
-                  <CardTitle className="text-sm font-black uppercase italic tracking-widest text-white">AI Assistant</CardTitle>
+                  <CardTitle className="text-sm font-black uppercase italic tracking-widest text-white">CampusHub AI</CardTitle>
                   <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-[0.3em]">Operational 24/7</p>
                </div>
             </div>
@@ -208,7 +208,7 @@ export default function SupportChat() {
                 
                 {messages.length === 0 && !isAiTyping && (
                   <div className="bg-white/5 p-5 rounded-2xl text-[10px] text-muted-foreground border border-white/5 leading-relaxed font-bold uppercase tracking-widest text-center italic">
-                    "Namaste! I am your Bracket Battles AI. How can I help you win today?"
+                    "Namaste! I am your CampusHub AI. How can I help you win today?"
                   </div>
                 )}
                 {messages.map((m) => (

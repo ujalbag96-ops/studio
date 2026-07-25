@@ -26,7 +26,7 @@ export default function Footer() {
             <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
               <Zap className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-black italic text-white uppercase tracking-tighter">BRACKET<span className="text-primary">BATTLES</span></span>
+            <span className="text-2xl font-black italic text-white uppercase tracking-tighter">CAMPUS<span className="text-primary">HUB</span></span>
           </Link>
           <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-3">
              <div className="flex items-center gap-2 text-primary">
@@ -34,7 +34,7 @@ export default function Footer() {
                 <span className="text-[8px] font-black uppercase tracking-widest">Legal Disclaimer</span>
              </div>
              <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">
-               Bracket Battles is an industrial-grade skill reward platform. All results are verified server-side.
+               CampusHub is an industrial-grade skill reward platform. All results are verified server-side.
              </p>
           </div>
         </div>
@@ -86,7 +86,7 @@ export default function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto px-8 mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">© {currentYear} Bracket Battles Industrial. All Rights Reserved.</p>
+        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">© {currentYear} CampusHub Industrial. All Rights Reserved.</p>
         <div className="flex items-center gap-4 opacity-30">
            <Activity className="h-4 w-4" />
            <ShieldCheck className="h-4 w-4" />

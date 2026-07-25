@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.bracketbattles.arena',
-  appName: 'Bracket Battles',
+  appId: 'com.campushub.app',
+  appName: 'CampusHub',
   webDir: 'out',
   server: {
     androidScheme: 'https'

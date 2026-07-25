@@ -71,10 +71,10 @@ export default function ReferPage() {
   
   const handleShare = async () => {
     if (!profile?.referralCode) return;
-    const shareText = `Play & Learn! Get free notes and earn scholarship rewards on Bracket Battles. Join using my link: ${referralLink}`;
+    const shareText = `Play & Learn! Get free notes and earn scholarship rewards on CampusHub. Join using my link: ${referralLink}`;
     
     if (navigator.share) {
-      await navigator.share({ title: 'Bracket Battles', text: shareText, url: referralLink }).catch(() => {});
+      await navigator.share({ title: 'CampusHub', text: shareText, url: referralLink }).catch(() => {});
     } else {
       await navigator.clipboard.writeText(referralLink);
       toast({ title: "Link Copied!" });
@@ -94,7 +94,7 @@ export default function ReferPage() {
                </div>
                <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white leading-none">Refer <span className="text-primary">& Earn</span></h1>
                <p className="text-muted-foreground font-medium text-lg max-w-2xl">
-                  Build an industrial network of students on Bracket Battles. Earn combined commission from every mission your team completes.
+                  Build an industrial network of students on CampusHub. Earn combined commission from every mission your team completes.
                </p>
             </div>
             <div className="flex items-center gap-2 p-1 bg-white/5 rounded-2xl border border-white/5 max-w-sm">
@@ -154,7 +154,7 @@ export default function ReferPage() {
                  <h3 className="text-2xl font-black uppercase italic flex items-center gap-4"><Info className="text-primary" /> Operational Briefing</h3>
                  <div className="space-y-6">
                     <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight">
-                       Every time your recruit completes a mission on Bracket Battles, our settlement engine calculates your shared commission and credits it instantly. 
+                       Every time your recruit completes a mission on CampusHub, our settlement engine calculates your shared commission and credits it instantly. 
                     </p>
                     <div className="grid gap-4">
                        <BenefitItem icon={<Coins />} text="Direct 20% Joining Bonus" />
