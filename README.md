@@ -22,6 +22,9 @@ CampusHub is a high-performance "Super App" engineered for students. It bridges 
 
 **Remote Repository**: [https://github.com/ujalbag96-ops/campushub.git](https://github.com/ujalbag96-ops/campushub.git)
 
+### CI/CD Pipeline
+The project uses **GitHub Actions** for continuous integration. Every push to `main` triggers an automated build and type-check audit.
+
 ### Mobile Build Instructions (Android)
 To generate the production APK:
 1. `npm install`
