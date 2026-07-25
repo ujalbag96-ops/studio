@@ -54,8 +54,6 @@ export interface UserProfile {
   unlockedMilestones?: string[];
   networkTaskCompletions?: number;
   totalNetworkRevenue?: number;
-  totalRevenueGeneratedUSD?: number;
-  pendingRevenueShareUSD?: number;
 }
 
 export interface AppSettings {
@@ -156,6 +154,23 @@ export interface Tournament {
   };
 }
 
+export interface Registration {
+  id: string;
+  userId: string;
+  tournamentId: string;
+  gameId: string;
+  joinedAt: string;
+  feePaid: number;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  userId: string;
+  userEmail: string;
+  score: number;
+  lastUpdated: string;
+}
+
 export interface MarketAsset {
   id: string;
   title: string;
@@ -164,5 +179,44 @@ export interface MarketAsset {
   authorId: string;
   authorName: string;
   downloads: number;
+  timestamp: string;
+}
+
+export interface StudyBuddySession {
+  id: string;
+  topic: string;
+  studentId: string;
+  studentEmail: string;
+  teacherId: string | null;
+  status: 'searching' | 'active' | 'completed';
+  timestamp: string;
+}
+
+export interface CricketMatch {
+  id: string;
+  teamA: string;
+  teamB: string;
+  teamALogo: string;
+  teamBLogo: string;
+  startTime: string;
+  status: 'live' | 'upcoming' | 'completed';
+  series: string;
+  liveScore?: {
+    runsA: string;
+    runsB: string;
+    overs: string;
+    target?: string;
+    lastBalls?: string[];
+  };
+  winner?: string;
+}
+
+export interface PredictionPoll {
+  id: string;
+  question: string;
+  category: string;
+  expiry: string;
+  totalPool: number;
+  entryFee: number;
   timestamp: string;
 }
