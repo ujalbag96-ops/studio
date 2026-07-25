@@ -1,6 +1,6 @@
 # 📱 CampusHub: Industrial Scholar & Yield Arena v1.0
 
-CampusHub is a high-performance "Super App" engineered for students using **Next.js** and **Capacitor.js**. It bridges academic excellence with a strategic micro-earning ecosystem.
+CampusHub is a high-performance "Super App" engineered for students using **Next.js 15** and **Capacitor.js**. It bridges academic excellence with a strategic micro-earning ecosystem.
 
 ## 🏗️ Core Sectors
 
@@ -12,8 +12,8 @@ CampusHub is a high-performance "Super App" engineered for students using **Next
 ## 🛠️ Tech Stack (Not Flutter)
 
 - **Web Framework**: Next.js 15 (App Router)
-- **Native Engine**: Capacitor.js (Cross-Platform Bridge)
-- **Logic / UI**: React + TypeScript + Tailwind CSS + ShadCN UI
+- **Native Engine**: Capacitor.js 6 (Cross-Platform Bridge)
+- **Logic / UI**: React 19 + TypeScript + Tailwind CSS + ShadCN UI
 - **Database / Auth**: Firebase (Real-time Cloud Sync)
 - **AI Engine**: Google Genkit (Cognitive Audit & Tutor Node)
 
@@ -21,9 +21,9 @@ CampusHub is a high-performance "Super App" engineered for students using **Next
 
 **Remote Repository**: [https://github.com/ujalbag96-ops/campushub.git](https://github.com/ujalbag96-ops/campushub.git)
 
-### Mobile Build Instructions (Android APK)
+### Industrial Build Instructions (Android APK)
 1. `npm install`
-2. `npm run mobile:build`
+2. `npm run mobile:build` (Runs `next build` and `cap sync`)
 3. `npm run mobile:android` (Opens Android Studio)
 4. Inside Android Studio: **Build > Build APK(s)**.
 

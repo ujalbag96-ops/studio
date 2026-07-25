@@ -7,7 +7,7 @@ import {
   Search, Palette, CheckCircle2, 
   Star, Volume2, Music, Play, Bell, Eye, EyeOff, BarChart3, TrendingUp,
   Users as UsersIcon, ShieldAlert, UserCheck, Globe, ShieldX, Terminal, Filter,
-  PieChart, Activity, Fingerprint, MapPin, Calendar, Mail, Lock
+  PieChart, Activity, Fingerprint, MapPin, Calendar, Mail, Lock, Key
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +20,6 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { AppSettings, UserProfile, PlatformRevenue } from '../lib/types';
 import { MODULE_REGISTRY, ModuleCategory } from '../lib/module-registry';
-import { MONETIZATION_REGISTRY, MonCategory } from '../lib/monetization-registry';
-import { MASTER_THEMES } from '@/app/lib/themes';
-import { MASTER_SOUNDS } from '@/app/lib/sounds';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 const APP_CATEGORIES: ModuleCategory[] = ['Learning', 'Skills', 'Earning', 'Productivity', 'System'];
@@ -32,14 +29,8 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'visibility' | 'apis' | 'warriors' | 'wallets' | 'revenue' | 'currency' | 'branding' | 'sounds'>('visibility');
+  const [activeTab, setActiveTab] = useState<'visibility' | 'warriors' | 'revenue' | 'economy'>('visibility');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
-
-  const [searchQuery, setSearchTerm] = useState('');
-  const [targetUser, setTargetUser] = useState<UserProfile | null>(null);
-  const [adjustAmount, setAdjustAmount] = useState('');
-  const [adjustRemark, setAdjustRemark] = useState('');
-  const [adjustUnit, setAdjustUnit] = useState<'coin' | 'inr'>('coin');
   const [userSearchTerm, setUserSearchTerm] = useState('');
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -47,9 +38,6 @@ export default function AdminDashboard() {
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
   
-  const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'platform_stats', 'revenue') : null, [firestore]);
-  const { data: stats } = useDoc<PlatformRevenue>(statsRef);
-
   const warriorsQuery = useMemoFirebase(() => {
      if (!firestore) return null;
      return query(collection(firestore, 'users'), orderBy('joinedAt', 'desc'), limit(100));
@@ -85,8 +73,8 @@ export default function AdminDashboard() {
 
   const filteredWarriors = warriors?.filter(w => 
     w.email?.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
-    w.referralCode?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-    w.id.toLowerCase().includes(userSearchTerm.toLowerCase())
+    w.id.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+    w.referralCode?.toLowerCase().includes(userSearchTerm.toLowerCase())
   ) || [];
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
@@ -99,7 +87,7 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <p className="text-sm font-black uppercase italic">Admin <span className="text-primary">Hub</span></p>
          </div>
-         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase">v250.0 Master Node</Badge>
+         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-[0.3em]">v1.0 Master Node</Badge>
       </header>
 
       <main className="pt-28 px-4 md:px-6 space-y-10 max-w-7xl mx-auto">
@@ -107,9 +95,7 @@ export default function AdminDashboard() {
             <NavPill active={activeTab === 'visibility'} label="Modules" icon={<LayoutGrid className="h-3 w-3" />} onClick={() => setActiveTab('visibility')} />
             <NavPill active={activeTab === 'warriors'} label="User Registry" icon={<UsersIcon className="h-3 w-3" />} onClick={() => setActiveTab('warriors')} />
             <NavPill active={activeTab === 'revenue'} label="Profit Matrix" icon={<PieChart className="h-3 w-3" />} onClick={() => setActiveTab('revenue')} />
-            <NavPill active={activeTab === 'currency'} label="Economy" icon={<ArrowRightLeft className="h-3 w-3" />} onClick={() => setActiveTab('currency')} />
-            <NavPill active={activeTab === 'branding'} label="Branding" icon={<Palette className="h-3 w-3" />} onClick={() => setActiveTab('branding')} />
-            <NavPill active={activeTab === 'sounds'} label="Sonic" icon={<Volume2 className="h-3 w-3" />} onClick={() => setActiveTab('sounds')} />
+            <NavPill active={activeTab === 'economy'} label="Economy" icon={<ArrowRightLeft className="h-3 w-3" />} onClick={() => setActiveTab('economy')} />
          </div>
 
          {activeTab === 'warriors' && (
@@ -117,21 +103,21 @@ export default function AdminDashboard() {
                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                   <div className="space-y-2">
                      <h2 className="text-4xl font-black uppercase italic tracking-tighter">Warrior <span className="text-primary">Registry</span></h2>
-                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Full Identity & Technical Audit Log</p>
+                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Identity & Technical Security Audit Log</p>
                   </div>
                   <div className="relative w-full md:w-80">
                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                      <Input 
                        value={userSearchTerm}
                        onChange={e => setUserSearchTerm(e.target.value)}
-                       placeholder="SEARCH GMAIL OR UID..." 
+                       placeholder="SEARCH GMAIL, UID, CODE..." 
                        className="h-12 bg-black border-white/10 rounded-xl pl-12 font-black uppercase text-[10px] tracking-widest"
                      />
                   </div>
                </div>
 
                {warriorsLoading ? (
-                 <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>
+                 <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>
                ) : (
                  <div className="grid gap-6">
                     {filteredWarriors.map((w) => (
@@ -143,22 +129,22 @@ export default function AdminDashboard() {
                             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
                                <div className="flex items-center gap-6">
                                   <div className={cn(
-                                    "h-20 w-20 rounded-[1.5rem] flex items-center justify-center font-black text-3xl shadow-2xl transition-transform group-hover:scale-105",
+                                    "h-20 w-20 rounded-[1.5rem] flex items-center justify-center font-black text-3xl shadow-2xl transition-transform group-hover:rotate-3",
                                     w.isSuspended ? "bg-red-500/10 text-red-500" : "bg-primary/10 text-primary border border-primary/20"
                                   )}>
                                      {w.email?.[0].toUpperCase() || 'U'}
                                   </div>
-                                  <div className="space-y-2">
+                                  <div className="space-y-3">
                                      <div className="flex items-center gap-3">
-                                        <p className="text-xl font-black uppercase italic text-white truncate max-w-[250px]">{w.email || 'Anonymous'}</p>
+                                        <p className="text-xl font-black uppercase italic text-white truncate max-w-[300px]">{w.email || 'Anonymous Warrior'}</p>
                                         <Badge variant="outline" className="text-[8px] font-black uppercase border-white/10">{w.rank || 'Bronze'}</Badge>
                                      </div>
                                      <div className="flex flex-wrap gap-2">
                                         <Badge className="bg-white/5 text-muted-foreground border-none text-[8px] font-black uppercase px-2 italic flex items-center gap-1">
-                                           <Mail className="h-2.5 w-2.5" /> ID: {w.id}
+                                           <Key className="h-2.5 w-2.5 text-primary" /> UID: {w.id}
                                         </Badge>
                                         <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] font-black uppercase px-2 italic flex items-center gap-1">
-                                           <Lock className="h-2.5 w-2.5" /> PWD: ENCRYPTED NODE
+                                           <Lock className="h-2.5 w-2.5" /> PWD: ENCRYPTED_NODE
                                         </Badge>
                                      </div>
                                   </div>
@@ -192,11 +178,12 @@ export default function AdminDashboard() {
                                </div>
                             </div>
 
+                            {/* EXHAUSTIVE TECHNICAL AUDIT FOOTER */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-6 border-t border-white/5 bg-white/[0.02] -mx-8 px-8 pb-4">
-                               <AuditItem icon={<Fingerprint className="text-primary" />} label="Device Identity" value={w.deviceId || 'NOT_LOGGED'} />
-                               <AuditItem icon={<MapPin className="text-amber-500" />} label="Last Linked IP" value={w.lastIp || '0.0.0.0'} />
-                               <AuditItem icon={<Globe className="text-blue-500" />} label="Geo Region" value={`${w.geo_region || 'Unknown'} (${w.country || 'Global'})`} />
-                               <AuditItem icon={<Calendar className="text-green-500" />} label="Joined Arena" value={w.joinedAt ? new Date(w.joinedAt).toLocaleString() : 'Legacy'} />
+                               <AuditItem icon={<Fingerprint className="text-primary h-3 w-3" />} label="Device Identity" value={w.deviceId || 'NOT_SYNCED'} />
+                               <AuditItem icon={<MapPin className="text-amber-500 h-3 w-3" />} label="Last Linked IP" value={w.lastIp || '0.0.0.0'} />
+                               <AuditItem icon={<Globe className="text-blue-500 h-3 w-3" />} label="Geo Region" value={`${w.geo_region || 'Global'} (${w.country || 'Unknown'})`} />
+                               <AuditItem icon={<Calendar className="text-green-500 h-3 w-3" />} label="Joined Arena" value={w.joinedAt ? new Date(w.joinedAt).toLocaleString() : 'Legacy'} />
                             </div>
                          </div>
                       </Card>
@@ -206,7 +193,6 @@ export default function AdminDashboard() {
             </div>
          )}
 
-         {/* VISIBILITY TAB */}
          {activeTab === 'visibility' && (
             <div className="space-y-10 animate-in fade-in duration-500">
                <div className="space-y-2 text-center md:text-left">
@@ -276,7 +262,7 @@ function AuditItem({ icon, label, value }: { icon: any, label: string, value: st
             <span className="opacity-50">{icon}</span>
             <p className="text-[7px] font-black uppercase text-muted-foreground tracking-widest">{label}</p>
          </div>
-         <p className="text-[10px] font-bold text-white truncate px-1 bg-white/5 rounded border border-white/5 py-1">{value}</p>
+         <p className="text-[10px] font-bold text-white truncate px-2 bg-white/5 rounded border border-white/5 py-1.5">{value}</p>
       </div>
    );
 }

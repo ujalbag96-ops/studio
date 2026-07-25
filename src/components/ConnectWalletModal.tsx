@@ -133,7 +133,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
       <RiskDisclosureModal isOpen={showRiskModal} onOpenChange={setShowRiskModal} />
       
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] overflow-hidden p-0">
+        <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
           <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
           
           <div className="relative z-10 p-8 space-y-8">
