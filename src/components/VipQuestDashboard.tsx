@@ -8,12 +8,10 @@ import {
   Smartphone, 
   Users, 
   Zap, 
-  Info, 
   ArrowRight, 
   Trophy, 
-  Lock, 
   Video, 
-  ShieldCheck // FIXED: Added missing ShieldCheck import
+  ShieldCheck 
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
