@@ -208,3 +208,11 @@ export interface Registration {
   joinedAt: string;
   feePaid: number;
 }
+
+export interface LeaderboardEntry {
+  id: string;
+  userId: string;
+  userEmail: string;
+  score: number;
+  lastUpdated: string;
+}
