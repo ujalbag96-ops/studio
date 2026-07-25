@@ -35,4 +35,4 @@ jobs:
 
     - name: Capacitor Sync Check
       run: npx cap sync
-      continue-on-error: true # Only works if android folder is committed
+      continue-on-error: true # Only works if android folder is committed 
