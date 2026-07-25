@@ -130,13 +130,9 @@ export default function RiskDisclosureModal({ isOpen, onOpenChange, onAccepted }
         </div>
 
         <DialogFooter className="p-8 bg-white/5 border-t border-white/5 flex flex-col sm:flex-row gap-4">
-           <Button 
-            variant="ghost" 
-            onClick={() => onOpenChange(false)} 
-            className="flex-1 font-black uppercase italic text-xs h-16 rounded-2xl hover:bg-white/5 border border-white/5"
-           >
-              Cancel
-           </Button>
+           <div className="flex-1 flex items-center justify-center gap-2 text-[8px] font-black text-muted-foreground uppercase opacity-40 italic">
+              <ShieldCheck className="h-3 w-3" /> CampusHub Industrial Encryption Active
+           </div>
            <Button 
             onClick={handleAccept} 
             disabled={isUpdating || !hasScrolledToBottom} 

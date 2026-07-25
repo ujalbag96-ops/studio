@@ -27,7 +27,7 @@ export default function PlatformOverview() {
         </div>
         <h1 className="text-6xl md:text-8xl font-black uppercase italic tracking-tighter text-white leading-none">Free <span className="text-primary">Yield</span></h1>
         <p className="text-muted-foreground font-medium text-lg max-w-2xl mx-auto leading-relaxed uppercase tracking-tight">
-          Bracket Battles is an **Industrial Scholar-Reward Bridge**. We maintain a 100% free-to-earn model where students earn dividends via sponsored missions.
+          CampusHub is an **Industrial Scholar-Reward Bridge**. We maintain a 100% free-to-earn model where students earn dividends via sponsored missions.
         </p>
       </header>
 

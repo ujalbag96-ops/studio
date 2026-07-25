@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview AI Support Chat Flow for handling user queries in English.
@@ -27,18 +26,18 @@ const supportChatPrompt = ai.definePrompt({
   name: 'supportChatPrompt',
   input: { schema: SupportChatInputSchema },
   output: { schema: SupportChatOutputSchema },
-  prompt: `You are a helpful and professional customer support assistant for "Bracket Battles", a gaming tournament platform. 
+  prompt: `You are a helpful and professional customer support assistant for "CampusHub", an industrial education and reward platform. 
 
 Your goals:
 - Answer user questions clearly in English.
-- Assist with joining tournaments, finding Room IDs, or payment issues.
+- Assist with accessing library books, tutorial nodes, or reward withdrawal issues.
 - If the user is angry, has a complex technical error, or specifically asks for a human, set shouldFlag to true.
 - Keep responses concise (max 3 sentences).
 
 Context:
-- We host BGMI, Free Fire, and Ludo King tournaments.
-- Users need to join tournaments using their Game ID.
-- Room Credentials (ID and Password) are shared on the tournament page 15 minutes before the start.
+- We offer NCERT and Global textbooks for free.
+- Users earn scholarship coins by completing academic tasks and missions.
+- Payouts are verified by an industrial audit team within 2-6 hours.
 
 User Message: {{{message}}}`,
 });

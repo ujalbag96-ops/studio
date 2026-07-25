@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -173,7 +172,7 @@ export default function LotteryTerminal() {
               </div>
               
               <div className="bg-white/5 p-4 text-center">
-                 <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">AdMob Industrial Rewarded Integration v4.1</p>
+                 <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">CampusHub Industrial Connection v12.0</p>
               </div>
            </Card>
         </div>

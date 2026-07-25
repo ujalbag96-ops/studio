@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -101,7 +100,7 @@ export default function TransactionReceipt({ transaction, onClose }: Transaction
 
           <div className="flex justify-center pt-2">
              <div className="flex items-center gap-2 text-[8px] font-black text-muted-foreground uppercase opacity-40 italic">
-                <Shield className="h-2 w-2" /> Bracket Battles Encryption Active
+                <Shield className="h-2 w-2" /> CampusHub Industrial Encryption Active
              </div>
           </div>
         </div>
