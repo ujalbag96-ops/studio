@@ -1,30 +1,37 @@
-# 📱 CampusHub: Global Scholar & Yield Arena
+# 📱 CampusHub: Industrial Scholar & Yield Arena v1.0
 
-CampusHub is an industrial-grade "Super App" built for students and earning enthusiasts. It bridges official educational resources with a high-performance micro-earning ecosystem.
+CampusHub is a high-performance "Super App" engineered for students. It bridges academic excellence with a strategic micro-earning ecosystem, allowing students to earn rewards via sponsored missions and community collaboration.
 
-## 🏗️ Architecture Overview
+## 🏗️ Core Sectors
 
-- **Scholar Hub**: Integrated NCERT & Global digital libraries with optimized PDF streaming.
-- **Arcade Sector**: Gamified skill-based rewards engine.
-- **Yield Terminal**: Industrial CPA, Video yield, and Referral networking nodes.
-- **Reward Shop**: Regional redemption terminal for local currency payouts.
+- **Scholar Vault**: Integrated NCERT & Global digital libraries with optimized PDF streaming and AI-powered tutor nodes.
+- **Skill Arena**: Gamified skill-based mastery engine with 50+ levels of difficulty.
+- **Yield Hub**: Industrial-grade CPA, Survey, and Video yield terminal with real-time S2S verification.
+- **Withdrawal Node**: Regional redemption gateway for localized currency payouts (UPI, PayPal, Gift Cards).
 
 ## 🛠️ Tech Stack
 
 - **Framework**: Next.js 15 (App Router)
-- **Engine**: Capacitor.js (Android/iOS Native)
-- **Database**: Firebase Firestore (Real-time)
-- **Auth**: Firebase Auth (Gmail Link / OTP)
-- **AI**: Google Genkit (Tutor & Analytics)
+- **Engine**: Capacitor.js (Cross-Platform Native Bridge)
+- **Database**: Firebase Firestore (Real-time Cloud Sync)
+- **Auth**: Firebase Auth (Identity Gate via Gmail Link)
+- **AI**: Google Genkit (Cognitive Audit & Tutor Node)
+- **Styling**: Tailwind CSS + ShadCN UI
 
-## 🚀 Mobile Deployment
+## 📡 Deployment & Repository
 
-To generate the Android APK:
+**Remote Repository**: [https://github.com/ujalbag96-ops/campushub.git](https://github.com/ujalbag96-ops/campushub.git)
+
+### Mobile Build Instructions (Android)
+To generate the production APK:
 1. `npm install`
 2. `npm run mobile:build`
 3. `npm run mobile:android`
 
-## 📡 Repository
-[https://github.com/ujalbag96-ops/campushub.git](https://github.com/ujalbag96-ops/campushub.git)
+Inside Android Studio: **Build > Build APK(s)**.
 
-**Current Status**: Production v1.0 (GitHub Ready)
+## ⚖️ Compliance
+CampusHub follows a strict "One Device, One Account" policy enforced via unique hardware signatures and industrial anti-fraud auditing.
+
+---
+**Status**: Production Release v1.0 (Industrial Build)
