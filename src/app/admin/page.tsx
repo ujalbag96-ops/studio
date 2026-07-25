@@ -112,7 +112,6 @@ export default function AdminDashboard() {
             <NavPill active={activeTab === 'sounds'} label="Sonic" icon={<Volume2 className="h-3 w-3" />} onClick={() => setActiveTab('sounds')} />
          </div>
 
-         {/* WARRIORS REGISTRY TAB - ENHANCED WITH FULL USER DATA */}
          {activeTab === 'warriors' && (
             <div className="space-y-10 animate-in fade-in duration-500">
                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -142,7 +141,6 @@ export default function AdminDashboard() {
                       )}>
                          <div className="p-8 space-y-8">
                             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
-                               {/* BASIC IDENTITY */}
                                <div className="flex items-center gap-6">
                                   <div className={cn(
                                     "h-20 w-20 rounded-[1.5rem] flex items-center justify-center font-black text-3xl shadow-2xl transition-transform group-hover:scale-105",
@@ -157,16 +155,15 @@ export default function AdminDashboard() {
                                      </div>
                                      <div className="flex flex-wrap gap-2">
                                         <Badge className="bg-white/5 text-muted-foreground border-none text-[8px] font-black uppercase px-2 italic flex items-center gap-1">
-                                           <Mail className="h-2.5 w-2.5" /> {w.id}
+                                           <Mail className="h-2.5 w-2.5" /> ID: {w.id}
                                         </Badge>
                                         <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] font-black uppercase px-2 italic flex items-center gap-1">
-                                           <Lock className="h-2.5 w-2.5" /> PWD: ENCRYPTED
+                                           <Lock className="h-2.5 w-2.5" /> PWD: ENCRYPTED NODE
                                         </Badge>
                                      </div>
                                   </div>
                                </div>
 
-                               {/* FINANCIAL PULSE */}
                                <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
                                   <UserHisaab label="Coin Pulse" value={w.coins?.toLocaleString()} unit="🪙" />
                                   <UserHisaab label="Mission Yield" value={w.taskBalance?.toLocaleString()} unit="🪙" />
@@ -174,7 +171,6 @@ export default function AdminDashboard() {
                                   <UserHisaab label="Recruits" value={w.totalReferrals || 0} />
                                </div>
 
-                               {/* STATUS CONTROL */}
                                <div className="flex items-center gap-4 border-l border-white/5 pl-8 xl:min-w-[200px] justify-between">
                                   <div className="text-right">
                                      <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Signal Status</p>
@@ -196,7 +192,6 @@ export default function AdminDashboard() {
                                </div>
                             </div>
 
-                            {/* TECHNICAL AUDIT SECTION */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-6 border-t border-white/5 bg-white/[0.02] -mx-8 px-8 pb-4">
                                <AuditItem icon={<Fingerprint className="text-primary" />} label="Device Identity" value={w.deviceId || 'NOT_LOGGED'} />
                                <AuditItem icon={<MapPin className="text-amber-500" />} label="Last Linked IP" value={w.lastIp || '0.0.0.0'} />
@@ -246,8 +241,6 @@ export default function AdminDashboard() {
                </div>
             </div>
          )}
-
-         {/* Other tabs (revenue, currency, branding, sounds) remain unchanged */}
       </main>
     </div>
   );
