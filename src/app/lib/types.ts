@@ -1,4 +1,3 @@
-
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
 export type LanguageCode = 'en' | 'or' | 'hi' | 'es' | 'fr' | 'de' | 'bn' | 'te' | 'ta' | 'mr';
 export type UserIntent = 'student' | 'earner';
@@ -18,6 +17,11 @@ export interface UserProfile {
   referredBy?: string;
   referredByL2?: string;
   vipLevel: number;
+  vipStatus?: {
+    isActive: boolean;
+    tier: 'monthly' | 'yearly';
+    expiryDate: string;
+  };
   country?: string;
   geo_region?: string;
   rank: UserRank;
@@ -48,6 +52,8 @@ export interface UserProfile {
   lastSpinTimestamp?: string;
   totalPagesShared?: number;
   unlockedMilestones?: string[];
+  networkTaskCompletions?: number;
+  totalNetworkRevenue?: number;
 }
 
 export interface AppSettings {
@@ -171,4 +177,51 @@ export interface StudyBuddySession {
   teacherId: string | null;
   status: 'searching' | 'active' | 'completed';
   timestamp: string;
+}
+
+export interface PredictionPoll {
+  id: string;
+  question: string;
+  optionA: string;
+  optionB: string;
+  entryFee: number;
+  totalPool: number;
+  category: string;
+  expiry: string;
+  status: 'open' | 'closed' | 'settled';
+  timestamp: string;
+}
+
+export interface Movie {
+  id: string;
+  title: string;
+  poster: string;
+  videoUrl: string;
+  category: string;
+  createdAt: string;
+}
+
+export interface Tournament {
+  id: string;
+  name: string;
+  status: 'active' | 'upcoming' | 'completed' | 'cancelled';
+  gameType: 'BGMI' | 'Free Fire' | 'Ludo King' | 'Other';
+  prizePool: string;
+  entryFee: number;
+  startDate: string;
+  banner: string;
+  streamUrl?: string;
+  roomCredentials?: {
+    roomId?: string;
+    roomPassword?: string;
+  };
+}
+
+export interface Registration {
+  id: string;
+  userId: string;
+  tournamentId: string;
+  gameId: string;
+  joinedAt: string;
+  feePaid: number;
 }
