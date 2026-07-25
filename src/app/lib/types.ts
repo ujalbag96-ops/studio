@@ -131,14 +131,6 @@ export interface SystemNotification {
   localizedBody?: string;
 }
 
-export interface LeaderboardEntry {
-  id: string;
-  userId: string;
-  userEmail: string;
-  score: number;
-  lastUpdated: string;
-}
-
 export interface CricketMatch {
   id: string;
   teamA: string;
@@ -190,15 +182,6 @@ export interface PredictionPoll {
   expiry: string;
   status: 'open' | 'closed' | 'settled';
   timestamp: string;
-}
-
-export interface Movie {
-  id: string;
-  title: string;
-  poster: string;
-  videoUrl: string;
-  category: string;
-  createdAt: string;
 }
 
 export interface Tournament {
