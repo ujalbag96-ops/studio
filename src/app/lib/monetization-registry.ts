@@ -12,7 +12,6 @@ import {
   PlayCircle,
   Trophy,
   MapPin,
-  UserCheck,
   Signal
 } from 'lucide-react';
 

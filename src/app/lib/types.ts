@@ -83,6 +83,7 @@ export interface AppSettings {
   coinsPerUSD: number;
   cpaRewardMultiplier: number;
   videoRewardRateCoins: number;
+  api_razorpay_active?: boolean;
 }
 
 export interface PlatformRevenue {
@@ -219,4 +220,18 @@ export interface PredictionPoll {
   totalPool: number;
   entryFee: number;
   timestamp: string;
+}
+
+export interface Match {
+  id: string;
+  tournamentId: string;
+  teamA: { id: string; name: string; logo: string };
+  teamB: { id: string; name: string; logo: string };
+  scoreA: number;
+  scoreB: number;
+  status: 'live' | 'scheduled' | 'completed';
+  startTime: string;
+  description: string;
+  votesA?: number;
+  votesB?: number;
 }

@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { 
   Book, GraduationCap, FileText, ClipboardList, Monitor, Award, 
   Target, Zap, Flame, Users, ShoppingBag, Smartphone, 
   Dices, Gift, Clock, Calculator, ShieldCheck, Mail, BarChart3,
   Search, Video, MessageSquare, HardDrive, BrainCircuit, Terminal,
-  Briefcase, Palette, Languages, Star, Activity, LineChart
+  Briefcase, Palette, Languages, Star, Activity, LineChart, RefreshCw
 } from 'lucide-react';
 
 export type ModuleCategory = 'Learning' | 'Skills' | 'Earning' | 'Productivity' | 'System';
@@ -51,5 +50,3 @@ export const MODULE_REGISTRY: AppModule[] = [
   { id: 'support_desk', label: 'Support Desk', desc: '24/7 Security Signal', icon: ShieldCheck, route: '/dashboard', category: 'System', visibilityKey: 'node_support_desk' },
   { id: 'push_center', label: 'Broadcaster', desc: 'Live System Alerts', icon: Mail, route: '/inbox', category: 'System', visibilityKey: 'node_push_center' }
 ];
-
-import { RefreshCw } from 'lucide-react';
