@@ -26,9 +26,13 @@ jobs:
     - name: Run Type Check
       run: npm run typecheck
 
-    - name: Build Web Application
+    - name: Build Web Application (Static Export)
       run: npm run build
       env:
         NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
         NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+    - name: Capacitor Sync Check
+      run: npx cap sync
+      continue-on-error: true # Only works if android folder is committed

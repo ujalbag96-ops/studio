@@ -1,6 +1,6 @@
 # 📱 CampusHub: Industrial Scholar & Yield Arena v1.0
 
-CampusHub is a high-performance "Super App" engineered for students. It bridges academic excellence with a strategic micro-earning ecosystem, allowing students to earn rewards via sponsored missions and community collaboration.
+CampusHub is a high-performance "Super App" engineered for students using **Next.js** and **Capacitor.js**. It bridges academic excellence with a strategic micro-earning ecosystem.
 
 ## 🏗️ Core Sectors
 
@@ -9,29 +9,25 @@ CampusHub is a high-performance "Super App" engineered for students. It bridges 
 - **Yield Hub**: Industrial-grade CPA, Survey, and Video yield terminal with real-time S2S verification.
 - **Withdrawal Node**: Regional redemption gateway for localized currency payouts (UPI, PayPal, Gift Cards).
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack (Not Flutter)
 
-- **Framework**: Next.js 15 (App Router)
-- **Engine**: Capacitor.js (Cross-Platform Native Bridge)
-- **Database**: Firebase Firestore (Real-time Cloud Sync)
-- **Auth**: Firebase Auth (Identity Gate via Gmail Link)
-- **AI**: Google Genkit (Cognitive Audit & Tutor Node)
-- **Styling**: Tailwind CSS + ShadCN UI
+- **Web Framework**: Next.js 15 (App Router)
+- **Native Engine**: Capacitor.js (Cross-Platform Bridge)
+- **Logic / UI**: React + TypeScript + Tailwind CSS + ShadCN UI
+- **Database / Auth**: Firebase (Real-time Cloud Sync)
+- **AI Engine**: Google Genkit (Cognitive Audit & Tutor Node)
 
 ## 📡 Deployment & Repository
 
 **Remote Repository**: [https://github.com/ujalbag96-ops/campushub.git](https://github.com/ujalbag96-ops/campushub.git)
 
-### CI/CD Pipeline
-The project uses **GitHub Actions** for continuous integration. Every push to `main` triggers an automated build and type-check audit.
-
-### Mobile Build Instructions (Android)
-To generate the production APK:
+### Mobile Build Instructions (Android APK)
 1. `npm install`
 2. `npm run mobile:build`
-3. `npm run mobile:android`
+3. `npm run mobile:android` (Opens Android Studio)
+4. Inside Android Studio: **Build > Build APK(s)**.
 
-Inside Android Studio: **Build > Build APK(s)**.
+Detailed guide: [BUILD_GUIDE.md](./BUILD_GUIDE.md)
 
 ## ⚖️ Compliance
 CampusHub follows a strict "One Device, One Account" policy enforced via unique hardware signatures and industrial anti-fraud auditing.
