@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Star,
   Briefcase,
-  Coins
+  Coins,
+  Smartphone
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,26 @@ export default function PlatformOverview() {
           CampusHub is an **Industrial Scholar-Reward Bridge**. We maintain a 100% free-to-earn model where students earn dividends via sponsored missions.
         </p>
       </header>
+
+      {/* APK DOWNLOAD CALL TO ACTION */}
+      <section className="animate-in slide-in-from-bottom-4 duration-1000">
+         <Card className="bg-primary/10 border-primary/40 border-2 rounded-[3rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10 shadow-[0_0_80px_rgba(99,102,241,0.1)] relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
+               <Smartphone className="h-40 w-40 text-primary" />
+            </div>
+            <div className="space-y-4 relative z-10 text-center md:text-left">
+               <div className="flex items-center justify-center md:justify-start gap-2">
+                  <Badge className="bg-primary text-white font-black text-[9px] uppercase italic px-3">MOBILE EXCLUSIVE</Badge>
+                  <span className="text-[9px] font-black text-primary uppercase animate-pulse italic">Now Available for Android</span>
+               </div>
+               <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Download the <br /> Industrial <span className="text-primary">Arena</span></h2>
+               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest max-w-md">Experience faster signals and exclusive mobile rewards by installing the official Android APK.</p>
+            </div>
+            <Link href="/download" className="h-20 px-12 bg-white text-black hover:bg-primary hover:text-white rounded-2xl font-black text-xl uppercase italic shadow-2xl transition-all flex items-center gap-3 active:scale-95 relative z-10">
+               GET APP NOW <Smartphone className="h-6 w-6" />
+            </Link>
+         </Card>
+      </section>
 
       {/* REVENUE POLICY SECTION */}
       <section className="space-y-8">

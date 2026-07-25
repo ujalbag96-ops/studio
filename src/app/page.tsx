@@ -10,7 +10,8 @@ import {
   ShieldCheck, 
   Sparkles,
   PlayCircle,
-  Coins
+  Coins,
+  Smartphone
 } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile, AppSettings } from './lib/types';
@@ -49,8 +50,8 @@ export default function Home() {
                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-green-500">100% Free Scholarship Model</span>
              </div>
              <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-md">
-               <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{profile?.country || 'Analyzing Signal...'}</span>
+               <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
+               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground italic">Mobile Node Available</span>
              </div>
           </div>
           
@@ -69,9 +70,11 @@ export default function Home() {
                  {isIndia ? "Access Library" : "Start Free Missions"}
               </Link>
             </Button>
-            <Link href="/dashboard" className="text-xs font-black uppercase tracking-[0.4em] text-white/50 hover:text-primary transition-colors italic flex items-center gap-3">
-               My Portfolio <ArrowRight className="h-4 w-4" />
-            </Link>
+            <Button asChild variant="outline" className="h-20 px-12 border-white/10 hover:bg-white/5 rounded-[2rem] text-xl font-black uppercase italic shadow-2xl transition-all hover:scale-105">
+               <Link href="/download" className="flex items-center gap-3">
+                  <Smartphone className="h-6 w-6 text-primary" /> GET APP
+               </Link>
+            </Button>
           </div>
         </div>
       </section>

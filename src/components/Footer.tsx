@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Zap, Info, Activity, Target } from 'lucide-react';
+import { ShieldCheck, Zap, Info, Activity, Target, Smartphone } from 'lucide-react';
 import RiskDisclosureModal from './RiskDisclosureModal';
 
 export default function Footer() {
@@ -45,7 +45,7 @@ export default function Footer() {
             <li><FooterLink href="/about" label="Platform Overview" /></li>
             <li><FooterLink href="/campus" label="Resource Locker" /></li>
             <li><FooterLink href="/earning-hub" label="Income Hub" /></li>
-            <li><FooterLink href="/leaderboard" label="Hall of Fame" /></li>
+            <li><FooterLink href="/download" label="Android App APK" /></li>
           </ul>
         </div>
 
@@ -67,21 +67,19 @@ export default function Footer() {
         </div>
 
         <div className="space-y-6">
-          <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white italic">System Status</h4>
-          <div className="p-5 bg-white/5 border border-white/5 rounded-2xl space-y-3">
+          <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white italic">Mobile Node</h4>
+          <Link href="/download" className="p-5 bg-primary/10 border border-primary/20 rounded-2xl space-y-3 block hover:bg-primary/20 transition-all group">
              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-muted-foreground">Gateway</span>
+                <span className="text-[9px] font-black uppercase text-primary">Status</span>
                 <span className="flex items-center gap-1.5 text-[9px] font-black uppercase text-green-500">
-                   <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Online
+                   <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Android
                 </span>
              </div>
-             <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-muted-foreground">Sync Engine</span>
-                <span className="flex items-center gap-1.5 text-[9px] font-black uppercase text-green-500">
-                   <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Active
-                </span>
+             <div className="flex items-center gap-3">
+                <Smartphone className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] font-black uppercase text-white italic">v1.0.0 Stable Build</span>
              </div>
-          </div>
+          </Link>
         </div>
       </div>
 
