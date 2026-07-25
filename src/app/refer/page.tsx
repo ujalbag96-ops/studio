@@ -290,3 +290,14 @@ function DownlineList({ users, loading, level }: any) {
       </div>
    );
 }
+
+function BenefitItem({ icon, text }: any) {
+  return (
+    <div className="flex items-center gap-4 p-5 bg-white/5 rounded-2xl border border-white/5 group hover:border-primary/40 transition-all">
+       <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+          {icon}
+       </div>
+       <span className="text-[10px] font-black uppercase text-white tracking-widest">{text}</span>
+    </div>
+  );
+}

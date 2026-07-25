@@ -1,4 +1,4 @@
-# 📱 Bracket Battles: Android Build Guide
+# 📱 CampusHub: Android Build Guide
 
 Follow these industrial steps to generate your deployable APK file.
 
