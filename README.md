@@ -1,29 +1,30 @@
-# Bracket Battles: Global Scholar & Yield Platform
+# 📱 CampusHub: Global Scholar & Yield Arena
 
-Bracket Battles is an industrial-grade "Super App" built for students and earning enthusiasts. It bridges official educational resources with a high-performance micro-earning ecosystem.
+CampusHub is an industrial-grade "Super App" built for students and earning enthusiasts. It bridges official educational resources with a high-performance micro-earning ecosystem.
 
 ## 🏗️ Architecture Overview
 
-### 1. Core Modules
-- **Scholar Hub (Library)**: Integrated NCERT (India), OSEPA (Odisha), and OpenStax (Global) digital libraries with optimized PDF streaming.
-- **Arcade Sector**: A gamified retention engine with 50-level progression and skill-based loot drops.
-- **Yield Terminal (Income)**: A 4-pillar monetization hub covering CPA Missions, Academic Quizzes, Movie Yield, and MLM Networking.
-- **Reward Shop**: Regional redemption terminal for local currency payouts and digital gift cards.
+- **Scholar Hub**: Integrated NCERT & Global digital libraries with optimized PDF streaming.
+- **Arcade Sector**: Gamified skill-based rewards engine.
+- **Yield Terminal**: Industrial CPA, Video yield, and Referral networking nodes.
+- **Reward Shop**: Regional redemption terminal for local currency payouts.
 
-### 2. Technical Stack
-- **Framework**: Next.js 15 (App Router) with TypeScript.
-- **Database & Auth**: Firebase Firestore (Real-time Sync) and Firebase Auth.
-- **Mobile Engine**: Capacitor.js for Android/iOS deployment.
-- **Geo-Calibration**: Automated country detection for dynamic currency (INR/USD) and task prioritization.
+## 🛠️ Tech Stack
 
-### 3. Revenue Model (Profit Matrix)
-- **Margin Integrity**: Admin-configurable profit retention logic on all S2S conversion signals.
-- **Mediation Waterfall**: Dynamic selection of the highest-paying offers across global CPA networks.
-- **Scaling**: 100 Coins = ₹1 (India) | 1000 Coins = $1 (Global).
+- **Framework**: Next.js 15 (App Router)
+- **Engine**: Capacitor.js (Android/iOS Native)
+- **Database**: Firebase Firestore (Real-time)
+- **Auth**: Firebase Auth (Gmail Link / OTP)
+- **AI**: Google Genkit (Tutor & Analytics)
 
-### 4. Admin Command Center
-- **API Master Hub**: Real-time monitoring and master toggles for 100+ monetization nodes.
-- **Fraud Shield**: Live audit log for suspicious activity and proxy-blocking.
-- **Financial Node**: Real-time tracking of net profit, user payouts, and mediation performance.
+## 🚀 Mobile Deployment
 
-**Current Status**: Production Build v1.0 (Ready for Android Compilation)
+To generate the Android APK:
+1. `npm install`
+2. `npm run mobile:build`
+3. `npm run mobile:android`
+
+## 📡 Repository
+[https://github.com/ujalbag96-ops/campushub.git](https://github.com/ujalbag96-ops/campushub.git)
+
+**Current Status**: Production v1.0 (GitHub Ready)

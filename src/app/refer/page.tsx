@@ -66,9 +66,6 @@ export default function ReferPage() {
     ? `${window.location.origin}/login?ref=${profile?.referralCode || ''}` 
     : '';
 
-  const totalShares = profile?.totalPagesShared || 0;
-  const totalNetwork = (level1Users?.length || 0) + (level2Users?.length || 0);
-  
   const handleShare = async () => {
     if (!profile?.referralCode) return;
     const shareText = `Play & Learn! Get free notes and earn scholarship rewards on CampusHub. Join using my link: ${referralLink}`;
@@ -182,7 +179,7 @@ export default function ReferPage() {
       ) : (
         <div className="space-y-10 animate-in slide-in-from-bottom-4 duration-700">
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <NetworkCard label="Total Network" value={totalNetwork} icon={<Users />} color="primary" />
+              <NetworkCard label="Total Network" value={(level1Users?.length || 0) + (level2Users?.length || 0)} icon={<Users />} color="primary" />
               <NetworkCard label="Active Downline" value={level1Users?.filter(u => !u.isSuspended).length || 0} icon={<Activity />} color="green" />
               <NetworkCard label="Recruitment Yield" value={(profile?.referralCommissionBalance || 0).toLocaleString()} icon={<Zap />} color="amber" unit="🪙" />
            </div>
