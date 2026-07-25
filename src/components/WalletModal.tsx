@@ -62,13 +62,13 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
       }));
     });
 
-    addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
+    addDoc(collection(firestore, 'users', user.uid, 'ledger')), {
       type: 'conversion',
       amount,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
       description: `Converted Mission Revenue to Winnings`
-    });
+    };
 
     toast({ title: "CONVERSION SUCCESS" });
     setConvertAmount('');
