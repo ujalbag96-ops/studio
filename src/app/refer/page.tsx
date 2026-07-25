@@ -115,9 +115,9 @@ export default function ReferPage() {
                            <div className="flex-1 bg-black/60 border border-white/10 h-20 rounded-2xl flex items-center justify-center text-4xl font-black tracking-[0.2em] text-primary uppercase shadow-inner">
                               {profile?.referralCode || '...'}
                            </div>
-                           <Button onClick={() => { navigator.clipboard.writeText(referralLink); toast({ title: "Copied!" }); }} size="icon" className="h-20 w-20 rounded-2xl bg-white/5 border border-white/10 hover:bg-primary/20 transition-all text-white">
+                           <button onClick={() => { navigator.clipboard.writeText(referralLink); toast({ title: "Copied!" }); }} className="h-20 w-20 rounded-2xl bg-white/5 border border-white/10 hover:bg-primary/20 transition-all text-white flex items-center justify-center">
                               <Copy className="h-8 w-8" />
-                           </Button>
+                           </button>
                         </div>
                      </div>
                      
