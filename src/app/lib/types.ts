@@ -54,6 +54,8 @@ export interface UserProfile {
   unlockedMilestones?: string[];
   networkTaskCompletions?: number;
   totalNetworkRevenue?: number;
+  totalRevenueGeneratedUSD?: number;
+  pendingRevenueShareUSD?: number;
 }
 
 export interface AppSettings {
@@ -83,7 +85,6 @@ export interface AppSettings {
   coinsPerUSD: number;
   cpaRewardMultiplier: number;
   videoRewardRateCoins: number;
-  videoUserSharePercent_manual?: number;
 }
 
 export interface PlatformRevenue {
@@ -92,7 +93,6 @@ export interface PlatformRevenue {
   totalUserDividendUSD: number;
   lastUpdated: string;
   totalOperationalRevenueUSD?: number;
-  totalDistributedToUsersUSD?: number;
 }
 
 export interface UserLedgerEntry {
@@ -119,6 +119,15 @@ export interface BookMetadata {
   coverUrl: string | null;
 }
 
+export interface Movie {
+  id: string;
+  title: string;
+  poster: string;
+  videoUrl: string;
+  category: string;
+  createdAt: string;
+}
+
 export interface SystemNotification {
   id: string;
   userId: string;
@@ -129,59 +138,6 @@ export interface SystemNotification {
   imageUrl?: string;
   voucherCode?: string;
   localizedBody?: string;
-}
-
-export interface CricketMatch {
-  id: string;
-  teamA: string;
-  teamB: string;
-  teamALogo: string;
-  teamBLogo: string;
-  startTime: string;
-  status: 'live' | 'upcoming' | 'completed';
-  series: string;
-  liveScore?: {
-    runsA: string;
-    runsB: string;
-    overs: string;
-    target?: string;
-    lastBalls?: string[];
-  };
-  winner?: string;
-}
-
-export interface MarketAsset {
-  id: string;
-  title: string;
-  category: string;
-  price: number;
-  authorId: string;
-  authorName: string;
-  downloads: number;
-  timestamp: string;
-}
-
-export interface StudyBuddySession {
-  id: string;
-  topic: string;
-  studentId: string;
-  studentEmail: string;
-  teacherId: string | null;
-  status: 'searching' | 'active' | 'completed';
-  timestamp: string;
-}
-
-export interface PredictionPoll {
-  id: string;
-  question: string;
-  optionA: string;
-  optionB: string;
-  entryFee: number;
-  totalPool: number;
-  category: string;
-  expiry: string;
-  status: 'open' | 'closed' | 'settled';
-  timestamp: string;
 }
 
 export interface Tournament {
@@ -200,19 +156,13 @@ export interface Tournament {
   };
 }
 
-export interface Registration {
+export interface MarketAsset {
   id: string;
-  userId: string;
-  tournamentId: string;
-  gameId: string;
-  joinedAt: string;
-  feePaid: number;
-}
-
-export interface LeaderboardEntry {
-  id: string;
-  userId: string;
-  userEmail: string;
-  score: number;
-  lastUpdated: string;
+  title: string;
+  category: string;
+  price: number;
+  authorId: string;
+  authorName: string;
+  downloads: number;
+  timestamp: string;
 }

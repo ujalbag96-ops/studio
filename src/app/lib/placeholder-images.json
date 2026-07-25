@@ -2,26 +2,20 @@
   "placeholderImages": [
     {
       "id": "tournament-1",
-      "description": "Epic League Season 5",
-      "imageUrl": "https://picsum.photos/seed/tournament1/800/400",
+      "description": "Logic Blitz Tournament",
+      "imageUrl": "https://picsum.photos/seed/logicblitz/800/400",
       "imageHint": "esports tournament"
-    },
-    {
-      "id": "tournament-2",
-      "description": "Global Champions Cup",
-      "imageUrl": "https://picsum.photos/seed/tournament2/800/400",
-      "imageHint": "gaming event"
     },
     {
       "id": "team-a",
       "description": "Team Phoenix",
-      "imageUrl": "https://picsum.photos/seed/teama/100/100",
+      "imageUrl": "https://picsum.photos/seed/phoenix/100/100",
       "imageHint": "team logo"
     },
     {
       "id": "team-b",
       "description": "Cyber Dragons",
-      "imageUrl": "https://picsum.photos/seed/teamb/100/100",
+      "imageUrl": "https://picsum.photos/seed/dragon/100/100",
       "imageHint": "dragon logo"
     }
   ]
