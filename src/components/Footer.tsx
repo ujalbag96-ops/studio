@@ -62,7 +62,7 @@ export default function Footer() {
                 <ShieldCheck className="h-3 w-3" /> Risk Disclosure
               </button>
             </li>
-            <li><FooterLink href="https://t.me/bracketbattles_support" label="Telegram Support" external /></li>
+            <li><FooterLink href="https://t.me/campushub_support" label="Telegram Support" external /></li>
           </ul>
         </div>
 

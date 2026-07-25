@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -202,7 +201,7 @@ export default function WeatherTradingArena() {
             <ul className="space-y-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
                <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Free entry via rewarded ad sync.</li>
                <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Reward: 10 Bonus Coins per correct win.</li>
-               <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Settlement based on local airport weather station.</li>
+               <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Settlement based on official local airport weather station.</li>
             </ul>
          </Card>
 
@@ -213,6 +212,12 @@ export default function WeatherTradingArena() {
                Predictions close at 5:30 PM. Results are settled and coins distributed at 8:00 PM daily.
             </p>
          </Card>
+      </div>
+
+      <div className="pt-4 border-t border-white/5 text-center">
+         <div className="flex items-center justify-center gap-2 text-[8px] font-black uppercase text-muted-foreground italic">
+            <ShieldCheck className="h-3 w-3 text-primary" /> CampusHub Secured Connection
+         </div>
       </div>
     </div>
   );

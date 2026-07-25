@@ -32,7 +32,7 @@ import { doc } from 'firebase/firestore';
 import { AppSettings, UserProfile } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
+import { Label } from './label';
 import RiskDisclosureModal from './RiskDisclosureModal';
 
 interface ConnectWalletModalProps {
@@ -288,11 +288,11 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
 
             <div className="pt-4 border-t border-white/5 text-center">
                <div className="flex items-center justify-center gap-2 text-[8px] font-black uppercase text-muted-foreground italic">
-                  <ShieldCheck className="h-3 w-3 text-primary" /> Bracket Battles Secured Connection
+                  <ShieldCheck className="h-3 w-3 text-primary" /> CampusHub Secured Connection
                </div>
             </div>
           </div>
-        </DialogContent>
+        </div>
       </Dialog>
     </>
   );
