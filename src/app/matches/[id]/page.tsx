@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -153,7 +152,7 @@ export default function MatchPage() {
               <h3 className="text-lg font-black uppercase tracking-tight">Support</h3>
               <p className="text-xs text-muted-foreground leading-relaxed font-medium">Facing issues with your arena vote? Contact our 24/7 elite support team.</p>
               <Button asChild className="w-full bg-[#0088cc] hover:bg-[#0088cc]/90 text-white font-black h-12 rounded-xl">
-                <a href="https://t.me/bracketbattles" target="_blank" rel="noopener noreferrer">
+                <a href="https://t.me/campushub_support" target="_blank" rel="noopener noreferrer">
                   Telegram Help
                 </a>
               </Button>

@@ -1,22 +1,28 @@
 {
   "placeholderImages": [
     {
-      "id": "tournament-1",
-      "description": "Logic Blitz Tournament",
-      "imageUrl": "https://picsum.photos/seed/logicblitz/800/400",
-      "imageHint": "esports tournament"
+      "id": "hero-bg",
+      "description": "Industrial Student Arena",
+      "imageUrl": "https://picsum.photos/seed/campushub/1920/1080",
+      "imageHint": "education technology"
     },
     {
-      "id": "team-a",
-      "description": "Team Phoenix",
-      "imageUrl": "https://picsum.photos/seed/phoenix/100/100",
-      "imageHint": "team logo"
+      "id": "tournament-banner",
+      "description": "Global Quiz Arena",
+      "imageUrl": "https://picsum.photos/seed/quiz/800/400",
+      "imageHint": "gaming tournament"
     },
     {
-      "id": "team-b",
-      "description": "Cyber Dragons",
-      "imageUrl": "https://picsum.photos/seed/dragon/100/100",
-      "imageHint": "dragon logo"
+      "id": "team-india",
+      "description": "Team India Logo",
+      "imageUrl": "https://picsum.photos/seed/india/100/100",
+      "imageHint": "cricket logo"
+    },
+    {
+      "id": "team-australia",
+      "description": "Team Australia Logo",
+      "imageUrl": "https://picsum.photos/seed/australia/100/100",
+      "imageHint": "cricket logo"
     }
   ]
 }

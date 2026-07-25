@@ -44,10 +44,10 @@ function LoginContent() {
 
   const getPersistentDeviceId = () => {
     if (typeof window === 'undefined') return 'unknown';
-    let id = localStorage.getItem('bb_arena_device_id');
+    let id = localStorage.getItem('campushub_device_id');
     if (!id) {
-      id = 'BB-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      localStorage.setItem('bb_arena_device_id', id);
+      id = 'CH-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('campushub_device_id', id);
     }
     return id;
   };
