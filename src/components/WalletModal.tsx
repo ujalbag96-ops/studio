@@ -89,7 +89,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
           </button>
         )}
       </DialogTrigger>
-      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] overflow-hidden p-0 shadow-2xl" title="Industrial Wallet Sync">
+      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
         <VisuallyHidden.Root>
           <DialogTitle>Industrial Wallet Sync</DialogTitle>
         </VisuallyHidden.Root>
@@ -140,7 +140,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
                   className="bg-black border-white/10 h-12 rounded-xl text-lg font-black"
                 />
                 <Button onClick={handleConvertTasks} disabled={isConverting || !convertAmount} className="bg-amber-500 hover:bg-amber-600 text-black h-12 px-6 rounded-xl font-black text-xs uppercase">
-                  {isConverting ? <Loader2 className="animate-spin" /> : "Move"}
+                  {isConverting ? <Loader2 className="animate-spin h-5 w-5" /> : "Move"}
                 </Button>
              </div>
           </div>
