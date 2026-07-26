@@ -44,7 +44,6 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
   const [step, setStep] = useState<'selection' | 'automatic' | 'manual' | 'processing'>('selection');
   const [amount, setAmount] = useState('100');
   const [utrId, setUtrId] = useState('');
-  const [method, setMethod] = useState('');
   const [isCopying, setIsCopying] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [showRiskModal, setShowRiskModal] = useState(false);
