@@ -219,7 +219,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
 
             {step === 'manual' && (
                <div className="space-y-6 animate-in fade-in zoom-in-95">
-                  <Card className="bg-white/5 border-white/5 p-6 space-y-4 rounded-2xl">
+                  <div className="bg-white/5 border border-white/5 p-6 space-y-4 rounded-2xl">
                      <div className="space-y-1">
                         <p className="text-[9px] font-black uppercase text-muted-foreground">Transfer to Admin UPI</p>
                         <div className="flex items-center justify-between gap-4 bg-black border border-white/10 p-4 rounded-xl">
@@ -229,7 +229,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                            </button>
                         </div>
                      </div>
-                  </Card>
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-2">
@@ -291,10 +291,9 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                   <ShieldCheck className="h-3 w-3 text-primary" /> CampusHub Secured Connection
                </div>
             </div>
-              </div>
-  </div>
-</DialogContent>
-</Dialog>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
