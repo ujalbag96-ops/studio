@@ -10,17 +10,14 @@ import {
 } from '@/components/ui/dialog';
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { Button } from '@/components/ui/button';
-import { Wallet, ArrowUpRight, Trophy, Zap, RefreshCw, Loader2, Globe, CreditCard } from 'lucide-react';
+import { Wallet, ArrowUpRight, RefreshCw, Loader2, Globe } from 'lucide-react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
 import { UserProfile } from '@/app/lib/types';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
 import { cn } from '@/lib/utils';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { formatCurrency } from '@/lib/currency';
 
 export default function WalletModal({ children }: { children?: React.ReactNode }) {
@@ -50,13 +47,11 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
     }
 
     setIsConverting(true);
-    const updateData = {
-      taskBalance: increment(-amount),
-      winningBalance: increment(amount)
-    };
-
     try {
-       await updateDoc(userRef, updateData);
+       await updateDoc(userRef, {
+          taskBalance: increment(-amount),
+          winningBalance: increment(amount)
+       });
        await addDoc(collection(firestore, 'users', user.uid, 'ledger'), {
           type: 'conversion',
           amount,
@@ -67,11 +62,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
        toast({ title: "CONVERSION SUCCESS" });
        setConvertAmount('');
     } catch (err: any) {
-       errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: userRef.path,
-          operation: 'update',
-          requestResourceData: updateData,
-       }));
+       toast({ variant: "destructive", title: "Conversion Failed" });
     } finally {
        setIsConverting(false);
     }

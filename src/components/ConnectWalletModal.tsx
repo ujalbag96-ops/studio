@@ -10,21 +10,16 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { 
-  CreditCard, 
   SmartphoneNfc, 
-  Wallet, 
   ArrowRight, 
   ShieldCheck,
   Zap,
-  Globe,
   Loader2,
   Copy,
   CheckCircle2,
-  Send,
   ArrowLeft,
   Smartphone,
-  Fingerprint,
-  ShieldAlert
+  Fingerprint
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -33,6 +28,7 @@ import { AppSettings, UserProfile } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Card } from './ui/card';
 import RiskDisclosureModal from './RiskDisclosureModal';
 
 interface ConnectWalletModalProps {
@@ -144,7 +140,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
             )}
 
             <DialogHeader className="text-center space-y-2">
-              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Add <span className="text-primary">Cash</span></DialogTitle>
+              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-white">Add <span className="text-primary">Cash</span></DialogTitle>
               <DialogDescription className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
                 CampusHub Industrial Funding Protocol
               </DialogDescription>
@@ -198,11 +194,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                       className="h-16 bg-black border-white/10 rounded-xl text-3xl font-black text-primary text-center"
                      />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                     <MethodButton icon={<Smartphone />} label="UPI" active={method === 'upi'} onClick={() => setMethod('upi')} />
-                     <MethodButton icon={<CreditCard />} label="Cards" active={method === 'card'} onClick={() => setMethod('card')} />
-                  </div>
-                  <Button onClick={() => setStep('processing')} disabled={!amount || !method} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
+                  <Button onClick={() => setStep('processing')} disabled={!amount} className="w-full h-20 bg-primary font-black uppercase italic text-xl rounded-2xl shadow-xl">
                      PROCEED TO PAY
                   </Button>
                </div>
@@ -264,7 +256,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                      </div>
                   </div>
                   <div>
-                     <h3 className="text-2xl font-black uppercase italic">Processing...</h3>
+                     <h3 className="text-2xl font-black uppercase italic">Processing Signal...</h3>
                   </div>
                </div>
             )}
@@ -273,19 +265,4 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
       </Dialog>
     </>
   );
-}
-
-function MethodButton({ icon, label, active, onClick }: any) {
-   return (
-      <button 
-        onClick={onClick}
-        className={cn(
-         "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all",
-         active ? "bg-primary/20 border-primary text-primary" : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
-        )}
-      >
-         {icon}
-         <span className="text-[10px] font-black uppercase">{label}</span>
-      </button>
-   );
 }

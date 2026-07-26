@@ -1,9 +1,9 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection, query, where, getDocs, limit, writeBatch, increment, orderBy } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, limit, orderBy } from 'firebase/firestore';
 import { 
-  Loader2, Zap, Wallet, LayoutGrid, DollarSign, ArrowRightLeft, 
+  Loader2, Zap, LayoutGrid, ArrowRightLeft, 
   Search, Palette, CheckCircle2, 
   Star, Volume2, Music, Play, Bell, Eye, EyeOff, BarChart3, TrendingUp,
   Users as UsersIcon, ShieldAlert, UserCheck, Globe, ShieldX, Terminal, Filter,
@@ -14,11 +14,10 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { AppSettings, UserProfile, PlatformRevenue } from '../lib/types';
+import { AppSettings, UserProfile } from '../lib/types';
 import { MODULE_REGISTRY, ModuleCategory } from '../lib/module-registry';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
