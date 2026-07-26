@@ -291,9 +291,10 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                   <ShieldCheck className="h-3 w-3 text-primary" /> CampusHub Secured Connection
                </div>
             </div>
-          </div>
-        </div>
-      </Dialog>
+              </div>
+  </div>
+</DialogContent>
+</Dialog>
     </>
   );
 }
