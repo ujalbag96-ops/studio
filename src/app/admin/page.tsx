@@ -264,5 +264,4 @@ function AuditItem({ icon, label, value }: { icon: any, label: string, value: st
          </div>
          <p className="text-[10px] font-bold text-white truncate px-2 bg-white/5 rounded border border-white/5 py-1.5">{value}</p>
       </div>
-   );
 }
