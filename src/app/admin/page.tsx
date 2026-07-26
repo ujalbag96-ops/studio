@@ -164,17 +164,16 @@ export default function AdminDashboard() {
                                         {w.isSuspended ? 'SUSPENDED' : 'ACTIVE'}
                                      </Badge>
                                   </div>
-                                  <Button 
+                                  <button 
                                     onClick={() => toggleSuspension(w.id, w.isSuspended || false)}
                                     disabled={isProcessing === `suspend-${w.id}`}
-                                    variant="ghost" 
                                     className={cn(
                                       "h-14 w-14 rounded-2xl border flex items-center justify-center transition-all shadow-xl",
                                       w.isSuspended ? "border-green-500/20 text-green-500 hover:bg-green-500/10" : "border-red-500/20 text-red-500 hover:bg-red-500/10"
                                     )}
                                   >
                                      {isProcessing === `suspend-${w.id}` ? <Loader2 className="animate-spin" /> : w.isSuspended ? <UserCheck /> : <ShieldX />}
-                                  </Button>
+                                  </button>
                                </div>
                             </div>
 
