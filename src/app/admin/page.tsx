@@ -235,7 +235,7 @@ function NavPill({ active, label, icon, onClick }: any) {
       <button 
         onClick={onClick}
         className={cn(
-          "px-6 py-3 rounded-2xl flex items-center gap-2 transition-all font-black uppercase text-[9px] tracking-widest whitespace-nowrap border-2",
+          "px-6 py-3 rounded-2xl flex items-center gap-2 transition-all font-black uppercase text-[9px] tracking-widest border-2 whitespace-nowrap",
           active ? "bg-primary/10 border-primary text-primary italic shadow-lg" : "bg-white/5 border-transparent text-muted-foreground hover:bg-white/10"
         )}
       >
