@@ -252,7 +252,6 @@ function UserHisaab({ label, value, unit }: any) {
          <p className="text-[7px] font-black uppercase text-muted-foreground tracking-tighter mb-0.5">{label}</p>
          <p className="text-sm font-black text-white italic tabular-nums">{value} <span className="text-[8px] opacity-40">{unit}</span></p>
       </div>
-   );
 }
 
 function AuditItem({ icon, label, value }: { icon: any, label: string, value: string }) {
