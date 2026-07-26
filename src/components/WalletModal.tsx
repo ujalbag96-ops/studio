@@ -145,7 +145,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
           </div>
           
           <div className="p-4 bg-green-500/5 rounded-xl text-center border border-green-500/10">
-             <p className="text-[8px] font-bold text-green-500 uppercase tracking-widest italic">100% Free Scholar-Reward Protocol v200.0</p>
+             <p className="text-[8px] font-bold text-green-500 uppercase tracking-widest italic">100% Free CampusHub Protocol v1.0</p>
           </div>
         </div>
       </DialogContent>

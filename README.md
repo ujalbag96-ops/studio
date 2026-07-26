@@ -9,7 +9,7 @@ CampusHub is a high-performance "Super App" engineered for students using **Next
 - **Yield Hub**: Industrial-grade CPA, Survey, and Video yield terminal with real-time S2S verification.
 - **Withdrawal Node**: Regional redemption gateway for localized currency payouts (UPI, PayPal, Gift Cards).
 
-## 🛠️ Tech Stack (Not Flutter)
+## 🛠️ Tech Stack (Industrial Web-to-Mobile)
 
 - **Web Framework**: Next.js 15 (App Router)
 - **Native Engine**: Capacitor.js 6 (Cross-Platform Bridge)

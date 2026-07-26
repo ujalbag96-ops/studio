@@ -146,7 +146,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
             <DialogHeader className="text-center space-y-2">
               <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Add <span className="text-primary">Cash</span></DialogTitle>
               <DialogDescription className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                Standardized Industrial Funding Protocol
+                CampusHub Industrial Funding Protocol
               </DialogDescription>
             </DialogHeader>
 
@@ -184,22 +184,13 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                     </div>
                     <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                  </button>
-
-                 {!profile?.riskNoticeAccepted && (
-                   <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-center gap-3">
-                      <ShieldAlert className="h-5 w-5 text-amber-500 animate-pulse" />
-                      <p className="text-[9px] font-black uppercase text-amber-500 leading-relaxed">
-                        Risk Disclosure acceptance required before depositing funds.
-                      </p>
-                   </div>
-                 )}
               </div>
             )}
 
             {step === 'automatic' && (
                <div className="space-y-6 animate-in fade-in zoom-in-95">
                   <div className="space-y-3">
-                     <Label className="text-[10px] font-black uppercase text-muted-foreground">Amount in INR (₹)</Label>
+                     <Label className="text-[10px] font-black uppercase text-muted-foreground">Amount (₹)</Label>
                      <Input 
                       type="number" 
                       value={amount} 
@@ -253,12 +244,6 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                      </div>
                   </div>
 
-                  <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl text-center">
-                     <p className="text-[8px] font-bold text-amber-500 uppercase leading-relaxed">
-                       UTR matching engine is active. Correct UTR ID leads to instant automated credit.
-                     </p>
-                  </div>
-
                   <Button 
                     onClick={handleSubmitUTR} 
                     disabled={!amount || utrId.length !== 12 || isVerifying}
@@ -280,17 +265,9 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                   </div>
                   <div>
                      <h3 className="text-2xl font-black uppercase italic">Processing...</h3>
-                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] mt-2">Connecting to Verification Node</p>
                   </div>
-                  <p className="text-[9px] text-muted-foreground uppercase opacity-40">Please do not close this window</p>
                </div>
             )}
-
-            <div className="pt-4 border-t border-white/5 text-center">
-               <div className="flex items-center justify-center gap-2 text-[8px] font-black uppercase text-muted-foreground italic">
-                  <ShieldCheck className="h-3 w-3 text-primary" /> CampusHub Secured Connection
-               </div>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
