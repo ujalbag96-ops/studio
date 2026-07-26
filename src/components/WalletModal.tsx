@@ -17,6 +17,7 @@ import { UserProfile } from '@/app/lib/types';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
+import { Label } from './ui/label';
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
