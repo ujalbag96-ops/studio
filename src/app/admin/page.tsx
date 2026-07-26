@@ -178,7 +178,6 @@ export default function AdminDashboard() {
                                </div>
                             </div>
 
-                            {/* EXHAUSTIVE TECHNICAL AUDIT FOOTER */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-6 border-t border-white/5 bg-white/[0.02] -mx-8 px-8 pb-4">
                                <AuditItem icon={<Fingerprint className="text-primary h-3 w-3" />} label="Device Identity" value={w.deviceId || 'NOT_SYNCED'} />
                                <AuditItem icon={<MapPin className="text-amber-500 h-3 w-3" />} label="Last Linked IP" value={w.lastIp || '0.0.0.0'} />
@@ -264,4 +263,5 @@ function AuditItem({ icon, label, value }: { icon: any, label: string, value: st
          </div>
          <p className="text-[10px] font-bold text-white truncate px-2 bg-white/5 rounded border border-white/5 py-1.5">{value}</p>
       </div>
+   );
 }

@@ -32,7 +32,7 @@ import { doc } from 'firebase/firestore';
 import { AppSettings, UserProfile } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
-import { Label } from './label';
+import { Label } from './ui/label';
 import RiskDisclosureModal from './RiskDisclosureModal';
 
 interface ConnectWalletModalProps {
