@@ -89,7 +89,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
           </button>
         )}
       </DialogTrigger>
-      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
+      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md rounded-[2.5rem] overflow-hidden p-0 shadow-2xl" title="Industrial Wallet Sync">
         <VisuallyHidden.Root>
           <DialogTitle>Industrial Wallet Sync</DialogTitle>
         </VisuallyHidden.Root>
