@@ -235,3 +235,21 @@ export interface Match {
   votesA?: number;
   votesB?: number;
 }
+
+export interface ESportsMatch {
+  id: string;
+  title: string;
+  game: string;
+  status: string;
+  timestamp: string;
+}
+
+export interface ESportsPoll {
+  id: string;
+  matchId: string;
+  question: string;
+  optionA: string;
+  optionB: string;
+  totalPool: number;
+  entryFee: number;
+}
