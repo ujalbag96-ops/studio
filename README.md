@@ -33,4 +33,4 @@ Detailed guide: [BUILD_GUIDE.md](./BUILD_GUIDE.md)
 CampusHub follows a strict "One Device, One Account" policy enforced via unique hardware signatures and industrial anti-fraud auditing.
 
 ---
-**Status**: Production Release v1.0 (Industrial Build)
+**Status**: Production Release v1.0 (Industrial Buil

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -63,6 +62,10 @@ const LANGUAGES = [
   { value: 'en', label: 'English' },
   { value: 'hi', label: 'Hindi (हिंदी)' },
   { value: 'or', label: 'Odia (ଓଡ଼ିଆ)' },
+  { value: 'bn', label: 'Bengali (বাংলা)' },
+  { value: 'te', label: 'Telugu (తెలుగు)' },
+  { value: 'ta', label: 'Tamil (தமிழ்)' },
+  { value: 'mr', label: 'Marathi (मराठी)' },
 ];
 
 export default function CampusHomeScreen() {
@@ -86,7 +89,6 @@ export default function CampusHomeScreen() {
   // --- AUTOMATIC CALIBRATION EFFECT ---
   useEffect(() => {
     if (profile && eduSource === 'all' && language === 'all') {
-       // If Odisha student detected, auto-set preferences
        if (profile.geo_region?.toLowerCase() === 'odisha') {
           setEduSource('OdiaMedium');
           setLanguage('or');

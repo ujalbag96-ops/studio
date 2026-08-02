@@ -1,5 +1,5 @@
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
-export type LanguageCode = 'en' | 'or' | 'hi' | 'es' | 'fr' | 'de' | 'bn' | 'te' | 'ta' | 'mr';
+export type LanguageCode = 'en' | 'or' | 'hi' | 'bn' | 'te' | 'ta' | 'mr' | 'es' | 'fr' | 'de';
 export type UserIntent = 'student' | 'earner';
 
 export interface UserProfile {

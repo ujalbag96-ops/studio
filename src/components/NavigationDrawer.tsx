@@ -15,17 +15,30 @@ import {
   LogOut,
   LayoutDashboard,
   Zap,
-  Settings
+  Settings,
+  Languages,
+  Globe
 } from 'lucide-react';
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
-import { AppSettings } from '@/app/lib/types';
+import { AppSettings, UserProfile, LanguageCode } from '@/app/lib/types';
 import { MODULE_REGISTRY, ModuleCategory } from '@/app/lib/module-registry';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const MASTER_LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'hi', label: 'Hindi (हिंदी)' },
+  { value: 'or', label: 'Odia (ଓଡ଼ିଆ)' },
+  { value: 'bn', label: 'Bengali (বাংলা)' },
+  { value: 'te', label: 'Telugu (తెలుగు)' },
+  { value: 'ta', label: 'Tamil (தமிழ்)' },
+  { value: 'mr', label: 'Marathi (मराठी)' },
+];
 
 export default function NavigationDrawer() {
   const { user } = useUser();
@@ -34,13 +47,22 @@ export default function NavigationDrawer() {
   const router = useRouter();
   const pathname = usePathname();
 
+  const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
+  
+  const { data: profile } = useDoc<UserProfile>(userRef);
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
       router.push('/login');
+    }
+  };
+
+  const handleLanguageChange = async (lang: string) => {
+    if (userRef) {
+      await updateDoc(userRef, { preferredLanguage: lang as LanguageCode });
     }
   };
 
@@ -74,7 +96,22 @@ export default function NavigationDrawer() {
 
           <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8 no-scrollbar">
              
-             <div className="space-y-2">
+             <div className="space-y-4">
+                <div className="px-4">
+                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.4em] italic mb-3">REGIONAL NODE</p>
+                  <Select value={profile?.preferredLanguage || 'en'} onValueChange={handleLanguageChange}>
+                    <SelectTrigger className="h-12 bg-white/5 border-white/10 font-black text-[10px] uppercase rounded-xl">
+                       <Languages className="h-3.5 w-3.5 mr-2 text-primary" />
+                       <SelectValue placeholder="Select Language" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#0a0a0f] border-white/10 text-white">
+                       {MASTER_LANGUAGES.map(lang => (
+                         <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
+                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 <Link href="/dashboard">
                    <div className={cn(
                      "flex items-center justify-between p-4 rounded-2xl transition-all group",
