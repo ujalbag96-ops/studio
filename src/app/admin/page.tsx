@@ -5,7 +5,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@
 import { doc, updateDoc, collection, query, limit, orderBy } from 'firebase/firestore';
 import { 
   Loader2, Zap, LayoutGrid, ArrowRightLeft, 
-  Search, Palette, CheckCircle2, 
+  Search, CheckCircle2, 
   Star, Volume2, Music, Play, Bell, Eye, EyeOff, BarChart3, TrendingUp,
   Users as UsersIcon, ShieldAlert, UserCheck, Globe, ShieldX, Terminal, Filter,
   PieChart, Activity, Fingerprint, MapPin, Calendar, Mail, Lock, Key
