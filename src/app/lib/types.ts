@@ -62,7 +62,8 @@ export interface AppSettings {
   reviewMode: boolean;
   autoWithdrawalEnabled: boolean;
   razorpayAutoPayout: boolean;
-  userRevenueSharePercent: number;
+  userRevenueSharePercent: number; // Global default share
+  cpaUserSharePercent?: number;    // Specific CPA share
   maxDailyVideosPerUser?: number;
   
   // --- Global API Signals ---
@@ -108,18 +109,6 @@ export interface PlatformRevenue {
   lastUpdated: string;
 }
 
-export interface VideoAnalyticsEvent {
-  id: string;
-  userId: string;
-  streamType: 'direct' | 'youtube';
-  videoId?: string;
-  watchTimeSec: number;
-  completed: boolean;
-  country: string;
-  ip: string;
-  timestamp: string;
-}
-
 export interface UserLedgerEntry {
   id: string;
   type: string;
@@ -131,56 +120,4 @@ export interface UserLedgerEntry {
   usdValue?: number;
   profitSplit?: string;
   userShareUSD?: number;
-}
-
-export interface BookMetadata {
-  id: string;
-  title: string;
-  class: string;
-  subject: string;
-  source: string;
-  lang: string;
-  chapters: number;
-  coverUrl: string | null;
-}
-
-export interface SystemNotification {
-  id: string;
-  userId: string;
-  title: string;
-  body: string;
-  timestamp: string;
-  type: 'system' | 'payout' | 'promotion';
-  imageUrl?: string;
-  voucherCode?: string;
-  localizedBody?: string;
-}
-
-export interface Tournament {
-  id: string;
-  name: string;
-  status: 'active' | 'upcoming' | 'completed' | 'cancelled';
-  gameType: 'BGMI' | 'Free Fire' | 'Ludo King' | 'Other';
-  prizePool: string;
-  entryFee: number;
-  startDate: string;
-  banner: string;
-  streamUrl?: string;
-  roomCredentials?: {
-    roomId?: string;
-    roomPassword?: string;
-  };
-}
-
-export interface PayoutRequest {
-  id: string;
-  userId: string;
-  userEmail?: string;
-  amount: number;
-  method: string;
-  destination: string;
-  status: 'pending' | 'completed' | 'rejected';
-  timestamp: string;
-  geo?: string;
-  localAmount?: number;
 }

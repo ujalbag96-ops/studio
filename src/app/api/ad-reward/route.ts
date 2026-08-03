@@ -1,10 +1,11 @@
+
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, increment, collection, getDoc, writeBatch, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, increment, collection, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 /**
- * Industrial Real-Time Dynamic Revenue Share & Analytics Gateway v14.0
- * Deep Analytics Tracking Node: Watch Time, Geo, Device, UID.
+ * Industrial Real-Time Dynamic Revenue Share Gateway v15.0
+ * Uses dynamic Admin-set share percentages for calculation.
  */
 export async function POST(request: Request) {
   try {
@@ -14,8 +15,7 @@ export async function POST(request: Request) {
       watchTimeSec = 0, 
       completed = false, 
       country = 'Unknown', 
-      ip = 'Unknown',
-      deviceId = 'Unknown_Node' 
+      ip = 'Unknown'
     } = await request.json();
 
     if (!userId) {
@@ -28,7 +28,6 @@ export async function POST(request: Request) {
     const userRef = doc(firestore, 'users', userId);
     const statsRef = doc(firestore, 'platform_stats', 'revenue');
     const settingsRef = doc(firestore, 'app_settings', 'global_config');
-    const analyticsRef = doc(collection(firestore, 'video_analytics'));
 
     const [userSnap, settingsSnap] = await Promise.all([
       getDoc(userRef),
@@ -42,10 +41,10 @@ export async function POST(request: Request) {
     const settings = settingsSnap.data();
     
     // --- REAL-TIME INDUSTRIAL PROFIT CALCULATION ---
-    // Standard revenue baseline (Industrial CPM Bench: ₹0.50 per signal)
+    // Industrial CPM Bench: ₹0.50 per signal
     const estimatedTotalRevenueINR = 0.50; 
     
-    // Fetch dynamic percentage from Admin Hub
+    // Fetch manual share % set by Admin
     const userSharePercent = settings?.userRevenueSharePercent || 10; 
     const userRewardINR = estimatedTotalRevenueINR * (userSharePercent / 100); 
     const adminProfitINR = estimatedTotalRevenueINR - userRewardINR;
@@ -53,51 +52,33 @@ export async function POST(request: Request) {
     const coinsPerINR = settings?.coinsPerINR || 100;
     const rewardAmountCoins = Math.floor(userRewardINR * coinsPerINR); 
 
-    // 1. User Wallet & Task Count Synchronization
+    // 1. User Wallet Sync
     batch.update(userRef, {
       taskBalance: increment(rewardAmountCoins),
       coins: increment(rewardAmountCoins),
       generalTasksCount: increment(1),
       lastActiveAt: serverTimestamp(),
-      pendingRevenueShare: increment(userRewardINR / 80), // Store USD equivalent for stats
+      pendingRevenueShare: increment(userRewardINR / 80), // USD Equivalent
       totalRevenueGenerated: increment(estimatedTotalRevenueINR / 80)
     });
 
-    // 2. Global Platform Intelligence & Auto-Calculated Profit Ledger
+    // 2. Platform Intelligence Sync
     batch.set(statsRef, {
       totalGrossRevenueINR: increment(estimatedTotalRevenueINR),
       totalUserPayoutsINR: increment(userRewardINR),
       totalAdminProfitINR: increment(adminProfitINR),
       totalViews: increment(1),
       totalWatchTimeSec: increment(watchTimeSec),
-      [`countryBreakdown.${country.replace(/\./g, '_')}`]: increment(1),
       lastUpdated: new Date().toISOString()
     }, { merge: true });
 
-    // 3. Deep Session Analytics Logging
-    batch.set(analyticsRef, {
-      userId,
-      type,
-      watchTimeSec,
-      completed,
-      country,
-      ip,
-      deviceId,
-      timestamp: new Date().toISOString()
-    });
-
-    // 4. Industrial S2S Verification Ledger
+    // 3. Encrypted Ledger
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
       type: 'distributed_yield',
       amount: rewardAmountCoins,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Signal Sync: ${userSharePercent}% Industrial Dividend`,
-      metadata: {
-        watchTime: `${watchTimeSec}s`,
-        region: country,
-        source: type
-      }
+      description: `Signal Sync: ${userSharePercent}% Industrial Dividend`
     });
 
     await batch.commit();
@@ -105,13 +86,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       credit: rewardAmountCoins,
-      rewardINR: userRewardINR,
-      status: `SIGNAL_LOCKED_${userSharePercent}_PERCENT`,
-      profitNode: 'ACTIVE'
+      status: `SIGNAL_LOCKED_${userSharePercent}_PERCENT`
     });
 
   } catch (error) {
-    console.error("Economy Node Malfunction:", error);
-    return NextResponse.json({ error: 'System Sync Critical Error' }, { status: 500 });
+    return NextResponse.json({ error: 'System Sync Error' }, { status: 500 });
   }
 }

@@ -13,9 +13,7 @@ import {
   ShieldCheck, 
   ArrowLeft,
   Loader2,
-  PlayCircle,
-  Activity,
-  Globe
+  Activity
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -62,7 +60,7 @@ export default function YoutubeStreamHub() {
       });
       const data = await res.json();
       if (data.success) {
-        toast({ title: "MISSION TRIGGERED", description: `10% Yield: +${data.credit} Coins credited.` });
+        toast({ title: "MISSION TRIGGERED", description: "Dynamic yield credited to wallet." });
       }
     } catch (e) {
       console.error("Reward Sync Failed");
@@ -122,10 +120,10 @@ export default function YoutubeStreamHub() {
             </ul>
          </Card>
          <Card className="bg-red-600/5 border-red-600/20 rounded-[2.5rem] p-10 flex flex-col justify-center items-center text-center space-y-4">
-            <Activity className="h-10 w-10 text-red-500 animate-pulse" />
+            <Activity className="h-10 w-10 text-red-600 animate-pulse" />
             <h4 className="text-xl font-black uppercase italic">Real-Time Yield</h4>
             <p className="text-xs font-medium text-muted-foreground uppercase leading-relaxed">
-               Every 10 minutes of verified session adds <span className="text-white">5 Coins</span> to your Mission Wallet.
+               Every session adds points to your Mission Wallet based on current dynamic Admin settings.
             </p>
          </Card>
       </div>

@@ -4,14 +4,14 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Industrial CPA S2S Postback Node v3.0
- * Uses dynamic Admin-set rates & margins.
+ * Industrial CPA S2S Postback Node v4.0
+ * Uses MANUAL Admin-set rates from Economy Control Hub.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('uid');
   let rawRevenueUSD = parseFloat(searchParams.get('payout') || '0');
-  const offerName = searchParams.get('offer') || 'Industrial Conversion';
+  const offerName = searchParams.get('offer') || 'CPA Conversion';
   
   if (!userId || isNaN(rawRevenueUSD) || rawRevenueUSD <= 0) {
     return NextResponse.json({ error: 'Invalid Signal' }, { status: 400 });
@@ -38,13 +38,15 @@ export async function GET(request: Request) {
     const userData = userSnap.data();
     const settings = settingsSnap.data();
 
-    // --- DYNAMIC REVENUE SHARE ENGINE ---
+    // --- REAL-TIME MANUAL REVENUE SHARE ENGINE ---
+    // Fetch manual % set in Admin Dashboard Economy Hub
     const userSharePercent = settings?.cpaUserSharePercent || settings?.userRevenueSharePercent || 30;
     const adminSharePercent = 100 - userSharePercent;
     
     const userShareUSD = rawRevenueUSD * (userSharePercent / 100); 
     const adminProfitUSD = rawRevenueUSD * (adminSharePercent / 100); 
     
+    // Convert to Coins based on Admin settings
     const coinsPerUSD = settings?.coinsPerUSD || 1000;
     const rewardAmountCoins = Math.floor(userShareUSD * coinsPerUSD);
 
@@ -53,12 +55,11 @@ export async function GET(request: Request) {
       taskBalance: increment(rewardAmountCoins),
       coins: increment(rewardAmountCoins),
       cpaTasksCount: increment(1),
-      tasksCompletedCount: increment(1),
       pendingRevenueShare: increment(userShareUSD),
       totalRevenueGenerated: increment(rawRevenueUSD)
     });
 
-    // 2. Platform Revenue Registry
+    // 2. Global Analytics Ledger
     batch.set(statsRef, {
       totalDailyRevenueUSD: increment(rawRevenueUSD),
       totalAdminProfitUSD: increment(adminProfitUSD),
@@ -73,28 +74,16 @@ export async function GET(request: Request) {
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
       description: `Verified CPA: ${offerName} (${userSharePercent}% Share)`,
-      profitSplit: `${adminSharePercent}/${userSharePercent} Lock`,
-      userShareUSD: userShareUSD
-    });
-
-    // 4. Live Tracking
-    batch.set(conversionRef, {
-      userId,
-      userEmail: userData.email || 'Anonymous',
-      offerName,
-      payoutUSD: rawRevenueUSD,
-      userShareCoins: rewardAmountCoins,
-      status: 'Credited',
-      timestamp: new Date().toISOString()
+      profitSplit: `${adminSharePercent}/${userSharePercent} Lock`
     });
 
     await batch.commit();
 
     return NextResponse.json({ 
       success: true, 
-      status: 'S2S_DYNAMIC_LOCKED',
+      status: 'S2S_MANUAL_CALIBRATED',
       userCredit: rewardAmountCoins,
-      shareUsed: userSharePercent
+      shareApplied: `${userSharePercent}%`
     });
 
   } catch (error: any) {
