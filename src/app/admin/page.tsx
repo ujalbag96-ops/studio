@@ -18,7 +18,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +31,7 @@ const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 type AdminTab = 'overview' | 'main_control' | 'members' | 'financials' | 'signals' | 'system' | 'branding' | 'dev_tools';
 
-export default function AdminMasterHubV11() {
+export default function AdminMasterHub() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -115,7 +115,7 @@ export default function AdminMasterHubV11() {
         <div className="h-10 w-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20"><Zap className="h-5 w-5 text-white" /></div>
         <div className="text-left">
            <span className="text-sm font-black uppercase italic text-slate-800">Campus<span className="text-primary">Hub</span></span>
-           <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none mt-0.5">Industrial Hub v11.0</p>
+           <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none mt-0.5">Industrial Hub v12.0</p>
         </div>
       </div>
       <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
@@ -139,7 +139,7 @@ export default function AdminMasterHubV11() {
       <div className="p-8 border-t border-slate-50 bg-slate-50/50 space-y-4">
          <div className="flex items-center gap-3 text-slate-400">
             <ShieldCheck className="h-3 w-3" />
-            <span className="text-[8px] font-bold uppercase tracking-widest">Industrial Protocol v11</span>
+            <span className="text-[8px] font-bold uppercase tracking-widest">Industrial Protocol v12</span>
          </div>
          <Button variant="outline" className="w-full h-10 rounded-xl text-[9px] font-black border-slate-200" asChild>
             <Link href="/" target="_blank">PREVIEW HUB</Link>
@@ -161,7 +161,7 @@ export default function AdminMasterHubV11() {
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-72 border-none">
                   <SheetTitle className="sr-only">Hub Navigation</SheetTitle>
-                  <SheetDescription className="sr-only">Access app controls and hub analytics</SheetDescription>
+                  <SheetDescription className="sr-only">Access administrative controls and hub analytics</SheetDescription>
                   {sidebarContent}
                 </SheetContent>
               </Sheet>
@@ -313,7 +313,7 @@ export default function AdminMasterHubV11() {
                           <div className="flex items-center gap-8">
                              <div className="text-right">
                                 <p className="text-2xl font-black text-primary italic tabular-nums leading-none">{(w.coins || 0).toLocaleString()} <span className="text-xs opacity-40 uppercase tracking-widest ml-1 italic">Coins</span></p>
-                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2 italic">Yield Wallet Balance</p>
+                                <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-2 italic">Yield Wallet Balance</p>
                              </div>
                              <Button size="icon" variant="outline" onClick={() => setSelectedUser(w)} className="rounded-xl border-slate-200"><Edit3 size={16} /></Button>
                           </div>
@@ -501,6 +501,7 @@ export default function AdminMasterHubV11() {
                   <Wallet size={32} />
                </div>
                <DialogTitle className="text-xl font-black uppercase italic">Adjust Wallet</DialogTitle>
+               <DialogDescription className="sr-only">Manually update user wallet coins and winning balance</DialogDescription>
             </DialogHeader>
             <div className="space-y-6 py-4">
                <div className="space-y-2">
