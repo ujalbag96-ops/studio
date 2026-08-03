@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -17,7 +18,8 @@ import {
   Volume2,
   VolumeX,
   PlayCircle,
-  PauseCircle
+  PauseCircle,
+  Clock
 } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile } from '@/app/lib/types';
@@ -35,13 +37,15 @@ export default function DirectStreamHub() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [brightness, setBrightness] = useState(100);
-  const [volume, setVolume] = useState(100);
-  const [isMuted, setIsMuted] = useState(false);
+  const [watchTime, setWatchTime] = useState(0);
+  const [geoData, setGeoData] = useState<any>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
-  const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  useEffect(() => {
+    fetch('https://ipapi.co/json/').then(res => res.json()).then(data => setGeoData(data)).catch(() => {});
+  }, []);
 
   const handlePlay = () => {
     if (!directUrl.trim()) {
@@ -49,21 +53,38 @@ export default function DirectStreamHub() {
       return;
     }
     setIsPlaying(true);
-    triggerAdReward();
+    setWatchTime(0);
   };
 
-  const triggerAdReward = async () => {
+  useEffect(() => {
+    let interval: any;
+    if (isPlaying && !isProcessing) {
+      interval = setInterval(() => {
+        setWatchTime(p => p + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, isProcessing]);
+
+  const triggerAdReward = async (completed: boolean) => {
     if (!user || isProcessing) return;
     setIsProcessing(true);
     try {
       const res = await fetch('/api/ad-reward', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid, type: 'direct_stream_signal' })
+        body: JSON.stringify({ 
+          userId: user.uid, 
+          type: 'direct_stream_signal',
+          watchTimeSec: watchTime,
+          completed,
+          country: geoData?.country_name || 'Unknown',
+          ip: geoData?.ip || 'Unknown'
+        })
       });
       const data = await res.json();
       if (data.success) {
-        toast({ title: "SIGNAL LOCKED", description: `10% Share Credited: +${data.credit} Coins` });
+        toast({ title: "REWARD SIGNAL LOCKED", description: `10% Share Credited: +${data.credit} Coins` });
       }
     } catch (e) {
       console.error("Reward Sync Failed");
@@ -101,7 +122,7 @@ export default function DirectStreamHub() {
          <Link href="/earning-hub" className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground hover:text-white transition-colors">
             <ArrowLeft className="h-3 w-3" /> Earning Sector
          </Link>
-         <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1.5 italic">Industrial Direct Hub</Badge>
+         <Badge className="bg-primary/20 text-primary border-none uppercase font-black px-4 py-1.5 italic shadow-xl">Analytics Node Active</Badge>
       </div>
 
       <header className="space-y-6">
@@ -116,7 +137,7 @@ export default function DirectStreamHub() {
                   <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary" />
                   <input value={directUrl} onChange={e => setDirectUrl(e.target.value)} placeholder="PASTE MP4 / DOWNLOAD LINK" className="w-full h-10 bg-black border border-white/10 pl-9 text-[10px] font-bold rounded-xl text-white outline-none focus:border-primary/40" />
                </div>
-               <Button onClick={handlePlay} className="h-10 bg-primary font-black uppercase italic text-[10px] px-6 rounded-xl">PLAY HUB</Button>
+               <Button onClick={handlePlay} className="h-10 bg-primary font-black uppercase italic text-[10px] px-6 rounded-xl shadow-lg">PLAY HUB</Button>
             </Card>
          </div>
       </header>
@@ -131,31 +152,37 @@ export default function DirectStreamHub() {
            </div>
          ) : (
            <>
-              <div className="absolute left-8 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-6 bg-black/40 backdrop-blur-xl p-5 rounded-[2rem] border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                 <Sun className="h-5 w-5 text-primary animate-pulse" />
-                 <div className="h-40 flex items-center">
-                    <Slider value={[brightness]} onValueChange={(val) => setBrightness(val[0])} max={150} min={40} step={1} orientation="vertical" className="h-full" />
-                 </div>
-                 <span className="text-[9px] font-black text-white">{brightness}%</span>
+              <div className="absolute top-8 right-8 z-50 bg-black/40 backdrop-blur-xl px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2">
+                 <Clock className="h-3 w-3 text-primary animate-pulse" />
+                 <span className="text-[10px] font-black italic text-white tabular-nums">{watchTime}s Session</span>
               </div>
-              <video ref={videoRef} className="w-full h-full object-contain" style={{ filter: `brightness(${brightness}%)` }} controls />
+              <video 
+                ref={videoRef} 
+                className="w-full h-full object-contain" 
+                style={{ filter: `brightness(${brightness}%)` }} 
+                onEnded={() => { setIsPlaying(false); triggerAdReward(true); }}
+                controls 
+              />
            </>
          )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
          <Card className="bg-[#121212] border-white/5 p-8 rounded-[2.5rem] space-y-6">
-            <h3 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary"><ShieldCheck /> Integrity Protocol</h3>
+            <h3 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary"><ShieldCheck /> Analytics Protocol</h3>
             <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight opacity-80">
-               Direct streams are analyzed server-side. High-bandwidth sessions generate incremental 10% distributed yield. VPN signals result in immediate account lock.
+               Direct streams are audited in real-time. Signals originating from {geoData?.country_name || 'your region'} are calculated at current local CPM rates.
             </p>
          </Card>
-         <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-8 flex items-center justify-between">
-            <div className="space-y-1">
-               <p className="text-[9px] font-black uppercase text-muted-foreground">Estimated Yield</p>
-               <h4 className="text-3xl font-black italic text-white">0.05 <span className="text-sm opacity-40">INR</span></h4>
+         <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-8 flex flex-col justify-center items-center text-center space-y-4">
+            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-xl">
+               <Zap className="h-8 w-8 animate-pulse" />
             </div>
-            <Zap className="h-8 w-8 text-primary animate-pulse" />
+            <h4 className="text-xl font-black uppercase italic">Claim Session Reward</h4>
+            <Button onClick={() => triggerAdReward(false)} disabled={isProcessing || watchTime < 10} className="h-12 px-10 bg-primary font-black uppercase italic text-xs rounded-xl shadow-lg">
+               {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : "LOCK ANALYTICS SIGNAL"}
+            </Button>
+            <p className="text-[8px] font-bold text-muted-foreground uppercase">Min 10s session required</p>
          </Card>
       </div>
     </div>

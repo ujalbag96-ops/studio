@@ -90,16 +90,30 @@ export interface AppSettings {
   coinsPerINR: number;
   coinsPerUSD: number;
   
-  // Dynamic Module Toggles (Visibility Keys are in Module Registry)
+  // Dynamic Module Toggles
   [key: string]: any;
 }
 
 export interface PlatformRevenue {
-  totalDailyRevenueUSD: number;
-  totalAdminProfitUSD: number;
-  totalUserDividendUSD: number;
+  totalGrossRevenueINR: number;
+  totalUserPayoutsINR: number;
+  totalAdminProfitINR: number;
+  totalViews: number;
+  totalWatchTimeSec: number;
+  countryBreakdown: Record<string, number>;
   lastUpdated: string;
-  totalOperationalRevenueUSD?: number;
+}
+
+export interface VideoAnalyticsEvent {
+  id: string;
+  userId: string;
+  streamType: 'direct' | 'youtube';
+  videoId?: string;
+  watchTimeSec: number;
+  completed: boolean;
+  country: string;
+  ip: string;
+  timestamp: string;
 }
 
 export interface UserLedgerEntry {
