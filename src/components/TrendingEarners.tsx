@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -11,7 +10,7 @@ export default function TrendingEarners() {
   const trends = [
     { id: '1', name: 'Rahul_7', task: 'CPA Mission', prize: '₹45.00', color: 'text-primary' },
     { id: '2', name: 'EliteNode', task: 'Ludo Win', prize: '₹12.00', color: 'text-green-500' },
-    { id: '3', name: 'SambalpurWarrior', task: '7D Streak', prize: '₹50.00', color: 'text-amber-500' },
+    { id: '3', name: 'SambalpurStudent', task: '7D Streak', prize: '₹50.00', color: 'text-amber-500' },
   ];
 
   return (
@@ -26,7 +25,7 @@ export default function TrendingEarners() {
                 <Trophy className="h-5 w-5 text-primary animate-bounce" />
              </div>
              <div>
-                <h3 className="text-sm font-black uppercase italic tracking-widest">Trending Warriors</h3>
+                <h3 className="text-sm font-black uppercase italic tracking-widest">Trending Students</h3>
                 <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Live Platform Activity</p>
              </div>
           </div>

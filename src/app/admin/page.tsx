@@ -1,14 +1,13 @@
-
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection, query, limit, orderBy, increment, where, getDoc, writeBatch, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, limit, orderBy, increment, where, addDoc } from 'firebase/firestore';
 import { 
-  Loader2, Zap, DollarSign, TrendingUp, Users as UsersIcon, UserCheck, 
-  Palette, Radio, Activity, Layout, BarChart3, Settings, Gauge, CreditCard, Video, Youtube,
-  ShieldAlert, ShieldCheck, Fingerprint, Search, Plus, Minus, Ban, CheckCircle2,
-  Volume2, Bell, LayoutDashboard, ShoppingBag, Globe, ArrowUpRight, PieChart, Wallet,
-  Menu, X, Check, Trash2, Edit3, Filter, AlertCircle
+  Loader2, Zap, DollarSign, TrendingUp, Users as UsersIcon, 
+  Palette, Radio, Activity, BarChart3, Settings, Gauge, CreditCard,
+  ShieldAlert, ShieldCheck, Fingerprint, Search, Ban, CheckCircle2,
+  Volume2, LayoutDashboard, Globe, Wallet,
+  Menu, Check, Edit3, AlertCircle, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +26,7 @@ import { MASTER_THEMES } from '../lib/themes';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-type AdminTab = 'overview' | 'earning' | 'warriors' | 'financials' | 'apis' | 'sounds' | 'branding';
+type AdminTab = 'overview' | 'earning' | 'students' | 'financials' | 'apis' | 'sounds' | 'branding';
 
 export default function AdminDashboardV3() {
   const { user, isUserLoading } = useUser();
@@ -51,8 +50,8 @@ export default function AdminDashboardV3() {
   const { data: settings } = useDoc<AppSettings>(settingsRef);
   const { data: stats } = useDoc<PlatformRevenue>(statsRef);
   
-  const warriorsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), orderBy('joinedAt', 'desc'), limit(100)) : null, [firestore]);
-  const { data: warriors } = useCollection<UserProfile>(warriorsQuery);
+  const studentsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), orderBy('joinedAt', 'desc'), limit(100)) : null, [firestore]);
+  const { data: students } = useCollection<UserProfile>(studentsQuery);
 
   const payoutsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'payouts'), where('status', '==', 'pending'), limit(50)) : null, [firestore]);
   const { data: pendingPayouts } = useCollection<any>(payoutsQuery);
@@ -134,7 +133,7 @@ export default function AdminDashboardV3() {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard /> },
     { id: 'earning', label: 'Earning Sectors', icon: <DollarSign /> },
-    { id: 'warriors', label: 'Warrior List', icon: <UsersIcon /> },
+    { id: 'students', label: 'Student Directory', icon: <UsersIcon /> },
     { id: 'financials', label: 'Financials', icon: <Wallet /> },
     { id: 'apis', label: 'Global APIs', icon: <Radio /> },
     { id: 'sounds', label: 'Sound Engine', icon: <Volume2 /> },
@@ -217,9 +216,6 @@ export default function AdminDashboardV3() {
                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
                  <span className="text-[9px] font-black uppercase text-green-600 tracking-widest italic">⚡ REAL-TIME SIGNAL ACTIVE</span>
               </div>
-              <div className="h-10 w-10 rounded-xl bg-slate-100 border border-slate-200 flex lg:hidden items-center justify-center">
-                 <Zap className="h-4 w-4 text-primary" />
-              </div>
            </div>
         </header>
 
@@ -227,7 +223,7 @@ export default function AdminDashboardV3() {
            {activeTab === 'overview' && (
               <div className="space-y-10 animate-in fade-in duration-700 slide-in-from-bottom-2">
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                    <PanzeStatCard label="Active Warriors" value={warriors?.length || 0} icon={<UsersIcon />} trend="+12% Pulse" color="bg-indigo-500" />
+                    <PanzeStatCard label="Active Students" value={students?.length || 0} icon={<UsersIcon />} trend="+12% Pulse" color="bg-indigo-500" />
                     <PanzeStatCard label="Gross Ad Revenue" value={`₹${(stats?.totalGrossRevenueINR || 0).toLocaleString()}`} icon={<DollarSign />} trend="Stable Feed" color="bg-emerald-500" />
                     <PanzeStatCard label="User Share" value={`₹${(stats?.totalUserPayoutsINR || 0).toLocaleString()}`} icon={<Zap />} trend="10% Dist" color="bg-primary" />
                     <PanzeStatCard label="Admin Net Profit" value={`₹${(stats?.totalAdminProfitINR || 0).toLocaleString()}`} icon={<TrendingUp />} trend="High Yield" color="bg-amber-500" />
@@ -308,20 +304,19 @@ export default function AdminDashboardV3() {
               </div>
            )}
 
-           {activeTab === 'warriors' && (
+           {activeTab === 'students' && (
               <div className="space-y-10 animate-in fade-in duration-700">
-                 {/* MANUAL OVERRIDE PANEL */}
                  <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2.5rem] p-8 space-y-6 border-2">
                     <h3 className="text-lg font-black uppercase italic flex items-center gap-3 text-slate-800">
                        <Fingerprint className="text-amber-500" /> Manual Wallet Adjuster
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                        <div className="space-y-2">
-                          <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Target Warrior UID</Label>
+                          <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Target Student UID</Label>
                           <Input value={targetUid} onChange={e => setTargetUid(e.target.value)} placeholder="PASTE FIREBASE UID" className="h-12 bg-white rounded-xl" />
                        </div>
                        <div className="space-y-2">
-                          <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Volume (Coins)</Label>
+                          <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Volume (Coins)</Label>
                           <div className="flex gap-2">
                              <Select value={adjType} onValueChange={v => setAdjType(v as any)}>
                                 <SelectTrigger className="w-24 h-12 bg-white rounded-xl font-bold uppercase text-[10px]">
@@ -346,7 +341,7 @@ export default function AdminDashboardV3() {
                  <Card className="bg-white border-slate-200/60 rounded-[2.5rem] overflow-hidden shadow-sm">
                     <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
                        <div>
-                          <h3 className="text-lg font-black uppercase italic text-slate-800">Warrior Identity Archives</h3>
+                          <h3 className="text-lg font-black uppercase italic text-slate-800">Student Identity Archives</h3>
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">Encrypted User Registry Node</p>
                        </div>
                        <div className="relative w-full md:w-80">
@@ -355,7 +350,7 @@ export default function AdminDashboardV3() {
                        </div>
                     </div>
                     <div className="divide-y divide-slate-50 max-h-[600px] overflow-y-auto no-scrollbar">
-                       {warriors?.map(w => (
+                       {students?.map(w => (
                           <div key={w.id} className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-8 hover:bg-slate-50/50 transition-all">
                              <div className="flex items-center gap-6">
                                 <div className="h-16 w-16 rounded-[1.5rem] bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-primary text-xl shadow-inner">
@@ -363,7 +358,7 @@ export default function AdminDashboardV3() {
                                 </div>
                                 <div className="space-y-2">
                                    <div className="flex flex-wrap items-center gap-3">
-                                      <p className="text-sm font-black uppercase italic text-slate-800 leading-none">{w.email || 'Anonymous Warrior'}</p>
+                                      <p className="text-sm font-black uppercase italic text-slate-800 leading-none">{w.email || 'Anonymous Student'}</p>
                                       <Badge variant="outline" className={cn("text-[6px] px-1.5 h-4 border-slate-200 font-black uppercase", w.isSuspended ? "text-red-500 border-red-100 bg-red-50" : "text-emerald-500")}>
                                          {w.isSuspended ? 'Suspended' : 'Verified Signal'}
                                       </Badge>

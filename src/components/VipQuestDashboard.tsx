@@ -84,7 +84,7 @@ export default function VipQuestDashboard({ profile }: QuestProps) {
            />
            <QuestItem 
              icon={<Users className="text-green-500" />} 
-             title="Warriors Recruited" 
+             title="Students Recruited" 
              current={currentRefs} 
              target={requirements.referrals} 
              desc="Invite 5 students using your link."

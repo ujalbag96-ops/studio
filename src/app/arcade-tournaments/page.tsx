@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -9,17 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Trophy, 
   Gamepad2, 
-  Target, 
   Zap, 
-  ArrowRight, 
   Loader2, 
   Activity,
   Flame,
-  Globe,
-  TrendingUp,
-  Coins
+  TrendingUp
 } from 'lucide-react';
-import { UserProfile, PlatformRevenue, AppSettings } from '@/app/lib/types';
+import { PlatformRevenue, AppSettings } from '@/app/lib/types';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -103,7 +98,7 @@ export default function ArcadeTournamentHub() {
                <div className="space-y-5 relative z-10">
                   <TournamentTier label="Elite" prize="50% Pool" req="Top 1%" color="text-amber-500" />
                   <TournamentTier label="Pro" prize="30% Pool" req="Top 5%" color="text-primary" />
-                  <TournamentTier label="Warrior" prize="20% Pool" req="Top 20%" color="text-white" />
+                  <TournamentTier label="Novice" prize="20% Pool" req="Top 20%" color="text-white" />
                </div>
                <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed italic border-t border-white/5 pt-6">
                   *All tournament funding is derived strictly from real sponsor activity (Ads & CPA). Zero gambling logic applies.
@@ -124,7 +119,7 @@ export default function ArcadeTournamentHub() {
 
       <section className="pt-10">
          <div className="flex items-center justify-between mb-8 px-4">
-            <h3 className="text-2xl font-black uppercase italic tracking-tighter">Hall of <span className="text-primary">Warriors</span></h3>
+            <h3 className="text-2xl font-black uppercase italic tracking-tighter">Hall of <span className="text-primary">Fame</span></h3>
             <Link href="/leaderboard" className="text-[10px] font-black text-primary uppercase hover:underline">View Full Archives</Link>
          </div>
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -16,8 +16,7 @@ import {
   LayoutDashboard,
   Zap,
   Settings,
-  Languages,
-  Globe
+  Languages
 } from 'lucide-react';
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -84,7 +83,7 @@ export default function NavigationDrawer() {
                </div>
                <div className="text-left">
                   <SheetTitle className="text-lg font-black uppercase italic tracking-tighter text-white">
-                    {user?.email?.split('@')[0] || 'Warrior_Node'}
+                    {user?.email?.split('@')[0] || 'User_Node'}
                   </SheetTitle>
                   <div className="flex items-center gap-2 mt-1">
                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
