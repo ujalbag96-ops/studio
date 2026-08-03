@@ -71,12 +71,14 @@ export default function AdminMasterHubV10() {
     if (!selectedUser || !firestore) return;
     try {
        const uRef = doc(firestore, 'users', selectedUser.id);
+       const amt = parseInt(adjustAmount);
        await updateDoc(uRef, {
-          coins: increment(parseInt(adjustAmount)),
-          winningBalance: increment(parseInt(adjustAmount))
+          coins: increment(amt),
+          winningBalance: increment(amt)
        });
-       toast({ title: "BALANCE ADJUSTED", description: `Credited ${adjustAmount} to ${selectedUser.email}` });
+       toast({ title: "BALANCE ADJUSTED", description: `Credited ${amt} to ${selectedUser.email}` });
        setSelectedUser(null);
+       setAdjustAmount('0');
     } catch (e) {
        toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
     }
@@ -113,7 +115,7 @@ export default function AdminMasterHubV10() {
         <div className="h-10 w-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20"><Zap className="h-5 w-5 text-white" /></div>
         <div className="text-left">
            <span className="text-sm font-black uppercase italic text-slate-800">Campus<span className="text-primary">Hub</span></span>
-           <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none mt-0.5">Industrial Hub v10.0</p>
+           <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none mt-0.5">Industrial Hub v11.0</p>
         </div>
       </div>
       <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
@@ -137,7 +139,7 @@ export default function AdminMasterHubV10() {
       <div className="p-8 border-t border-slate-50 bg-slate-50/50 space-y-4">
          <div className="flex items-center gap-3 text-slate-400">
             <ShieldCheck className="h-3 w-3" />
-            <span className="text-[8px] font-bold uppercase tracking-widest">Industrial Protocol v10</span>
+            <span className="text-[8px] font-bold uppercase tracking-widest">Industrial Protocol v11</span>
          </div>
          <Button variant="outline" className="w-full h-10 rounded-xl text-[9px] font-black border-slate-200" asChild>
             <Link href="/" target="_blank">PREVIEW HUB</Link>
@@ -188,7 +190,7 @@ export default function AdminMasterHubV10() {
                  <Card className="bg-white border-slate-200 rounded-[3rem] p-10 shadow-sm border group">
                     <div className="flex items-center justify-between mb-8">
                        <div className="space-y-1">
-                          <h3 className="text-sm font-black uppercase italic tracking-widest text-slate-400">Member Performance Audit</h3>
+                          <h3 className="text-sm font-black uppercase italic tracking-widest text-slate-400">Warrior Performance Audit</h3>
                           <p className="text-[9px] font-bold text-slate-300 uppercase">Live Individual Revenue Log</p>
                        </div>
                     </div>
@@ -196,7 +198,7 @@ export default function AdminMasterHubV10() {
                        <table className="w-full text-left">
                           <thead>
                              <tr className="border-b border-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest">
-                                <th className="pb-4">Member Node</th>
+                                <th className="pb-4">Warrior Node</th>
                                 <th className="pb-4">Revenue (USD)</th>
                                 <th className="pb-4">Share (USD)</th>
                                 <th className="pb-4 text-right">Net Profit</th>
@@ -286,7 +288,7 @@ export default function AdminMasterHubV10() {
               <Card className="bg-white border-slate-200 rounded-[3rem] overflow-hidden shadow-sm border animate-in slide-in-from-bottom-4 duration-700">
                  <div className="p-10 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="space-y-1">
-                       <h3 className="text-2xl font-black uppercase italic tracking-tighter">Member Registry</h3>
+                       <h3 className="text-2xl font-black uppercase italic tracking-tighter">Warrior Registry</h3>
                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-[0.3em]">Industrial Identity Audit Feed</p>
                     </div>
                  </div>
@@ -447,7 +449,7 @@ export default function AdminMasterHubV10() {
                        <div className="space-y-2">
                           <h4 className="text-lg font-black uppercase italic">Sketchware Build Support</h4>
                           <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed">
-                             Follow the official `SKETCHWARE_GUIDE.md` to import static web assets into your Sketchware project's **Asset Manager**. 
+                             Follow the official `SKETCHWARE_GUIDE.md` to import static web assets into your Sketchware project&apos;s **Asset Manager**. 
                           </p>
                        </div>
                        <Button asChild variant="outline" className="w-full border-slate-200 rounded-xl font-black text-[10px] uppercase">
@@ -570,4 +572,3 @@ function PanzeField({ label, value, onUpdate }: any) {
     </div>
   );
 }
-

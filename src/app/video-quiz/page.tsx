@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useState, useEffect } from 'react';
+import { useUser, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,14 +11,12 @@ import {
   Zap, 
   Target, 
   Loader2, 
-  ArrowLeft,
   Video,
   CheckCircle2,
   Clock,
   Youtube,
   ShieldCheck
 } from 'lucide-react';
-import Link from 'next/link';
 import { UserProfile, AppSettings } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -32,7 +30,6 @@ export default function VideoQuizArena() {
   const [gameState, setGameState] = useState<'idle' | 'watching' | 'quiz' | 'settling'>('idle');
   const [watchTime, setWatchTime] = useState(0);
   const [quizData, setQuizData] = useState<GenerateQuizOutput | null>(null);
-  const [currentIdx, setCurrentIdx] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [geoData, setGeoData] = useState<any>(null);
 
@@ -178,15 +175,15 @@ export default function VideoQuizArena() {
          </div>
 
          <div className="space-y-8">
-            <Card className="bg-primary/5 border-primary/20 p-10 rounded-[2.5rem] space-y-8 shadow-2xl relative overflow-hidden group">
+            <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-10 space-y-8 shadow-2xl relative overflow-hidden group">
                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                   <Zap className="h-40 w-40 text-primary" />
                </div>
                <h3 className="text-2xl font-black uppercase italic flex items-center gap-3"><Zap className="text-primary" /> Session Logic</h3>
                <div className="space-y-4 relative z-10 text-[10px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">
-                  <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 shrink-0" /> Watch for 15s to trigger AI Quiz.</li>
-                  <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 shrink-0" /> One correct answer settles reward.</li>
-                  <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 shrink-0" /> Distributed 10% share credited instantly.</li>
+                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" /> Watch for 15s to trigger AI Quiz.</li>
+                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" /> One correct answer settles reward.</li>
+                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" /> Distributed 10% share credited instantly.</li>
                </div>
             </Card>
          </div>
