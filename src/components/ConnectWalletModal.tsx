@@ -140,7 +140,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
             <DialogHeader className="text-center space-y-2">
               <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-white">Add <span className="text-primary">Cash</span></DialogTitle>
               <DialogDescription className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                CampusHub Industrial Funding Protocol
+                {settings?.customAppName || "CampusHub"} Industrial Funding Protocol
               </DialogDescription>
             </DialogHeader>
 

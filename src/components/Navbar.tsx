@@ -23,6 +23,7 @@ export default function Navbar() {
   const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const isIndia = profile?.country === 'India';
+  const appName = settings?.customAppName || 'CampusHub';
 
   return (
     <>
@@ -33,15 +34,15 @@ export default function Navbar() {
             <NavigationDrawer />
             <Link href="/" className="flex items-center gap-2 group">
               {settings?.customLogoUrl ? (
-                <img src={settings.customLogoUrl} className="h-8 w-auto object-contain" alt="CampusHub" />
+                <img src={settings.customLogoUrl} className="h-8 w-auto object-contain" alt={appName} />
               ) : (
-                <>
-                  <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-                    <Zap className="h-5 w-5 text-white" />
-                  </div>
-                  <span className="text-xl font-black tracking-tighter text-white uppercase italic">Campus<span className="text-primary">Hub</span></span>
-                </>
+                <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
+                  <Zap className="h-5 w-5 text-white" />
+                </div>
               )}
+              <span className="text-xl font-black tracking-tighter text-white uppercase italic">
+                {appName.toUpperCase()}
+              </span>
             </Link>
           </div>
 
@@ -77,9 +78,9 @@ export default function Navbar() {
          <div className="flex items-center gap-4">
             <NavigationDrawer />
             {settings?.customLogoUrl ? (
-               <img src={settings.customLogoUrl} className="h-7 w-auto object-contain" alt="CampusHub" />
+               <img src={settings.customLogoUrl} className="h-7 w-auto object-contain" alt={appName} />
             ) : (
-               <span className="text-sm font-black italic tracking-tighter text-white uppercase">Campus<span className="text-primary">Hub</span></span>
+               <span className="text-sm font-black italic tracking-tighter text-white uppercase">{appName}</span>
             )}
          </div>
          <div className="flex items-center gap-3">

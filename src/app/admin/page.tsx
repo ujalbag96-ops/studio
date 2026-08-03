@@ -8,7 +8,10 @@ import {
   TrendingUp,
   Users as UsersIcon, UserCheck, Globe, ShieldX, Terminal, 
   CreditCard, 
-  Settings, UserPlus, UserMinus, Check, X, ShieldAlert, Fingerprint
+  Settings, UserPlus, UserMinus, Check, X, ShieldAlert, Fingerprint,
+  Palette,
+  Image as ImageIcon,
+  Type
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,13 +33,17 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'visibility' | 'warriors' | 'economy' | 'withdrawals'>('visibility');
+  const [activeTab, setActiveTab] = useState<'visibility' | 'warriors' | 'economy' | 'withdrawals' | 'branding'>('visibility');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
   // Economy & User Control State
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [targetUserId, setTargetUserId] = useState('');
   const [walletAmount, setWalletAmount] = useState('');
+
+  // Branding State
+  const [brandingName, setBrandingName] = useState('');
+  const [brandingLogo, setBrandingLogo] = useState('');
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -160,6 +167,7 @@ export default function AdminDashboard() {
             <NavPill active={activeTab === 'warriors'} label="Warriors" icon={<UsersIcon className="h-3 w-3" />} onClick={() => setActiveTab('warriors')} />
             <NavPill active={activeTab === 'economy'} label="Economy" icon={<TrendingUp className="h-3 w-3" />} onClick={() => setActiveTab('economy')} />
             <NavPill active={activeTab === 'withdrawals'} label="Withdrawals" icon={<CreditCard className="h-3 w-3" />} onClick={() => setActiveTab('withdrawals')} />
+            <NavPill active={activeTab === 'branding'} label="Branding" icon={<Palette className="h-3 w-3" />} onClick={() => setActiveTab('branding')} />
          </div>
 
          {activeTab === 'economy' && (
@@ -377,6 +385,84 @@ export default function AdminDashboard() {
                   ))}
                </div>
             </div>
+         )}
+
+         {activeTab === 'branding' && (
+           <div className="space-y-10 animate-in fade-in duration-500">
+              <div className="space-y-2 text-center md:text-left">
+                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">App <span className="text-primary">Branding</span></h2>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Real-Time Visual Identity Control</p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-10">
+                 <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[3rem] space-y-8 shadow-2xl">
+                    <div className="space-y-6">
+                       <div className="space-y-3">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-2">
+                             <Type className="h-3 w-3" /> App Name (Dynamic Title)
+                          </Label>
+                          <Input 
+                            value={brandingName}
+                            onChange={e => setBrandingName(e.target.value)}
+                            placeholder={settings?.customAppName || "CampusHub"}
+                            className="h-14 bg-black border-white/10 rounded-xl font-black text-white uppercase italic"
+                          />
+                       </div>
+
+                       <div className="space-y-3">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-2">
+                             <ImageIcon className="h-3 w-3" /> Custom Logo URL
+                          </Label>
+                          <Input 
+                            value={brandingLogo}
+                            onChange={e => setBrandingLogo(e.target.value)}
+                            placeholder={settings?.customLogoUrl || "Paste https:// image URL"}
+                            className="h-14 bg-black border-white/10 rounded-xl font-bold text-primary text-xs"
+                          />
+                       </div>
+
+                       <Button 
+                         onClick={async () => {
+                           if (!brandingName && !brandingLogo) return;
+                           const updates: any = {};
+                           if (brandingName) updates.customAppName = brandingName;
+                           if (brandingLogo) updates.customLogoUrl = brandingLogo;
+                           
+                           setIsProcessing('branding-update');
+                           try {
+                              await updateDoc(settingsRef!, updates);
+                              toast({ title: "BRANDING SYNCED", description: "Identity updated across all warrior terminals." });
+                              setBrandingName('');
+                              setBrandingLogo('');
+                           } catch (e) {
+                              toast({ variant: "destructive", title: "BRANDING FAILED" });
+                           } finally {
+                              setIsProcessing(null);
+                           }
+                         }}
+                         disabled={isProcessing === 'branding-update'}
+                         className="w-full h-16 bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase italic text-lg shadow-xl"
+                       >
+                          {isProcessing === 'branding-update' ? <Loader2 className="animate-spin h-6 w-6" /> : "UPDATE APP LIVE"}
+                       </Button>
+                    </div>
+                 </Card>
+
+                 <Card className="bg-primary/5 border-primary/20 rounded-[3rem] p-10 flex flex-col justify-center items-center text-center space-y-6">
+                    <div className="h-24 w-24 rounded-[2rem] bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shadow-2xl">
+                       {settings?.customLogoUrl ? (
+                         <img src={settings.customLogoUrl} className="w-full h-full object-contain" alt="Preview" />
+                       ) : (
+                         <Zap className="h-12 w-12 text-primary" />
+                       )}
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1 italic">Active Identity Preview</p>
+                       <h3 className="text-3xl font-black uppercase italic text-white">{settings?.customAppName || "CampusHub"}</h3>
+                    </div>
+                 </Card>
+              </div>
+           </div>
          )}
       </main>
     </div>

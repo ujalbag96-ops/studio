@@ -77,6 +77,7 @@ export interface AppSettings {
   node_book_download?: boolean;
   currentThemeId?: string;
   customLogoUrl?: string;
+  customAppName?: string;
   festivalModeActive?: boolean;
   globalRewardSoundUrl?: string;
   globalNotifSoundUrl?: string;
@@ -183,6 +184,7 @@ export interface PayoutRequest {
   status: 'pending' | 'completed' | 'rejected';
   timestamp: string;
   geo?: string;
+  localAmount?: number;
 }
 
 export interface MarketAsset {
