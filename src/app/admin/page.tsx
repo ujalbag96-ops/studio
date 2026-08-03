@@ -2,12 +2,13 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection, query, limit, orderBy, increment, where, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, limit, orderBy, increment, where, getDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { 
   Loader2, Zap, DollarSign, TrendingUp, Users as UsersIcon, UserCheck, 
   Palette, Radio, Activity, Layout, BarChart3, Settings, Gauge, CreditCard, Video, Youtube,
   ShieldAlert, ShieldCheck, Fingerprint, Search, Plus, Minus, Ban, CheckCircle2,
-  Volume2, Bell, LayoutDashboard, ShoppingBag, Globe, ArrowUpRight, PieChart, Wallet
+  Volume2, Bell, LayoutDashboard, ShoppingBag, Globe, ArrowUpRight, PieChart, Wallet,
+  Menu, X, Check, Trash2, Edit3, Filter, AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,14 +17,13 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { AppSettings, UserProfile, PlatformRevenue } from '../lib/types';
 import { MONETIZATION_REGISTRY } from '../lib/monetization-registry';
 import { MASTER_THEMES } from '../lib/themes';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
@@ -36,6 +36,13 @@ export default function AdminDashboardV3() {
   
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Manual Adjustment State
+  const [targetUid, setTargetUid] = useState('');
+  const [adjAmount, setAdjAmount] = useState('');
+  const [adjType, setAdjType] = useState<'add' | 'sub'>('add');
 
   // Data fetching
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
@@ -47,6 +54,9 @@ export default function AdminDashboardV3() {
   const warriorsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), orderBy('joinedAt', 'desc'), limit(100)) : null, [firestore]);
   const { data: warriors } = useCollection<UserProfile>(warriorsQuery);
 
+  const payoutsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'payouts'), where('status', '==', 'pending'), limit(50)) : null, [firestore]);
+  const { data: pendingPayouts } = useCollection<any>(payoutsQuery);
+
   const updateSetting = async (key: string, value: any) => {
     if (!settingsRef) return;
     setIsProcessing(key);
@@ -55,6 +65,50 @@ export default function AdminDashboardV3() {
       toast({ title: "SIGNAL SYNCED", description: `${key} updated live.` });
     } catch (e) {
       toast({ variant: "destructive", title: "SYNC FAILED" });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleManualAdjustment = async () => {
+    if (!firestore || !targetUid || !adjAmount) return;
+    const amount = parseFloat(adjAmount);
+    setIsProcessing('manual_adj');
+    try {
+      const uRef = doc(firestore, 'users', targetUid);
+      const delta = adjType === 'add' ? amount : -amount;
+      await updateDoc(uRef, {
+        coins: increment(delta),
+        winningBalance: increment(delta)
+      });
+      
+      // Log in ledger
+      await addDoc(collection(firestore, 'users', targetUid, 'ledger'), {
+        type: 'admin_adjustment',
+        amount: delta,
+        date: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        description: `Admin Adjustment: ${adjType.toUpperCase()} ${amount} Coins`
+      });
+
+      toast({ title: "BALANCE ADJUSTED", description: `Successfully ${adjType}ed ${amount} coins.` });
+      setAdjAmount('');
+    } catch (e) {
+      toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handlePayoutAction = async (id: string, status: 'completed' | 'failed') => {
+    if (!firestore) return;
+    setIsProcessing(id);
+    try {
+      const pRef = doc(firestore, 'payouts', id);
+      await updateDoc(pRef, { status });
+      toast({ title: "SETTLEMENT UPDATED", description: `Payout marked as ${status}.` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "ACTION FAILED" });
     } finally {
       setIsProcessing(null);
     }
@@ -77,81 +131,108 @@ export default function AdminDashboardV3() {
     );
   }
 
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: <LayoutDashboard /> },
+    { id: 'earning', label: 'Earning Sectors', icon: <DollarSign /> },
+    { id: 'warriors', label: 'Warrior List', icon: <UsersIcon /> },
+    { id: 'financials', label: 'Financials', icon: <Wallet /> },
+    { id: 'apis', label: 'Global APIs', icon: <Radio /> },
+    { id: 'sounds', label: 'Sound Engine', icon: <Volume2 /> },
+    { id: 'branding', label: 'Visual Identity', icon: <Palette /> },
+  ];
+
+  const sidebarContent = (
+    <div className="flex flex-col h-full">
+      <div className="p-8 border-b border-slate-100 flex items-center gap-3">
+        <div className="h-10 w-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
+          <Zap className="h-5 w-5 text-white" />
+        </div>
+        <div className="text-left">
+          <p className="text-sm font-black uppercase italic leading-none text-slate-800">Campus<span className="text-primary">Hub</span></p>
+          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Admin v3.0 Master</p>
+        </div>
+      </div>
+
+      <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
+        <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.4em] mb-4 ml-4 italic">Core Terminal</p>
+        {navItems.map(item => (
+          <button 
+            key={item.id}
+            onClick={() => { setActiveTab(item.id as AdminTab); setIsMobileNavOpen(false); }}
+            className={cn(
+              "w-full flex items-center gap-4 px-6 py-4 rounded-[1.5rem] transition-all font-black uppercase text-[10px] tracking-widest italic",
+              activeTab === item.id ? "bg-primary text-white shadow-xl shadow-primary/20" : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+            )}
+          >
+            <span className={cn("h-4.5 w-4.5", activeTab === item.id ? "text-white" : "text-primary")}>{item.icon}</span>
+            <span>{item.label}</span>
+            {activeTab === item.id && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white animate-pulse" />}
+          </button>
+        ))}
+      </nav>
+
+      <div className="p-8 border-t border-slate-100 bg-slate-50/50">
+         <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded-full bg-slate-200 border-2 border-white overflow-hidden">
+               <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="Admin" />
+            </div>
+            <div>
+               <p className="text-[10px] font-black uppercase italic truncate max-w-[120px] text-slate-800">{user.email?.split('@')[0]}</p>
+               <Badge className="bg-green-500 text-white border-none text-[6px] h-3 font-black px-1.5 uppercase italic">Master Root</Badge>
+            </div>
+         </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex text-slate-900 font-sans selection:bg-primary/20">
-      {/* PANZE STYLE SIDEBAR */}
+      {/* DESKTOP SIDEBAR */}
       <aside className="w-72 bg-white border-r border-slate-200/60 hidden lg:flex flex-col fixed inset-y-0 left-0 z-[100] shadow-[10px_0_40px_rgba(0,0,0,0.02)]">
-        <div className="p-8 border-b border-slate-100 flex items-center gap-3">
-          <div className="h-10 w-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <Zap className="h-5 w-5 text-white" />
-          </div>
-          <div className="text-left">
-            <p className="text-sm font-black uppercase italic leading-none">Campus<span className="text-primary">Hub</span></p>
-            <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Admin v3.0 Master</p>
-          </div>
-        </div>
-
-        <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
-          <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.4em] mb-4 ml-4 italic">Core Terminal</p>
-          <SidebarItem active={activeTab === 'overview'} label="Overview" icon={<LayoutDashboard />} onClick={() => setActiveTab('overview')} />
-          <SidebarItem active={activeTab === 'earning'} label="Income Hub" icon={<DollarSign />} onClick={() => setActiveTab('earning')} />
-          <SidebarItem active={activeTab === 'warriors'} label="Warrior List" icon={<UsersIcon />} onClick={() => setActiveTab('warriors')} />
-          <SidebarItem active={activeTab === 'financials'} label="Financials" icon={<Wallet />} onClick={() => setActiveTab('financials')} />
-          
-          <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.4em] mb-4 mt-8 ml-4 italic">Infrastructure</p>
-          <SidebarItem active={activeTab === 'apis'} label="API & Ad Engine" icon={<Radio />} onClick={() => setActiveTab('apis')} />
-          <SidebarItem active={activeTab === 'sounds'} label="Audio Engine" icon={<Volume2 />} onClick={() => setActiveTab('sounds')} />
-          <SidebarItem active={activeTab === 'branding'} label="Visual Identity" icon={<Palette />} onClick={() => setActiveTab('branding')} />
-        </nav>
-
-        <div className="p-8 border-t border-slate-100 bg-slate-50/50">
-           <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-full bg-slate-200 border-2 border-white overflow-hidden">
-                 <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="Admin" />
-              </div>
-              <div>
-                 <p className="text-[10px] font-black uppercase italic truncate max-w-[120px]">{user.email?.split('@')[0]}</p>
-                 <Badge className="bg-green-500 text-white border-none text-[6px] h-3 font-black px-1.5 uppercase italic">Master Root</Badge>
-              </div>
-           </div>
-        </div>
+        {sidebarContent}
       </aside>
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 lg:ml-72 min-h-screen flex flex-col">
         {/* HEADER */}
-        <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50 px-8 flex items-center justify-between shadow-sm">
+        <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50 px-6 md:px-8 flex items-center justify-between shadow-sm">
            <div className="flex items-center gap-4">
-              <h2 className="text-xl font-black uppercase italic tracking-tighter text-slate-800">
-                {activeTab === 'overview' ? 'Hub Overview' : 
-                 activeTab === 'earning' ? 'Earning Sectors' : 
-                 activeTab === 'warriors' ? 'Warrior Registry' : 
-                 activeTab === 'financials' ? 'Financial Hub' :
-                 activeTab === 'apis' ? 'Global API Node' :
-                 activeTab === 'sounds' ? 'Sonic Hub' : 'Identity Hub'}
+              <Sheet open={isMobileNavOpen} onOpenChange={setIsMobileNavOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="lg:hidden rounded-xl hover:bg-slate-100">
+                    <Menu className="h-5 w-5 text-slate-600" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-72 bg-white border-none">
+                  {sidebarContent}
+                </SheetContent>
+              </Sheet>
+              <h2 className="text-sm md:text-xl font-black uppercase italic tracking-tighter text-slate-800">
+                {navItems.find(n => n.id === activeTab)?.label}
               </h2>
            </div>
 
-           <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 px-5 py-2 rounded-full bg-green-500/10 border border-green-500/20 shadow-sm">
+           <div className="flex items-center gap-4 md:gap-6">
+              <div className="hidden sm:flex items-center gap-2 px-5 py-2 rounded-full bg-green-500/10 border border-green-500/20 shadow-sm">
                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
                  <span className="text-[9px] font-black uppercase text-green-600 tracking-widest italic">⚡ REAL-TIME SIGNAL ACTIVE</span>
+              </div>
+              <div className="h-10 w-10 rounded-xl bg-slate-100 border border-slate-200 flex lg:hidden items-center justify-center">
+                 <Zap className="h-4 w-4 text-primary" />
               </div>
            </div>
         </header>
 
-        <div className="p-8 space-y-10">
+        <div className="p-4 md:p-8 space-y-10">
            {activeTab === 'overview' && (
               <div className="space-y-10 animate-in fade-in duration-700 slide-in-from-bottom-2">
-                 {/* TOP STAT CARDS */}
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     <PanzeStatCard label="Active Warriors" value={warriors?.length || 0} icon={<UsersIcon />} trend="+12% Pulse" color="bg-indigo-500" />
                     <PanzeStatCard label="Gross Ad Revenue" value={`₹${(stats?.totalGrossRevenueINR || 0).toLocaleString()}`} icon={<DollarSign />} trend="Stable Feed" color="bg-emerald-500" />
                     <PanzeStatCard label="User Share" value={`₹${(stats?.totalUserPayoutsINR || 0).toLocaleString()}`} icon={<Zap />} trend="10% Dist" color="bg-primary" />
                     <PanzeStatCard label="Admin Net Profit" value={`₹${(stats?.totalAdminProfitINR || 0).toLocaleString()}`} icon={<TrendingUp />} trend="High Yield" color="bg-amber-500" />
                  </div>
 
-                 {/* ANALYTICS PREVIEW */}
                  <div className="grid lg:grid-cols-3 gap-8">
                     <Card className="lg:col-span-2 bg-white border-slate-200/60 rounded-[2.5rem] p-8 shadow-sm overflow-hidden">
                        <div className="flex items-center justify-between mb-8">
@@ -183,18 +264,20 @@ export default function AdminDashboardV3() {
 
            {activeTab === 'earning' && (
               <div className="space-y-10 animate-in fade-in duration-700">
-                 <Card className="bg-primary/5 border-primary/20 p-10 rounded-[3rem] border-2 space-y-8 shadow-sm">
-                    <div className="flex items-center gap-4">
-                       <div className="h-14 w-14 rounded-2xl bg-white flex items-center justify-center shadow-lg text-primary border border-slate-100">
-                          <Gauge size={28} />
-                       </div>
-                       <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-800">Economy <span className="text-primary">Calibration</span></h3>
-                          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic">Multi-Node User Reward Management</p>
+                 <Card className="bg-primary/5 border-primary/20 p-6 md:p-10 rounded-[3rem] border-2 space-y-8 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                       <div className="flex items-center gap-4">
+                          <div className="h-14 w-14 rounded-2xl bg-white flex items-center justify-center shadow-lg text-primary border border-slate-100">
+                             <Gauge size={28} />
+                          </div>
+                          <div>
+                             <h3 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter text-slate-800">Economy <span className="text-primary">Calibration</span></h3>
+                             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic">Multi-Node User Reward Management</p>
+                          </div>
                        </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                        <PanzeEconomyInput label="CPA Share %" value={settings?.cpaUserSharePercent || 30} onUpdate={v => updateSetting('cpaUserSharePercent', v)} />
                        <PanzeEconomyInput label="Video Ads %" value={settings?.videoUserSharePercent || 10} onUpdate={v => updateSetting('videoUserSharePercent', v)} />
                        <PanzeEconomyInput label="YouTube %" value={settings?.youtubeUserSharePercent || 10} onUpdate={v => updateSetting('youtubeUserSharePercent', v)} />
@@ -202,7 +285,7 @@ export default function AdminDashboardV3() {
                     </div>
                  </Card>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {MONETIZATION_REGISTRY.map((mon) => (
                       <Card key={mon.id} className="bg-white border-slate-100 p-8 rounded-[2.5rem] space-y-6 hover:shadow-xl transition-all group relative border">
                          <div className="flex items-center justify-between">
@@ -227,6 +310,39 @@ export default function AdminDashboardV3() {
 
            {activeTab === 'warriors' && (
               <div className="space-y-10 animate-in fade-in duration-700">
+                 {/* MANUAL OVERRIDE PANEL */}
+                 <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2.5rem] p-8 space-y-6 border-2">
+                    <h3 className="text-lg font-black uppercase italic flex items-center gap-3 text-slate-800">
+                       <Fingerprint className="text-amber-500" /> Manual Wallet Adjuster
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                       <div className="space-y-2">
+                          <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Target Warrior UID</Label>
+                          <Input value={targetUid} onChange={e => setTargetUid(e.target.value)} placeholder="PASTE FIREBASE UID" className="h-12 bg-white rounded-xl" />
+                       </div>
+                       <div className="space-y-2">
+                          <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Volume (Coins)</Label>
+                          <div className="flex gap-2">
+                             <Select value={adjType} onValueChange={v => setAdjType(v as any)}>
+                                <SelectTrigger className="w-24 h-12 bg-white rounded-xl font-bold uppercase text-[10px]">
+                                   <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white border-slate-100">
+                                   <SelectItem value="add" className="font-bold uppercase text-[10px]">ADD (+)</SelectItem>
+                                   <SelectItem value="sub" className="font-bold uppercase text-[10px]">SUB (-)</SelectItem>
+                                </SelectContent>
+                             </Select>
+                             <Input type="number" value={adjAmount} onChange={e => setAdjAmount(e.target.value)} placeholder="0.00" className="h-12 bg-white rounded-xl" />
+                          </div>
+                       </div>
+                       <div className="flex items-end">
+                          <Button onClick={handleManualAdjustment} disabled={!targetUid || !adjAmount || isProcessing === 'manual_adj'} className="w-full h-12 bg-amber-500 hover:bg-amber-600 rounded-xl font-black uppercase italic text-xs shadow-lg shadow-amber-500/20">
+                             {isProcessing === 'manual_adj' ? <Loader2 className="animate-spin" /> : "OVERRIDE BALANCE"}
+                          </Button>
+                       </div>
+                    </div>
+                 </Card>
+
                  <Card className="bg-white border-slate-200/60 rounded-[2.5rem] overflow-hidden shadow-sm">
                     <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
                        <div>
@@ -235,18 +351,18 @@ export default function AdminDashboardV3() {
                        </div>
                        <div className="relative w-full md:w-80">
                           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                          <Input placeholder="SEARCH GMAIL / UID / IP..." className="h-12 bg-white border-slate-200 rounded-xl pl-12 text-xs font-bold uppercase tracking-tight" />
+                          <Input placeholder="SEARCH GMAIL / UID..." className="h-12 bg-white border-slate-200 rounded-xl pl-12 text-xs font-bold uppercase tracking-tight" />
                        </div>
                     </div>
-                    <div className="divide-y divide-slate-50">
+                    <div className="divide-y divide-slate-50 max-h-[600px] overflow-y-auto no-scrollbar">
                        {warriors?.map(w => (
-                          <div key={w.id} className="p-8 flex flex-col md:flex-row items-center justify-between gap-8 hover:bg-slate-50/50 transition-all">
+                          <div key={w.id} className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-8 hover:bg-slate-50/50 transition-all">
                              <div className="flex items-center gap-6">
                                 <div className="h-16 w-16 rounded-[1.5rem] bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-primary text-xl shadow-inner">
                                    {w.email?.[0].toUpperCase() || 'U'}
                                 </div>
                                 <div className="space-y-2">
-                                   <div className="flex items-center gap-3">
+                                   <div className="flex flex-wrap items-center gap-3">
                                       <p className="text-sm font-black uppercase italic text-slate-800 leading-none">{w.email || 'Anonymous Warrior'}</p>
                                       <Badge variant="outline" className={cn("text-[6px] px-1.5 h-4 border-slate-200 font-black uppercase", w.isSuspended ? "text-red-500 border-red-100 bg-red-50" : "text-emerald-500")}>
                                          {w.isSuspended ? 'Suspended' : 'Verified Signal'}
@@ -259,14 +375,75 @@ export default function AdminDashboardV3() {
                                    </div>
                                 </div>
                              </div>
-                             <div className="text-right">
-                                <p className="text-xl font-black text-primary italic tabular-nums">{(w.coins || 0).toLocaleString()} <span className="text-[10px] opacity-40">🪙</span></p>
-                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Joined: {new Date(w.joinedAt || '').toLocaleDateString()}</p>
+                             <div className="flex items-center gap-6">
+                                <div className="text-right">
+                                   <p className="text-xl font-black text-primary italic tabular-nums">{(w.coins || 0).toLocaleString()} <span className="text-[10px] opacity-40">🪙</span></p>
+                                   <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Joined: {new Date(w.joinedAt || '').toLocaleDateString()}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                   <Button onClick={() => setTargetUid(w.id)} size="icon" variant="outline" className="rounded-xl border-slate-200 hover:bg-primary/10 hover:text-primary transition-all">
+                                      <Edit3 className="h-4 w-4" />
+                                   </Button>
+                                   <Button onClick={() => updateDoc(doc(firestore, 'users', w.id), { isSuspended: !w.isSuspended })} size="icon" variant="outline" className={cn("rounded-xl border-slate-200", w.isSuspended ? "text-green-500 hover:bg-green-50" : "text-red-500 hover:bg-red-50")}>
+                                      {w.isSuspended ? <CheckCircle2 className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+                                   </Button>
+                                </div>
                              </div>
                           </div>
                        ))}
                     </div>
                  </Card>
+              </div>
+           )}
+
+           {activeTab === 'financials' && (
+              <div className="space-y-10 animate-in fade-in duration-700">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <Card className="bg-white border-slate-200/60 rounded-[3rem] p-8 shadow-sm">
+                       <h3 className="text-lg font-black uppercase italic mb-8 flex items-center gap-3">
+                          <AlertCircle className="text-primary" /> Pending Settlements
+                       </h3>
+                       <div className="space-y-6">
+                          {pendingPayouts?.map((p: any) => (
+                             <div key={p.id} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+                                <div className="space-y-2">
+                                   <p className="text-[10px] font-black uppercase text-slate-400">{p.method}</p>
+                                   <p className="text-xl font-black text-slate-800 italic">₹{p.amount || p.coinAmount/100}</p>
+                                   <p className="text-[9px] font-bold text-primary truncate max-w-[150px]">{p.destination}</p>
+                                </div>
+                                <div className="flex gap-2 w-full sm:w-auto">
+                                   <Button onClick={() => handlePayoutAction(p.id, 'completed')} disabled={!!isProcessing} className="flex-1 bg-green-500 hover:bg-green-600 rounded-xl h-11 shadow-lg shadow-green-500/20 font-black uppercase text-[10px]">
+                                      {isProcessing === p.id ? <Loader2 className="animate-spin" /> : <Check className="h-4 w-4" />}
+                                   </Button>
+                                   <Button onClick={() => handlePayoutAction(p.id, 'failed')} disabled={!!isProcessing} variant="outline" className="flex-1 border-red-100 text-red-500 hover:bg-red-50 rounded-xl h-11 font-black uppercase text-[10px]">
+                                      <X className="h-4 w-4" />
+                                   </Button>
+                                </div>
+                             </div>
+                          ))}
+                          {(!pendingPayouts || pendingPayouts.length === 0) && (
+                             <div className="py-20 text-center opacity-20">
+                                <ShieldCheck className="h-12 w-12 mx-auto mb-4" />
+                                <p className="text-[10px] font-black uppercase tracking-widest italic">All signals settled.</p>
+                             </div>
+                          )}
+                       </div>
+                    </Card>
+
+                    <Card className="bg-[#0a0a0f] border-slate-800 rounded-[3rem] p-10 flex flex-col justify-center items-center text-center space-y-6 shadow-2xl">
+                       <div className="h-20 w-20 rounded-[2rem] bg-primary/10 border border-primary/20 flex items-center justify-center">
+                          <CreditCard className="h-10 w-10 text-primary" />
+                       </div>
+                       <div className="space-y-2">
+                          <h4 className="text-2xl font-black uppercase italic text-white tracking-tighter">Automatic Gateways</h4>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest italic">Industrial Razorpay Node Status</p>
+                       </div>
+                       <div className="flex items-center gap-4">
+                          <Badge variant="outline" className="border-green-500/20 text-green-500 font-black uppercase text-[8px] px-4 py-1">ONLINE</Badge>
+                          <Switch checked={!!settings?.razorpayAutoPayout} onCheckedChange={v => updateSetting('razorpayAutoPayout', v)} />
+                       </div>
+                    </Card>
+                 </div>
               </div>
            )}
 
@@ -337,32 +514,16 @@ export default function AdminDashboardV3() {
   );
 }
 
-function SidebarItem({ active, label, icon, onClick }: { active: boolean, label: string, icon: any, onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-center gap-4 px-6 py-4 rounded-[1.5rem] transition-all font-black uppercase text-[10px] tracking-widest italic",
-        active ? "bg-primary text-white shadow-xl shadow-primary/20" : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
-      )}
-    >
-      <span className={cn("h-4.5 w-4.5", active ? "text-white" : "text-primary")}>{icon}</span>
-      <span>{label}</span>
-      {active && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white animate-pulse" />}
-    </button>
-  );
-}
-
 function PanzeStatCard({ label, value, icon, trend, color }: any) {
   return (
-    <Card className="bg-white border-slate-200/60 p-8 rounded-[2.5rem] shadow-sm group hover:shadow-xl transition-all duration-500 overflow-hidden relative border">
+    <Card className="bg-white border-slate-200/60 p-6 md:p-8 rounded-[2.5rem] shadow-sm group hover:shadow-xl transition-all duration-500 overflow-hidden relative border">
        <div className="relative z-10 flex flex-col gap-6">
           <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center text-white shadow-lg", color)}>
              {icon}
           </div>
           <div>
              <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1 italic">{label}</p>
-             <h4 className="text-3xl font-black text-slate-800 italic tracking-tighter tabular-nums">{value}</h4>
+             <h4 className="text-2xl md:text-3xl font-black text-slate-800 italic tracking-tighter tabular-nums">{value}</h4>
           </div>
           <div className="flex items-center gap-2">
              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200/50">
@@ -411,7 +572,7 @@ function PanzeEconomyInput({ label, value, onUpdate }: any) {
 
 function PanzeConfigCard({ title, icon, children }: any) {
   return (
-    <Card className="bg-white border-slate-200/60 rounded-[3rem] p-10 space-y-8 shadow-sm border">
+    <Card className="bg-white border-slate-200/60 rounded-[3rem] p-6 md:p-10 space-y-8 shadow-sm border">
        <div className="flex items-center gap-4 border-b border-slate-50 pb-6">
           <div className="h-10 w-10 bg-primary/5 rounded-xl flex items-center justify-center text-primary border border-primary/10">
              {icon}
