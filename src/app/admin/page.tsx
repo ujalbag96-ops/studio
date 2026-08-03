@@ -9,7 +9,7 @@ import {
   Smartphone, Monitor, Package, Target, ArrowRight, CheckCircle2,
   AlertCircle, Layout, PieChart, PlayCircle, Eye, ChevronRight,
   Filter, Ban, UserCheck, BarChart, Youtube, ClipboardList, Coins,
-  Book, GraduationCap, Mail, RefreshCw, Edit3
+  Book, GraduationCap, Mail, RefreshCw, Edit3, Terminal, Cpu, HardDrive
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,7 @@ import Link from 'next/link';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-type AdminTab = 'overview' | 'main_control' | 'members' | 'financials' | 'signals' | 'system' | 'branding';
+type AdminTab = 'overview' | 'main_control' | 'members' | 'financials' | 'signals' | 'system' | 'branding' | 'dev_tools';
 
 export default function AdminMasterHubV10() {
   const { user, isUserLoading } = useUser();
@@ -39,7 +39,7 @@ export default function AdminMasterHubV10() {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const [selectedUser, setSelectedVote] = useState<UserProfile | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [adjustAmount, setAdjustAmount] = useState('0');
 
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
@@ -76,7 +76,7 @@ export default function AdminMasterHubV10() {
           winningBalance: increment(parseInt(adjustAmount))
        });
        toast({ title: "BALANCE ADJUSTED", description: `Credited ${adjustAmount} to ${selectedUser.email}` });
-       setSelectedVote(null);
+       setSelectedUser(null);
     } catch (e) {
        toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
     }
@@ -104,6 +104,7 @@ export default function AdminMasterHubV10() {
     { id: 'signals', label: 'Master Signals', icon: <Signal /> },
     { id: 'system', label: 'System Control', icon: <Settings /> },
     { id: 'branding', label: 'Identity Hub', icon: <Palette /> },
+    { id: 'dev_tools', label: 'Developer Tools', icon: <Terminal /> },
   ];
 
   const sidebarContent = (
@@ -312,7 +313,7 @@ export default function AdminMasterHubV10() {
                                 <p className="text-2xl font-black text-primary italic tabular-nums leading-none">{(w.coins || 0).toLocaleString()} <span className="text-xs opacity-40 uppercase tracking-widest ml-1 italic">Coins</span></p>
                                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2 italic">Yield Wallet Balance</p>
                              </div>
-                             <Button size="icon" variant="outline" onClick={() => setSelectedVote(w)} className="rounded-xl border-slate-200"><Edit3 size={16} /></Button>
+                             <Button size="icon" variant="outline" onClick={() => setSelectedUser(w)} className="rounded-xl border-slate-200"><Edit3 size={16} /></Button>
                           </div>
                        </div>
                     ))}
@@ -430,10 +431,68 @@ export default function AdminMasterHubV10() {
                  </div>
               </div>
            )}
+
+           {activeTab === 'dev_tools' && (
+              <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-700">
+                 <div className="space-y-1">
+                    <h3 className="text-xl font-black uppercase italic tracking-tighter">Developer Hub</h3>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Industrial Build & Asset Signal Management</p>
+                 </div>
+
+                 <div className="grid md:grid-cols-2 gap-8">
+                    <Card className="bg-white border-slate-200 rounded-[2.5rem] p-10 space-y-6 border shadow-sm group">
+                       <div className="h-14 w-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-600 border border-indigo-500/20 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                          <Cpu size={24} />
+                       </div>
+                       <div className="space-y-2">
+                          <h4 className="text-lg font-black uppercase italic">Sketchware Build Support</h4>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed">
+                             Follow the official `SKETCHWARE_GUIDE.md` to import static web assets into your Sketchware project's **Asset Manager**. 
+                          </p>
+                       </div>
+                       <Button asChild variant="outline" className="w-full border-slate-200 rounded-xl font-black text-[10px] uppercase">
+                          <Link href="/SKETCHWARE_GUIDE.md" target="_blank">READ GUIDE</Link>
+                       </Button>
+                    </Card>
+
+                    <Card className="bg-white border-slate-200 rounded-[2.5rem] p-10 space-y-6 border shadow-sm group">
+                       <div className="h-14 w-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-600 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                          <HardDrive size={24} />
+                       </div>
+                       <div className="space-y-2">
+                          <h4 className="text-lg font-black uppercase italic">Asset Registry</h4>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed">
+                             All images and sounds used in the app must be linked via public URLs in the **Identity Hub** or **Master Signals** for real-time synchronization.
+                          </p>
+                       </div>
+                       <Button onClick={() => setActiveTab('signals')} className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl font-black text-[10px] uppercase">
+                          MANAGE SIGNALS
+                       </Button>
+                    </Card>
+                 </div>
+
+                 <Card className="bg-[#0f172a] p-8 rounded-[2.5rem] text-white space-y-4">
+                    <div className="flex items-center gap-3">
+                       <Terminal className="text-indigo-400 h-5 w-5" />
+                       <h4 className="text-sm font-black uppercase tracking-widest italic text-indigo-300">Terminal Commands</h4>
+                    </div>
+                    <div className="grid gap-3">
+                       <div className="bg-black/40 p-4 rounded-xl font-mono text-[10px] flex items-center justify-between group">
+                          <span className="text-slate-400"># Next.js Build</span>
+                          <span className="text-white">npm run build</span>
+                       </div>
+                       <div className="bg-black/40 p-4 rounded-xl font-mono text-[10px] flex items-center justify-between">
+                          <span className="text-slate-400"># Capacitor Sync</span>
+                          <span className="text-white">npx cap sync</span>
+                       </div>
+                    </div>
+                 </Card>
+              </div>
+           )}
         </div>
       </main>
 
-      <Dialog open={!!selectedUser} onOpenChange={() => setSelectedVote(null)}>
+      <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
          <DialogContent className="bg-white border-none rounded-[2.5rem] p-10 max-w-sm" title="Adjust Wallet">
             <DialogHeader className="text-center space-y-2">
                <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto text-primary border border-primary/10 mb-2">
@@ -443,7 +502,7 @@ export default function AdminMasterHubV10() {
             </DialogHeader>
             <div className="space-y-6 py-4">
                <div className="space-y-2">
-                  <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Member Email</p>
+                  <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Member Email</Label>
                   <p className="text-xs font-bold text-slate-800 bg-slate-50 p-4 rounded-xl">{selectedUser?.email}</p>
                </div>
                <div className="space-y-2">
@@ -511,3 +570,4 @@ function PanzeField({ label, value, onUpdate }: any) {
     </div>
   );
 }
+
