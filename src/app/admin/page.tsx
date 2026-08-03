@@ -2,10 +2,11 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection, query, limit, orderBy, increment, where, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, limit, orderBy, increment, where, serverTimestamp, setDoc, getDoc } from 'firebase/firestore';
 import { 
   Loader2, Zap, DollarSign, TrendingUp, Users as UsersIcon, UserCheck, 
-  Palette, Radio, Activity, Layout, BarChart3, Settings, Gauge, CreditCard, Video, Youtube
+  Palette, Radio, Activity, Layout, BarChart3, Settings, Gauge, CreditCard, Video, Youtube,
+  ShieldAlert, ShieldCheck, Fingerprint, Search, Plus, Minus, Ban, CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +15,6 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +31,11 @@ export default function AdminDashboard() {
   
   const [activeTab, setActiveTab] = useState<'analytics' | 'monetization' | 'warriors' | 'branding' | 'signals'>('analytics');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+
+  // Manual Adjustment State
+  const [targetUid, setTargetUid] = useState('');
+  const [adjustAmount, setAdjustAmount] = useState('');
+  const [isAdjusting, setIsAdjusting] = useState(false);
 
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
   const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'platform_stats', 'revenue') : null, [firestore]);
@@ -54,6 +59,40 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleManualAdjustment = async (type: 'add' | 'subtract' | 'ban' | 'unban') => {
+    if (!firestore || !targetUid) return;
+    setIsAdjusting(true);
+    try {
+      const uRef = doc(firestore, 'users', targetUid);
+      const uSnap = await getDoc(uRef);
+      if (!uSnap.exists()) {
+        toast({ variant: "destructive", title: "WARRIOR NOT FOUND" });
+        return;
+      }
+
+      if (type === 'ban' || type === 'unban') {
+        await updateDoc(uRef, { isSuspended: type === 'ban' });
+        toast({ title: "STATUS UPDATED", description: `User ${type === 'ban' ? 'suspended' : 'activated'}.` });
+      } else {
+        const val = parseFloat(adjustAmount);
+        if (isNaN(val)) return;
+        const delta = type === 'add' ? val : -val;
+        await updateDoc(uRef, {
+          coins: increment(delta * 100),
+          walletBalanceINR: increment(delta),
+          winningBalance: increment(delta * 100)
+        });
+        toast({ title: "BALANCE SYNCED", description: `₹${val} ${type === 'add' ? 'added to' : 'deducted from'} wallet.` });
+      }
+      setTargetUid('');
+      setAdjustAmount('');
+    } catch (e) {
+      toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
+    } finally {
+      setIsAdjusting(false);
+    }
+  };
+
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   if (!user || user.email?.toLowerCase() !== ADMIN_EMAIL) return <div className="min-h-screen bg-black text-red-500 flex items-center justify-center font-black uppercase italic tracking-widest text-4xl">Access Denied</div>;
 
@@ -62,7 +101,10 @@ export default function AdminDashboard() {
       <header className="fixed top-0 inset-x-0 h-20 bg-black/60 backdrop-blur-xl border-b border-white/5 z-[100] px-6 flex items-center justify-between">
          <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
-            <p className="text-sm font-black uppercase italic">Industrial <span className="text-primary">Master Hub</span></p>
+            <div className="text-left">
+               <p className="text-sm font-black uppercase italic leading-none">Industrial <span className="text-primary">Master Hub</span></p>
+               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Production Release v6.0</p>
+            </div>
          </div>
          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 shadow-[0_0_20px_rgba(34,197,94,0.1)]">
@@ -99,12 +141,12 @@ export default function AdminDashboard() {
                         <div key={w.id} className="p-6 flex items-center justify-between group hover:bg-white/[0.02]">
                            <div className="flex items-center gap-4">
                               <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center font-black text-primary text-sm">{w.email?.[0].toUpperCase() || 'U'}</div>
-                              <div className="space-y-1">
-                                 <p className="text-xs font-black text-white uppercase italic">{w.email || 'Anonymous'}</p>
-                                 <p className="text-[7px] font-bold text-muted-foreground uppercase flex items-center gap-2">
-                                    <Badge variant="outline" className="text-[6px] py-0 border-white/5">{w.id.substring(0,8)}</Badge>
+                              <div className="space-y-1 text-left">
+                                 <div className="text-xs font-black text-white uppercase italic">{w.email || 'Anonymous'}</div>
+                                 <div className="text-[7px] font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                    <Badge variant="outline" className="text-[6px] py-0 border-white/5 h-auto">{w.id.substring(0,8)}</Badge>
                                     <span>IP: {w.lastIp || 'NO_IP'}</span>
-                                 </p>
+                                 </div>
                               </div>
                            </div>
                            <div className="text-right">
@@ -120,7 +162,6 @@ export default function AdminDashboard() {
 
          {activeTab === 'monetization' && (
             <div className="space-y-10 animate-in fade-in duration-500">
-               {/* DYNAMIC ECONOMY SECTION */}
                <Card className="bg-primary/5 border-primary/20 p-10 rounded-[3rem] border-2 space-y-8">
                   <div className="flex items-center gap-4">
                      <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 text-primary">
@@ -158,10 +199,6 @@ export default function AdminDashboard() {
                         onUpdate={v => updateSetting('userRevenueSharePercent', v)} 
                      />
                   </div>
-                  
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase text-center italic opacity-60">
-                     *Changes reflect instantly in ad-reward and cpa-callback nodes. Default Fallback: 10%.
-                  </p>
                </Card>
 
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -169,6 +206,70 @@ export default function AdminDashboard() {
                     <MonetizationCard key={mon.id} mon={mon} settings={settings} updateSetting={updateSetting} />
                   ))}
                </div>
+            </div>
+         )}
+
+         {activeTab === 'warriors' && (
+            <div className="space-y-10 animate-in fade-in duration-500">
+               {/* MANUAL WALLET OVERRIDE NODE */}
+               <Card className="bg-amber-500/5 border-amber-500/20 p-10 rounded-[3rem] border-2 space-y-8 shadow-2xl">
+                  <div className="flex items-center gap-4">
+                     <div className="h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-500">
+                        <ShieldAlert size={28} />
+                     </div>
+                     <div>
+                        <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Warrior <span className="text-amber-500">Command Node</span></h3>
+                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Manual Wallet Adjustment & Status Overrides</p>
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                     <div className="space-y-2">
+                        <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Target Firebase UID</Label>
+                        <Input value={targetUid} onChange={e => setTargetUid(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl font-mono text-[10px] text-amber-500" placeholder="PASTE UID..." />
+                     </div>
+                     <div className="space-y-2">
+                        <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Adjustment Volume (INR)</Label>
+                        <Input type="number" value={adjustAmount} onChange={e => setAdjustAmount(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl font-black text-xl text-white text-center" placeholder="0.00" />
+                     </div>
+                     <div className="flex items-end gap-3">
+                        <Button onClick={() => handleManualAdjustment('add')} disabled={isAdjusting || !targetUid || !adjustAmount} className="flex-1 h-14 bg-green-600 hover:bg-green-500 rounded-xl font-black uppercase text-[10px]"><Plus className="mr-2 h-4 w-4" /> CREDIT</Button>
+                        <Button onClick={() => handleManualAdjustment('subtract')} disabled={isAdjusting || !targetUid || !adjustAmount} className="flex-1 h-14 bg-red-600 hover:bg-red-500 rounded-xl font-black uppercase text-[10px]"><Minus className="mr-2 h-4 w-4" /> DEDUCT</Button>
+                     </div>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-4 pt-4 border-t border-white/5">
+                     <Button onClick={() => handleManualAdjustment('ban')} variant="outline" className="border-red-600/20 text-red-500 hover:bg-red-600 hover:text-white h-11 px-8 rounded-xl font-black text-[9px] uppercase"><Ban className="mr-2 h-3.5 w-3.5" /> LOCK IDENTITY</Button>
+                     <Button onClick={() => handleManualAdjustment('unban')} variant="outline" className="border-green-600/20 text-green-500 hover:bg-green-500 hover:text-white h-11 px-8 rounded-xl font-black text-[9px] uppercase"><CheckCircle2 className="mr-2 h-3.5 w-3.5" /> ACTIVATE NODE</Button>
+                  </div>
+               </Card>
+
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+                  <div className="p-8 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                     <h3 className="text-sm font-black uppercase tracking-widest italic">Technical Warrior Registry</h3>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                     {warriors?.map(w => (
+                        <div key={w.id} className="p-8 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-white/[0.02]">
+                           <div className="flex items-center gap-6">
+                              <div className="h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center font-black text-primary text-xl">{w.email?.[0].toUpperCase() || 'U'}</div>
+                              <div className="space-y-2 text-left">
+                                 <p className="text-sm font-black text-white uppercase italic">{w.email || 'Anonymous'}</p>
+                                 <div className="flex flex-wrap gap-2">
+                                    <Badge className="bg-black/60 border-white/10 text-[7px] font-bold text-muted-foreground uppercase h-auto">{w.id}</Badge>
+                                    <Badge className="bg-black/60 border-white/10 text-[7px] font-bold text-primary uppercase h-auto">HWID: {w.deviceId || 'NO_HWID'}</Badge>
+                                    <Badge className="bg-black/60 border-white/10 text-[7px] font-bold text-green-500 uppercase h-auto">IP: {w.lastIp || 'NO_IP'}</Badge>
+                                 </div>
+                              </div>
+                           </div>
+                           <div className="text-right">
+                              <p className="text-lg font-black text-primary italic">{(w.coins || 0).toLocaleString()} 🪙</p>
+                              <p className="text-[7px] font-bold text-muted-foreground uppercase italic mt-1">Joined: {new Date(w.joinedAt || '').toLocaleDateString()}</p>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </Card>
             </div>
          )}
 
@@ -216,37 +317,6 @@ export default function AdminDashboard() {
                </Card>
             </div>
          )}
-
-         {activeTab === 'warriors' && (
-            <div className="space-y-10 animate-in fade-in duration-500">
-               <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
-                  <div className="p-8 border-b border-white/5 bg-white/5 flex items-center justify-between">
-                     <h3 className="text-sm font-black uppercase tracking-widest italic">Warrior Technical Registry</h3>
-                  </div>
-                  <div className="divide-y divide-white/5">
-                     {warriors?.map(w => (
-                        <div key={w.id} className="p-8 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-white/[0.02]">
-                           <div className="flex items-center gap-6">
-                              <div className="h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center font-black text-primary text-xl">{w.email?.[0].toUpperCase() || 'U'}</div>
-                              <div className="space-y-2">
-                                 <p className="text-sm font-black text-white uppercase italic">{w.email || 'Anonymous'}</p>
-                                 <div className="flex flex-wrap gap-2">
-                                    <Badge className="bg-black/60 border-white/10 text-[7px] font-bold text-muted-foreground uppercase">{w.id}</Badge>
-                                    <Badge className="bg-black/60 border-white/10 text-[7px] font-bold text-primary uppercase">HWID: {w.deviceId || 'NO_HWID'}</Badge>
-                                    <Badge className="bg-black/60 border-white/10 text-[7px] font-bold text-green-500 uppercase">IP: {w.lastIp || 'NO_IP'}</Badge>
-                                 </div>
-                              </div>
-                           </div>
-                           <div className="text-right">
-                              <p className="text-lg font-black text-primary italic">{(w.coins || 0).toLocaleString()} 🪙</p>
-                              <p className="text-[7px] font-bold text-muted-foreground uppercase italic mt-1">Joined: {new Date(w.joinedAt || '').toLocaleDateString()}</p>
-                           </div>
-                        </div>
-                     ))}
-                  </div>
-               </Card>
-            </div>
-         )}
       </main>
     </div>
   );
@@ -281,8 +351,8 @@ function MonetizationCard({ mon, settings, updateSetting }: any) {
               <Switch checked={!!(settings as any)?.[mon.visibilityKey]} onCheckedChange={(v) => updateSetting(mon.visibilityKey, v)} />
            </div>
            <div className="space-y-1">
-              <h4 className="text-lg font-black uppercase italic tracking-tight truncate">{mon.label}</h4>
-              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{mon.provider}</p>
+              <h4 className="text-lg font-black uppercase italic tracking-tight truncate text-left">{mon.label}</h4>
+              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-left">{mon.provider}</p>
            </div>
         </Card>
     );
@@ -301,7 +371,7 @@ function AnalyticsCard({ label, value, desc, icon }: any) {
       <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-4 shadow-xl border-2 relative overflow-hidden group">
          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-125 transition-transform">{icon}</div>
          <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center shadow-inner border border-white/10">{icon}</div>
-         <div>
+         <div className="text-left">
             <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1 italic">{label}</p>
             <h4 className="text-4xl font-black text-white italic tabular-nums tracking-tighter">{value}</h4>
             <p className="text-[8px] font-bold text-muted-foreground uppercase mt-2 tracking-widest">{desc}</p>
@@ -312,7 +382,7 @@ function AnalyticsCard({ label, value, desc, icon }: any) {
 
 function SignalField({ label, value, onUpdate }: any) {
    return (
-      <div className="space-y-2">
+      <div className="space-y-2 text-left">
          <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">{label}</Label>
          <Input value={value} onChange={e => onUpdate(e.target.value)} className="h-14 bg-black border-white/10 rounded-xl font-mono text-[10px] text-primary" placeholder="SIGNAL_NULL" />
       </div>
