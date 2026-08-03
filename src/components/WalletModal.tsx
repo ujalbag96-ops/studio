@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Wallet, ArrowUpRight, RefreshCw, Loader2, Globe } from 'lucide-react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
-import { UserProfile } from '@/app/lib/types';
+import { UserProfile, AppSettings } from '@/app/lib/types';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
@@ -29,12 +29,15 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   const [convertAmount, setConvertAmount] = useState('');
 
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
+  
   const { data: profile } = useDoc<UserProfile>(userRef);
+  const { data: settings } = useDoc<AppSettings>(settingsRef);
 
   const winningBal = profile?.winningBalance || 0;
   const taskBal = profile?.taskBalance || 0;
   
-  const totalDisplayBalance = formatCurrency(winningBal + taskBal, profile?.country);
+  const totalDisplayBalance = formatCurrency(winningBal + taskBal, profile?.country, settings);
   const isIndia = profile?.country === 'India';
 
   const handleConvertTasks = async () => {
@@ -101,8 +104,8 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-             <BalanceRow label="MISSIONS" value={taskBal} country={profile?.country} color="amber" />
-             <BalanceRow label="WINNINGS" value={winningBal} country={profile?.country} color="green" />
+             <BalanceRow label="MISSIONS" value={taskBal} country={profile?.country} settings={settings} color="amber" />
+             <BalanceRow label="WINNINGS" value={winningBal} country={profile?.country} settings={settings} color="green" />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
@@ -145,7 +148,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
   );
 }
 
-function BalanceRow({ label, value, country, color }: any) {
+function BalanceRow({ label, value, country, settings, color }: any) {
   const colorMap = {
     amber: "text-amber-500 bg-amber-500/5 border-amber-500/20",
     green: "text-green-500 bg-green-500/5 border-green-500/20"
@@ -154,7 +157,7 @@ function BalanceRow({ label, value, country, color }: any) {
   return (
     <div className={cn("p-4 rounded-xl border text-center space-y-1", colorMap[color as keyof typeof colorMap])}>
        <p className="text-[8px] font-black uppercase opacity-60">{label}</p>
-       <h3 className="text-xs font-black tabular-nums">{formatCurrency(value, country)}</h3>
+       <h3 className="text-xs font-black tabular-nums">{formatCurrency(value, country, settings)}</h3>
     </div>
   );
 }

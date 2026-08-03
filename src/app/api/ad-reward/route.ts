@@ -3,7 +3,7 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Industrial Real-Time Dynamic Revenue Share Gateway v8.0
+ * Industrial Real-Time Dynamic Revenue Share Gateway v9.0
  * Calculates rewards dynamically based on Admin Economy Settings.
  */
 export async function POST(request: Request) {
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const settings = settingsSnap.data();
     
     // --- REAL-TIME INDUSTRIAL DYNAMIC CALCULATION ---
-    // Standard industrial revenue per ad signal
+    // Standard industrial revenue per ad signal (Benchmark: ₹0.50)
     const estimatedTotalRevenueINR = 0.50; 
     
     // Fetch dynamic share from Admin Config (Default to 10%)
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       amount: rewardAmountCoins,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Video Node: ${userSharePercent}% Share Processed`,
+      description: `Reward Signal: ${userSharePercent}% Industrial Share Processed`,
       calculation: `Rev: ₹${estimatedTotalRevenueINR.toFixed(2)} | Share: ${userSharePercent}% | Net: ₹${userRewardINR.toFixed(2)}`
     });
 
@@ -80,7 +80,8 @@ export async function POST(request: Request) {
       success: true, 
       credit: rewardAmountCoins,
       rewardINR: userRewardINR,
-      status: `SIGNAL_LOCKED_${userSharePercent}_PERCENT`
+      status: `SIGNAL_LOCKED_${userSharePercent}_PERCENT`,
+      appliedShare: userSharePercent
     });
 
   } catch (error) {
