@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection, query, limit, orderBy, where } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, limit, orderBy, where, increment } from 'firebase/firestore';
 import { 
   Loader2, Zap, DollarSign, TrendingUp, Users as UsersIcon, 
   Palette, Radio, Activity, BarChart3, Settings, CreditCard,
@@ -9,7 +9,7 @@ import {
   Smartphone, Monitor, Package, Target, ArrowRight, CheckCircle2,
   AlertCircle, Layout, PieChart, PlayCircle, Eye, ChevronRight,
   Filter, Ban, UserCheck, BarChart, Youtube, ClipboardList, Coins,
-  Book, GraduationCap, Mail, RefreshCw
+  Book, GraduationCap, Mail, RefreshCw, Edit3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +39,8 @@ export default function AdminMasterHubV10() {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [selectedUser, setSelectedVote] = useState<UserProfile | null>(null);
+  const [adjustAmount, setAdjustAmount] = useState('0');
 
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
   const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'platform_stats', 'revenue') : null, [firestore]);
@@ -61,6 +64,21 @@ export default function AdminMasterHubV10() {
       toast({ variant: "destructive", title: "SYNC FAILED" });
     } finally {
       setIsProcessing(null);
+    }
+  };
+
+  const handleAdjustBalance = async () => {
+    if (!selectedUser || !firestore) return;
+    try {
+       const uRef = doc(firestore, 'users', selectedUser.id);
+       await updateDoc(uRef, {
+          coins: increment(parseInt(adjustAmount)),
+          winningBalance: increment(parseInt(adjustAmount))
+       });
+       toast({ title: "BALANCE ADJUSTED", description: `Credited ${adjustAmount} to ${selectedUser.email}` });
+       setSelectedVote(null);
+    } catch (e) {
+       toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
     }
   };
 
@@ -289,9 +307,12 @@ export default function AdminMasterHubV10() {
                                 </div>
                              </div>
                           </div>
-                          <div className="text-right">
-                             <p className="text-2xl font-black text-primary italic tabular-nums leading-none">{(w.coins || 0).toLocaleString()} <span className="text-xs opacity-40 uppercase tracking-widest ml-1 italic">Coins</span></p>
-                             <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2 italic">Yield Wallet Balance</p>
+                          <div className="flex items-center gap-8">
+                             <div className="text-right">
+                                <p className="text-2xl font-black text-primary italic tabular-nums leading-none">{(w.coins || 0).toLocaleString()} <span className="text-xs opacity-40 uppercase tracking-widest ml-1 italic">Coins</span></p>
+                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2 italic">Yield Wallet Balance</p>
+                             </div>
+                             <Button size="icon" variant="outline" onClick={() => setSelectedVote(w)} className="rounded-xl border-slate-200"><Edit3 size={16} /></Button>
                           </div>
                        </div>
                     ))}
@@ -411,6 +432,30 @@ export default function AdminMasterHubV10() {
            )}
         </div>
       </main>
+
+      <Dialog open={!!selectedUser} onOpenChange={() => setSelectedVote(null)}>
+         <DialogContent className="bg-white border-none rounded-[2.5rem] p-10 max-w-sm" title="Adjust Wallet">
+            <DialogHeader className="text-center space-y-2">
+               <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto text-primary border border-primary/10 mb-2">
+                  <Wallet size={32} />
+               </div>
+               <DialogTitle className="text-xl font-black uppercase italic">Adjust Wallet</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+               <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Member Email</p>
+                  <p className="text-xs font-bold text-slate-800 bg-slate-50 p-4 rounded-xl">{selectedUser?.email}</p>
+               </div>
+               <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Coins to Adjust (+/-)</Label>
+                  <Input type="number" value={adjustAmount} onChange={e => setAdjustAmount(e.target.value)} className="h-14 bg-slate-50 border-none rounded-xl text-center font-black text-xl text-primary" />
+               </div>
+            </div>
+            <DialogFooter>
+               <Button onClick={handleAdjustBalance} className="w-full h-14 bg-primary hover:bg-primary/90 rounded-xl font-black uppercase italic shadow-xl shadow-primary/20">FINALIZE SIGNAL</Button>
+            </DialogFooter>
+         </DialogContent>
+      </Dialog>
     </div>
   );
 }

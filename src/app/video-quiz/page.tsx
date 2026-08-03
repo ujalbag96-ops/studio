@@ -55,7 +55,7 @@ export default function VideoQuizArena() {
 
   const finishVideo = async () => {
     if (watchTime < 15) {
-      toast({ variant: "destructive", title: "REENTION FAILED", description: "Watch at least 15s to unlock quiz." });
+      toast({ variant: "destructive", title: "RETENTION FAILED", description: "Watch at least 15s to unlock quiz." });
       return;
     }
     setGameState('quiz');

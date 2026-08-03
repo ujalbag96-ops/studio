@@ -83,7 +83,7 @@ export default function YoutubeStreamHub() {
          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
             <div className="space-y-2 text-center md:text-left">
                <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter text-white leading-none">YouTube <span className="text-primary">Hub</span></h1>
-               <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest opacity-70">Stream YouTube nodes & earn rewards.</p>
+               <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest opacity-70">Stream YouTube nodes &amp; earn rewards.</p>
             </div>
             
             <Card className="bg-[#0a0a0f] border-white/5 p-4 rounded-2xl flex items-center gap-4 shadow-xl w-full md:w-[500px]">
