@@ -134,7 +134,7 @@ export default function DirectStreamHub() {
             <Card className="bg-[#0a0a0f] border-white/5 p-4 rounded-2xl flex items-center gap-4 shadow-xl w-full md:w-[500px]">
                <div className="relative flex-1">
                   <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary" />
-                  <input value={directUrl} onChange={e => setDirectUrl(e.target.value)} placeholder="PASTE MP4 / DOWNLOAD LINK" className="w-full h-10 bg-black border border-white/10 pl-9 text-[10px] font-bold rounded-xl text-white outline-none focus:border-primary/40" />
+                  <input value={directUrl} onChange={e => setDirectUrl(e.target.value)} placeholder="PASTE MP4 / DOWNLOAD LINK" className="h-10 bg-black border border-white/10 pl-9 text-[10px] font-bold rounded-xl text-white outline-none focus:border-primary/40" />
                </div>
                <Button onClick={handlePlay} className="h-10 bg-primary font-black uppercase italic text-[10px] px-6 rounded-xl shadow-lg">PLAY HUB</Button>
             </Card>
@@ -157,7 +157,7 @@ export default function DirectStreamHub() {
               </div>
               <video 
                 ref={videoRef} 
-                className="w-full h-full object-contain" 
+                className={cn("w-full h-full object-contain", isPlaying ? "opacity-100" : "opacity-40")}
                 style={{ filter: `brightness(${brightness}%)` }} 
                 onEnded={() => { setIsPlaying(false); triggerAdReward(true); }}
                 controls 
@@ -170,7 +170,7 @@ export default function DirectStreamHub() {
          <Card className="bg-[#121212] border-white/5 p-8 rounded-[2.5rem] space-y-6">
             <h3 className="text-xl font-black uppercase italic flex items-center gap-3 text-primary"><ShieldCheck /> Analytics Protocol</h3>
             <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-tight opacity-80">
-               Direct streams are audited in real-time. Signals originating from {geoData?.country_name || 'your region'} are calculated at current local CPM rates.
+               Direct streams are audited in real-time. Signals originating from {geoData?.country_name || 'your region'} are calculated at current local rates.
             </p>
          </Card>
          <Card className="bg-primary/5 border-primary/20 rounded-[2.5rem] p-8 flex flex-col justify-center items-center text-center space-y-4">
