@@ -31,7 +31,7 @@ const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 type AdminTab = 'overview' | 'main_control' | 'members' | 'financials' | 'signals' | 'system' | 'branding' | 'dev_tools';
 
-export default function AdminMasterHubV10() {
+export default function AdminMasterHubV11() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
