@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -30,7 +29,7 @@ const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 type AdminTab = 'overview' | 'earning' | 'members' | 'financials' | 'signals' | 'system' | 'branding';
 
-export default function AdminMasterHubV9() {
+export default function AdminMasterHubV10() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -38,7 +37,7 @@ export default function AdminMasterHubV9() {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const [activeEarningSector, setActiveEarningSector] = useState<MonCategory | 'All'>('All');
+  const [activeEarningSector, setActiveEarningSector] = useState<string>('All');
 
   // Data fetching
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
@@ -82,7 +81,7 @@ export default function AdminMasterHubV9() {
 
   const navItems = [
     { id: 'overview', label: 'Hub Intelligence', icon: <Layout /> },
-    { id: 'earning', label: 'Earning Nodes (100+)', icon: <Zap /> },
+    { id: 'earning', label: 'Main Control Panel', icon: <Zap /> },
     { id: 'members', label: 'Member Registry', icon: <UsersIcon /> },
     { id: 'financials', label: 'Financial Hub', icon: <Wallet /> },
     { id: 'signals', label: 'Master Signals', icon: <Signal /> },
@@ -96,7 +95,7 @@ export default function AdminMasterHubV9() {
         <div className="h-10 w-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20"><Zap className="h-5 w-5 text-white" /></div>
         <div className="text-left">
            <span className="text-sm font-black uppercase italic text-slate-800">Campus<span className="text-primary">Hub</span></span>
-           <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none mt-0.5">Control Hub v9.0</p>
+           <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none mt-0.5">Industrial Hub v10.0</p>
         </div>
       </div>
       <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
@@ -120,10 +119,10 @@ export default function AdminMasterHubV9() {
       <div className="p-8 border-t border-slate-50 bg-slate-50/50 space-y-4">
          <div className="flex items-center gap-3 text-slate-400">
             <ShieldCheck className="h-3 w-3" />
-            <span className="text-[8px] font-bold uppercase tracking-widest">Industrial Protocol v9</span>
+            <span className="text-[8px] font-bold uppercase tracking-widest">Industrial Protocol v10</span>
          </div>
          <Button variant="outline" className="w-full h-10 rounded-xl text-[9px] font-black border-slate-200" asChild>
-            <Link href="/" target="_blank">PREVIEW APP</Link>
+            <Link href="/" target="_blank">PREVIEW HUB</Link>
          </Button>
       </div>
     </div>
@@ -141,8 +140,8 @@ export default function AdminMasterHubV9() {
                   <Button variant="ghost" size="icon" className="lg:hidden hover:bg-slate-100 rounded-xl"><Menu /></Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-72 border-none">
-                  <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
-                  <SheetDescription className="sr-only">Mobile control menu for industrial app management</SheetDescription>
+                  <SheetTitle className="sr-only">Hub Navigation</SheetTitle>
+                  <SheetDescription className="sr-only">Access app controls and hub analytics</SheetDescription>
                   {sidebarContent}
                 </SheetContent>
               </Sheet>
@@ -152,7 +151,7 @@ export default function AdminMasterHubV9() {
            <div className="flex items-center gap-4">
               <div className="hidden sm:flex items-center gap-2 px-5 py-2 rounded-full bg-green-500/10 border border-green-500/20 shadow-inner">
                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                 <span className="text-[9px] font-black uppercase text-green-600 italic tracking-widest">⚡ SIGNAL ACTIVE</span>
+                 <span className="text-[9px] font-black uppercase text-green-600 italic tracking-widest">⚡ HUB SIGNAL ACTIVE</span>
               </div>
               <div className="h-10 w-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-primary italic">A</div>
            </div>
@@ -162,67 +161,44 @@ export default function AdminMasterHubV9() {
            {activeTab === 'overview' && (
               <div className="space-y-10 animate-in fade-in duration-700">
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <PanzeStatCard label="Active Students" value={members?.length || 0} icon={<UsersIcon />} trend="Network Nodes" color="bg-indigo-500" />
-                    <PanzeStatCard label="Gross Signal Income" value={`₹${(stats?.totalGrossRevenueINR || 0).toFixed(2)}`} icon={<DollarSign />} trend="S2S Real-Time" color="bg-emerald-500" />
-                    <PanzeStatCard label="Student Dividends" value={`₹${(stats?.totalUserPayoutsINR || 0).toFixed(2)}`} icon={<Zap />} trend="30% Share Split" color="bg-primary" />
-                    <PanzeStatCard label="Admin Net Margin" value={`₹${(stats?.totalAdminProfitINR || 0).toFixed(2)}`} icon={<TrendingUp />} trend="High Yield Node" color="bg-amber-500" />
+                    <PanzeStatCard label="Active Members" value={members?.length || 0} icon={<UsersIcon />} trend="Real-Time Nodes" color="bg-indigo-500" />
+                    <PanzeStatCard label="Gross Ad Revenue" value={`₹${(stats?.totalGrossRevenueINR || 0).toFixed(2)}`} icon={<DollarSign />} trend="Signal Inflow" color="bg-emerald-500" />
+                    <PanzeStatCard label="Member Payouts" value={`₹${(stats?.totalUserPayoutsINR || 0).toFixed(2)}`} icon={<Zap />} trend="Distributed Dividend" color="bg-primary" />
+                    <PanzeStatCard label="Admin Net Profit" value={`₹${(stats?.totalAdminProfitINR || 0).toFixed(2)}`} icon={<TrendingUp />} trend="High Yield Margin" color="bg-amber-500" />
                  </div>
 
-                 <div className="grid lg:grid-cols-3 gap-8">
-                    <Card className="lg:col-span-2 bg-white border-slate-200 rounded-[3rem] p-10 shadow-sm border group">
-                       <div className="flex items-center justify-between mb-8">
-                          <div className="space-y-1">
-                             <h3 className="text-sm font-black uppercase italic tracking-widest text-slate-400">Warrior Performance Audit</h3>
-                             <p className="text-[9px] font-bold text-slate-300 uppercase">Live Individual Revenue Log</p>
-                          </div>
-                          <Badge variant="outline" className="border-slate-100 uppercase font-black text-[8px] bg-slate-50">Signal Live</Badge>
+                 <Card className="bg-white border-slate-200 rounded-[3rem] p-10 shadow-sm border group">
+                    <div className="flex items-center justify-between mb-8">
+                       <div className="space-y-1">
+                          <h3 className="text-sm font-black uppercase italic tracking-widest text-slate-400">Member Performance Audit</h3>
+                          <p className="text-[9px] font-bold text-slate-300 uppercase">Live Individual Revenue Log</p>
                        </div>
-                       <div className="overflow-x-auto">
-                          <table className="w-full text-left">
-                             <thead>
-                                <tr className="border-b border-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest">
-                                   <th className="pb-4">Student Node</th>
-                                   <th className="pb-4">Revenue (USD)</th>
-                                   <th className="pb-4">Payout (USD)</th>
-                                   <th className="pb-4 text-right">Net Profit</th>
-                                </tr>
-                             </thead>
-                             <tbody className="divide-y divide-slate-50">
-                                {members?.slice(0, 8).map(m => (
-                                   <tr key={m.id} className="text-[10px] font-bold">
-                                      <td className="py-4 text-slate-800 truncate max-w-[150px]">{m.email || m.id.substring(0, 12)}</td>
-                                      <td className="py-4 text-indigo-500 tabular-nums">${m.totalRevenueGenerated?.toFixed(2) || '0.00'}</td>
-                                      <td className="py-4 text-primary tabular-nums">${m.pendingRevenueShare?.toFixed(2) || '0.00'}</td>
-                                      <td className="py-4 text-right text-emerald-600 font-black italic tabular-nums">
-                                         +₹{((m.totalRevenueGenerated || 0) * 80 * 0.7).toFixed(2)}
-                                      </td>
-                                   </tr>
-                                ))}
-                             </tbody>
-                          </table>
-                       </div>
-                    </Card>
-
-                    <div className="space-y-8">
-                       <Card className="bg-white border-slate-200 rounded-[3rem] p-10 shadow-sm border">
-                          <h3 className="text-sm font-black uppercase italic tracking-widest text-slate-400 mb-8">Signal Breakdown</h3>
-                          <div className="space-y-8">
-                             <GeoRow label="CPA Node" value="45%" pct={45} />
-                             <GeoRow label="Video Node" value="35%" pct={35} />
-                             <GeoRow label="YouTube Node" value="20%" pct={20} />
-                          </div>
-                       </Card>
-                       <Card className="bg-primary/5 border-primary/10 rounded-[2rem] p-8 space-y-4">
-                          <div className="flex items-center gap-3">
-                             <Activity className="h-4 w-4 text-primary" />
-                             <span className="text-[10px] font-black uppercase italic text-primary">System Briefing</span>
-                          </div>
-                          <p className="text-[10px] font-bold text-slate-500 leading-relaxed uppercase tracking-tight italic">
-                             APK performance is optimal. Anti-Fraud Shield has flagged 0 proxies in the last 24 hours.
-                          </p>
-                       </Card>
                     </div>
-                 </div>
+                    <div className="overflow-x-auto">
+                       <table className="w-full text-left">
+                          <thead>
+                             <tr className="border-b border-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest">
+                                <th className="pb-4">Member Node</th>
+                                <th className="pb-4">Revenue (USD)</th>
+                                <th className="pb-4">Share (USD)</th>
+                                <th className="pb-4 text-right">Net Profit</th>
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50">
+                             {members?.slice(0, 8).map(m => (
+                                <tr key={m.id} className="text-[10px] font-bold">
+                                   <td className="py-4 text-slate-800 truncate max-w-[150px]">{m.email || m.id.substring(0, 12)}</td>
+                                   <td className="py-4 text-indigo-500 tabular-nums">${m.totalRevenueGenerated?.toFixed(2) || '0.00'}</td>
+                                   <td className="py-4 text-primary tabular-nums">${m.pendingRevenueShare?.toFixed(2) || '0.00'}</td>
+                                   <td className="py-4 text-right text-emerald-600 font-black italic tabular-nums">
+                                      +₹{((m.totalRevenueGenerated || 0) * 80 * 0.7).toFixed(2)}
+                                   </td>
+                                </tr>
+                             ))}
+                          </tbody>
+                       </table>
+                    </div>
+                 </Card>
               </div>
            )}
 
@@ -230,14 +206,14 @@ export default function AdminMasterHubV9() {
               <div className="space-y-10 animate-in fade-in duration-700">
                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
                     <div className="space-y-1">
-                       <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-800">Income Sector Terminal</h3>
-                       <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Controlling 100+ Income Nodes</p>
+                       <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-800">Main Control Panel</h3>
+                       <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Controlling ALL Hub Modules (100+)</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 p-1 bg-white border border-slate-200 rounded-xl">
-                       {['All', 'CPA', 'Ads', 'Surveys', 'MicroTasks', 'Fintech'].map(cat => (
+                       {['All', 'Learning', 'CPA', 'Ads', 'Gaming', 'Fintech', 'System'].map(cat => (
                          <button 
                            key={cat}
-                           onClick={() => setActiveEarningSector(cat as any)} 
+                           onClick={() => setActiveEarningSector(cat)} 
                            className={cn(
                              "px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all", 
                              activeEarningSector === cat ? "bg-primary text-white shadow-lg" : "text-slate-400 hover:bg-slate-50"
@@ -267,20 +243,20 @@ export default function AdminMasterHubV9() {
                               </div>
                            </div>
                            <div>
-                              <h4 className="text-lg font-black uppercase italic truncate tracking-tight text-slate-800">{mon.label}</h4>
-                              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">{mon.provider} Sector</p>
+                              <h4 className="text-sm font-black uppercase italic truncate tracking-tight text-slate-800">{mon.label}</h4>
+                              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">{mon.provider}</p>
                            </div>
                         </div>
 
                         <div className="space-y-5 pt-6 border-t border-slate-50 relative z-10">
                            <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-1.5">
-                                 <Label className="text-[8px] font-black uppercase text-slate-400 ml-1">User Share %</Label>
+                                 <Label className="text-[8px] font-black uppercase text-slate-400 ml-1">Member %</Label>
                                  <Input 
                                    type="number"
                                    defaultValue={(settings as any)?.[`${mon.id}_share`] || 30}
                                    onBlur={e => updateSetting(`${mon.id}_share`, parseFloat(e.target.value))}
-                                   className="h-10 bg-slate-50 border-none font-black text-primary text-sm rounded-xl focus:ring-1 focus:ring-primary/20 text-center"
+                                   className="h-10 bg-slate-50 border-none font-black text-primary text-sm rounded-xl text-center"
                                  />
                               </div>
                               <div className="space-y-1.5">
@@ -289,13 +265,13 @@ export default function AdminMasterHubV9() {
                                    type="number"
                                    defaultValue={(settings as any)?.[`${mon.id}_limit`] || 100}
                                    onBlur={e => updateSetting(`${mon.id}_limit`, parseInt(e.target.value))}
-                                   className="h-10 bg-slate-50 border-none font-black text-slate-700 text-sm rounded-xl focus:ring-1 focus:ring-primary/20 text-center"
+                                   className="h-10 bg-slate-50 border-none font-black text-slate-700 text-sm rounded-xl text-center"
                                  />
                               </div>
                            </div>
                            <div className="flex items-center justify-between">
                               <Badge className="bg-primary/5 text-primary border-none text-[7px] font-black px-2 py-1 uppercase tracking-widest">{mon.category}</Badge>
-                              <Link href={mon.route} target="_blank" className="text-[7px] font-black text-slate-300 hover:text-primary transition-colors uppercase tracking-widest flex items-center gap-1">Check Signal <ArrowRight size={8} /></Link>
+                              <Link href={mon.route} target="_blank" className="text-[7px] font-black text-slate-300 hover:text-primary transition-colors uppercase tracking-widest flex items-center gap-1">Check Hub <ArrowRight size={8} /></Link>
                            </div>
                         </div>
                      </Card>
@@ -311,10 +287,6 @@ export default function AdminMasterHubV9() {
                        <h3 className="text-2xl font-black uppercase italic tracking-tighter">Member Registry</h3>
                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-[0.3em]">Industrial Identity Audit Feed</p>
                     </div>
-                    <div className="flex gap-4 w-full md:w-auto">
-                       <Input placeholder="SEARCH EMAIL / UID / IP..." className="h-11 bg-white border-slate-200 rounded-xl font-bold text-[9px] uppercase tracking-widest flex-1 md:w-64" />
-                       <Button variant="outline" className="rounded-xl font-black text-[9px] uppercase px-6 border-slate-200 h-11 bg-white shadow-sm">Audit All</Button>
-                    </div>
                  </div>
                  <div className="divide-y divide-slate-50 overflow-x-auto">
                     {members?.map(w => (
@@ -327,30 +299,16 @@ export default function AdminMasterHubV9() {
                                 {w.isSuspended && <div className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 border-2 border-white shadow-lg"><Ban size={10} /></div>}
                              </div>
                              <div className="space-y-2">
-                                <div className="flex items-center gap-4">
-                                   <p className="text-sm font-black uppercase italic text-slate-800 tracking-tight">{w.email || 'Anonymous_Node'}</p>
-                                   <Badge variant="outline" className={cn("text-[8px] px-3 h-5 font-black uppercase tracking-widest border-2", w.isSuspended ? "text-red-500 border-red-100 bg-red-50" : "text-emerald-500 border-emerald-100 bg-emerald-50")}>
-                                      {w.isSuspended ? 'SIGNAL BLOCKED' : 'CLEAN IDENTITY'}
-                                   </Badge>
-                                </div>
+                                <p className="text-sm font-black uppercase italic text-slate-800 tracking-tight">{w.email || 'Anonymous_Node'}</p>
                                 <div className="flex flex-wrap gap-4 items-center text-[8px] font-black uppercase text-slate-400 tracking-widest">
                                    <div className="flex items-center gap-2"><Globe size={10} /> IP: {w.lastIp || 'Unknown'}</div>
                                    <div className="flex items-center gap-2"><Monitor size={10} /> UID: {w.id.substring(0, 16)}...</div>
-                                   <div className="flex items-center gap-2 text-indigo-500"><UserCheck size={10} /> INTENT: {w.primaryIntent || 'Earner'}</div>
                                 </div>
                              </div>
                           </div>
-                          <div className="flex items-center gap-10">
-                             <div className="text-right">
-                                <p className="text-2xl font-black text-primary italic tabular-nums leading-none">{(w.coins || 0).toLocaleString()} <span className="text-xs opacity-40 uppercase tracking-widest ml-1 italic">Coins</span></p>
-                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2 italic">Yield Wallet Balance</p>
-                             </div>
-                             <button 
-                              onClick={() => updateDoc(doc(firestore!, 'users', w.id), { isSuspended: !w.isSuspended })}
-                              className="h-12 w-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-white hover:shadow-lg transition-all"
-                             >
-                                <Ban className="h-5 w-5" />
-                             </button>
+                          <div className="text-right">
+                             <p className="text-2xl font-black text-primary italic tabular-nums leading-none">{(w.coins || 0).toLocaleString()} <span className="text-xs opacity-40 uppercase tracking-widest ml-1 italic">Coins</span></p>
+                             <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2 italic">Yield Wallet Balance</p>
                           </div>
                        </div>
                     ))}
@@ -374,14 +332,14 @@ export default function AdminMasterHubV9() {
                            </div>
                            <div className="space-y-1">
                               <p className="text-sm font-black uppercase text-slate-800">{p.userEmail}</p>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                                  {p.method} • {p.destination}
                               </p>
                            </div>
                         </div>
                         <div className="text-center md:text-right">
                            <p className="text-3xl font-black text-slate-800 italic tabular-nums">₹{p.localAmount || (p.coinAmount / 100).toFixed(2)}</p>
-                           <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mt-1">VOL: {p.coinAmount.toLocaleString()} COINS</p>
+                           <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mt-1">VOL: {p.coinAmount?.toLocaleString()} 🪙</p>
                         </div>
                         <div className="flex gap-3 w-full md:w-auto">
                            <Button onClick={() => handleWithdrawalStatus(p.id, 'completed')} className="flex-1 md:w-32 h-12 bg-green-600 hover:bg-green-500 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg shadow-green-600/20">APPROVE</Button>
@@ -403,18 +361,16 @@ export default function AdminMasterHubV9() {
                  <PanzeConfigCard title="Industrial Ad Hub" icon={<Smartphone />}>
                     <div className="space-y-8">
                        <PanzeField label="AdMob App ID" value={settings?.admobAppId} onUpdate={(v: string) => updateSetting('admobAppId', v)} />
-                       <PanzeField label="Rewarded Unit Node ID" value={settings?.admobRewardedUnitId} onUpdate={(v: string) => updateSetting('admobRewardedUnitId', v)} />
+                       <PanzeField label="Rewarded Unit ID" value={settings?.admobRewardedUnitId} onUpdate={(v: string) => updateSetting('admobRewardedUnitId', v)} />
                        <PanzeField label="VAST Multi-Ad Tag URL" value={settings?.vastAdTagUrl} onUpdate={(v: string) => updateSetting('vastAdTagUrl', v)} />
-                       <PanzeField label="CPA Lead API Signal" value={settings?.cpaLeadApiKey} onUpdate={(v: string) => updateSetting('cpaLeadApiKey', v)} />
                     </div>
                  </PanzeConfigCard>
 
                  <PanzeConfigCard title="Master Signal Nodes" icon={<Signal />}>
                     <div className="space-y-8">
                        <PanzeField label="Master YouTube URL" value={settings?.globalYoutubeStreamUrl} onUpdate={(v: string) => updateSetting('globalYoutubeStreamUrl', v)} />
-                       <PanzeField label="Direct Stream URL (MP4/HLS)" value={settings?.globalDirectStreamUrl} onUpdate={(v: string) => updateSetting('globalDirectStreamUrl', v)} />
                        <PanzeField label="YouTube Data API Key" value={settings?.youtubeApiKey} onUpdate={(v: string) => updateSetting('youtubeApiKey', v)} />
-                       <PanzeField label="Push Notification Private Key" value={settings?.pushNotificationKey} onUpdate={(v: string) => updateSetting('pushNotificationKey', v)} />
+                       <PanzeField label="Push Notification Key" value={settings?.pushNotificationKey} onUpdate={(v: string) => updateSetting('pushNotificationKey', v)} />
                     </div>
                  </PanzeConfigCard>
               </div>
@@ -422,9 +378,9 @@ export default function AdminMasterHubV9() {
 
            {activeTab === 'system' && (
               <div className="max-w-2xl mx-auto space-y-10 animate-in slide-in-from-bottom-4 duration-700">
-                 <PanzeConfigCard title="Release Control" icon={<Settings />}>
+                 <PanzeConfigCard title="Hub Control" icon={<Settings />}>
                     <div className="space-y-8">
-                       <PanzeField label="App Release Version" value={settings?.appVersion} onUpdate={(v: string) => updateSetting('appVersion', v)} />
+                       <PanzeField label="Hub Version" value={settings?.appVersion} onUpdate={(v: string) => updateSetting('appVersion', v)} />
                        <PanzeField label="APK Download URL" value={settings?.apkDownloadUrl} onUpdate={(v: string) => updateSetting('apkDownloadUrl', v)} />
                        <div className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
                           <div className="space-y-1">
@@ -434,7 +390,6 @@ export default function AdminMasterHubV9() {
                           <Switch 
                             checked={settings?.maintenanceMode} 
                             onCheckedChange={v => updateSetting('maintenanceMode', v)} 
-                            disabled={isProcessing === 'maintenanceMode'}
                           />
                        </div>
                     </div>
@@ -445,14 +400,14 @@ export default function AdminMasterHubV9() {
            {activeTab === 'branding' && (
               <div className="max-w-4xl mx-auto space-y-10 animate-in slide-in-from-bottom-4 duration-700">
                  <div className="grid md:grid-cols-2 gap-8">
-                    <PanzeConfigCard title="Visual Identity" icon={<Palette />}>
+                    <PanzeConfigCard title="Hub Identity" icon={<Palette />}>
                        <div className="space-y-8">
-                          <PanzeField label="Custom App Name" value={settings?.customAppName} onUpdate={(v: string) => updateSetting('customAppName', v)} />
+                          <PanzeField label="Custom Hub Name" value={settings?.customAppName} onUpdate={(v: string) => updateSetting('customAppName', v)} />
                           <PanzeField label="Master Logo URL" value={settings?.customLogoUrl} onUpdate={(v: string) => updateSetting('customLogoUrl', v)} />
                        </div>
                     </PanzeConfigCard>
 
-                    <PanzeConfigCard title="Theme Preset" icon={<Layers />}>
+                    <PanzeConfigCard title="Theme Engine" icon={<Layers />}>
                        <div className="grid grid-cols-2 gap-4">
                           {MASTER_THEMES.map(theme => (
                             <button 
@@ -460,7 +415,7 @@ export default function AdminMasterHubV9() {
                               onClick={() => updateSetting('currentThemeId', theme.id)}
                               className={cn(
                                 "p-4 rounded-2xl border-2 text-[8px] font-black uppercase tracking-widest transition-all",
-                                settings?.currentThemeId === theme.id ? "bg-primary text-white border-primary shadow-lg" : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
+                                settings?.currentThemeId === theme.id ? "bg-primary text-white border-primary shadow-lg" : "bg-white text-slate-400 border-slate-100"
                               )}
                             >
                                {theme.name}
@@ -479,9 +434,9 @@ export default function AdminMasterHubV9() {
 
 function PanzeStatCard({ label, value, icon, trend, color }: any) {
   return (
-    <Card className="bg-white border-slate-200 p-10 rounded-[3rem] shadow-sm group hover:shadow-xl hover:scale-[1.02] transition-all duration-500 overflow-hidden relative border">
+    <Card className="bg-white border-slate-200 p-10 rounded-[3rem] shadow-sm group hover:shadow-xl transition-all duration-500 overflow-hidden relative border">
        <div className="relative z-10 flex flex-col gap-10">
-          <div className={cn("h-14 w-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl transition-transform group-hover:rotate-6", color)}>{icon}</div>
+          <div className={cn("h-14 w-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl", color)}>{icon}</div>
           <div className="space-y-3">
              <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] italic leading-none">{label}</p>
              <h4 className="text-4xl font-black text-slate-800 italic tracking-tighter tabular-nums leading-none">{value}</h4>
@@ -491,23 +446,9 @@ function PanzeStatCard({ label, value, icon, trend, color }: any) {
              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">{trend}</span>
           </div>
        </div>
-       <div className={cn("absolute -bottom-10 -right-10 h-48 w-48 rounded-full opacity-5 blur-3xl group-hover:opacity-10 transition-opacity", color)} />
+       <div className={cn("absolute -bottom-10 -right-10 h-48 w-48 rounded-full opacity-5 blur-3xl", color)} />
     </Card>
   );
-}
-
-function GeoRow({ label, value, pct }: any) {
-   return (
-      <div className="space-y-4">
-         <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] italic">
-            <span className="text-slate-500">{label}</span>
-            <span className="text-primary">{value}</span>
-         </div>
-         <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 shadow-inner">
-            <div className="h-full bg-primary shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-1000" style={{ width: `${pct}%` }} />
-         </div>
-      </div>
-   );
 }
 
 function PanzeConfigCard({ title, icon, children }: any) {
@@ -536,7 +477,7 @@ function PanzeField({ label, value, onUpdate }: any) {
          value={val}
          onChange={e => setVal(e.target.value)}
          onBlur={() => onUpdate(val)} 
-         className="h-14 bg-slate-50 border-slate-100 rounded-2xl font-bold text-xs text-primary px-8 focus:ring-1 focus:ring-primary/20 focus:border-primary/40 shadow-inner transition-all placeholder:opacity-20" 
+         className="h-14 bg-slate-50 border-slate-100 rounded-2xl font-bold text-xs text-primary px-8 focus:ring-1 focus:ring-primary/20 focus:border-primary/40 shadow-inner" 
          placeholder={`Enter ${label}...`}
        />
     </div>
