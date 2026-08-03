@@ -119,7 +119,7 @@ export default function WalletModal({ children }: { children?: React.ReactNode }
 
           <div className="bg-white/5 border border-white/5 rounded-2xl p-6 space-y-4">
              <div className="flex items-center justify-between">
-                <h4 className="text-[10px] font-black uppercase italic flex items-center gap-2 text-amber-500">
+                <h4 className={cn("text-[10px] font-black uppercase italic flex items-center gap-2 text-amber-500")}>
                   <RefreshCw className={cn("h-4 w-4", isConverting && "animate-spin")} /> Move Revenue to Winnings
                 </h4>
              </div>
