@@ -7,7 +7,7 @@ import {
   Palette, Radio, Activity, BarChart3, Settings, CreditCard,
   ShieldCheck, Globe, Wallet, Menu, Volume2, Layers, Signal,
   Smartphone, Monitor, Package, Target, ArrowRight, CheckCircle2,
-  AlertCircle, Layout, PieChart, PlayCircle, Eye
+  AlertCircle, Layout, PieChart, PlayCircle, Eye, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,21 +15,20 @@ import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { AppSettings, UserProfile, PlatformRevenue } from '../lib/types';
 import { MONETIZATION_REGISTRY } from '../lib/monetization-registry';
 import { MASTER_THEMES } from '../lib/themes';
-import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
+import Link from 'next/link';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
 type AdminTab = 'overview' | 'earning' | 'members' | 'financials' | 'signals' | 'system' | 'branding';
 
-export default function AdminCommandCenterV7() {
+export default function AdminCommandCenterV8() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -66,12 +65,12 @@ export default function AdminCommandCenterV7() {
 
   const navItems = [
     { id: 'overview', label: 'Dashboard Overview', icon: <Layout /> },
-    { id: 'earning', label: 'Earning Hub (100+)', icon: <Zap /> },
+    { id: 'earning', label: 'Earning Sectors (100+)', icon: <Zap /> },
     { id: 'members', label: 'Member Registry', icon: <UsersIcon /> },
-    { id: 'financials', label: 'Payout Approvals', icon: <Wallet /> },
-    { id: 'signals', label: 'Global Ad Signals', icon: <Signal /> },
-    { id: 'system', label: 'Audio & Versioning', icon: <Settings /> },
-    { id: 'branding', label: 'Visual Identity', icon: <Palette /> },
+    { id: 'financials', label: 'Financials Node', icon: <Wallet /> },
+    { id: 'signals', label: 'Global Signals', icon: <Signal /> },
+    { id: 'system', label: 'System Control', icon: <Settings /> },
+    { id: 'branding', label: 'Identity Hub', icon: <Palette /> },
   ];
 
   const sidebarContent = (
@@ -80,7 +79,7 @@ export default function AdminCommandCenterV7() {
         <div className="h-10 w-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20"><Zap className="h-5 w-5 text-white" /></div>
         <div className="text-left">
            <span className="text-sm font-black uppercase italic text-slate-800">Campus<span className="text-primary">Hub</span></span>
-           <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none mt-0.5">Control Hub v7.0</p>
+           <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none mt-0.5">Control Hub v8.0</p>
         </div>
       </div>
       <nav className="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
@@ -123,9 +122,6 @@ export default function AdminCommandCenterV7() {
                   <Button variant="ghost" size="icon" className="lg:hidden hover:bg-slate-100 rounded-xl"><Menu /></Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-72 border-none" title="Admin Navigation" description="Main control menu for industrial app management">
-                  <VisuallyHidden.Root>
-                     <SheetTitle>Admin Menu</SheetTitle>
-                  </VisuallyHidden.Root>
                   {sidebarContent}
                 </SheetContent>
               </Sheet>
@@ -525,24 +521,5 @@ function PanzeField({ label, value, onUpdate }: any) {
          placeholder={`Enter ${label} Key/Signal...`}
        />
     </div>
-  );
-}
-
-function ChevronRight(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
   );
 }

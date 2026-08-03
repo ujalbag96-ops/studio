@@ -1,11 +1,11 @@
-
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 /**
- * Industrial Real-Time Dynamic Revenue Share Gateway v16.0
+ * Industrial Real-Time Dynamic Revenue Share Gateway v17.0
  * Features individual percentage calibration for different stream types.
+ * Fully synchronized with Admin Dashboard manual settings.
  */
 export async function POST(request: Request) {
   try {
@@ -41,16 +41,16 @@ export async function POST(request: Request) {
     const settings = settingsSnap.data();
     
     // --- REAL-TIME INDUSTRIAL PROFIT CALCULATION ---
-    // CPM Bench: ₹0.50 per signal
+    // Standard Signal Revenue Benchmark: ₹0.50
     const estimatedTotalRevenueINR = 0.50; 
     
     // FETCH TYPE-SPECIFIC MANUAL SHARE %
     let userSharePercent = settings?.userRevenueSharePercent || 10;
     
     if (type === 'youtube_stream_signal') {
-       userSharePercent = settings?.youtubeUserSharePercent || userSharePercent;
+       userSharePercent = settings?.youtubeUserSharePercent || settings?.mon_youtube_stream_share || userSharePercent;
     } else if (type === 'direct_stream_signal' || type === 'video_quiz_reward' || type === 'video_ad_signal') {
-       userSharePercent = settings?.videoUserSharePercent || userSharePercent;
+       userSharePercent = settings?.videoUserSharePercent || settings?.mon_direct_stream_share || userSharePercent;
     }
 
     const userRewardINR = estimatedTotalRevenueINR * (userSharePercent / 100); 
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       coins: increment(rewardAmountCoins),
       generalTasksCount: increment(1),
       lastActiveAt: serverTimestamp(),
-      pendingRevenueShare: increment(userRewardINR / 80), // USD Equivalent
+      pendingRevenueShare: increment(userRewardINR / 80), // USD Equivalent for internal tracking
       totalRevenueGenerated: increment(estimatedTotalRevenueINR / 80)
     });
 
@@ -98,6 +98,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
+    console.error('Ad Reward Sync Error:', error);
     return NextResponse.json({ error: 'System Sync Error' }, { status: 500 });
   }
 }
