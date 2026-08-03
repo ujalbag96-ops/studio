@@ -1,10 +1,11 @@
+
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Industrial Real-Time Dynamic Revenue Share Gateway v11.0
- * Calculates rewards dynamically based on Admin Economy Settings.
+ * Industrial Real-Time Dynamic Revenue Share Gateway v12.0
+ * Fully integrated with Admin Economy Hub and Distributed Yield logic.
  */
 export async function POST(request: Request) {
   try {
@@ -33,30 +34,29 @@ export async function POST(request: Request) {
     const settings = settingsSnap.data();
     
     // --- REAL-TIME INDUSTRIAL DYNAMIC CALCULATION ---
-    // Standard industrial revenue per ad signal (Benchmark: ₹0.50)
+    // Industrial standard revenue baseline (Bench: ₹0.50)
     const estimatedTotalRevenueINR = 0.50; 
     
-    // Fetch dynamic share from Admin Config (Requested: 10% User Share)
+    // Fetch live percentage from Admin Hub (Requested logic: 10% Share = ₹0.05)
     const userSharePercent = settings?.userRevenueSharePercent || 10; 
     const adminSharePercent = 100 - userSharePercent;
 
-    // Calculate Net User Reward in INR and then to Coins
     const userRewardINR = estimatedTotalRevenueINR * (userSharePercent / 100); 
     const coinsPerINR = settings?.coinsPerINR || 100; // 1 INR = 100 Coins
     const rewardAmountCoins = Math.floor(userRewardINR * coinsPerINR); 
 
-    const adminProfitINR = estimatedTotalRevenueINR * (adminSharePercent / 100);
+    const adminProfitINR = estimatedTotalRevenueINR - userRewardINR;
 
     // 1. User Wallet Sync (Real-time credit)
     batch.update(userRef, {
       taskBalance: increment(rewardAmountCoins),
       coins: increment(rewardAmountCoins),
       generalTasksCount: increment(1),
-      pendingRevenueShare: increment(userRewardINR / 80), // Track in USD approx for stats
+      pendingRevenueShare: increment(userRewardINR / 80), // Track stats in approximate USD
       totalRevenueGenerated: increment(estimatedTotalRevenueINR / 80)
     });
 
-    // 2. Global Platform Analytics
+    // 2. Global Platform Intelligence Registry
     batch.set(statsRef, {
       totalDailyRevenueINR: increment(estimatedTotalRevenueINR),
       totalAdminProfitINR: increment(adminProfitINR),
@@ -64,14 +64,14 @@ export async function POST(request: Request) {
       lastUpdated: new Date().toISOString()
     }, { merge: true });
 
-    // 3. Industrial Ledger Entry
+    // 3. Industrial S2S Ledger
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
-      type: 'realtime_ad_reward',
+      type: 'distributed_yield',
       amount: rewardAmountCoins,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Reward Signal: ${userSharePercent}% Industrial Share Processed`,
-      calculation: `Rev: ₹${estimatedTotalRevenueINR.toFixed(2)} | Share: ${userSharePercent}% | Net: ₹${userRewardINR.toFixed(2)}`
+      description: `Verified Signal: ${userSharePercent}% Industrial Dividend [${type}]`,
+      calculation: `Signal: ₹${estimatedTotalRevenueINR.toFixed(2)} | Share: ${userSharePercent}%`
     });
 
     await batch.commit();
@@ -81,11 +81,11 @@ export async function POST(request: Request) {
       credit: rewardAmountCoins,
       rewardINR: userRewardINR,
       status: `SIGNAL_LOCKED_${userSharePercent}_PERCENT`,
-      appliedShare: userSharePercent
+      shareEnforced: userSharePercent
     });
 
   } catch (error) {
-    console.error("Revenue Engine Failure:", error);
-    return NextResponse.json({ error: 'Revenue Engine Sync Error' }, { status: 500 });
+    console.error("Economy Node Malfunction:", error);
+    return NextResponse.json({ error: 'System Sync Critical Error' }, { status: 500 });
   }
 }

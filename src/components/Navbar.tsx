@@ -1,7 +1,8 @@
+
 'use client';
 
 import Link from 'next/link';
-import { Home, Zap, Wallet, User, Bell, Trophy, Library, ShoppingBag } from 'lucide-react';
+import { Home, Zap, Wallet, User, Bell, Trophy, Library, ShoppingBag, Radio } from 'lucide-react';
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { Button } from './ui/button';
 import { useRouter, usePathname } from 'next/navigation';
@@ -34,13 +35,13 @@ export default function Navbar() {
             <NavigationDrawer />
             <Link href="/" className="flex items-center gap-2 group">
               {settings?.customLogoUrl ? (
-                <img src={settings.customLogoUrl} className="h-8 w-auto object-contain" alt={appName} />
+                <img src={settings.customLogoUrl} className="h-8 w-auto object-contain transition-transform group-hover:scale-105" alt={appName} />
               ) : (
                 <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
                   <Zap className="h-5 w-5 text-white" />
                 </div>
               )}
-              <span className="text-xl font-black tracking-tighter text-white uppercase italic">
+              <span className="text-xl font-black tracking-tighter text-white uppercase italic group-hover:text-primary transition-colors">
                 {appName.toUpperCase()}
               </span>
             </Link>
@@ -55,6 +56,10 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 mr-2">
+               <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+               <span className="text-[8px] font-black uppercase text-green-500">Node Live</span>
+            </div>
             {user ? (
               <>
                 <Link href="/inbox" className="relative group">
@@ -77,11 +82,13 @@ export default function Navbar() {
       <nav className="md:hidden fixed top-0 left-0 right-0 z-[100] h-16 bg-background/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6">
          <div className="flex items-center gap-4">
             <NavigationDrawer />
-            {settings?.customLogoUrl ? (
-               <img src={settings.customLogoUrl} className="h-7 w-auto object-contain" alt={appName} />
-            ) : (
-               <span className="text-sm font-black italic tracking-tighter text-white uppercase">{appName}</span>
-            )}
+            <Link href="/" className="flex items-center gap-2">
+               {settings?.customLogoUrl ? (
+                  <img src={settings.customLogoUrl} className="h-7 w-auto object-contain" alt={appName} />
+               ) : (
+                  <span className="text-sm font-black italic tracking-tighter text-white uppercase">{appName}</span>
+               )}
+            </Link>
          </div>
          <div className="flex items-center gap-3">
             {user && <WalletModal />}

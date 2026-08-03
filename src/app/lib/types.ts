@@ -64,29 +64,34 @@ export interface AppSettings {
   razorpayAutoPayout: boolean;
   userRevenueSharePercent: number;
   maxDailyVideosPerUser?: number;
-  cpaUserSharePercent?: number;
-  videoUserSharePercent?: number;
-  broadcastMessage?: string;
+  
+  // --- Global API Signals ---
+  admobAppId?: string;
+  admobRewardedUnitId?: string;
+  vastAdTagUrl?: string;
+  youtubeApiKey?: string;
+  pushNotificationKey?: string;
+  cpaLeadApiKey?: string;
   broadcastActive?: boolean;
-  minAppVersion?: string;
-  adminUpiId?: string;
-  automaticGatewayEnabled?: boolean;
-  bookApiUrl?: string;
-  bookApiKey?: string;
-  bookApiCategory?: string;
-  node_book_api_active?: boolean;
-  node_book_download?: boolean;
+  broadcastMessage?: string;
+
+  // --- Sound Engine ---
+  sfxEnabled?: boolean;
+  notifSoundUrl?: string;
+  rewardSoundUrl?: string;
+  payoutSoundUrl?: string;
+
+  // --- Dynamic Branding ---
   currentThemeId?: string;
   customLogoUrl?: string;
   customAppName?: string;
-  festivalModeActive?: boolean;
-  globalRewardSoundUrl?: string;
-  globalNotifSoundUrl?: string;
+  
+  // --- Monetization Settings ---
   coinsPerINR: number;
   coinsPerUSD: number;
-  cpaRewardMultiplier: number;
-  videoRewardRateCoins: number;
-  api_razorpay_active?: boolean;
+  
+  // Dynamic Module Toggles (Visibility Keys are in Module Registry)
+  [key: string]: any;
 }
 
 export interface PlatformRevenue {
@@ -119,15 +124,6 @@ export interface BookMetadata {
   lang: string;
   chapters: number;
   coverUrl: string | null;
-}
-
-export interface Movie {
-  id: string;
-  title: string;
-  poster: string;
-  videoUrl: string;
-  category: string;
-  createdAt: string;
 }
 
 export interface SystemNotification {
@@ -169,22 +165,4 @@ export interface PayoutRequest {
   timestamp: string;
   geo?: string;
   localAmount?: number;
-}
-
-export interface ESportsMatch {
-  id: string;
-  title: string;
-  game: string;
-  status: string;
-  timestamp: string;
-}
-
-export interface ESportsPoll {
-  id: string;
-  matchId: string;
-  question: string;
-  optionA: string;
-  optionB: string;
-  totalPool: number;
-  entryFee: number;
 }
