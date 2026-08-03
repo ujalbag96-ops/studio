@@ -169,7 +169,7 @@ export default function NavigationDrawer() {
                 </div>
                 {user?.email?.toLowerCase() === 'ujalbag96@gmail.com' && (
                   <Link href="/admin" className="flex items-center gap-3 text-[9px] font-black text-primary uppercase italic hover:underline">
-                     <Settings className="h-3 w-3" /> Admin Command Hub
+                     <Settings className="h-3 w-3" /> Admin Hub
                   </Link>
                 )}
              </div>

@@ -1,15 +1,22 @@
-
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, increment, collection, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, increment, collection, getDoc, writeBatch, serverTimestamp, setDoc } from 'firebase/firestore';
 
 /**
- * Industrial Real-Time Dynamic Revenue Share & Analytics Gateway v13.0
- * Updated with auto-calculated profit engine.
+ * Industrial Real-Time Dynamic Revenue Share & Analytics Gateway v14.0
+ * Deep Analytics Tracking Node: Watch Time, Geo, Device, UID.
  */
 export async function POST(request: Request) {
   try {
-    const { userId, type = 'video_ad_signal', watchTimeSec = 0, completed = false, country = 'Unknown', ip = 'Unknown' } = await request.json();
+    const { 
+      userId, 
+      type = 'video_ad_signal', 
+      watchTimeSec = 0, 
+      completed = false, 
+      country = 'Unknown', 
+      ip = 'Unknown',
+      deviceId = 'Unknown_Node' 
+    } = await request.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'Identity Missing' }, { status: 400 });
@@ -34,11 +41,11 @@ export async function POST(request: Request) {
 
     const settings = settingsSnap.data();
     
-    // --- REAL-TIME INDUSTRIAL CALCULATION ---
-    // Standard revenue baseline (Bench: ₹0.50)
+    // --- REAL-TIME INDUSTRIAL PROFIT CALCULATION ---
+    // Standard revenue baseline (Industrial CPM Bench: ₹0.50 per signal)
     const estimatedTotalRevenueINR = 0.50; 
     
-    // Fetch live percentage from Admin Hub
+    // Fetch dynamic percentage from Admin Hub
     const userSharePercent = settings?.userRevenueSharePercent || 10; 
     const userRewardINR = estimatedTotalRevenueINR * (userSharePercent / 100); 
     const adminProfitINR = estimatedTotalRevenueINR - userRewardINR;
@@ -46,16 +53,17 @@ export async function POST(request: Request) {
     const coinsPerINR = settings?.coinsPerINR || 100;
     const rewardAmountCoins = Math.floor(userRewardINR * coinsPerINR); 
 
-    // 1. User Wallet Sync
+    // 1. User Wallet & Task Count Synchronization
     batch.update(userRef, {
       taskBalance: increment(rewardAmountCoins),
       coins: increment(rewardAmountCoins),
       generalTasksCount: increment(1),
-      pendingRevenueShare: increment(userRewardINR / 80), 
+      lastActiveAt: serverTimestamp(),
+      pendingRevenueShare: increment(userRewardINR / 80), // Store USD equivalent for stats
       totalRevenueGenerated: increment(estimatedTotalRevenueINR / 80)
     });
 
-    // 2. Global Platform Intelligence & Profit Calculator
+    // 2. Global Platform Intelligence & Auto-Calculated Profit Ledger
     batch.set(statsRef, {
       totalGrossRevenueINR: increment(estimatedTotalRevenueINR),
       totalUserPayoutsINR: increment(userRewardINR),
@@ -66,25 +74,30 @@ export async function POST(request: Request) {
       lastUpdated: new Date().toISOString()
     }, { merge: true });
 
-    // 3. Analytics Event Logging
+    // 3. Deep Session Analytics Logging
     batch.set(analyticsRef, {
       userId,
-      streamType: type.includes('youtube') ? 'youtube' : 'direct',
+      type,
       watchTimeSec,
       completed,
       country,
       ip,
+      deviceId,
       timestamp: new Date().toISOString()
     });
 
-    // 4. Industrial S2S Ledger
+    // 4. Industrial S2S Verification Ledger
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
       type: 'distributed_yield',
       amount: rewardAmountCoins,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Verified Signal: ${userSharePercent}% Industrial Dividend`,
-      calculation: `Signal: ₹${estimatedTotalRevenueINR.toFixed(2)} | Share: ${userSharePercent}%`
+      description: `Signal Sync: ${userSharePercent}% Industrial Dividend`,
+      metadata: {
+        watchTime: `${watchTimeSec}s`,
+        region: country,
+        source: type
+      }
     });
 
     await batch.commit();
@@ -94,7 +107,7 @@ export async function POST(request: Request) {
       credit: rewardAmountCoins,
       rewardINR: userRewardINR,
       status: `SIGNAL_LOCKED_${userSharePercent}_PERCENT`,
-      shareEnforced: userSharePercent
+      profitNode: 'ACTIVE'
     });
 
   } catch (error) {
