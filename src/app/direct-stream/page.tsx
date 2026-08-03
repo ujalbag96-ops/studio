@@ -128,7 +128,7 @@ export default function DirectStreamHub() {
          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
             <div className="space-y-2 text-center md:text-left">
                <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter text-white leading-none">Direct <span className="text-primary">Stream</span></h1>
-               <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest opacity-70">Analyze custom MP4/M3U8 signals & claim yield.</p>
+               <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest opacity-70">Analyze custom MP4/M3U8 signals &amp; claim yield.</p>
             </div>
             
             <Card className="bg-[#0a0a0f] border-white/5 p-4 rounded-2xl flex items-center gap-4 shadow-xl w-full md:w-[500px]">

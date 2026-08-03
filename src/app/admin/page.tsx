@@ -9,7 +9,7 @@ import {
   Smartphone, Monitor, Package, Target, ArrowRight, CheckCircle2,
   AlertCircle, Layout, PieChart, PlayCircle, Eye, ChevronRight,
   Filter, Ban, UserCheck, BarChart, Youtube, ClipboardList, Coins,
-  Book, GraduationCap
+  Book, GraduationCap, Mail, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +39,6 @@ export default function AdminMasterHubV10() {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
-  // Data fetching
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
   const statsRef = useMemoFirebase(() => firestore ? doc(firestore, 'platform_stats', 'revenue') : null, [firestore]);
   
@@ -312,7 +311,7 @@ export default function AdminMasterHubV10() {
                      <Card key={p.id} className="bg-white border-slate-200 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-8 border shadow-sm hover:shadow-md transition-all">
                         <div className="flex items-center gap-6">
                            <div className="h-16 w-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-primary">
-                              {p.method === 'UPI' ? <Smartphone size={24} /> : <Wallet size={24} />}
+                              {p.method === 'UPI' ? <Smartphone size(24) /> : <Wallet size(24) />}
                            </div>
                            <div className="space-y-1">
                               <p className="text-sm font-black uppercase text-slate-800">{p.userEmail}</p>

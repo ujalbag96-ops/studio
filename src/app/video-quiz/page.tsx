@@ -120,7 +120,7 @@ export default function VideoQuizArena() {
 
       <div className="grid lg:grid-cols-3 gap-10">
          <div className="lg:col-span-2 space-y-8">
-            <Card className="bg-[#050508] border-2 border-white/5 rounded-[3.5rem] overflow-hidden min-h-[450px] flex flex-col items-center justify-center relative shadow-2xl">
+            <Card className="bg-[#050508] border-2 border-white/5 rounded-[3rem] overflow-hidden min-h-[450px] flex flex-col items-center justify-center relative shadow-2xl">
                {gameState === 'idle' && (
                  <div className="text-center space-y-10 animate-in fade-in zoom-in-95 duration-700">
                     <div className="h-32 w-32 rounded-[3rem] bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto shadow-2xl">
@@ -138,7 +138,7 @@ export default function VideoQuizArena() {
                           {watchTime}s
                        </div>
                     </div>
-                    <Button onClick={finishVideo} className="h-16 px-12 bg-white/5 border border-white/10 hover:bg-primary text-white rounded-xl font-black uppercase text-sm">FINISH & AUDIT</Button>
+                    <Button onClick={finishVideo} className="h-16 px-12 bg-white/5 border border-white/10 hover:bg-primary text-white rounded-xl font-black uppercase text-sm">FINISH &amp; AUDIT</Button>
                  </div>
                )}
 
