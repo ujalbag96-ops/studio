@@ -3,7 +3,7 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Industrial Real-Time Revenue Share Gateway v7.0
+ * Industrial Real-Time Dynamic Revenue Share Gateway v8.0
  * Calculates rewards dynamically based on Admin Economy Settings.
  */
 export async function POST(request: Request) {
@@ -27,12 +27,12 @@ export async function POST(request: Request) {
     ]);
 
     if (!userSnap.exists()) {
-      return NextResponse.json({ error: 'Identity Missing' }, { status: 404 });
+      return NextResponse.json({ error: 'Identity Record Missing' }, { status: 404 });
     }
 
     const settings = settingsSnap.data();
     
-    // --- REAL-TIME INDUSTRIAL CALCULATION ---
+    // --- REAL-TIME INDUSTRIAL DYNAMIC CALCULATION ---
     // Standard industrial revenue per ad signal
     const estimatedTotalRevenueINR = 0.50; 
     
@@ -40,9 +40,9 @@ export async function POST(request: Request) {
     const userSharePercent = settings?.userRevenueSharePercent || 10; 
     const adminSharePercent = 100 - userSharePercent;
 
-    // Calculate Net User Reward
+    // Calculate Net User Reward in INR and then to Coins
     const userRewardINR = estimatedTotalRevenueINR * (userSharePercent / 100); 
-    const coinsPerINR = settings?.coinsPerINR || 100;
+    const coinsPerINR = settings?.coinsPerINR || 100; // 1 INR = 100 Coins
     const rewardAmountCoins = Math.floor(userRewardINR * coinsPerINR); 
 
     const adminProfitINR = estimatedTotalRevenueINR * (adminSharePercent / 100);
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       taskBalance: increment(rewardAmountCoins),
       coins: increment(rewardAmountCoins),
       generalTasksCount: increment(1),
-      pendingRevenueShare: increment(userRewardINR / 80), // Track in USD approx
+      pendingRevenueShare: increment(userRewardINR / 80), // Track in USD approx for stats
       totalRevenueGenerated: increment(estimatedTotalRevenueINR / 80)
     });
 
@@ -85,6 +85,6 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error("Revenue Engine Failure:", error);
-    return NextResponse.json({ error: 'Revenue Engine Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Revenue Engine Sync Error' }, { status: 500 });
   }
 }
