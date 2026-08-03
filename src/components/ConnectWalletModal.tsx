@@ -18,7 +18,6 @@ import {
   Copy,
   CheckCircle2,
   ArrowLeft,
-  Smartphone,
   Fingerprint
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -150,7 +149,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                  <button 
                   onClick={() => handleSelection('automatic')}
                   disabled={!settings?.automaticGatewayEnabled}
-                  className="w-full p-6 rounded-2xl bg-primary/10 border border-primary/20 hover:border-primary transition-all group flex items-center justify-between"
+                  className="w-full p-6 rounded-2xl bg-primary/10 border border-primary/20 hover:border-primary transition-all group flex items-center justify-between disabled:opacity-50"
                  >
                     <div className="flex items-center gap-4">
                        <div className="h-14 w-14 rounded-xl bg-primary flex items-center justify-center text-white shadow-xl shadow-primary/20">

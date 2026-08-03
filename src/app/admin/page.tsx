@@ -1,14 +1,14 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection, query, limit, orderBy, increment, deleteDoc, getDoc, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, limit, orderBy, increment, getDoc, addDoc, where } from 'firebase/firestore';
 import { 
-  Loader2, Zap, LayoutGrid, ArrowRightLeft, 
+  Loader2, Zap, LayoutGrid, 
   Search, CheckCircle2, 
-  Star, Volume2, Music, Play, Bell, Eye, EyeOff, BarChart3, TrendingUp,
-  Users as UsersIcon, ShieldAlert, UserCheck, Globe, ShieldX, Terminal, Filter,
-  PieChart, Activity, Fingerprint, MapPin, Calendar, Mail, Lock, Key, CreditCard, 
-  Settings, UserPlus, UserMinus, Check, X
+  TrendingUp,
+  Users as UsersIcon, UserCheck, Globe, ShieldX, Terminal, 
+  CreditCard, 
+  Settings, UserPlus, UserMinus, Check, X, ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +33,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'visibility' | 'warriors' | 'economy' | 'withdrawals'>('visibility');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
-  // Controls State
+  // Economy & User Control State
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [targetUserId, setTargetUserId] = useState('');
   const [walletAmount, setWalletAmount] = useState('');
@@ -51,9 +51,9 @@ export default function AdminDashboard() {
 
   const payoutQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc'), limit(50));
+    return query(collection(firestore, 'payouts'), where('status', '==', 'pending'), limit(50));
   }, [firestore]);
-  const { data: payouts, isLoading: payoutsLoading } = useCollection<PayoutRequest>(payoutQuery);
+  const { data: pendingPayouts, isLoading: payoutsLoading } = useCollection<PayoutRequest>(payoutQuery);
 
   const updateSetting = async (key: string, value: any) => {
     if (!settingsRef) return;
@@ -77,26 +77,28 @@ export default function AdminDashboard() {
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists()) {
-        toast({ variant: "destructive", title: "USER NOT FOUND" });
+        toast({ variant: "destructive", title: "USER NOT FOUND", description: "Verify Firebase UID signal." });
         return;
       }
 
       const finalAmount = type === 'add' ? amount : -amount;
+      const coinConversion = finalAmount * 100;
+
       await updateDoc(userRef, {
-        coins: increment(finalAmount * 100),
-        winningBalance: increment(finalAmount * 100),
+        coins: increment(coinConversion),
+        winningBalance: increment(coinConversion),
         walletBalanceINR: increment(finalAmount)
       });
 
       await addDoc(collection(firestore, 'users', targetUserId, 'ledger'), {
         type: 'admin_adjustment',
-        amount: finalAmount,
+        amount: coinConversion,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
         description: `Admin Manual Adjustment: ${type.toUpperCase()}`
       });
 
-      toast({ title: "WALLET ADJUSTED", description: `Successfully ${type}ed ₹${amount}` });
+      toast({ title: "WALLET ADJUSTED", description: `Successfully processed ₹${amount} signal.` });
       setWalletAmount('');
     } catch (e) {
       toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
@@ -124,7 +126,7 @@ export default function AdminDashboard() {
     setIsProcessing(`payout-${payoutId}`);
     try {
       const payoutRef = doc(firestore, 'payouts', payoutId);
-      await updateDoc(payoutRef, { status });
+      await updateDoc(payoutRef, { status, processedAt: new Date().toISOString() });
       toast({ title: `PAYOUT ${status.toUpperCase()}` });
     } catch (e) {
       toast({ variant: "destructive", title: "ACTION FAILED" });
@@ -149,7 +151,7 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <p className="text-sm font-black uppercase italic">Admin <span className="text-primary">Hub</span></p>
          </div>
-         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-[0.3em]">Industrial Mastery Node v6.0</Badge>
+         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-[0.3em]">Advance Earning Control v1.2</Badge>
       </header>
 
       <main className="pt-28 px-4 md:px-6 space-y-10 max-w-7xl mx-auto">
@@ -164,7 +166,7 @@ export default function AdminDashboard() {
            <div className="space-y-10 animate-in fade-in duration-500">
               <div className="grid md:grid-cols-2 gap-8">
                  <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-8">
-                    <h3 className="text-xl font-black uppercase italic text-primary flex items-center gap-3"><Settings className="h-5 w-5" /> Global Earning Config</h3>
+                    <h3 className="text-xl font-black uppercase italic text-primary flex items-center gap-3"><Settings className="h-5 w-5" /> Global Economy Node</h3>
                     <div className="space-y-6">
                        <div className="space-y-2">
                           <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">User Revenue Share (%)</Label>
@@ -177,9 +179,10 @@ export default function AdminDashboard() {
                              />
                              <Button size="icon" className="h-12 w-12 rounded-xl"><Check className="h-4 w-4" /></Button>
                           </div>
+                          <p className="text-[7px] text-muted-foreground uppercase font-bold italic ml-1">Industrial 10% share recommended for stability.</p>
                        </div>
                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Max Daily Videos Per User</Label>
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Max Daily Ads Limit</Label>
                           <div className="flex gap-3">
                              <Input 
                                type="number" 
@@ -197,7 +200,7 @@ export default function AdminDashboard() {
                     <h3 className="text-xl font-black uppercase italic text-amber-500 flex items-center gap-3"><UserCheck className="h-5 w-5" /> Manual Wallet Overrides</h3>
                     <div className="space-y-4">
                        <Input 
-                          placeholder="TARGET USER ID / EMAIL" 
+                          placeholder="ENTER TARGET USER UID / EMAIL" 
                           value={targetUserId}
                           onChange={e => setTargetUserId(e.target.value)}
                           className="h-12 bg-black border-white/10 rounded-xl text-[10px] font-black uppercase"
@@ -223,30 +226,33 @@ export default function AdminDashboard() {
            <div className="space-y-8 animate-in fade-in duration-500">
               <h2 className="text-4xl font-black uppercase italic tracking-tighter">Settlement <span className="text-primary">Queue</span></h2>
               <div className="grid gap-4">
-                 {payoutsLoading ? <Loader2 className="animate-spin h-10 w-10 mx-auto" /> : payouts?.map(p => (
+                 {payoutsLoading ? <div className="py-20 flex justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div> : pendingPayouts?.map(p => (
                    <Card key={p.id} className="bg-[#0a0a0f] border-white/5 p-6 rounded-2xl flex items-center justify-between group hover:border-primary/20 transition-all">
                       <div className="flex items-center gap-6">
                          <div className="h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center"><CreditCard className="text-primary h-6 w-6" /></div>
                          <div>
                             <p className="text-xs font-black uppercase text-white truncate max-w-[200px]">{p.userEmail || p.userId}</p>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase">{p.method}: {p.destination}</p>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase">{p.method}: <span className="text-primary">{p.destination}</span></p>
                          </div>
                       </div>
                       <div className="flex items-center gap-8">
                          <div className="text-right">
-                            <p className="text-xl font-black text-green-500 italic">₹{p.amount}</p>
-                            <Badge className={cn("text-[7px] font-black uppercase", p.status === 'completed' ? "bg-green-600" : "bg-yellow-600")}>{p.status}</Badge>
+                            <p className="text-xl font-black text-green-500 italic">₹{p.localAmount || (p.amount / 100)}</p>
+                            <Badge className="bg-yellow-600 text-[7px] font-black uppercase">PENDING AUDIT</Badge>
                          </div>
-                         {p.status === 'pending' && (
-                           <div className="flex gap-2">
-                              <Button onClick={() => handlePayoutAction(p.id, 'completed')} size="icon" className="bg-green-600 h-10 w-10 rounded-lg"><Check className="h-4 w-4" /></Button>
-                              <Button onClick={() => handlePayoutAction(p.id, 'rejected')} size="icon" className="bg-red-600 h-10 w-10 rounded-lg"><X className="h-4 w-4" /></Button>
-                           </div>
-                         )}
+                         <div className="flex gap-2">
+                            <Button onClick={() => handlePayoutAction(p.id, 'completed')} size="icon" className="bg-green-600 hover:bg-green-500 h-10 w-10 rounded-lg"><Check className="h-4 w-4" /></Button>
+                            <Button onClick={() => handlePayoutAction(p.id, 'rejected')} size="icon" className="bg-red-600 hover:bg-red-500 h-10 w-10 rounded-lg"><X className="h-4 w-4" /></Button>
+                         </div>
                       </div>
                    </Card>
                  ))}
-                 {payouts?.length === 0 && <p className="text-center py-20 text-muted-foreground uppercase font-black text-xs">No pending requests.</p>}
+                 {pendingPayouts?.length === 0 && (
+                   <div className="py-32 text-center space-y-4 border-2 border-dashed border-white/5 rounded-[2.5rem] opacity-30">
+                      <CreditCard className="h-12 w-12 mx-auto" />
+                      <p className="text-sm font-black uppercase tracking-widest">No pending withdrawal signals.</p>
+                   </div>
+                 )}
               </div>
            </div>
          )}
@@ -256,14 +262,14 @@ export default function AdminDashboard() {
                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                   <div className="space-y-2">
                      <h2 className="text-4xl font-black uppercase italic tracking-tighter">Warrior <span className="text-primary">Registry</span></h2>
-                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Identity & Technical Security Audit Log</p>
+                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Identity & Security Audit Node</p>
                   </div>
                   <div className="relative w-full md:w-80">
                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                      <Input 
                        value={userSearchTerm}
                        onChange={e => setUserSearchTerm(e.target.value)}
-                       placeholder="SEARCH GMAIL, UID, CODE..." 
+                       placeholder="SEARCH UID, GMAIL, CODE..." 
                        className="h-12 bg-black border-white/10 rounded-xl pl-12 font-black uppercase text-[10px] tracking-widest"
                      />
                   </div>
@@ -282,31 +288,26 @@ export default function AdminDashboard() {
                             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
                                <div className="flex items-center gap-6">
                                   <div className={cn(
-                                    "h-20 w-20 rounded-[1.5rem] flex items-center justify-center font-black text-3xl shadow-2xl transition-transform group-hover:rotate-3",
+                                    "h-20 w-20 rounded-[1.5rem] flex items-center justify-center font-black text-3xl shadow-2xl",
                                     w.isSuspended ? "bg-red-500/10 text-red-500" : "bg-primary/10 text-primary border border-primary/20"
                                   )}>
                                      {w.email?.[0].toUpperCase() || 'U'}
                                   </div>
-                                  <div className="space-y-3">
+                                  <div className="space-y-2">
                                      <div className="flex items-center gap-3">
-                                        <p className="text-xl font-black uppercase italic text-white truncate max-w-[300px]">{w.email || 'Anonymous Warrior'}</p>
+                                        <p className="text-xl font-black uppercase italic text-white truncate max-w-[250px]">{w.email || 'Anonymous Warrior'}</p>
                                         <Badge variant="outline" className="text-[8px] font-black uppercase border-white/10">{w.rank || 'Bronze'}</Badge>
                                      </div>
-                                     <div className="flex flex-wrap gap-2">
-                                        <Badge className="bg-white/5 text-muted-foreground border-none text-[8px] font-black uppercase px-2 italic flex items-center gap-1">
-                                           <Key className="h-2.5 w-2.5 text-primary" /> UID: {w.id}
-                                        </Badge>
-                                        <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] font-black uppercase px-2 italic flex items-center gap-1">
-                                           <Lock className="h-2.5 w-2.5" /> PWD: ENCRYPTED_NODE
-                                        </Badge>
-                                     </div>
+                                     <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                        <Terminal className="h-3 w-3 text-primary" /> UID: <span className="text-white font-mono">{w.id}</span>
+                                     </p>
                                   </div>
                                </div>
 
                                <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
                                   <UserHisaab label="Coin Pulse" value={w.coins?.toLocaleString()} unit="🪙" />
                                   <UserHisaab label="Mission Yield" value={w.taskBalance?.toLocaleString()} unit="🪙" />
-                                  <UserHisaab label="Rev Share" value={`$${(w.pendingRevenueShare || 0).toFixed(2)}`} />
+                                  <UserHisaab label="Win Box" value={w.winningBalance?.toLocaleString()} unit="🪙" />
                                   <UserHisaab label="Recruits" value={w.totalReferrals || 0} />
                                </div>
 
@@ -325,16 +326,9 @@ export default function AdminDashboard() {
                                       w.isSuspended ? "border-green-500/20 text-green-500 hover:bg-green-500/10" : "border-red-500/20 text-red-500 hover:bg-red-500/10"
                                     )}
                                   >
-                                     {isProcessing === `suspend-${w.id}` ? <Loader2 className="animate-spin" /> : w.isSuspended ? <UserCheck /> : <ShieldX />}
+                                     {isProcessing === `suspend-${w.id}` ? <Loader2 className="animate-spin" /> : w.isSuspended ? <UserCheck /> : <ShieldAlert />}
                                   </button>
                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-6 border-t border-white/5 bg-white/[0.02] -mx-8 px-8 pb-4">
-                               <AuditItem icon={<Fingerprint className="text-primary h-3 w-3" />} label="Device Identity" value={w.deviceId || 'NOT_SYNCED'} />
-                               <AuditItem icon={<MapPin className="text-amber-500 h-3 w-3" />} label="Last Linked IP" value={w.lastIp || '0.0.0.0'} />
-                               <AuditItem icon={<Globe className="text-blue-500 h-3 w-3" />} label="Geo Region" value={`${w.geo_region || 'Global'} (${w.country || 'Unknown'})`} />
-                               <AuditItem icon={<Calendar className="text-green-500 h-3 w-3" />} label="Joined Arena" value={w.joinedAt ? new Date(w.joinedAt).toLocaleString() : 'Legacy'} />
                             </div>
                          </div>
                       </Card>
@@ -402,18 +396,6 @@ function UserHisaab({ label, value, unit }: any) {
       <div className="bg-black/40 p-4 rounded-xl border border-white/5 text-center">
          <p className="text-[7px] font-black uppercase text-muted-foreground tracking-tighter mb-0.5">{label}</p>
          <p className="text-sm font-black text-white italic tabular-nums">{value} <span className="text-[8px] opacity-40">{unit}</span></p>
-      </div>
-   );
-}
-
-function AuditItem({ icon, label, value }: { icon: any, label: string, value: string }) {
-   return (
-      <div className="space-y-1">
-         <div className="flex items-center gap-2">
-            <span className="opacity-50">{icon}</span>
-            <p className="text-[7px] font-black uppercase text-muted-foreground tracking-widest">{label}</p>
-         </div>
-         <p className="text-[10px] font-bold text-white truncate px-2 bg-white/5 rounded border border-white/5 py-1.5">{value}</p>
       </div>
    );
 }
