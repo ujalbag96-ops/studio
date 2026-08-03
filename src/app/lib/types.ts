@@ -1,3 +1,4 @@
+
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
 export type LanguageCode = 'en' | 'or' | 'hi' | 'bn' | 'te' | 'ta' | 'mr' | 'es' | 'fr' | 'de';
 export type UserIntent = 'student' | 'earner';
@@ -157,23 +158,6 @@ export interface Tournament {
   };
 }
 
-export interface Registration {
-  id: string;
-  userId: string;
-  tournamentId: string;
-  gameId: string;
-  joinedAt: string;
-  feePaid: number;
-}
-
-export interface LeaderboardEntry {
-  id: string;
-  userId: string;
-  userEmail: string;
-  score: number;
-  lastUpdated: string;
-}
-
 export interface PayoutRequest {
   id: string;
   userId: string;
@@ -185,70 +169,6 @@ export interface PayoutRequest {
   timestamp: string;
   geo?: string;
   localAmount?: number;
-}
-
-export interface MarketAsset {
-  id: string;
-  title: string;
-  category: string;
-  price: number;
-  authorId: string;
-  authorName: string;
-  downloads: number;
-  timestamp: string;
-}
-
-export interface StudyBuddySession {
-  id: string;
-  topic: string;
-  studentId: string;
-  studentEmail: string;
-  teacherId: string | null;
-  status: 'searching' | 'active' | 'completed';
-  timestamp: string;
-}
-
-export interface CricketMatch {
-  id: string;
-  teamA: string;
-  teamB: string;
-  teamALogo: string;
-  teamBLogo: string;
-  startTime: string;
-  status: 'live' | 'upcoming' | 'completed';
-  series: string;
-  liveScore?: {
-    runsA: string;
-    runsB: string;
-    overs: string;
-    target?: string;
-    lastBalls?: string[];
-  };
-  winner?: string;
-}
-
-export interface PredictionPoll {
-  id: string;
-  question: string;
-  category: string;
-  expiry: string;
-  totalPool: number;
-  entryFee: number;
-  timestamp: string;
-}
-
-export interface Match {
-  id: string;
-  tournamentId: string;
-  teamA: { id: string; name: string; logo: string };
-  teamB: { id: string; name: string; logo: string };
-  scoreA: number;
-  scoreB: number;
-  status: 'live' | 'scheduled' | 'completed';
-  startTime: string;
-  description: string;
-  votesA?: number;
-  votesB?: number;
 }
 
 export interface ESportsMatch {

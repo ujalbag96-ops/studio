@@ -41,11 +41,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'visibility' | 'warriors' | 'economy' | 'withdrawals' | 'branding'>('visibility');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
-  // Economy & User Control State
   const [targetUserId, setTargetUserId] = useState('');
   const [walletAmount, setWalletAmount] = useState('');
-
-  // Branding State
   const [brandingName, setBrandingName] = useState('');
   const [brandingLogo, setBrandingLogo] = useState('');
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -409,7 +406,7 @@ export default function AdminDashboard() {
 
                        <div className="space-y-3">
                           <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-2">
-                             <Layers className="h-3 w-3" /> UI Theme Node
+                             <Layers className="h-3 w-3" /> UI Theme Node (12 Master Themes)
                           </Label>
                           <Select 
                             value={settings?.currentThemeId || 'dark-default'} 
