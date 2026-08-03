@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -141,7 +140,7 @@ export default function WatchToEarnMovie() {
     }
   }, [isPlaying, streamType]);
 
-  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-10 pb-32">
@@ -158,7 +157,7 @@ export default function WatchToEarnMovie() {
          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
             <div className="space-y-2 text-center md:text-left">
                <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter text-white leading-none">Stream <span className="text-primary">Node</span></h1>
-               <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest opacity-70">Analyze custom signals & claim industrial share.</p>
+               <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest opacity-70">Analyze custom signals &amp; claim industrial share.</p>
             </div>
             
             <div className="grid gap-4 w-full md:w-[500px]">
@@ -216,7 +215,7 @@ export default function WatchToEarnMovie() {
                   <h2 className="text-3xl font-black uppercase italic tracking-tighter">Distributed <span className="text-primary">Yield</span></h2>
                </div>
                <p className="text-muted-foreground text-sm leading-relaxed font-medium uppercase tracking-tight opacity-80">
-                  CampusHub utilizes a 90/10 split protocol. 90% of industrial ad revenue powers the platform infrastructure, while 10% is distributed directly to the warrior wallet for every verified ad signal.
+                  CampusHub utilizes a 90/10 split protocol. 90% of industrial ad revenue powers the platform infrastructure, while 10% is distributed directly to the wallet for every verified ad signal.
                </p>
             </div>
          </div>
@@ -229,7 +228,7 @@ export default function WatchToEarnMovie() {
                   <h3 className="text-2xl font-black uppercase italic">Revenue Node</h3>
                   <div className="space-y-5">
                      <StatRow label="Estimated Revenue" value="₹0.50" />
-                     <StatRow label="Warrior Share" value="10%" />
+                     <StatRow label="User Share" value="10%" />
                      <StatRow label="Distributed Yield" value="₹0.05" />
                   </div>
                </div>
@@ -240,6 +239,7 @@ export default function WatchToEarnMovie() {
                <ul className="space-y-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
                   <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Rewards are credited after ad verification.</li>
                   <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> VPN signals will result in revenue block.</li>
+                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" /> Minimum session &gt; 5 minutes required.</li>
                </ul>
             </Card>
          </div>

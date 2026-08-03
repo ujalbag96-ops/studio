@@ -1,14 +1,15 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection, query, limit, orderBy, increment, where } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, limit, orderBy, where } from 'firebase/firestore';
 import { 
   Loader2, Zap, DollarSign, TrendingUp, Users as UsersIcon, 
   Palette, Radio, Activity, BarChart3, Settings, CreditCard,
   ShieldCheck, Globe, Wallet, Menu, Volume2, Layers, Signal,
   Smartphone, Monitor, Package, Target, ArrowRight, CheckCircle2,
   AlertCircle, Layout, PieChart, PlayCircle, Eye, ChevronRight,
-  Filter, Ban, UserCheck, BarChart, Youtube, ClipboardList, Coins
+  Filter, Ban, UserCheck, BarChart, Youtube, ClipboardList, Coins,
+  Book, GraduationCap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,14 +21,14 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from 
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { AppSettings, UserProfile, PlatformRevenue, MonCategory } from '../lib/types';
+import { AppSettings, UserProfile, PlatformRevenue } from '../lib/types';
 import { MONETIZATION_REGISTRY } from '../lib/monetization-registry';
 import { MASTER_THEMES } from '../lib/themes';
 import Link from 'next/link';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-type AdminTab = 'overview' | 'earning' | 'members' | 'financials' | 'signals' | 'system' | 'branding';
+type AdminTab = 'overview' | 'main_control' | 'members' | 'financials' | 'signals' | 'system' | 'branding';
 
 export default function AdminMasterHubV10() {
   const { user, isUserLoading } = useUser();
@@ -37,7 +38,6 @@ export default function AdminMasterHubV10() {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const [activeEarningSector, setActiveEarningSector] = useState<string>('All');
 
   // Data fetching
   const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
@@ -81,7 +81,7 @@ export default function AdminMasterHubV10() {
 
   const navItems = [
     { id: 'overview', label: 'Hub Intelligence', icon: <Layout /> },
-    { id: 'earning', label: 'Main Control Panel', icon: <Zap /> },
+    { id: 'main_control', label: 'Main Control Panel', icon: <Zap /> },
     { id: 'members', label: 'Member Registry', icon: <UsersIcon /> },
     { id: 'financials', label: 'Financial Hub', icon: <Wallet /> },
     { id: 'signals', label: 'Master Signals', icon: <Signal /> },
@@ -202,31 +202,15 @@ export default function AdminMasterHubV10() {
               </div>
            )}
 
-           {activeTab === 'earning' && (
+           {activeTab === 'main_control' && (
               <div className="space-y-10 animate-in fade-in duration-700">
-                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-                    <div className="space-y-1">
-                       <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-800">Main Control Panel</h3>
-                       <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Controlling ALL Hub Modules (100+)</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 p-1 bg-white border border-slate-200 rounded-xl">
-                       {['All', 'Learning', 'CPA', 'Ads', 'Gaming', 'Fintech', 'System'].map(cat => (
-                         <button 
-                           key={cat}
-                           onClick={() => setActiveEarningSector(cat)} 
-                           className={cn(
-                             "px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all", 
-                             activeEarningSector === cat ? "bg-primary text-white shadow-lg" : "text-slate-400 hover:bg-slate-50"
-                           )}
-                         >
-                            {cat}
-                         </button>
-                       ))}
-                    </div>
+                 <div className="space-y-1 px-2">
+                    <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-800">Main Control Panel</h3>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Unified Hub Sector Toggles & Manual Calibration</p>
                  </div>
 
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                   {MONETIZATION_REGISTRY.filter(m => activeEarningSector === 'All' || m.category === activeEarningSector).map(mon => (
+                   {MONETIZATION_REGISTRY.map(mon => (
                      <Card key={mon.id} className="bg-white border-slate-100 p-8 rounded-[2.5rem] space-y-8 border hover:shadow-2xl hover:border-primary/20 transition-all group relative overflow-hidden flex flex-col justify-between">
                         <div className="relative z-10">
                            <div className="flex items-center justify-between mb-6">
@@ -271,7 +255,7 @@ export default function AdminMasterHubV10() {
                            </div>
                            <div className="flex items-center justify-between">
                               <Badge className="bg-primary/5 text-primary border-none text-[7px] font-black px-2 py-1 uppercase tracking-widest">{mon.category}</Badge>
-                              <Link href={mon.route} target="_blank" className="text-[7px] font-black text-slate-300 hover:text-primary transition-colors uppercase tracking-widest flex items-center gap-1">Check Hub <ArrowRight size={8} /></Link>
+                              <Link href={mon.route} target="_blank" className="text-[7px] font-black text-slate-300 hover:text-primary transition-colors uppercase tracking-widest flex items-center gap-1">Check Signal <ArrowRight size={8} /></Link>
                            </div>
                         </div>
                      </Card>

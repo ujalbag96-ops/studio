@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -15,6 +14,7 @@
         "depositBalance": { "type": "number" },
         "walletBalanceINR": { "type": "number" },
         "pendingRevenueShare": { "type": "number" },
+        "totalRevenueGenerated": { "type": "number" },
         "country": { "type": "string" },
         "geo_region": { "type": "string" },
         "rank": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Elite"] },
@@ -42,14 +42,22 @@
         "reviewMode": { "type": "boolean" },
         "autoWithdrawalEnabled": { "type": "boolean" },
         "razorpayAutoPayout": { "type": "boolean" },
-        "userRevenueSharePercent": { "type": "number", "default": 30 },
+        "userRevenueSharePercent": { "type": "number" },
+        "cpaUserSharePercent": { "type": "number" },
+        "videoUserSharePercent": { "type": "number" },
+        "youtubeUserSharePercent": { "type": "number" },
+        "admobAppId": { "type": "string" },
+        "admobRewardedUnitId": { "type": "string" },
+        "vastAdTagUrl": { "type": "string" },
+        "youtubeApiKey": { "type": "string" },
+        "globalYoutubeStreamUrl": { "type": "string" },
+        "appVersion": { "type": "string" },
+        "apkDownloadUrl": { "type": "string" },
         "node_scholar_dividend": { "type": "boolean" },
         "node_tutor_visible": { "type": "boolean" },
         "node_global_cpa": { "type": "boolean" },
         "node_quiz_arena": { "type": "boolean" },
-        "node_daily_streak_visible": { "type": "boolean" },
-        "node_referral_engine": { "type": "boolean" },
-        "node_book_download": { "type": "boolean" }
+        "node_referral_engine": { "type": "boolean" }
       }
     }
   },
