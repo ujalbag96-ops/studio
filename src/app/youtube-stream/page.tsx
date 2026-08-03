@@ -111,7 +111,7 @@ export default function YoutubeStreamHub() {
          <Card className="bg-[#121212] border-white/5 p-10 rounded-[2.5rem] space-y-6">
             <h3 className="text-xl font-black uppercase italic flex items-center gap-3 text-red-500"><ShieldCheck /> Content Lock Policy</h3>
             <ul className="space-y-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-               <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Rewards valid for sessions > 5 minutes.</li>
+               <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Rewards valid for sessions &gt; 5 minutes.</li>
                <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Multi-tab streaming will void reward signals.</li>
                <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Dynamic 10% share credited instantly.</li>
             </ul>
