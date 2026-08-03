@@ -62,6 +62,7 @@ export interface AppSettings {
   autoWithdrawalEnabled: boolean;
   razorpayAutoPayout: boolean;
   userRevenueSharePercent: number;
+  maxDailyVideosPerUser?: number;
   cpaUserSharePercent?: number;
   videoUserSharePercent?: number;
   broadcastMessage?: string;
@@ -170,6 +171,18 @@ export interface LeaderboardEntry {
   userEmail: string;
   score: number;
   lastUpdated: string;
+}
+
+export interface PayoutRequest {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  amount: number;
+  method: string;
+  destination: string;
+  status: 'pending' | 'completed' | 'rejected';
+  timestamp: string;
+  geo?: string;
 }
 
 export interface MarketAsset {

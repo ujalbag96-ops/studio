@@ -1,11 +1,10 @@
-
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Industrial Revenue Share Gateway v5.0
- * Real-time Money Calculation: Ad Revenue = ₹0.50 | User Reward (10%) = ₹0.05
+ * Industrial Revenue Share Gateway v6.0
+ * Real-time dynamic calculation based on Admin Global Settings.
  */
 export async function POST(request: Request) {
   try {
@@ -33,24 +32,23 @@ export async function POST(request: Request) {
 
     const settings = settingsSnap.data();
     
-    // --- REAL-TIME INDUSTRIAL CALCULATION ---
-    // Ad Revenue per session: ₹0.50
+    // --- REAL-TIME INDUSTRIAL CALCULATION (Dynamic) ---
     const estimatedTotalRevenueINR = 0.50; 
-    const userSharePercent = 10; 
-    const adminSharePercent = 90;
+    const userSharePercent = settings?.userRevenueSharePercent || 10; 
+    const adminSharePercent = 100 - userSharePercent;
 
-    const userRewardINR = estimatedTotalRevenueINR * (userSharePercent / 100); // ₹0.05
+    const userRewardINR = estimatedTotalRevenueINR * (userSharePercent / 100); 
     const coinsPerINR = settings?.coinsPerINR || 100;
-    const rewardAmountCoins = Math.floor(userRewardINR * coinsPerINR); // 5 Coins
+    const rewardAmountCoins = Math.floor(userRewardINR * coinsPerINR); 
 
-    const adminProfitINR = estimatedTotalRevenueINR * (adminSharePercent / 100); // ₹0.45
+    const adminProfitINR = estimatedTotalRevenueINR * (adminSharePercent / 100);
 
     // 1. User Wallet Sync (Real-time credit)
     batch.update(userRef, {
       taskBalance: increment(rewardAmountCoins),
       coins: increment(rewardAmountCoins),
       generalTasksCount: increment(1),
-      pendingRevenueShare: increment(userRewardINR / 80), // Store USD equivalent
+      pendingRevenueShare: increment(userRewardINR / 80), 
       totalRevenueGenerated: increment(estimatedTotalRevenueINR / 80)
     });
 
@@ -62,14 +60,14 @@ export async function POST(request: Request) {
       lastUpdated: new Date().toISOString()
     }, { merge: true });
 
-    // 3. Industrial Encrypted Ledger
+    // 3. Industrial Ledger
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
       type: 'realtime_ad_reward',
       amount: rewardAmountCoins,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Video Node: 10% Revenue Share Locked (+${rewardAmountCoins} 🪙)`,
-      calculation: `Rev: ₹0.50 | Share: 10% | Net: ₹0.05`
+      description: `Video Node: ${userSharePercent}% Revenue Share Locked (+${rewardAmountCoins} 🪙)`,
+      calculation: `Rev: ₹${estimatedTotalRevenueINR.toFixed(2)} | Share: ${userSharePercent}% | Net: ₹${userRewardINR.toFixed(2)}`
     });
 
     await batch.commit();
@@ -78,7 +76,7 @@ export async function POST(request: Request) {
       success: true, 
       credit: rewardAmountCoins,
       rewardINR: userRewardINR,
-      status: `SIGNAL_LOCKED_10_PERCENT`
+      status: `SIGNAL_LOCKED_${userSharePercent}_PERCENT`
     });
 
   } catch (error) {

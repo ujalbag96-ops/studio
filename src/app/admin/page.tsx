@@ -1,24 +1,25 @@
-
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection, query, limit, orderBy } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, limit, orderBy, increment, deleteDoc, getDoc, writeBatch } from 'firebase/firestore';
 import { 
   Loader2, Zap, LayoutGrid, ArrowRightLeft, 
   Search, CheckCircle2, 
   Star, Volume2, Music, Play, Bell, Eye, EyeOff, BarChart3, TrendingUp,
   Users as UsersIcon, ShieldAlert, UserCheck, Globe, ShieldX, Terminal, Filter,
-  PieChart, Activity, Fingerprint, MapPin, Calendar, Mail, Lock, Key
+  PieChart, Activity, Fingerprint, MapPin, Calendar, Mail, Lock, Key, CreditCard, 
+  Settings, UserPlus, UserMinus, Check, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { AppSettings, UserProfile } from '../lib/types';
+import { AppSettings, UserProfile, PayoutRequest } from '../lib/types';
 import { MODULE_REGISTRY, ModuleCategory } from '../lib/module-registry';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
@@ -29,9 +30,13 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'visibility' | 'warriors' | 'revenue' | 'economy'>('visibility');
+  const [activeTab, setActiveTab] = useState<'visibility' | 'warriors' | 'economy' | 'withdrawals'>('visibility');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  
+  // Controls State
   const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [targetUserId, setTargetUserId] = useState('');
+  const [walletAmount, setWalletAmount] = useState('');
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -44,6 +49,12 @@ export default function AdminDashboard() {
   }, [firestore]);
   const { data: warriors, isLoading: warriorsLoading } = useCollection<UserProfile>(warriorsQuery);
 
+  const payoutQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'payouts'), orderBy('timestamp', 'desc'), limit(50));
+  }, [firestore]);
+  const { data: payouts, isLoading: payoutsLoading } = useCollection<PayoutRequest>(payoutQuery);
+
   const updateSetting = async (key: string, value: any) => {
     if (!settingsRef) return;
     setIsProcessing(key);
@@ -52,6 +63,43 @@ export default function AdminDashboard() {
       toast({ title: "SIGNAL SYNCED", description: `${key} updated successfully.` });
     } catch (e) {
       toast({ variant: "destructive", title: "SYNC FAILED" });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const adjustWallet = async (type: 'add' | 'subtract') => {
+    if (!firestore || !targetUserId || !walletAmount) return;
+    setIsProcessing('wallet-adjust');
+    try {
+      const amount = parseFloat(walletAmount);
+      const userRef = doc(firestore, 'users', targetUserId);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        toast({ variant: "destructive", title: "USER NOT FOUND" });
+        return;
+      }
+
+      const finalAmount = type === 'add' ? amount : -amount;
+      await updateDoc(userRef, {
+        coins: increment(finalAmount * 100),
+        winningBalance: increment(finalAmount * 100),
+        walletBalanceINR: increment(finalAmount)
+      });
+
+      await addDoc(collection(firestore, 'users', targetUserId, 'ledger'), {
+        type: 'admin_adjustment',
+        amount: finalAmount,
+        date: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        description: `Admin Manual Adjustment: ${type.toUpperCase()}`
+      });
+
+      toast({ title: "WALLET ADJUSTED", description: `Successfully ${type}ed ₹${amount}` });
+      setWalletAmount('');
+    } catch (e) {
+      toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
     } finally {
       setIsProcessing(null);
     }
@@ -71,6 +119,20 @@ export default function AdminDashboard() {
      }
   };
 
+  const handlePayoutAction = async (payoutId: string, status: 'completed' | 'rejected') => {
+    if (!firestore) return;
+    setIsProcessing(`payout-${payoutId}`);
+    try {
+      const payoutRef = doc(firestore, 'payouts', payoutId);
+      await updateDoc(payoutRef, { status });
+      toast({ title: `PAYOUT ${status.toUpperCase()}` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "ACTION FAILED" });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
   const filteredWarriors = warriors?.filter(w => 
     w.email?.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
     w.id.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
@@ -87,16 +149,107 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <p className="text-sm font-black uppercase italic">Admin <span className="text-primary">Hub</span></p>
          </div>
-         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-[0.3em]">v1.0 Master Node</Badge>
+         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-[0.3em]">Industrial Mastery Node v6.0</Badge>
       </header>
 
       <main className="pt-28 px-4 md:px-6 space-y-10 max-w-7xl mx-auto">
          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
             <NavPill active={activeTab === 'visibility'} label="Modules" icon={<LayoutGrid className="h-3 w-3" />} onClick={() => setActiveTab('visibility')} />
-            <NavPill active={activeTab === 'warriors'} label="User Registry" icon={<UsersIcon className="h-3 w-3" />} onClick={() => setActiveTab('warriors')} />
-            <NavPill active={activeTab === 'revenue'} label="Profit Matrix" icon={<PieChart className="h-3 w-3" />} onClick={() => setActiveTab('revenue')} />
-            <NavPill active={activeTab === 'economy'} label="Economy" icon={<ArrowRightLeft className="h-3 w-3" />} onClick={() => setActiveTab('economy')} />
+            <NavPill active={activeTab === 'warriors'} label="Warriors" icon={<UsersIcon className="h-3 w-3" />} onClick={() => setActiveTab('warriors')} />
+            <NavPill active={activeTab === 'economy'} label="Economy" icon={<TrendingUp className="h-3 w-3" />} onClick={() => setActiveTab('economy')} />
+            <NavPill active={activeTab === 'withdrawals'} label="Withdrawals" icon={<CreditCard className="h-3 w-3" />} onClick={() => setActiveTab('withdrawals')} />
          </div>
+
+         {activeTab === 'economy' && (
+           <div className="space-y-10 animate-in fade-in duration-500">
+              <div className="grid md:grid-cols-2 gap-8">
+                 <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-8">
+                    <h3 className="text-xl font-black uppercase italic text-primary flex items-center gap-3"><Settings className="h-5 w-5" /> Global Earning Config</h3>
+                    <div className="space-y-6">
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">User Revenue Share (%)</Label>
+                          <div className="flex gap-3">
+                             <Input 
+                               type="number" 
+                               defaultValue={settings?.userRevenueSharePercent || 10}
+                               onBlur={(e) => updateSetting('userRevenueSharePercent', parseInt(e.target.value))}
+                               className="h-12 bg-black border-white/10 rounded-xl font-black text-primary"
+                             />
+                             <Button size="icon" className="h-12 w-12 rounded-xl"><Check className="h-4 w-4" /></Button>
+                          </div>
+                       </div>
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Max Daily Videos Per User</Label>
+                          <div className="flex gap-3">
+                             <Input 
+                               type="number" 
+                               defaultValue={settings?.maxDailyVideosPerUser || 20}
+                               onBlur={(e) => updateSetting('maxDailyVideosPerUser', parseInt(e.target.value))}
+                               className="h-12 bg-black border-white/10 rounded-xl font-black text-white"
+                             />
+                             <Button size="icon" className="h-12 w-12 rounded-xl"><Check className="h-4 w-4" /></Button>
+                          </div>
+                       </div>
+                    </div>
+                 </Card>
+
+                 <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-8">
+                    <h3 className="text-xl font-black uppercase italic text-amber-500 flex items-center gap-3"><UserCheck className="h-5 w-5" /> Manual Wallet Overrides</h3>
+                    <div className="space-y-4">
+                       <Input 
+                          placeholder="TARGET USER ID / EMAIL" 
+                          value={targetUserId}
+                          onChange={e => setTargetUserId(e.target.value)}
+                          className="h-12 bg-black border-white/10 rounded-xl text-[10px] font-black uppercase"
+                       />
+                       <Input 
+                          type="number" 
+                          placeholder="AMOUNT (INR)" 
+                          value={walletAmount}
+                          onChange={e => setWalletAmount(e.target.value)}
+                          className="h-12 bg-black border-white/10 rounded-xl text-lg font-black text-primary"
+                       />
+                       <div className="grid grid-cols-2 gap-4">
+                          <Button onClick={() => adjustWallet('add')} className="h-14 bg-green-600 hover:bg-green-500 rounded-xl font-black uppercase italic text-[10px]"><UserPlus className="h-4 w-4 mr-2" /> Add Funds</Button>
+                          <Button onClick={() => adjustWallet('subtract')} className="h-14 bg-red-600 hover:bg-red-500 rounded-xl font-black uppercase italic text-[10px]"><UserMinus className="h-4 w-4 mr-2" /> Deduct Funds</Button>
+                       </div>
+                    </div>
+                 </Card>
+              </div>
+           </div>
+         )}
+
+         {activeTab === 'withdrawals' && (
+           <div className="space-y-8 animate-in fade-in duration-500">
+              <h2 className="text-4xl font-black uppercase italic tracking-tighter">Settlement <span className="text-primary">Queue</span></h2>
+              <div className="grid gap-4">
+                 {payoutsLoading ? <Loader2 className="animate-spin h-10 w-10 mx-auto" /> : payouts?.map(p => (
+                   <Card key={p.id} className="bg-[#0a0a0f] border-white/5 p-6 rounded-2xl flex items-center justify-between group hover:border-primary/20 transition-all">
+                      <div className="flex items-center gap-6">
+                         <div className="h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center"><CreditCard className="text-primary h-6 w-6" /></div>
+                         <div>
+                            <p className="text-xs font-black uppercase text-white truncate max-w-[200px]">{p.userEmail || p.userId}</p>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase">{p.method}: {p.destination}</p>
+                         </div>
+                      </div>
+                      <div className="flex items-center gap-8">
+                         <div className="text-right">
+                            <p className="text-xl font-black text-green-500 italic">₹{p.amount}</p>
+                            <Badge className={cn("text-[7px] font-black uppercase", p.status === 'completed' ? "bg-green-600" : "bg-yellow-600")}>{p.status}</Badge>
+                         </div>
+                         {p.status === 'pending' && (
+                           <div className="flex gap-2">
+                              <Button onClick={() => handlePayoutAction(p.id, 'completed')} size="icon" className="bg-green-600 h-10 w-10 rounded-lg"><Check className="h-4 w-4" /></Button>
+                              <Button onClick={() => handlePayoutAction(p.id, 'rejected')} size="icon" className="bg-red-600 h-10 w-10 rounded-lg"><X className="h-4 w-4" /></Button>
+                           </div>
+                         )}
+                      </div>
+                   </Card>
+                 ))}
+                 {payouts?.length === 0 && <p className="text-center py-20 text-muted-foreground uppercase font-black text-xs">No pending requests.</p>}
+              </div>
+           </div>
+         )}
 
          {activeTab === 'warriors' && (
             <div className="space-y-10 animate-in fade-in duration-500">
