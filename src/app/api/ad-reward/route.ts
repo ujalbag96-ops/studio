@@ -4,15 +4,16 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Industrial Revenue Share Gateway v3.0
- * Uses dynamic Admin-set rates & margins.
+ * Industrial Revenue Share Gateway v4.0
+ * Calibrated for "10% Distributed Reward" logic.
+ * Default: Ad Revenue = ₹0.50 | User Reward (10%) = ₹0.05 (5 Coins)
  */
 export async function POST(request: Request) {
   try {
-    const { userId, reward, type = 'skill_reward' } = await request.json();
+    const { userId, type = 'video_ad_signal' } = await request.json();
 
-    if (!userId || isNaN(reward)) {
-      return NextResponse.json({ error: 'Invalid Signal' }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json({ error: 'Identity Missing' }, { status: 400 });
     }
 
     const { firestore } = initializeFirebase();
@@ -32,50 +33,52 @@ export async function POST(request: Request) {
     }
 
     const settings = settingsSnap.data();
-    const userSharePercent = settings?.userRevenueSharePercent || 20; 
-    const adminSharePercent = 100 - userSharePercent;
-    const coinsPerUSD = settings?.coinsPerUSD || 1000;
+    
+    // --- INDUSTRIAL 10% DISTRIBUTED LOGIC ---
+    // Standard Ad Revenue: ₹0.50 (50 Coins value at 100:1)
+    const estimatedTotalRevenueINR = 0.50; 
+    const userSharePercent = 10; // Explicit 10% request
+    const adminSharePercent = 90;
 
-    // --- REVENUE CALCULATION ENGINE ---
-    // Mapping reward (coins) to USD based on dynamic coinsPerUSD setting
-    const estimatedTotalValueUSD = (reward / coinsPerUSD) / (userSharePercent / 100);
-    const userShareUSD = estimatedTotalValueUSD * (userSharePercent / 100);
-    const adminProfitUSD = estimatedTotalValueUSD * (adminSharePercent / 100);
+    const userRewardINR = estimatedTotalRevenueINR * (userSharePercent / 100); // ₹0.05
+    const coinsPerINR = settings?.coinsPerINR || 100;
+    const rewardAmountCoins = Math.floor(userRewardINR * coinsPerINR); // 5 Coins
+
+    const adminProfitINR = estimatedTotalRevenueINR * (adminSharePercent / 100);
 
     // 1. User Wallet Sync
     batch.update(userRef, {
-      taskBalance: increment(reward),
-      coins: increment(reward),
+      taskBalance: increment(rewardAmountCoins),
+      coins: increment(rewardAmountCoins),
       generalTasksCount: increment(1),
-      pendingRevenueShare: increment(userShareUSD),
-      totalRevenueGenerated: increment(estimatedTotalValueUSD)
+      pendingRevenueShare: increment(userRewardINR / 80), // Store USD equivalent approx
+      totalRevenueGenerated: increment(estimatedTotalRevenueINR / 80)
     });
 
     // 2. Global Platform Analytics
     batch.set(statsRef, {
-      totalOperationalRevenueUSD: increment(estimatedTotalValueUSD),
-      totalAdminProfitUSD: increment(adminProfitUSD),
-      totalUserDividendUSD: increment(userShareUSD),
+      totalDailyRevenueINR: increment(estimatedTotalRevenueINR),
+      totalAdminProfitINR: increment(adminProfitINR),
+      totalUserDividendINR: increment(userRewardINR),
       lastUpdated: new Date().toISOString()
     }, { merge: true });
 
     // 3. Encrypted Ledger
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
-      type: 'revenue_share_credit',
-      amount: reward,
+      type: 'distributed_ad_reward',
+      amount: rewardAmountCoins,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Video Ad Signal: ${userSharePercent}% Share Credited`,
-      usdValue: userShareUSD
+      description: `Video Ad Node: 10% Share Credited (+${rewardAmountCoins} 🪙)`,
+      margin: '10/90 Industrial Lock'
     });
 
     await batch.commit();
 
     return NextResponse.json({ 
       success: true, 
-      credit: reward,
-      userShareUSD,
-      status: `REVENUE_LOCKED_${adminSharePercent}_${userSharePercent}`
+      credit: rewardAmountCoins,
+      status: `SIGNAL_LOCKED_10_PERCENT`
     });
 
   } catch (error) {
