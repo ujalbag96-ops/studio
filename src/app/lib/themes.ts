@@ -2,49 +2,24 @@
 export interface CampusTheme {
   id: string;
   name: string;
-  category: 'Festival' | 'Classic' | 'Gaming' | 'Neon' | 'Elegant';
+  category: 'Industrial' | 'Neon' | 'Classic' | 'Light';
   primary: string; // HSL: "217 91% 60%"
   background: string;
   accent: string;
-  isFestival?: boolean;
+  isLight?: boolean;
 }
 
-const FESTIVAL_THEMES: CampusTheme[] = [
-  { id: 'diwali', name: 'Diwali Spark', category: 'Festival', primary: '25 100% 50%', background: '20 20% 4%', accent: '45 100% 50%', isFestival: true },
-  { id: 'holi', name: 'Holi Splash', category: 'Festival', primary: '330 100% 50%', background: '280 20% 5%', accent: '180 100% 50%', isFestival: true },
-  { id: 'eid', name: 'Eid Moon', category: 'Festival', primary: '142 76% 36%', background: '142 40% 4%', accent: '45 100% 50%', isFestival: true },
-  { id: 'christmas', name: 'X-Mas Pine', category: 'Festival', primary: '0 84% 60%', background: '120 40% 4%', accent: '0 0% 100%', isFestival: true },
-  { id: 'independence', name: 'Patriot Pulse', category: 'Festival', primary: '25 100% 50%', background: '210 20% 5%', accent: '142 76% 36%', isFestival: true },
-];
-
-const GAMING_THEMES: CampusTheme[] = [
-  { id: 'bgmi', name: 'Erangel Dusk', category: 'Gaming', primary: '80 100% 40%', background: '100 10% 4%', accent: '40 100% 50%' },
-  { id: 'freefire', name: 'Booyah Blaze', category: 'Gaming', primary: '15 100% 50%', background: '15 10% 4%', accent: '200 100% 50%' },
-  { id: 'valorant', name: 'Radiant Edge', category: 'Gaming', primary: '350 100% 60%', background: '240 10% 4%', accent: '180 100% 50%' },
-  { id: 'cod', name: 'Stealth Ops', category: 'Gaming', primary: '0 0% 100%', background: '0 0% 5%', accent: '0 80% 50%' },
-];
-
-const NEON_THEMES: CampusTheme[] = Array.from({ length: 40 }).map((_, i) => ({
-  id: `neon-${i}`,
-  name: `Neon Flux ${i + 1}`,
-  category: 'Neon',
-  primary: `${(i * 15) % 360} 100% 60%`,
-  background: `${(i * 15) % 360} 20% 4%`,
-  accent: `${((i * 15) + 180) % 360} 100% 50%`
-}));
-
-const CLASSIC_THEMES: CampusTheme[] = Array.from({ length: 50 }).map((_, i) => ({
-  id: `classic-${i}`,
-  name: `Scholar Elite ${i + 1}`,
-  category: 'Classic',
-  primary: `${(i * 10) % 360} 50% 50%`,
-  background: `240 10% 4%`,
-  accent: `${(i * 10) % 360} 50% 30%`
-}));
-
 export const MASTER_THEMES: CampusTheme[] = [
-  ...FESTIVAL_THEMES,
-  ...GAMING_THEMES,
-  ...NEON_THEMES,
-  ...CLASSIC_THEMES
+  { id: 'dark-default', name: 'Dark Default', category: 'Industrial', primary: '221 92% 60%', background: '220 29% 6%', accent: '160 84% 39%' },
+  { id: 'cyberpunk-neon', name: 'Cyberpunk Neon', category: 'Neon', primary: '330 100% 50%', background: '262 89% 7%', accent: '184 100% 50%' },
+  { id: 'midnight-blue', name: 'Midnight Blue', category: 'Industrial', primary: '221 83% 53%', background: '224 71% 4%', accent: '199 89% 60%' },
+  { id: 'emerald-gold', name: 'Emerald Gold', category: 'Industrial', primary: '160 84% 39%', background: '166 91% 9%', accent: '38 92% 50%' },
+  { id: 'sunset-orange', name: 'Sunset Orange', category: 'Industrial', primary: '0 84% 60%', background: '0 85% 5%', accent: '25 95% 53%' },
+  { id: 'purple-vibe', name: 'Purple Vibe', category: 'Neon', primary: '259 94% 66%', background: '252 43% 8%', accent: '330 81% 60%' },
+  { id: 'crimson-dark', name: 'Crimson Dark', category: 'Industrial', primary: '346 77% 50%', background: '347 73% 4%', accent: '350 94% 71%' },
+  { id: 'matrix-green', name: 'Matrix Green', category: 'Neon', primary: '142 71% 45%', background: '144 80% 4%', accent: '140 71% 58%' },
+  { id: 'ocean-depths', name: 'Ocean Depths', category: 'Industrial', primary: '189 94% 43%', background: '202 72% 6%', accent: '199 89% 48%' },
+  { id: 'royal-gold', name: 'Royal Gold', category: 'Industrial', primary: '45 93% 47%', background: '43 54% 5%', accent: '48 96% 53%' },
+  { id: 'pure-light', name: 'Pure Light', category: 'Light', primary: '221 83% 53%', background: '210 40% 98%', accent: '162 94% 30%', isLight: true },
+  { id: 'dracula-dark', name: 'Dracula Dark', category: 'Industrial', primary: '265 89% 78%', background: '231 15% 18%', accent: '334 100% 73%' },
 ];

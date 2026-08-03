@@ -15,7 +15,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     if (!settings) return;
 
-    const themeId = settings.currentThemeId || 'classic-0';
+    const themeId = settings.currentThemeId || 'dark-default';
     const theme = MASTER_THEMES.find(t => t.id === themeId);
 
     if (theme) {
@@ -24,11 +24,28 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       root.style.setProperty('--background', theme.background);
       root.style.setProperty('--accent', theme.accent);
       
-      // Auto-calculate dark foreground for readability
-      root.style.setProperty('--foreground', '0 0% 98%');
-      root.style.setProperty('--card', theme.background);
-      root.style.setProperty('--popover', theme.background);
-      root.style.setProperty('--border', '0 0% 15%');
+      // Auto-calculate properties based on theme intensity
+      if (theme.isLight) {
+        root.style.setProperty('--foreground', '222 47% 11%');
+        root.style.setProperty('--card', '0 0% 100%');
+        root.style.setProperty('--card-foreground', '222 47% 11%');
+        root.style.setProperty('--popover', '0 0% 100%');
+        root.style.setProperty('--popover-foreground', '222 47% 11%');
+        root.style.setProperty('--muted', '210 40% 96%');
+        root.style.setProperty('--muted-foreground', '215 16% 47%');
+        root.style.setProperty('--border', '214 32% 91%');
+        root.style.setProperty('--input', '214 32% 91%');
+      } else {
+        root.style.setProperty('--foreground', '0 0% 98%');
+        root.style.setProperty('--card', theme.background);
+        root.style.setProperty('--card-foreground', '0 0% 98%');
+        root.style.setProperty('--popover', theme.background);
+        root.style.setProperty('--popover-foreground', '0 0% 98%');
+        root.style.setProperty('--muted', '240 3.7% 15.9%');
+        root.style.setProperty('--muted-foreground', '240 5% 64.9%');
+        root.style.setProperty('--border', '240 3.7% 15.9%');
+        root.style.setProperty('--input', '240 3.7% 15.9%');
+      }
     }
   }, [settings]);
 

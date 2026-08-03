@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -61,24 +62,16 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
     setTimeout(() => setIsCopying(false), 2000);
   };
 
-  const checkRiskConsent = () => {
+  const handleSelection = (nextStep: 'automatic' | 'manual') => {
     if (!profile?.riskNoticeAccepted) {
       setShowRiskModal(true);
-      return false;
+      return;
     }
-    return true;
-  };
-
-  const handleSelection = (nextStep: 'automatic' | 'manual') => {
-    if (checkRiskConsent()) {
-      setStep(nextStep);
-    }
+    setStep(nextStep);
   };
 
   const handleSubmitUTR = async () => {
     if (!user || isVerifying) return;
-    if (!checkRiskConsent()) return;
-
     if (utrId.length !== 12) {
       toast({ variant: "destructive", title: "Invalid UTR", description: "UTR ID must be 12 digits." });
       return;
@@ -108,13 +101,13 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
       } else {
         toast({ 
           title: "SUBMITTED", 
-          description: "Signal not found. Admin will verify manually (5-15 mins)." 
+          description: "Admin will verify your receipt shortly." 
         });
         onOpenChange(false);
         setStep('selection');
       }
     } catch (e) {
-      toast({ variant: "destructive", title: "Engine Error", description: "Verification attempt failed." });
+      toast({ variant: "destructive", title: "Engine Error" });
       setStep('manual');
     } finally {
       setIsVerifying(false);
@@ -140,7 +133,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
             <DialogHeader className="text-center space-y-2">
               <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-white">Add <span className="text-primary">Cash</span></DialogTitle>
               <DialogDescription className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                {settings?.customAppName || "CampusHub"} Industrial Funding Protocol
+                Industrial Funding Protocol Node
               </DialogDescription>
             </DialogHeader>
 
@@ -253,9 +246,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
                         <ShieldCheck className="h-10 w-10 text-primary animate-pulse" />
                      </div>
                   </div>
-                  <div>
-                     <h3 className="text-2xl font-black uppercase italic">Processing Signal...</h3>
-                  </div>
+                  <h3 className="text-2xl font-black uppercase italic">Processing Signal...</h3>
                </div>
             )}
           </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -12,7 +13,8 @@ import {
   Palette,
   Image as ImageIcon,
   Type,
-  Calendar
+  Calendar,
+  Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,11 +22,13 @@ import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { AppSettings, UserProfile, PayoutRequest } from '../lib/types';
 import { MODULE_REGISTRY, ModuleCategory } from '../lib/module-registry';
+import { MASTER_THEMES } from '../lib/themes';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 const APP_CATEGORIES: ModuleCategory[] = ['Learning', 'Skills', 'Earning', 'Productivity', 'System'];
@@ -38,13 +42,13 @@ export default function AdminDashboard() {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
   // Economy & User Control State
-  const [userSearchTerm, setUserSearchTerm] = useState('');
   const [targetUserId, setTargetUserId] = useState('');
   const [walletAmount, setWalletAmount] = useState('');
 
   // Branding State
   const [brandingName, setBrandingName] = useState('');
   const [brandingLogo, setBrandingLogo] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
 
   const isAdminUser = !!user && !!user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -85,7 +89,7 @@ export default function AdminDashboard() {
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists()) {
-        toast({ variant: "destructive", title: "USER NOT FOUND", description: "Verify Firebase UID signal." });
+        toast({ variant: "destructive", title: "USER NOT FOUND" });
         return;
       }
 
@@ -106,7 +110,7 @@ export default function AdminDashboard() {
         description: `Admin Manual Adjustment: ${type.toUpperCase()}`
       });
 
-      toast({ title: "WALLET ADJUSTED", description: `Successfully processed ₹${amount} signal.` });
+      toast({ title: "WALLET ADJUSTED" });
       setWalletAmount('');
     } catch (e) {
       toast({ variant: "destructive", title: "ADJUSTMENT FAILED" });
@@ -145,8 +149,7 @@ export default function AdminDashboard() {
 
   const filteredWarriors = warriors?.filter(w => 
     w.email?.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
-    w.id.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-    w.referralCode?.toLowerCase().includes(userSearchTerm.toLowerCase())
+    w.id.toLowerCase().includes(userSearchTerm.toLowerCase())
   ) || [];
 
   if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
@@ -186,9 +189,7 @@ export default function AdminDashboard() {
                                onBlur={(e) => updateSetting('userRevenueSharePercent', parseInt(e.target.value))}
                                className="h-12 bg-black border-white/10 rounded-xl font-black text-primary"
                              />
-                             <Button size="icon" className="h-12 w-12 rounded-xl"><Check className="h-4 w-4" /></Button>
                           </div>
-                          <p className="text-[7px] text-muted-foreground uppercase font-bold italic ml-1">Dynamic Calculation: Revenue x Share%.</p>
                        </div>
                        <div className="space-y-2">
                           <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Max Daily Ads Limit</Label>
@@ -199,7 +200,6 @@ export default function AdminDashboard() {
                                onBlur={(e) => updateSetting('maxDailyVideosPerUser', parseInt(e.target.value))}
                                className="h-12 bg-black border-white/10 rounded-xl font-black text-white"
                              />
-                             <Button size="icon" className="h-12 w-12 rounded-xl"><Check className="h-4 w-4" /></Button>
                           </div>
                        </div>
                     </div>
@@ -209,7 +209,7 @@ export default function AdminDashboard() {
                     <h3 className="text-xl font-black uppercase italic text-amber-500 flex items-center gap-3"><UserCheck className="h-5 w-5" /> Manual Wallet Overrides</h3>
                     <div className="space-y-4">
                        <Input 
-                          placeholder="ENTER TARGET USER UID / EMAIL" 
+                          placeholder="ENTER TARGET USER UID" 
                           value={targetUserId}
                           onChange={e => setTargetUserId(e.target.value)}
                           className="h-12 bg-black border-white/10 rounded-xl text-[10px] font-black uppercase"
@@ -278,7 +278,7 @@ export default function AdminDashboard() {
                      <Input 
                        value={userSearchTerm}
                        onChange={e => setUserSearchTerm(e.target.value)}
-                       placeholder="SEARCH UID, GMAIL, CODE..." 
+                       placeholder="SEARCH UID, GMAIL..." 
                        className="h-12 bg-black border-white/10 rounded-xl pl-12 font-black uppercase text-[10px] tracking-widest"
                      />
                   </div>
@@ -293,45 +293,37 @@ export default function AdminDashboard() {
                         "bg-[#0a0a0f] border-white/5 rounded-[2rem] overflow-hidden transition-all relative group",
                         w.isSuspended ? "opacity-50 grayscale border-red-500/40" : "hover:border-primary/30"
                       )}>
-                         <div className="p-8 space-y-8">
+                         <div className="p-8 space-y-6">
                             <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-8">
                                <div className="flex items-center gap-6">
-                                  <div className={cn(
-                                    "h-20 w-20 rounded-[1.5rem] flex items-center justify-center font-black text-3xl shadow-2xl",
-                                    w.isSuspended ? "bg-red-500/10 text-red-500" : "bg-primary/10 text-primary border border-primary/20"
-                                  )}>
+                                  <div className="h-20 w-20 rounded-[1.5rem] bg-primary/10 flex items-center justify-center font-black text-3xl shadow-2xl text-primary border border-primary/20">
                                      {w.email?.[0].toUpperCase() || 'U'}
                                   </div>
                                   <div className="space-y-2">
                                      <div className="flex items-center gap-3">
-                                        <p className="text-xl font-black uppercase italic text-white truncate max-w-[250px]">{w.email || 'Anonymous Warrior'}</p>
+                                        <p className="text-xl font-black uppercase italic text-white truncate max-w-[250px]">{w.email || 'Warrior_Node'}</p>
                                         <Badge variant="outline" className="text-[8px] font-black uppercase border-white/10">{w.rank || 'Bronze'}</Badge>
                                      </div>
-                                     <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
-                                        <Terminal className="h-3 w-3 text-primary" /> UID: <span className="text-white font-mono">{w.id}</span>
-                                     </p>
-                                     <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
-                                        <Fingerprint className="h-3 w-3 text-amber-500" /> Device ID: <span className="text-white font-mono">{w.deviceId || 'Unknown'}</span>
-                                     </p>
-                                     <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
-                                        <Globe className="h-3 w-3 text-blue-500" /> Last IP: <span className="text-white font-mono">{w.lastIp || '0.0.0.0'}</span>
-                                     </p>
-                                     <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
-                                        <Calendar className="h-3 w-3 text-green-500" /> Joined: <span className="text-white font-mono">{w.joinedAt ? new Date(w.joinedAt).toLocaleDateString() : 'N/A'}</span>
-                                     </p>
+                                     <div className="space-y-1">
+                                       <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                          <Terminal className="h-3 w-3 text-primary" /> UID: <span className="text-white font-mono">{w.id}</span>
+                                       </p>
+                                       <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                          <Fingerprint className="h-3 w-3 text-amber-500" /> DEVICE: <span className="text-white font-mono">{w.deviceId || 'Unknown'}</span>
+                                       </p>
+                                       <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                          <Globe className="h-3 w-3 text-blue-500" /> LAST IP: <span className="text-white font-mono">{w.lastIp || '0.0.0.0'}</span>
+                                       </p>
+                                       <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                          <Calendar className="h-3 w-3 text-green-500" /> JOINED: <span className="text-white font-mono">{w.joinedAt ? new Date(w.joinedAt).toLocaleDateString() : 'N/A'}</span>
+                                       </p>
+                                     </div>
                                   </div>
-                               </div>
-
-                               <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                  <UserHisaab label="Coin Pulse" value={w.coins?.toLocaleString()} unit="🪙" />
-                                  <UserHisaab label="Mission Yield" value={w.taskBalance?.toLocaleString()} unit="🪙" />
-                                  <UserHisaab label="Win Box" value={w.winningBalance?.toLocaleString()} unit="🪙" />
-                                  <UserHisaab label="Recruits" value={w.totalReferrals || 0} />
                                </div>
 
                                <div className="flex items-center gap-4 border-l border-white/5 pl-8 xl:min-w-[200px] justify-between">
                                   <div className="text-right">
-                                     <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Signal Status</p>
+                                     <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Status</p>
                                      <Badge className={cn("px-4 py-1 text-[8px] font-black uppercase", w.isSuspended ? "bg-red-600" : "bg-green-600")}>
                                         {w.isSuspended ? 'SUSPENDED' : 'ACTIVE'}
                                      </Badge>
@@ -341,10 +333,10 @@ export default function AdminDashboard() {
                                     disabled={isProcessing === `suspend-${w.id}`}
                                     className={cn(
                                       "h-14 w-14 rounded-2xl border flex items-center justify-center transition-all shadow-xl",
-                                      w.isSuspended ? "border-green-500/20 text-green-500 hover:bg-green-500/10" : "border-red-500/20 text-red-500 hover:bg-red-500/10"
+                                      w.isSuspended ? "border-green-500/20 text-green-500" : "border-red-500/20 text-red-500"
                                     )}
                                   >
-                                     {isProcessing === `suspend-${w.id}` ? <Loader2 className="animate-spin" /> : w.isSuspended ? <UserCheck /> : <ShieldX />}
+                                     {isProcessing === `suspend-${w.id}` ? <Loader2 className="animate-spin" /> : w.isSuspended ? <CheckCircle2 /> : <ShieldAlert />}
                                   </button>
                                </div>
                             </div>
@@ -358,11 +350,6 @@ export default function AdminDashboard() {
 
          {activeTab === 'visibility' && (
             <div className="space-y-10 animate-in fade-in duration-500">
-               <div className="space-y-2 text-center md:text-left">
-                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">Module <span className="text-primary">Gate</span></h2>
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Global Sector Visibility Control</p>
-               </div>
-
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {APP_CATEGORIES.map(cat => (
                     <Card key={cat} className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-6">
@@ -393,11 +380,6 @@ export default function AdminDashboard() {
 
          {activeTab === 'branding' && (
            <div className="space-y-10 animate-in fade-in duration-500">
-              <div className="space-y-2 text-center md:text-left">
-                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">App <span className="text-primary">Branding</span></h2>
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">Real-Time Visual Identity Control</p>
-              </div>
-
               <div className="grid md:grid-cols-2 gap-10">
                  <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[3rem] space-y-8 shadow-2xl">
                     <div className="space-y-6">
@@ -425,10 +407,29 @@ export default function AdminDashboard() {
                           />
                        </div>
 
+                       <div className="space-y-3">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-2">
+                             <Layers className="h-3 w-3" /> UI Theme Node
+                          </Label>
+                          <Select 
+                            value={settings?.currentThemeId || 'dark-default'} 
+                            onValueChange={(v) => updateSetting('currentThemeId', v)}
+                          >
+                            <SelectTrigger className="h-14 bg-black border-white/10 rounded-xl font-black text-[10px] uppercase">
+                               <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border-white/10 text-white">
+                               {MASTER_THEMES.map(theme => (
+                                 <SelectItem key={theme.id} value={theme.id}>{theme.name}</SelectItem>
+                               ))}
+                            </SelectContent>
+                          </Select>
+                       </div>
+
                        <Button 
                          onClick={async () => {
                            if (!brandingName && !brandingLogo) {
-                             toast({ variant: "destructive", title: "INPUT REQUIRED", description: "Name and Logo URL are mandatory." });
+                             toast({ variant: "destructive", title: "INPUT REQUIRED" });
                              return;
                            }
                            const updates: any = { updatedAt: serverTimestamp() };
@@ -438,7 +439,7 @@ export default function AdminDashboard() {
                            setIsProcessing('branding-update');
                            try {
                               await updateDoc(settingsRef!, updates);
-                              toast({ title: "BRANDING SYNCED", description: "Identity updated across all warrior terminals." });
+                              toast({ title: "BRANDING SYNCED" });
                               setBrandingName('');
                               setBrandingLogo('');
                            } catch (e) {
@@ -487,14 +488,5 @@ function NavPill({ active, label, icon, onClick }: any) {
       >
          {icon} <span>{label}</span>
       </button>
-   );
-}
-
-function UserHisaab({ label, value, unit }: any) {
-   return (
-      <div className="bg-black/40 p-4 rounded-xl border border-white/5 text-center">
-         <p className="text-[7px] font-black uppercase text-muted-foreground tracking-tighter mb-0.5">{label}</p>
-         <p className="text-sm font-black text-white italic tabular-nums">{value} <span className="text-[8px] opacity-40">{unit}</span></p>
-      </div>
    );
 }
