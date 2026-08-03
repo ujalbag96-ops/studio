@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -19,12 +20,16 @@ import {
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { AppSettings } from '@/app/lib/types';
 
 export default function YoutubeStreamHub() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
+  const { data: settings } = useDoc<AppSettings>(settingsRef);
+
   const [ytUrl, setYtUrl] = useState('');
   const [videoId, setVideoId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -37,9 +42,9 @@ export default function YoutubeStreamHub() {
   };
 
   const handlePlay = () => {
-    const id = extractYoutubeId(ytUrl);
+    const id = extractYoutubeId(ytUrl || settings?.globalYoutubeStreamUrl || '');
     if (!id) {
-      toast({ variant: "destructive", title: "Invalid Signal", description: "Please enter a valid YouTube URL." });
+      toast({ variant: "destructive", title: "Invalid Signal", description: "Please enter or provide a master YouTube URL." });
       return;
     }
     setVideoId(id);
@@ -87,7 +92,7 @@ export default function YoutubeStreamHub() {
             <Card className="bg-[#0a0a0f] border-white/5 p-4 rounded-2xl flex items-center gap-4 shadow-xl w-full md:w-[500px]">
                <div className="relative flex-1">
                   <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-red-500" />
-                  <input value={ytUrl} onChange={e => setYtUrl(e.target.value)} placeholder="PASTE YOUTUBE VIDEO LINK" className="w-full h-10 bg-black border border-white/10 pl-9 text-[10px] font-bold rounded-xl text-white outline-none focus:border-red-500/40" />
+                  <input value={ytUrl} onChange={e => setYtUrl(e.target.value)} placeholder={settings?.globalYoutubeStreamUrl ? "USE MASTER SIGNAL..." : "PASTE YOUTUBE VIDEO LINK"} className="h-10 bg-black border border-white/10 pl-9 text-[10px] font-bold rounded-xl text-white outline-none focus:border-red-500/40" />
                </div>
                <Button onClick={handlePlay} className="h-10 bg-red-600 hover:bg-red-500 font-black uppercase italic text-[10px] px-6 rounded-xl">PLAY SIGNAL</Button>
             </Card>

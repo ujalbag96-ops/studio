@@ -74,6 +74,10 @@ export interface AppSettings {
   cpaLeadApiKey?: string;
   broadcastActive?: boolean;
   broadcastMessage?: string;
+  
+  // --- Master URLs ---
+  globalYoutubeStreamUrl?: string;
+  globalDirectStreamUrl?: string;
 
   // --- Sound Engine ---
   sfxEnabled?: boolean;
