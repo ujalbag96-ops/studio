@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -16,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldCheck, CheckSquare, Square, GraduationCap, Coins, ShieldAlert, Fingerprint, Mail, Smartphone } from 'lucide-react';
+import { Loader2, ShieldCheck, CheckSquare, Square, GraduationCap, Coins, ShieldAlert, Fingerprint, Mail, Briefcase, UserCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { UserIntent, LanguageCode } from '../lib/types';
@@ -38,7 +39,7 @@ function LoginContent() {
   const [password, setPassword] = useState('');
   const [isSuspended, setIsSuspended] = useState(false);
   
-  const [intent, setIntent] = useState<UserIntent>('student');
+  const [intent, setIntent] = useState<UserIntent>('earner');
   const [agreedToAds, setAgreedToAds] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
 
@@ -207,7 +208,7 @@ function LoginContent() {
           <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter">Campus<span className="text-primary">Hub</span> Identity</h1>
-        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">One Device • One Account • Industrial Security</p>
+        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">Global Earning & Learning Protocol</p>
       </div>
 
       {verificationSent ? (
@@ -232,7 +233,7 @@ function LoginContent() {
 
           <TabsContent value="signup" className="mt-6 space-y-6">
              <div className="space-y-4">
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest text-center">Identify Your Intent</p>
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest text-center italic">Identify Your Primary Intent</p>
                 <div className="grid grid-cols-2 gap-3">
                    <button 
                     onClick={() => setIntent('student')}
@@ -251,8 +252,8 @@ function LoginContent() {
                       intent === 'earner' ? "border-amber-500 bg-amber-500/10 text-white" : "border-white/5 bg-white/5 text-muted-foreground"
                     )}
                    >
-                      <Coins className={cn("h-6 w-6", intent === 'earner' && "text-amber-500 animate-pulse")} />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Earner</span>
+                      <Briefcase className={cn("h-6 w-6", intent === 'earner' && "text-amber-500 animate-pulse")} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">Earn / Pro</span>
                    </button>
                 </div>
              </div>
@@ -271,7 +272,7 @@ function LoginContent() {
                          {agreedToAds ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-muted-foreground" />}
                       </button>
                       <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">
-                         I agree to one account per device policy and Gmail verification protocol.
+                         I agree to the platform policy and secure verification protocol.
                       </p>
                    </div>
 
@@ -307,10 +308,10 @@ function LoginContent() {
       <div className="flex flex-col items-center gap-4 opacity-40">
          <div className="flex items-center gap-6">
             <Fingerprint className="h-5 w-5" />
-            <Smartphone className="h-5 w-5" />
+            <UserCircle className="h-5 w-5" />
             <ShieldAlert className="h-5 w-5" />
          </div>
-         <p className="text-[8px] font-black uppercase text-center tracking-[0.4em]">Hardware-Synced Node Security v12.0</p>
+         <p className="text-[8px] font-black uppercase text-center tracking-[0.4em]">Multi-Intent Identity Security v12.0</p>
       </div>
     </div>
   );

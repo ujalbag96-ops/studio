@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -7,7 +8,7 @@ import {
   Palette, Radio, Activity, BarChart3, Settings, Gauge, CreditCard,
   ShieldAlert, ShieldCheck, Fingerprint, Search, Ban, CheckCircle2,
   Volume2, LayoutDashboard, Globe, Wallet,
-  Menu, Check, Edit3, AlertCircle, X
+  Menu, Check, Edit3, AlertCircle, X, UserCircle, Briefcase, GraduationCap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +27,7 @@ import { MASTER_THEMES } from '../lib/themes';
 
 const ADMIN_EMAIL = 'ujalbag96@gmail.com';
 
-type AdminTab = 'overview' | 'earning' | 'students' | 'financials' | 'apis' | 'sounds' | 'branding';
+type AdminTab = 'overview' | 'earning' | 'directory' | 'financials' | 'apis' | 'sounds' | 'branding';
 
 export default function AdminDashboardV3() {
   const { user, isUserLoading } = useUser();
@@ -50,8 +51,8 @@ export default function AdminDashboardV3() {
   const { data: settings } = useDoc<AppSettings>(settingsRef);
   const { data: stats } = useDoc<PlatformRevenue>(statsRef);
   
-  const studentsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), orderBy('joinedAt', 'desc'), limit(100)) : null, [firestore]);
-  const { data: students } = useCollection<UserProfile>(studentsQuery);
+  const usersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), orderBy('joinedAt', 'desc'), limit(100)) : null, [firestore]);
+  const { data: members } = useCollection<UserProfile>(usersQuery);
 
   const payoutsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'payouts'), where('status', '==', 'pending'), limit(50)) : null, [firestore]);
   const { data: pendingPayouts } = useCollection<any>(payoutsQuery);
@@ -133,7 +134,7 @@ export default function AdminDashboardV3() {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard /> },
     { id: 'earning', label: 'Earning Sectors', icon: <DollarSign /> },
-    { id: 'students', label: 'Student Directory', icon: <UsersIcon /> },
+    { id: 'directory', label: 'Member Directory', icon: <UsersIcon /> },
     { id: 'financials', label: 'Financials', icon: <Wallet /> },
     { id: 'apis', label: 'Global APIs', icon: <Radio /> },
     { id: 'sounds', label: 'Sound Engine', icon: <Volume2 /> },
@@ -186,14 +187,11 @@ export default function AdminDashboardV3() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex text-slate-900 font-sans selection:bg-primary/20">
-      {/* DESKTOP SIDEBAR */}
       <aside className="w-72 bg-white border-r border-slate-200/60 hidden lg:flex flex-col fixed inset-y-0 left-0 z-[100] shadow-[10px_0_40px_rgba(0,0,0,0.02)]">
         {sidebarContent}
       </aside>
 
-      {/* MAIN CONTENT AREA */}
       <main className="flex-1 lg:ml-72 min-h-screen flex flex-col">
-        {/* HEADER */}
         <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50 px-6 md:px-8 flex items-center justify-between shadow-sm">
            <div className="flex items-center gap-4">
               <Sheet open={isMobileNavOpen} onOpenChange={setIsMobileNavOpen}>
@@ -223,9 +221,9 @@ export default function AdminDashboardV3() {
            {activeTab === 'overview' && (
               <div className="space-y-10 animate-in fade-in duration-700 slide-in-from-bottom-2">
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                    <PanzeStatCard label="Active Students" value={students?.length || 0} icon={<UsersIcon />} trend="+12% Pulse" color="bg-indigo-500" />
+                    <PanzeStatCard label="Active Members" value={members?.length || 0} icon={<UsersIcon />} trend="+12% Pulse" color="bg-indigo-500" />
                     <PanzeStatCard label="Gross Ad Revenue" value={`₹${(stats?.totalGrossRevenueINR || 0).toLocaleString()}`} icon={<DollarSign />} trend="Stable Feed" color="bg-emerald-500" />
-                    <PanzeStatCard label="User Share" value={`₹${(stats?.totalUserPayoutsINR || 0).toLocaleString()}`} icon={<Zap />} trend="10% Dist" color="bg-primary" />
+                    <PanzeStatCard label="Member Share" value={`₹${(stats?.totalUserPayoutsINR || 0).toLocaleString()}`} icon={<Zap />} trend="10% Dist" color="bg-primary" />
                     <PanzeStatCard label="Admin Net Profit" value={`₹${(stats?.totalAdminProfitINR || 0).toLocaleString()}`} icon={<TrendingUp />} trend="High Yield" color="bg-amber-500" />
                  </div>
 
@@ -233,8 +231,8 @@ export default function AdminDashboardV3() {
                     <Card className="lg:col-span-2 bg-white border-slate-200/60 rounded-[2.5rem] p-8 shadow-sm overflow-hidden">
                        <div className="flex items-center justify-between mb-8">
                           <div>
-                             <h3 className="text-lg font-black uppercase italic text-slate-800">Video Retention Node</h3>
-                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Global Watch Time Minutes</p>
+                             <h3 className="text-lg font-black uppercase italic text-slate-800">Global Engagement Node</h3>
+                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Active Retention Minutes</p>
                           </div>
                           <Badge variant="outline" className="border-slate-100 text-[8px] font-black uppercase">Live Graph</Badge>
                        </div>
@@ -268,7 +266,7 @@ export default function AdminDashboardV3() {
                           </div>
                           <div>
                              <h3 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter text-slate-800">Economy <span className="text-primary">Calibration</span></h3>
-                             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic">Multi-Node User Reward Management</p>
+                             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic">Multi-Node Member Reward Management</p>
                           </div>
                        </div>
                     </div>
@@ -304,7 +302,7 @@ export default function AdminDashboardV3() {
               </div>
            )}
 
-           {activeTab === 'students' && (
+           {activeTab === 'directory' && (
               <div className="space-y-10 animate-in fade-in duration-700">
                  <Card className="bg-amber-500/5 border-amber-500/20 rounded-[2.5rem] p-8 space-y-6 border-2">
                     <h3 className="text-lg font-black uppercase italic flex items-center gap-3 text-slate-800">
@@ -312,7 +310,7 @@ export default function AdminDashboardV3() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                        <div className="space-y-2">
-                          <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Target Student UID</Label>
+                          <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Target Member UID</Label>
                           <Input value={targetUid} onChange={e => setTargetUid(e.target.value)} placeholder="PASTE FIREBASE UID" className="h-12 bg-white rounded-xl" />
                        </div>
                        <div className="space-y-2">
@@ -341,7 +339,7 @@ export default function AdminDashboardV3() {
                  <Card className="bg-white border-slate-200/60 rounded-[2.5rem] overflow-hidden shadow-sm">
                     <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
                        <div>
-                          <h3 className="text-lg font-black uppercase italic text-slate-800">Student Identity Archives</h3>
+                          <h3 className="text-lg font-black uppercase italic text-slate-800">Member Identity Archives</h3>
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">Encrypted User Registry Node</p>
                        </div>
                        <div className="relative w-full md:w-80">
@@ -350,7 +348,7 @@ export default function AdminDashboardV3() {
                        </div>
                     </div>
                     <div className="divide-y divide-slate-50 max-h-[600px] overflow-y-auto no-scrollbar">
-                       {students?.map(w => (
+                       {members?.map(w => (
                           <div key={w.id} className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-8 hover:bg-slate-50/50 transition-all">
                              <div className="flex items-center gap-6">
                                 <div className="h-16 w-16 rounded-[1.5rem] bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-primary text-xl shadow-inner">
@@ -358,10 +356,16 @@ export default function AdminDashboardV3() {
                                 </div>
                                 <div className="space-y-2">
                                    <div className="flex flex-wrap items-center gap-3">
-                                      <p className="text-sm font-black uppercase italic text-slate-800 leading-none">{w.email || 'Anonymous Student'}</p>
+                                      <p className="text-sm font-black uppercase italic text-slate-800 leading-none">{w.email || 'Anonymous Member'}</p>
                                       <Badge variant="outline" className={cn("text-[6px] px-1.5 h-4 border-slate-200 font-black uppercase", w.isSuspended ? "text-red-500 border-red-100 bg-red-50" : "text-emerald-500")}>
                                          {w.isSuspended ? 'Suspended' : 'Verified Signal'}
                                       </Badge>
+                                      {w.primaryIntent && (
+                                        <Badge className="bg-slate-100 text-slate-600 border-none text-[6px] font-black uppercase px-2 h-4 italic">
+                                          {w.primaryIntent === 'student' ? <GraduationCap className="h-2.5 w-2.5 mr-1" /> : <Briefcase className="h-2.5 w-2.5 mr-1" />}
+                                          {w.primaryIntent}
+                                        </Badge>
+                                      )}
                                    </div>
                                    <div className="flex flex-wrap gap-2">
                                       <IdentityBadge label="UID" value={w.id} />
