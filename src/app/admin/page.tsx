@@ -13,7 +13,9 @@ import {
   Image as ImageIcon,
   Type,
   Calendar,
-  Layers
+  Layers,
+  DollarSign,
+  Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -158,7 +160,7 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <p className="text-sm font-black uppercase italic">Admin <span className="text-primary">Hub</span></p>
          </div>
-         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-[0.3em]">Advance Identity Audit v2.0</Badge>
+         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-[0.3em]">Identity Audit v2.0</Badge>
       </header>
 
       <main className="pt-28 px-4 md:px-6 space-y-10 max-w-7xl mx-auto">
@@ -178,25 +180,21 @@ export default function AdminDashboard() {
                     <div className="space-y-6">
                        <div className="space-y-2">
                           <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">User Revenue Share (%)</Label>
-                          <div className="flex gap-3">
-                             <Input 
-                               type="number" 
-                               defaultValue={settings?.userRevenueSharePercent || 10}
-                               onBlur={(e) => updateSetting('userRevenueSharePercent', parseInt(e.target.value))}
-                               className="h-12 bg-black border-white/10 rounded-xl font-black text-primary"
-                             />
-                          </div>
+                          <Input 
+                            type="number" 
+                            value={settings?.userRevenueSharePercent || 10}
+                            onChange={(e) => updateSetting('userRevenueSharePercent', parseInt(e.target.value))}
+                            className="h-12 bg-black border-white/10 rounded-xl font-black text-primary"
+                          />
                        </div>
                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Max Daily Ads Limit</Label>
-                          <div className="flex gap-3">
-                             <Input 
-                               type="number" 
-                               defaultValue={settings?.maxDailyVideosPerUser || 20}
-                               onBlur={(e) => updateSetting('maxDailyVideosPerUser', parseInt(e.target.value))}
-                               className="h-12 bg-black border-white/10 rounded-xl font-black text-white"
-                             />
-                          </div>
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Max Daily Video Signal Limit</Label>
+                          <Input 
+                            type="number" 
+                            value={settings?.maxDailyVideosPerUser || 20}
+                            onChange={(e) => updateSetting('maxDailyVideosPerUser', parseInt(e.target.value))}
+                            className="h-12 bg-black border-white/10 rounded-xl font-black text-white"
+                          />
                        </div>
                     </div>
                  </Card>
@@ -305,7 +303,7 @@ export default function AdminDashboard() {
                                           <Terminal className="h-3 w-3 text-primary" /> UID: <span className="text-white font-mono">{w.id}</span>
                                        </p>
                                        <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
-                                          <Fingerprint className="h-3 w-3 text-amber-500" /> DEVICE: <span className="text-white font-mono">{w.deviceId || 'Unknown'}</span>
+                                          <Fingerprint className="h-3 w-3 text-amber-500" /> DEVICE ID: <span className="text-white font-mono">{w.deviceId || 'Unknown'}</span>
                                        </p>
                                        <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
                                           <Globe className="h-3 w-3 text-blue-500" /> LAST IP: <span className="text-white font-mono">{w.lastIp || '0.0.0.0'}</span>

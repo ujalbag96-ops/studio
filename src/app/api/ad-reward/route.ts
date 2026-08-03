@@ -3,7 +3,7 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Industrial Real-Time Dynamic Revenue Share Gateway v9.0
+ * Industrial Real-Time Dynamic Revenue Share Gateway v11.0
  * Calculates rewards dynamically based on Admin Economy Settings.
  */
 export async function POST(request: Request) {
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     // Standard industrial revenue per ad signal (Benchmark: ₹0.50)
     const estimatedTotalRevenueINR = 0.50; 
     
-    // Fetch dynamic share from Admin Config (Default to 10%)
+    // Fetch dynamic share from Admin Config (Requested: 10% User Share)
     const userSharePercent = settings?.userRevenueSharePercent || 10; 
     const adminSharePercent = 100 - userSharePercent;
 

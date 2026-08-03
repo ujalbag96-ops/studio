@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useFirestore, useMemoFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
