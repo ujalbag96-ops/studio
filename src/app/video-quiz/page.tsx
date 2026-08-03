@@ -15,7 +15,8 @@ import {
   Video,
   CheckCircle2,
   Clock,
-  Youtube
+  Youtube,
+  ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile, AppSettings } from '@/app/lib/types';

@@ -8,7 +8,7 @@ import {
   Fingerprint, Palette, Image as ImageIcon, Type, Calendar, Layers, DollarSign, Activity,
   Volume2, Music, BellRing, Radio, Cpu, Lock, Smartphone, Video, PlayCircle, Coins,
   History, ShieldCheck, Mail, Database, RefreshCw, AlertCircle, BarChart3, PieChart, Timer,
-  Flag, Layout, Youtube, Gauge
+  Flag, Layout, Youtube, Gauge, ListFilter, CreditCard as PayoutIcon, ShieldAlert as AlertIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +34,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState<'analytics' | 'monetization' | 'warriors' | 'withdrawals' | 'branding' | 'sounds' | 'signals'>('analytics');
+  const [monetizationSubTab, setMonetizationSubTab] = useState<'auto' | 'manual'>('auto');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
   const [targetUserId, setTargetUserId] = useState('');
@@ -67,7 +69,6 @@ export default function AdminDashboard() {
     if (!targetUserId || !adjAmount || !firestore) return;
     const amt = parseFloat(adjAmount);
     try {
-      // Find user by ID or Email
       const userRef = doc(firestore, 'users', targetUserId);
       const change = type === 'add' ? amt : -amt;
       await updateDoc(userRef, {
@@ -107,19 +108,19 @@ export default function AdminDashboard() {
                <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
                <span className="text-[9px] font-black uppercase text-green-500 tracking-widest">⚡ REAL-TIME SIGNAL ACTIVE</span>
             </div>
-            <Badge variant="outline" className="border-white/10 text-white text-[8px] font-black uppercase">v88.0 Final Sync</Badge>
+            <Badge variant="outline" className="border-white/10 text-white text-[8px] font-black uppercase">Production v88.2</Badge>
          </div>
       </header>
 
       <main className="pt-28 px-4 md:px-6 space-y-10 max-w-7xl mx-auto">
          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-4 sticky top-20 z-50 bg-background/80 backdrop-blur-md pt-2">
-            <NavPill active={activeTab === 'analytics'} label="Analytics Hub" icon={<BarChart3 className="h-3 w-3" />} onClick={() => setActiveTab('analytics')} />
-            <NavPill active={activeTab === 'monetization'} label="Monetization" icon={<DollarSign className="h-3 w-3" />} onClick={() => setActiveTab('monetization')} />
-            <NavPill active={activeTab === 'warriors'} label="Warrior Identity" icon={<UsersIcon className="h-3 w-3" />} onClick={() => setActiveTab('warriors')} />
+            <NavPill active={activeTab === 'analytics'} label="Analysis Hub" icon={<BarChart3 className="h-3 w-3" />} onClick={() => setActiveTab('analytics')} />
+            <NavPill active={activeTab === 'monetization'} label="Revenue Nodes" icon={<DollarSign className="h-3 w-3" />} onClick={() => setActiveTab('monetization')} />
+            <NavPill active={activeTab === 'warriors'} label="Warrior Registry" icon={<UsersIcon className="h-3 w-3" />} onClick={() => setActiveTab('warriors')} />
             <NavPill active={activeTab === 'withdrawals'} label="Settlement" icon={<CreditCard className="h-3 w-3" />} onClick={() => setActiveTab('withdrawals')} />
-            <NavPill active={activeTab === 'branding'} label="Visual Node" icon={<Palette className="h-3 w-3" />} onClick={() => setActiveTab('branding')} />
+            <NavPill active={activeTab === 'branding'} label="Visual Identity" icon={<Palette className="h-3 w-3" />} onClick={() => setActiveTab('branding')} />
             <NavPill active={activeTab === 'sounds'} label="Audio Engine" icon={<Volume2 className="h-3 w-3" />} onClick={() => setActiveTab('sounds')} />
-            <NavPill active={activeTab === 'signals'} label="API Node" icon={<Radio className="h-3 w-3" />} onClick={() => setActiveTab('signals')} />
+            <NavPill active={activeTab === 'signals'} label="API Config" icon={<Radio className="h-3 w-3" />} onClick={() => setActiveTab('signals')} />
          </div>
 
          {/* 1. ANALYTICS & PROFIT ENGINE */}
@@ -175,58 +176,61 @@ export default function AdminDashboard() {
                      </div>
                   </Card>
                </div>
+
+               {/* USER INCOME ANALYSIS FEED */}
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[2.5rem] overflow-hidden">
+                  <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                     <h3 className="text-sm font-black uppercase tracking-widest italic flex items-center gap-3"><UsersIcon className="h-4 w-4 text-primary" /> Warrior Income Audit</h3>
+                     <Badge variant="outline" className="border-white/10 text-[8px] font-black uppercase">Live Yield Analysis</Badge>
+                  </div>
+                  <div className="divide-y divide-white/5 max-h-[400px] overflow-y-auto no-scrollbar">
+                     {warriors?.map(w => (
+                        <div key={w.id} className="p-6 flex items-center justify-between group hover:bg-white/[0.02]">
+                           <div className="flex items-center gap-4">
+                              <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center font-black text-primary text-sm">{w.email?.[0].toUpperCase() || 'U'}</div>
+                              <div>
+                                 <p className="text-xs font-black text-white uppercase italic">{w.email || 'Anonymous'}</p>
+                                 <p className="text-[8px] font-bold text-muted-foreground uppercase">UID: {w.id.substring(0,8)}...</p>
+                              </div>
+                           </div>
+                           <div className="text-right">
+                              <p className="text-sm font-black text-green-500 italic tabular-nums">+${w.pendingRevenueShare?.toFixed(2) || '0.00'}</p>
+                              <p className="text-[7px] font-black uppercase text-muted-foreground">User Dividend Earned</p>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </Card>
             </div>
          )}
 
-         {/* 2. DYNAMIC 100+ MODULES HUB */}
+         {/* 2. REVENUE NODES (AUTO & MANUAL) */}
          {activeTab === 'monetization' && (
             <div className="space-y-10 animate-in fade-in duration-500">
-               <Card className="bg-primary/5 border-primary/20 p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8 border-2">
-                  <div className="space-y-2 text-center md:text-left">
-                     <h3 className="text-2xl font-black uppercase italic tracking-tighter">Global Profit Split</h3>
-                     <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest italic">Default share % applied to all active nodes.</p>
-                  </div>
-                  <div className="flex items-center gap-4 w-full md:w-auto">
-                     <div className="space-y-1 flex-1 md:w-40">
-                        <Label className="text-[8px] font-black uppercase text-muted-foreground ml-1">User Share %</Label>
-                        <Input 
-                          type="number" 
-                          value={settings?.userRevenueSharePercent} 
-                          onChange={e => updateSetting('userRevenueSharePercent', parseFloat(e.target.value))} 
-                          className="h-12 bg-black border-white/10 rounded-xl font-black text-primary text-center" 
-                        />
-                     </div>
-                     <div className="space-y-1 flex-1 md:w-40">
-                        <Label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Daily Cap</Label>
-                        <Input 
-                          type="number" 
-                          value={settings?.maxDailyVideosPerUser} 
-                          onChange={e => updateSetting('maxDailyVideosPerUser', parseInt(e.target.value))} 
-                          className="h-12 bg-black border-white/10 rounded-xl font-black text-white text-center" 
-                        />
-                     </div>
-                  </div>
+               <Card className="bg-primary/5 border-primary/20 p-8 rounded-[2.5rem] border-2">
+                  <Tabs value={monetizationSubTab} onValueChange={(v: any) => setMonetizationSubTab(v)} className="w-full">
+                     <TabsList className="grid grid-cols-2 h-14 bg-black/40 rounded-2xl p-1 mb-8 border border-white/10">
+                        <TabsTrigger value="auto" className="font-black text-[10px] uppercase data-[state=active]:bg-primary">Auto Signals (API)</TabsTrigger>
+                        <TabsTrigger value="manual" className="font-black text-[10px] uppercase data-[state=active]:bg-primary">Manual Nodes (UTR)</TabsTrigger>
+                     </TabsList>
+                     
+                     <TabsContent value="auto" className="space-y-8 mt-0">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                           {MONETIZATION_REGISTRY.filter(m => m.category === 'CPA' || m.category === 'Ads').map((mon) => (
+                             <MonetizationCard key={mon.id} mon={mon} settings={settings} updateSetting={updateSetting} />
+                           ))}
+                        </div>
+                     </TabsContent>
+
+                     <TabsContent value="manual" className="space-y-8 mt-0">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                           {MONETIZATION_REGISTRY.filter(m => m.category !== 'CPA' && m.category !== 'Ads').map((mon) => (
+                             <MonetizationCard key={mon.id} mon={mon} settings={settings} updateSetting={updateSetting} />
+                           ))}
+                        </div>
+                     </TabsContent>
+                  </Tabs>
                </Card>
-               
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {MONETIZATION_REGISTRY.map((mon) => (
-                    <Card key={mon.id} className="bg-[#0a0a0f] border-white/5 p-6 rounded-[2rem] space-y-6 hover:border-primary/20 transition-all group border-2">
-                       <div className="flex items-center justify-between">
-                          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-xl border border-primary/20">
-                             <mon.icon size={20} />
-                          </div>
-                          <Switch 
-                            checked={!!(settings as any)?.[mon.visibilityKey]} 
-                            onCheckedChange={(v) => updateSetting(mon.visibilityKey, v)} 
-                          />
-                       </div>
-                       <div className="space-y-1">
-                          <h4 className="text-lg font-black uppercase italic tracking-tight truncate">{mon.label}</h4>
-                          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{mon.provider}</p>
-                       </div>
-                    </Card>
-                  ))}
-               </div>
             </div>
          )}
 
@@ -335,7 +339,7 @@ export default function AdminDashboard() {
             </div>
          )}
 
-         {/* 5. VISUAL NODE (BRANDING) */}
+         {/* 5. VISUAL IDENTITY (BRANDING) */}
          {activeTab === 'branding' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-500">
                <Card className="bg-[#0a0a0f] border-white/5 p-10 rounded-[3rem] space-y-8 border-2">
@@ -372,7 +376,7 @@ export default function AdminDashboard() {
                </Card>
                <Card className="bg-primary/5 border-primary/20 p-10 rounded-[3rem] flex flex-col justify-center items-center text-center space-y-6 border-2">
                   <div className="h-24 w-24 bg-white/5 border border-white/10 rounded-full flex items-center justify-center shadow-inner group">
-                     {settings?.customLogoUrl ? <img src={settings.customLogoUrl} className="h-12 w-auto" /> : <Zap className="h-10 w-10 text-primary" />}
+                     {settings?.customLogoUrl ? <img src={settings.customLogoUrl} className="h-12 w-auto" alt="Preview" /> : <Zap className="h-10 w-10 text-primary" />}
                   </div>
                   <h4 className="text-2xl font-black uppercase italic">{settings?.customAppName || 'CampusHub'}</h4>
                   <Badge variant="outline" className="border-primary/20 text-primary uppercase font-black px-4 py-1 text-[9px]">{settings?.currentThemeId || 'Default'}</Badge>
@@ -454,6 +458,36 @@ export default function AdminDashboard() {
   );
 }
 
+function MonetizationCard({ mon, settings, updateSetting }: any) {
+    return (
+        <Card className="bg-[#0a0a0f] border-white/5 p-6 rounded-[2rem] space-y-6 hover:border-primary/20 transition-all group border-2">
+           <div className="flex items-center justify-between">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-xl border border-primary/20">
+                 <mon.icon size={20} />
+              </div>
+              <Switch 
+                checked={!!(settings as any)?.[mon.visibilityKey]} 
+                onCheckedChange={(v) => updateSetting(mon.visibilityKey, v)} 
+              />
+           </div>
+           <div className="space-y-1">
+              <h4 className="text-lg font-black uppercase italic tracking-tight truncate">{mon.label}</h4>
+              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{mon.provider}</p>
+           </div>
+           <div className="space-y-3 pt-2">
+              <div className="flex justify-between items-center text-[9px] font-black uppercase">
+                 <span className="text-muted-foreground">Dynamic Share</span>
+                 <span className="text-primary">10% Default</span>
+              </div>
+              <div className="flex justify-between items-center text-[9px] font-black uppercase">
+                 <span className="text-muted-foreground">Daily Signal Limit</span>
+                 <span className="text-white">{settings?.maxDailyVideosPerUser || 20}</span>
+              </div>
+           </div>
+        </Card>
+    );
+}
+
 function NavPill({ active, label, icon, onClick }: any) {
    return (
       <button 
@@ -471,7 +505,7 @@ function NavPill({ active, label, icon, onClick }: any) {
 function AnalyticsCard({ label, value, desc, icon }: any) {
    return (
       <Card className="bg-[#0a0a0f] border-white/5 p-8 rounded-[2.5rem] space-y-4 shadow-xl border-2 relative overflow-hidden group">
-         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">{icon}</div>
+         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-125 transition-transform">{icon}</div>
          <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center shadow-inner border border-white/10">{icon}</div>
          <div>
             <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1 italic">{label}</p>
