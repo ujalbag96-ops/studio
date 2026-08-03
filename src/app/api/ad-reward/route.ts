@@ -4,8 +4,8 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 /**
- * Industrial Real-Time Dynamic Revenue Share Gateway v15.0
- * Uses dynamic Admin-set share percentages for calculation.
+ * Industrial Real-Time Dynamic Revenue Share Gateway v16.0
+ * Features individual percentage calibration for different stream types.
  */
 export async function POST(request: Request) {
   try {
@@ -41,11 +41,18 @@ export async function POST(request: Request) {
     const settings = settingsSnap.data();
     
     // --- REAL-TIME INDUSTRIAL PROFIT CALCULATION ---
-    // Industrial CPM Bench: ₹0.50 per signal
+    // CPM Bench: ₹0.50 per signal
     const estimatedTotalRevenueINR = 0.50; 
     
-    // Fetch manual share % set by Admin
-    const userSharePercent = settings?.userRevenueSharePercent || 10; 
+    // FETCH TYPE-SPECIFIC MANUAL SHARE %
+    let userSharePercent = settings?.userRevenueSharePercent || 10;
+    
+    if (type === 'youtube_stream_signal') {
+       userSharePercent = settings?.youtubeUserSharePercent || userSharePercent;
+    } else if (type === 'direct_stream_signal' || type === 'video_quiz_reward' || type === 'video_ad_signal') {
+       userSharePercent = settings?.videoUserSharePercent || userSharePercent;
+    }
+
     const userRewardINR = estimatedTotalRevenueINR * (userSharePercent / 100); 
     const adminProfitINR = estimatedTotalRevenueINR - userRewardINR;
 
@@ -78,7 +85,7 @@ export async function POST(request: Request) {
       amount: rewardAmountCoins,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Signal Sync: ${userSharePercent}% Industrial Dividend`
+      description: `Signal Sync [${type}]: ${userSharePercent}% Industrial Dividend`
     });
 
     await batch.commit();
@@ -86,7 +93,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       credit: rewardAmountCoins,
-      status: `SIGNAL_LOCKED_${userSharePercent}_PERCENT`
+      status: `SIGNAL_LOCKED_${userSharePercent}_PERCENT`,
+      shareApplied: `${userSharePercent}%`
     });
 
   } catch (error) {

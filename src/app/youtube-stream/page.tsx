@@ -60,7 +60,7 @@ export default function YoutubeStreamHub() {
       });
       const data = await res.json();
       if (data.success) {
-        toast({ title: "MISSION TRIGGERED", description: "Dynamic yield credited to wallet." });
+        toast({ title: "MISSION TRIGGERED", description: `Yield Credited: ${data.shareApplied} Node Share.` });
       }
     } catch (e) {
       console.error("Reward Sync Failed");
@@ -116,14 +116,14 @@ export default function YoutubeStreamHub() {
             <ul className="space-y-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
                <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Rewards valid for sessions &gt; 5 minutes.</li>
                <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Multi-tab streaming will void reward signals.</li>
-               <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Dynamic 10% share credited instantly.</li>
+               <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Dynamic {settings?.youtubeUserSharePercent || 10}% share credited instantly.</li>
             </ul>
          </Card>
          <Card className="bg-red-600/5 border-red-600/20 rounded-[2.5rem] p-10 flex flex-col justify-center items-center text-center space-y-4">
             <Activity className="h-10 w-10 text-red-600 animate-pulse" />
             <h4 className="text-xl font-black uppercase italic">Real-Time Yield</h4>
             <p className="text-xs font-medium text-muted-foreground uppercase leading-relaxed">
-               Every session adds points to your Mission Wallet based on current dynamic Admin settings.
+               Every session adds points to your Mission Wallet based on current dynamic Admin settings ({settings?.youtubeUserSharePercent || 10}%).
             </p>
          </Card>
       </div>

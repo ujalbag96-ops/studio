@@ -55,6 +55,7 @@ export interface UserProfile {
   unlockedMilestones?: string[];
   networkTaskCompletions?: number;
   totalNetworkRevenue?: number;
+  totalRevenueGeneratedINR?: number;
 }
 
 export interface AppSettings {
@@ -64,6 +65,8 @@ export interface AppSettings {
   razorpayAutoPayout: boolean;
   userRevenueSharePercent: number; // Global default share
   cpaUserSharePercent?: number;    // Specific CPA share
+  videoUserSharePercent?: number;  // Specific Video Ads share
+  youtubeUserSharePercent?: number; // Specific YouTube share
   maxDailyVideosPerUser?: number;
   
   // --- Global API Signals ---

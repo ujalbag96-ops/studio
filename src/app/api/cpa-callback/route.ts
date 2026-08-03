@@ -4,7 +4,7 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Industrial CPA S2S Postback Node v4.0
+ * Industrial CPA S2S Postback Node v5.0
  * Uses MANUAL Admin-set rates from Economy Control Hub.
  */
 export async function GET(request: Request) {
@@ -24,7 +24,6 @@ export async function GET(request: Request) {
     const userRef = doc(firestore, 'users', userId);
     const statsRef = doc(firestore, 'platform_stats', 'revenue');
     const settingsRef = doc(firestore, 'app_settings', 'global_config');
-    const conversionRef = doc(collection(firestore, 'cpa_conversions'));
 
     const [userSnap, settingsSnap] = await Promise.all([
       getDoc(userRef),
@@ -35,18 +34,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Identity Record Missing' }, { status: 404 });
     }
 
-    const userData = userSnap.data();
     const settings = settingsSnap.data();
 
     // --- REAL-TIME MANUAL REVENUE SHARE ENGINE ---
-    // Fetch manual % set in Admin Dashboard Economy Hub
     const userSharePercent = settings?.cpaUserSharePercent || settings?.userRevenueSharePercent || 30;
     const adminSharePercent = 100 - userSharePercent;
     
     const userShareUSD = rawRevenueUSD * (userSharePercent / 100); 
     const adminProfitUSD = rawRevenueUSD * (adminSharePercent / 100); 
     
-    // Convert to Coins based on Admin settings
     const coinsPerUSD = settings?.coinsPerUSD || 1000;
     const rewardAmountCoins = Math.floor(userShareUSD * coinsPerUSD);
 
@@ -59,11 +55,12 @@ export async function GET(request: Request) {
       totalRevenueGenerated: increment(rawRevenueUSD)
     });
 
-    // 2. Global Analytics Ledger
+    // 2. Global Analytics Ledger (INR for Master Stats)
+    const inrValue = rawRevenueUSD * 80;
     batch.set(statsRef, {
-      totalDailyRevenueUSD: increment(rawRevenueUSD),
-      totalAdminProfitUSD: increment(adminProfitUSD),
-      totalUserDividendUSD: increment(userShareUSD),
+      totalGrossRevenueINR: increment(inrValue),
+      totalUserPayoutsINR: increment(userShareUSD * 80),
+      totalAdminProfitINR: increment(adminProfitUSD * 80),
       lastUpdated: new Date().toISOString()
     }, { merge: true });
 

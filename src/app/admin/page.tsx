@@ -5,7 +5,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@
 import { doc, updateDoc, collection, query, limit, orderBy, increment, where, serverTimestamp } from 'firebase/firestore';
 import { 
   Loader2, Zap, DollarSign, TrendingUp, Users as UsersIcon, UserCheck, 
-  Palette, Radio, Activity, Layout, BarChart3, Settings, Gauge, CreditCard
+  Palette, Radio, Activity, Layout, BarChart3, Settings, Gauge, CreditCard, Video, Youtube
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
             <div className="space-y-10 animate-in fade-in duration-500">
                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <AnalyticsCard label="Gross Income" value={`₹${(stats?.totalGrossRevenueINR || 0).toLocaleString()}`} desc="Verified platform ad revenue" icon={<DollarSign className="text-green-500" />} />
-                  <AnalyticsCard label="User Share" value={`₹${(stats?.totalUserPayoutsINR || 0).toLocaleString()}`} desc={`${settings?.userRevenueSharePercent || 10}% Dynamic Distribution`} icon={<Zap className="text-primary" />} />
+                  <AnalyticsCard label="User Share" value={`₹${(stats?.totalUserPayoutsINR || 0).toLocaleString()}`} desc="Dynamic Distribution Active" icon={<Zap className="text-primary" />} />
                   <AnalyticsCard label="Net Profit" value={`₹${(stats?.totalAdminProfitINR || 0).toLocaleString()}`} desc="Industrial Retention Node" icon={<TrendingUp className="text-amber-500" />} />
                </div>
 
@@ -99,14 +99,17 @@ export default function AdminDashboard() {
                         <div key={w.id} className="p-6 flex items-center justify-between group hover:bg-white/[0.02]">
                            <div className="flex items-center gap-4">
                               <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center font-black text-primary text-sm">{w.email?.[0].toUpperCase() || 'U'}</div>
-                              <div>
+                              <div className="space-y-1">
                                  <p className="text-xs font-black text-white uppercase italic">{w.email || 'Anonymous'}</p>
-                                 <p className="text-[8px] font-bold text-muted-foreground uppercase">Generated: ${w.totalRevenueGenerated?.toFixed(2) || '0.00'} Gross</p>
+                                 <p className="text-[7px] font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                    <Badge variant="outline" className="text-[6px] py-0 border-white/5">{w.id.substring(0,8)}</Badge>
+                                    <span>IP: {w.lastIp || 'NO_IP'}</span>
+                                 </p>
                               </div>
                            </div>
                            <div className="text-right">
-                              <p className="text-sm font-black text-green-500 italic tabular-nums">+${w.pendingRevenueShare?.toFixed(2) || '0.00'}</p>
-                              <p className="text-[7px] font-black uppercase text-muted-foreground">User Dividend Share</p>
+                              <p className="text-sm font-black text-green-500 italic tabular-nums">+₹{((w.pendingRevenueShare || 0) * 80).toFixed(2)}</p>
+                              <p className="text-[7px] font-black uppercase text-muted-foreground">User Reward INR</p>
                            </div>
                         </div>
                      ))}
@@ -124,44 +127,41 @@ export default function AdminDashboard() {
                         <Gauge size={28} />
                      </div>
                      <div>
-                        <h3 className="text-2xl font-black uppercase italic tracking-tighter">Economy <span className="text-primary">Control Node</span></h3>
-                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Manual Revenue Share Calibration</p>
+                        <h3 className="text-2xl font-black uppercase italic tracking-tighter">Economy <span className="text-primary">Control Hub</span></h3>
+                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Multi-Node Revenue Share Calibration</p>
                      </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-10">
-                     <div className="space-y-4">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">CPA User Share % (Manual Set)</Label>
-                        <div className="flex items-center gap-4">
-                           <Input 
-                             type="number" 
-                             value={settings?.cpaUserSharePercent || settings?.userRevenueSharePercent || 30} 
-                             onChange={e => updateSetting('cpaUserSharePercent', parseFloat(e.target.value))}
-                             className="h-16 bg-black border-white/10 rounded-xl font-black text-2xl text-primary text-center" 
-                           />
-                           <div className="h-16 w-20 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-xl font-black">%</div>
-                        </div>
-                        <p className="text-[8px] font-bold text-muted-foreground uppercase leading-relaxed italic">
-                           *Sets exactly how much % a user gets from CPA Lead / AdGate payout. 
-                        </p>
-                     </div>
-
-                     <div className="space-y-4">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Ad/Video Global Share %</Label>
-                        <div className="flex items-center gap-4">
-                           <Input 
-                             type="number" 
-                             value={settings?.userRevenueSharePercent || 10} 
-                             onChange={e => updateSetting('userRevenueSharePercent', parseFloat(e.target.value))}
-                             className="h-16 bg-black border-white/10 rounded-xl font-black text-2xl text-white text-center" 
-                           />
-                           <div className="h-16 w-20 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-xl font-black">%</div>
-                        </div>
-                        <p className="text-[8px] font-bold text-muted-foreground uppercase leading-relaxed italic">
-                           *Sets default share for Stream Hubs and Rewarded Ads.
-                        </p>
-                     </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                     <EconomyInput 
+                        label="CPA Share %" 
+                        value={settings?.cpaUserSharePercent || 30} 
+                        icon={<DollarSign className="h-4 w-4" />}
+                        onUpdate={v => updateSetting('cpaUserSharePercent', v)} 
+                     />
+                     <EconomyInput 
+                        label="Video Ads %" 
+                        value={settings?.videoUserSharePercent || 10} 
+                        icon={<Video className="h-4 w-4" />}
+                        onUpdate={v => updateSetting('videoUserSharePercent', v)} 
+                     />
+                     <EconomyInput 
+                        label="YouTube Hub %" 
+                        value={settings?.youtubeUserSharePercent || 10} 
+                        icon={<Youtube className="h-4 w-4" />}
+                        onUpdate={v => updateSetting('youtubeUserSharePercent', v)} 
+                     />
+                     <EconomyInput 
+                        label="Global Default %" 
+                        value={settings?.userRevenueSharePercent || 10} 
+                        icon={<Zap className="h-4 w-4" />}
+                        onUpdate={v => updateSetting('userRevenueSharePercent', v)} 
+                     />
                   </div>
+                  
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase text-center italic opacity-60">
+                     *Changes reflect instantly in ad-reward and cpa-callback nodes. Default Fallback: 10%.
+                  </p>
                </Card>
 
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -219,26 +219,27 @@ export default function AdminDashboard() {
 
          {activeTab === 'warriors' && (
             <div className="space-y-10 animate-in fade-in duration-500">
-               <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden">
+               <Card className="bg-[#0a0a0f] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
                   <div className="p-8 border-b border-white/5 bg-white/5 flex items-center justify-between">
-                     <h3 className="text-sm font-black uppercase tracking-widest italic">Warrior Identity Registry</h3>
+                     <h3 className="text-sm font-black uppercase tracking-widest italic">Warrior Technical Registry</h3>
                   </div>
                   <div className="divide-y divide-white/5">
                      {warriors?.map(w => (
                         <div key={w.id} className="p-8 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-white/[0.02]">
                            <div className="flex items-center gap-6">
                               <div className="h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center font-black text-primary text-xl">{w.email?.[0].toUpperCase() || 'U'}</div>
-                              <div className="space-y-1">
+                              <div className="space-y-2">
                                  <p className="text-sm font-black text-white uppercase italic">{w.email || 'Anonymous'}</p>
-                                 <div className="flex flex-wrap gap-3">
+                                 <div className="flex flex-wrap gap-2">
                                     <Badge className="bg-black/60 border-white/10 text-[7px] font-bold text-muted-foreground uppercase">{w.id}</Badge>
-                                    <Badge className="bg-black/60 border-white/10 text-[7px] font-bold text-primary uppercase">{w.deviceId || 'NO_HWID'}</Badge>
-                                    <Badge className="bg-black/60 border-white/10 text-[7px] font-bold text-green-500 uppercase">{w.lastIp || 'NO_IP'}</Badge>
+                                    <Badge className="bg-black/60 border-white/10 text-[7px] font-bold text-primary uppercase">HWID: {w.deviceId || 'NO_HWID'}</Badge>
+                                    <Badge className="bg-black/60 border-white/10 text-[7px] font-bold text-green-500 uppercase">IP: {w.lastIp || 'NO_IP'}</Badge>
                                  </div>
                               </div>
                            </div>
                            <div className="text-right">
                               <p className="text-lg font-black text-primary italic">{(w.coins || 0).toLocaleString()} 🪙</p>
+                              <p className="text-[7px] font-bold text-muted-foreground uppercase italic mt-1">Joined: {new Date(w.joinedAt || '').toLocaleDateString()}</p>
                            </div>
                         </div>
                      ))}
@@ -249,6 +250,25 @@ export default function AdminDashboard() {
       </main>
     </div>
   );
+}
+
+function EconomyInput({ label, value, icon, onUpdate }: any) {
+   return (
+      <div className="space-y-2 bg-black/40 p-4 rounded-2xl border border-white/5 group hover:border-primary/20 transition-all">
+         <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-2">
+            {icon} {label}
+         </Label>
+         <div className="flex items-center gap-2">
+            <Input 
+              type="number" 
+              value={value} 
+              onChange={e => onUpdate(parseFloat(e.target.value))}
+              className="h-12 bg-black border-white/10 rounded-xl font-black text-lg text-primary text-center" 
+            />
+            <span className="text-xs font-black opacity-40">%</span>
+         </div>
+      </div>
+   );
 }
 
 function MonetizationCard({ mon, settings, updateSetting }: any) {
