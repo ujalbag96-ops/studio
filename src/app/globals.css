@@ -4,13 +4,13 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%; /* #09090b - Ultra Dark */
+    --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 217 91% 60%; /* Neon Blue */
+    --primary: 217 91% 60%;
     --primary-foreground: 210 40% 98%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
@@ -25,6 +25,73 @@
     --ring: 217 91% 60%;
     --radius: 1.5rem;
   }
+
+  /* 12 INDUSTRIAL MASTER THEMES */
+  [data-theme="dark-default"] {
+    --background: 240 10% 3.9%;
+    --primary: 217 91% 60%;
+    --accent: 160 84% 39%;
+  }
+  [data-theme="cyberpunk-neon"] {
+    --background: 262 89% 7%;
+    --primary: 330 100% 50%;
+    --accent: 184 100% 50%;
+  }
+  [data-theme="midnight-blue"] {
+    --background: 224 71% 4%;
+    --primary: 221 83% 53%;
+    --accent: 199 89% 60%;
+  }
+  [data-theme="emerald-gold"] {
+    --background: 166 91% 9%;
+    --primary: 160 84% 39%;
+    --accent: 38 92% 50%;
+  }
+  [data-theme="sunset-orange"] {
+    --background: 0 85% 5%;
+    --primary: 0 84% 60%;
+    --accent: 25 95% 53%;
+  }
+  [data-theme="purple-vibe"] {
+    --background: 252 43% 8%;
+    --primary: 259 94% 66%;
+    --accent: 330 81% 60%;
+  }
+  [data-theme="crimson-dark"] {
+    --background: 347 73% 4%;
+    --primary: 346 77% 50%;
+    --accent: 350 94% 71%;
+  }
+  [data-theme="matrix-green"] {
+    --background: 144 80% 4%;
+    --primary: 142 71% 45%;
+    --accent: 140 71% 58%;
+  }
+  [data-theme="ocean-depths"] {
+    --background: 202 72% 6%;
+    --primary: 189 94% 43%;
+    --accent: 199 89% 48%;
+  }
+  [data-theme="royal-gold"] {
+    --background: 43 54% 5%;
+    --primary: 45 93% 47%;
+    --accent: 48 96% 53%;
+  }
+  [data-theme="dracula-dark"] {
+    --background: 231 15% 18%;
+    --primary: 265 89% 78%;
+    --accent: 334 100% 73%;
+  }
+  [data-theme="pure-light"] {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --primary: 221 83% 53%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --border: 214 32% 91%;
+  }
 }
 
 @layer base {
@@ -37,27 +104,16 @@
   }
 }
 
-/* BATTERY OPTIMIZED UTILITIES */
 .glass-panel {
   @apply bg-white/[0.03] border border-white/[0.08] shadow-lg;
-  backdrop-filter: blur(8px); /* Reduced blur for performance */
-}
-
-.glass-card {
-  @apply bg-white/[0.02] border border-white/[0.05] hover:border-primary/30 transition-all duration-300;
-}
-
-.status-pulse {
-  @apply relative flex h-2 w-2;
+  backdrop-filter: blur(8px);
 }
 
 .status-pulse-dot {
-  /* Slowed down from standard animate-ping for battery efficiency */
   animation: ping 4s cubic-bezier(0, 0, 0.2, 1) infinite;
   @apply absolute inline-flex h-full w-full rounded-full opacity-75;
 }
 
-/* CUSTOM SLOW ANIMATIONS FOR POWER SAVING */
 @keyframes pulse-slow {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
