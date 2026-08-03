@@ -3,8 +3,8 @@ import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Industrial Revenue Share Gateway v6.0
- * Real-time dynamic calculation based on Admin Global Settings.
+ * Industrial Real-Time Revenue Share Gateway v7.0
+ * Calculates rewards dynamically based on Admin Economy Settings.
  */
 export async function POST(request: Request) {
   try {
@@ -32,11 +32,15 @@ export async function POST(request: Request) {
 
     const settings = settingsSnap.data();
     
-    // --- REAL-TIME INDUSTRIAL CALCULATION (Dynamic) ---
+    // --- REAL-TIME INDUSTRIAL CALCULATION ---
+    // Standard industrial revenue per ad signal
     const estimatedTotalRevenueINR = 0.50; 
+    
+    // Fetch dynamic share from Admin Config (Default to 10%)
     const userSharePercent = settings?.userRevenueSharePercent || 10; 
     const adminSharePercent = 100 - userSharePercent;
 
+    // Calculate Net User Reward
     const userRewardINR = estimatedTotalRevenueINR * (userSharePercent / 100); 
     const coinsPerINR = settings?.coinsPerINR || 100;
     const rewardAmountCoins = Math.floor(userRewardINR * coinsPerINR); 
@@ -48,7 +52,7 @@ export async function POST(request: Request) {
       taskBalance: increment(rewardAmountCoins),
       coins: increment(rewardAmountCoins),
       generalTasksCount: increment(1),
-      pendingRevenueShare: increment(userRewardINR / 80), 
+      pendingRevenueShare: increment(userRewardINR / 80), // Track in USD approx
       totalRevenueGenerated: increment(estimatedTotalRevenueINR / 80)
     });
 
@@ -60,13 +64,13 @@ export async function POST(request: Request) {
       lastUpdated: new Date().toISOString()
     }, { merge: true });
 
-    // 3. Industrial Ledger
+    // 3. Industrial Ledger Entry
     batch.set(doc(collection(firestore, 'users', userId, 'ledger')), {
       type: 'realtime_ad_reward',
       amount: rewardAmountCoins,
       date: new Date().toISOString().split('T')[0],
       status: 'completed',
-      description: `Video Node: ${userSharePercent}% Revenue Share Locked (+${rewardAmountCoins} 🪙)`,
+      description: `Video Node: ${userSharePercent}% Share Processed`,
       calculation: `Rev: ₹${estimatedTotalRevenueINR.toFixed(2)} | Share: ${userSharePercent}% | Net: ₹${userRewardINR.toFixed(2)}`
     });
 
@@ -80,6 +84,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
+    console.error("Revenue Engine Failure:", error);
     return NextResponse.json({ error: 'Revenue Engine Error' }, { status: 500 });
   }
 }

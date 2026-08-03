@@ -8,7 +8,7 @@ import {
   TrendingUp,
   Users as UsersIcon, UserCheck, Globe, ShieldX, Terminal, 
   CreditCard, 
-  Settings, UserPlus, UserMinus, Check, X, ShieldAlert
+  Settings, UserPlus, UserMinus, Check, X, ShieldAlert, Fingerprint
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap className="h-5 w-5 text-white" /></div>
             <p className="text-sm font-black uppercase italic">Admin <span className="text-primary">Hub</span></p>
          </div>
-         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-[0.3em]">Advance Earning Control v1.2</Badge>
+         <Badge variant="outline" className="border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-[0.3em]">Advance Earning Control v1.5</Badge>
       </header>
 
       <main className="pt-28 px-4 md:px-6 space-y-10 max-w-7xl mx-auto">
@@ -179,7 +179,7 @@ export default function AdminDashboard() {
                              />
                              <Button size="icon" className="h-12 w-12 rounded-xl"><Check className="h-4 w-4" /></Button>
                           </div>
-                          <p className="text-[7px] text-muted-foreground uppercase font-bold italic ml-1">Industrial 10% share recommended for stability.</p>
+                          <p className="text-[7px] text-muted-foreground uppercase font-bold italic ml-1">Industrial Share Calibration Node.</p>
                        </div>
                        <div className="space-y-2">
                           <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Max Daily Ads Limit</Label>
@@ -285,7 +285,7 @@ export default function AdminDashboard() {
                         w.isSuspended ? "opacity-50 grayscale border-red-500/40" : "hover:border-primary/30"
                       )}>
                          <div className="p-8 space-y-8">
-                            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
+                            <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-8">
                                <div className="flex items-center gap-6">
                                   <div className={cn(
                                     "h-20 w-20 rounded-[1.5rem] flex items-center justify-center font-black text-3xl shadow-2xl",
@@ -300,6 +300,12 @@ export default function AdminDashboard() {
                                      </div>
                                      <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
                                         <Terminal className="h-3 w-3 text-primary" /> UID: <span className="text-white font-mono">{w.id}</span>
+                                     </p>
+                                     <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                        <Fingerprint className="h-3 w-3 text-amber-500" /> Device ID: <span className="text-white font-mono">{w.deviceId || 'Unknown'}</span>
+                                     </p>
+                                     <p className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                        <Globe className="h-3 w-3 text-blue-500" /> Last IP: <span className="text-white font-mono">{w.lastIp || '0.0.0.0'}</span>
                                      </p>
                                   </div>
                                </div>
@@ -326,7 +332,7 @@ export default function AdminDashboard() {
                                       w.isSuspended ? "border-green-500/20 text-green-500 hover:bg-green-500/10" : "border-red-500/20 text-red-500 hover:bg-red-500/10"
                                     )}
                                   >
-                                     {isProcessing === `suspend-${w.id}` ? <Loader2 className="animate-spin" /> : w.isSuspended ? <UserCheck /> : <ShieldAlert />}
+                                     {isProcessing === `suspend-${w.id}` ? <Loader2 className="animate-spin" /> : w.isSuspended ? <UserCheck /> : <ShieldX />}
                                   </button>
                                </div>
                             </div>
