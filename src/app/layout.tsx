@@ -12,7 +12,7 @@ import { usePathname } from 'next/navigation';
 import { Loader2, ShieldAlert, Megaphone, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SupportChat from '@/components/SupportChat';
 import ThemeProvider from '@/components/ThemeProvider';
 
@@ -33,6 +33,7 @@ export default function RootLayout({
       <body key="layout-body" className="font-body antialiased bg-background text-white min-h-screen flex flex-col overflow-x-hidden">
         <FirebaseClientProvider key="layout-fb-provider">
           <ThemeProvider key="layout-theme-provider">
+            <BrandingSync />
             <Toaster key="layout-toaster" />
             <SystemGate key="layout-system-gate">
               <Navbar key="layout-navbar" />
@@ -50,6 +51,20 @@ export default function RootLayout({
       </body>
     </html>
   );
+}
+
+function BrandingSync() {
+  const firestore = useFirestore();
+  const settingsRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_config') : null, [firestore]);
+  const { data: settings } = useDoc<AppSettings>(settingsRef);
+
+  useEffect(() => {
+    if (settings?.customAppName) {
+      document.title = settings.customAppName.toUpperCase() + " | Industrial Hub";
+    }
+  }, [settings?.customAppName]);
+
+  return null;
 }
 
 function BroadcastBanner() {
