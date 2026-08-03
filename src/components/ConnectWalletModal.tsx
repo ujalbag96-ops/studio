@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -27,7 +28,7 @@ import { doc } from 'firebase/firestore';
 import { AppSettings, UserProfile } from '@/app/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
+import { Label } from './label';
 import { Card } from './ui/card';
 import RiskDisclosureModal from './RiskDisclosureModal';
 
@@ -185,7 +186,7 @@ export default function ConnectWalletModal({ isOpen, onOpenChange }: ConnectWall
             {step === 'automatic' && (
                <div className="space-y-6 animate-in fade-in zoom-in-95">
                   <div className="space-y-3">
-                     <Label className="text-[10px] font-black uppercase text-muted-foreground">Amount (₹)</Label>
+                     <Label className="text-[9px] font-black uppercase text-muted-foreground">Amount (₹)</Label>
                      <Input 
                       type="number" 
                       value={amount} 
