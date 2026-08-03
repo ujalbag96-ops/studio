@@ -1,4 +1,5 @@
 
+
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Elite';
 export type LanguageCode = 'en' | 'or' | 'hi' | 'bn' | 'te' | 'ta' | 'mr' | 'es' | 'fr' | 'de';
 export type UserIntent = 'student' | 'earner' | 'professional';
@@ -58,6 +59,8 @@ export interface UserProfile {
   totalRevenueGeneratedINR?: number;
 }
 
+export type MonCategory = 'CPA' | 'Ads' | 'Surveys' | 'MicroTasks' | 'Fintech' | 'Gaming' | 'Premium' | 'Passive';
+
 export interface AppSettings {
   maintenanceMode: boolean;
   reviewMode: boolean;
@@ -93,6 +96,8 @@ export interface AppSettings {
   currentThemeId?: string;
   customLogoUrl?: string;
   customAppName?: string;
+  appVersion?: string;
+  apkDownloadUrl?: string;
   
   // --- Monetization Settings ---
   coinsPerINR: number;
