@@ -355,7 +355,7 @@ export default function AdminMasterHub() {
                      </Card>
                    )) : (
                      <div className="py-20 text-center border-2 border-dashed border-slate-200 rounded-[3rem] opacity-40">
-                        <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                        <CheckCircle2 size={48} className="mx-auto mb-4 text-slate-300" />
                         <p className="text-[10px] font-black uppercase tracking-widest">Settlement Queue Empty</p>
                      </div>
                    )}
