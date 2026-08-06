@@ -1,4 +1,4 @@
-
+export const dynamic = "force-static";
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { doc, increment, collection, getDoc, writeBatch, arrayUnion } from 'firebase/firestore';
