@@ -112,7 +112,7 @@ export default function VideoQuizArena() {
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Video Audit Arena v1.0</span>
          </div>
          <h1 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white">Video <span className="text-primary">Quiz</span></h1>
-         <p className="text-muted-foreground font-medium text-lg max-w-xl italic">Watch verified signals, solve cognitive audits, and claim 10% distributed yield.</p>
+         <p className="text-muted-foreground font-medium text-lg max-w-xl italic">Watch verified signals, solve cognitive audits, and claim distributed yield.</p>
       </header>
 
       <div className="grid lg:grid-cols-3 gap-10">
@@ -135,7 +135,7 @@ export default function VideoQuizArena() {
                           {watchTime}s
                        </div>
                     </div>
-                    <Button onClick={finishVideo} className="h-16 px-12 bg-white/5 border border-white/10 hover:bg-primary text-white rounded-xl font-black uppercase text-sm">FINISH &amp; AUDIT</Button>
+                    <Button onClick={finishVideo} className="h-16 px-12 bg-white/5 border border-white/10 hover:bg-primary text-white rounded-xl font-black uppercase text-sm">FINISH & AUDIT</Button>
                  </div>
                )}
 
@@ -183,8 +183,8 @@ export default function VideoQuizArena() {
                <div className="space-y-4 relative z-10 text-[10px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">
                   <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" /> Watch for 15s to trigger AI Quiz.</li>
                   <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" /> One correct answer settles reward.</li>
-                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" /> Distributed 10% share credited instantly.</li>
-               </div>
+                  <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" /> Distributed Member share credited instantly.</li>
+               </ul>
             </Card>
          </div>
       </div>

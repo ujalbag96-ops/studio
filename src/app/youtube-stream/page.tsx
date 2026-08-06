@@ -59,7 +59,7 @@ export default function YoutubeStreamHub() {
       });
       const data = await res.json();
       if (data.success) {
-        toast({ title: "MISSION TRIGGERED", description: `Yield Credited: ${data.shareApplied} Node Share.` });
+        toast({ title: "MISSION TRIGGERED", description: `Yield Credited: ${data.status} Share.` });
       }
     } catch (e) {
       console.error("Reward Sync Failed");
@@ -68,7 +68,7 @@ export default function YoutubeStreamHub() {
     }
   };
 
-  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin h-10 w-10" /></div>;
+  if (isUserLoading) return <div className="flex items-center justify-center min-h-screen bg-black"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-10 space-y-10 pb-32">
@@ -83,7 +83,7 @@ export default function YoutubeStreamHub() {
          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
             <div className="space-y-2 text-center md:text-left">
                <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter text-white leading-none">YouTube <span className="text-primary">Hub</span></h1>
-               <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest opacity-70">Stream YouTube nodes &amp; earn rewards.</p>
+               <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest opacity-70">Stream YouTube nodes & earn rewards.</p>
             </div>
             
             <Card className="bg-[#0a0a0f] border-white/5 p-4 rounded-2xl flex items-center gap-4 shadow-xl w-full md:w-[500px]">
@@ -115,14 +115,14 @@ export default function YoutubeStreamHub() {
             <ul className="space-y-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
                <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Rewards valid for sessions &gt; 5 minutes.</li>
                <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Multi-tab streaming will void reward signals.</li>
-               <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Dynamic {settings?.youtubeUserSharePercent || 10}% share credited instantly.</li>
+               <li className="flex items-start gap-3"><div className="h-2 w-2 rounded-full bg-red-600 mt-1 shrink-0" /> Dynamic Member share credited instantly.</li>
             </ul>
          </Card>
          <Card className="bg-red-600/5 border-red-600/20 rounded-[2.5rem] p-10 flex flex-col justify-center items-center text-center space-y-4">
             <Activity className="h-10 w-10 text-red-600 animate-pulse" />
             <h4 className="text-xl font-black uppercase italic">Real-Time Yield</h4>
             <p className="text-xs font-medium text-muted-foreground uppercase leading-relaxed">
-               Every session adds points to your Mission Wallet based on current dynamic Admin settings ({settings?.youtubeUserSharePercent || 10}%).
+               Every session adds points to your Mission Wallet based on current dynamic Admin settings.
             </p>
          </Card>
       </div>

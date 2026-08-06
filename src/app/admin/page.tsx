@@ -505,11 +505,11 @@ export default function AdminMasterHub() {
             </DialogHeader>
             <div className="space-y-6 py-4">
                <div className="space-y-2">
-                  <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Member Email</Label>
+                  <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Member Email</Label>
                   <p className="text-xs font-bold text-slate-800 bg-slate-50 p-4 rounded-xl">{selectedUser?.email}</p>
                </div>
                <div className="space-y-2">
-                  <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Coins to Adjust (+/-)</Label>
+                  <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Coins to Adjust (+/-)</Label>
                   <Input type="number" value={adjustAmount} onChange={e => setAdjustAmount(e.target.value)} className="h-14 bg-slate-50 border-none rounded-xl text-center font-black text-xl text-primary" />
                </div>
             </div>
