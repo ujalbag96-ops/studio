@@ -437,7 +437,7 @@ export default function AdminMasterHub() {
            {activeTab === 'dev_tools' && (
               <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-700">
                  <div className="space-y-1">
-                    <h3 className="text-xl font-black uppercase italic tracking-tighter">Developer Hub</h3>
+                    <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-800">Developer Hub</h3>
                     <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Industrial Build & Asset Signal Management</p>
                  </div>
 
