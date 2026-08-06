@@ -19,6 +19,14 @@ import ScratchCard from '@/components/ScratchCard';
 import { cn } from '@/lib/utils';
 import RiskDisclosureModal from '@/components/RiskDisclosureModal';
 
+// Required for static export
+export function generateStaticParams() {
+  return [
+    { id: 't1' },
+    { id: 't2' }
+  ];
+}
+
 export default function TournamentDetails() {
   const params = useParams();
   const router = useRouter();
@@ -32,13 +40,14 @@ export default function TournamentDetails() {
   const [activeTab, setActiveTab] = useState<'info' | 'stream'>('info');
   const [showRiskModal, setShowRiskModal] = useState(false);
 
-  const tournamentRef = useMemoFirebase(() => (firestore && params.id) ? doc(firestore, 'tournaments', params.id as string) : null, [firestore, params.id]);
+  const tournamentId = params?.id as string || 't1';
+  const tournamentRef = useMemoFirebase(() => (firestore && tournamentId) ? doc(firestore, 'tournaments', tournamentId) : null, [firestore, tournamentId]);
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   
   const regQuery = useMemoFirebase(() => {
-    if (!firestore || !user || !params.id) return null;
-    return query(collection(firestore, 'registrations'), where('userId', '==', user.uid), where('tournamentId', '==', params.id));
-  }, [firestore, user, params.id]);
+    if (!firestore || !user || !tournamentId) return null;
+    return query(collection(firestore, 'registrations'), where('userId', '==', user.uid), where('tournamentId', '==', tournamentId));
+  }, [firestore, user, tournamentId]);
 
   const { data: tournament, isLoading: isTourLoading } = useDoc<Tournament>(tournamentRef);
   const { data: registrations } = useCollection<Registration>(regQuery);

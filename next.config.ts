@@ -32,13 +32,19 @@ const nextConfig: NextConfig = {
         querystring: false,
         punycode: false,
         process: false,
+        perf_hooks: false,
         '@grpc/grpc-js': false,
         '@genkit-ai/core': false,
+        '@genkit-ai/ai': false,
+        'genkit': false,
       };
 
       config.plugins.push(
         new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
           resource.request = resource.request.replace(/^node:/, '');
+        }),
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^async_hooks$|^perf_hooks$|^child_process$|^fs$|^net$|^tls$|^dns$|^http2$/,
         })
       );
     }

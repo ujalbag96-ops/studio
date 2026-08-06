@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -13,6 +14,14 @@ import AIInsightPanel from '@/components/AIInsightPanel';
 import { Match } from '@/app/lib/types';
 import { useState } from 'react';
 
+// Required for static export
+export function generateStaticParams() {
+  return [
+    { id: 'm1' },
+    { id: 'm2' }
+  ];
+}
+
 export default function MatchPage() {
   const params = useParams();
   const router = useRouter();
@@ -20,7 +29,8 @@ export default function MatchPage() {
   const firestore = useFirestore();
   const [voted, setVoted] = useState(false);
 
-  const matchRef = useMemoFirebase(() => (firestore && params.id) ? doc(firestore, 'matches', params.id as string) : null, [firestore, params.id]);
+  const matchId = params?.id as string || 'm1';
+  const matchRef = useMemoFirebase(() => (firestore && matchId) ? doc(firestore, 'matches', matchId) : null, [firestore, matchId]);
   const { data: match, isLoading } = useDoc<Match>(matchRef);
 
   if (isLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;

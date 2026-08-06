@@ -34,13 +34,21 @@ import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 import Hls from 'hls.js';
 
+// Required for static export
+export function generateStaticParams() {
+  return [
+    { id: 'movie-1' },
+    { id: 'movie-2' }
+  ];
+}
+
 export default function MoviePlayerPage() {
   const params = useParams();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Phase Management: 'locked' -> 'rewarded' -> 'interstitial' -> 'playing'
+  // Phase Management: 'locked' -> 'rewarded' -> 'interstitial' -> 'ready'
   const [phase, setPhase] = useState<'locked' | 'rewarded' | 'interstitial' | 'ready'>('locked');
   const [adCountdown, setAdCountdown] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -52,7 +60,8 @@ export default function MoviePlayerPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
-  const movieRef = useMemoFirebase(() => (firestore && params.id) ? doc(firestore, 'movies', params.id as string) : null, [firestore, params.id]);
+  const movieId = params?.id as string || 'movie-1';
+  const movieRef = useMemoFirebase(() => (firestore && movieId) ? doc(firestore, 'movies', movieId) : null, [firestore, movieId]);
   const { data: movie, isLoading: movieLoading } = useDoc<Movie>(movieRef);
 
   // Ad Timer Logic
@@ -112,7 +121,7 @@ export default function MoviePlayerPage() {
     try {
       await addDoc(collection(firestore, 'analytics_events'), {
         userId: user.uid,
-        movieId: params.id,
+        movieId,
         movieTitle: movie?.title,
         event: eventName,
         timestamp: new Date().toISOString()
@@ -291,15 +300,5 @@ export default function MoviePlayerPage() {
          </div>
       </div>
     </div>
-  );
-}
-
-function StreamStat({ label, value, icon }: any) {
-  return (
-    <Card className="bg-white/5 border-white/5 rounded-2xl p-6 text-center space-y-2">
-       <div className="mx-auto h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">{icon}</div>
-       <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">{label}</p>
-       <p className="text-xs font-black text-white italic">{value}</p>
-    </Card>
   );
 }

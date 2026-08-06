@@ -13,6 +13,15 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
+// Required for static export
+export function generateStaticParams() {
+  return [
+    { dept: 'class-10', sem: 'maths' },
+    { dept: 'class-10', sem: 'science' },
+    { dept: 'class-12', sem: 'physics' }
+  ];
+}
+
 export default function ChapterListScreen() {
   const params = useParams();
   const router = useRouter();
@@ -25,8 +34,8 @@ export default function ChapterListScreen() {
   const [pendingUrl, setPendingUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const classId = params.dept as string;
-  const subjectId = params.sem as string;
+  const classId = params?.dept as string || 'class-10';
+  const subjectId = params?.sem as string || 'maths';
 
   const chapters = [
     { id: 'ch1', title: 'Chapter 1: Rational Numbers', type: 'PDF Textbook', url: 'https://ncert.nic.in/textbook/pdf/hemh101.pdf', duration: '20 Mins' },
