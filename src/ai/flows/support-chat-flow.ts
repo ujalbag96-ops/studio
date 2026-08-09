@@ -15,10 +15,11 @@ const SupportChatOutputSchema = z.object({
 });
 export type SupportChatOutput = z.infer<typeof SupportChatOutputSchema>;
 
-// Static Export Mock Handler
+// Static Export Mock Handler - No Genkit imports allowed here
 export async function supportChat(input: SupportChatInput): Promise<SupportChatOutput> {
+  // In static export (WebView), we use a fallback mock or remote API call
   return {
-    response: "Bhai, welcome to CampusHub! Main aapki help ke liye ready hu. (AI signal synced)",
+    response: "Bhai, welcome to CampusHub! Main aapki help ke liye ready hu. (Signal optimized for Mobile)",
     shouldFlag: false
   };
 }

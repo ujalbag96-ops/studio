@@ -1,5 +1,5 @@
 /**
- * Browser-Safe Genkit Initializer v3.0
+ * Browser-Safe Genkit Initializer v4.0
  * Completely isolates Node.js dependencies to prevent static export crashes.
  */
 import { z } from 'zod';
@@ -17,8 +17,12 @@ let ai: any = {
 if (typeof window === 'undefined') {
   try {
     // Dynamic require prevents the bundler from following these paths on the client
-    const genkitModule = require('genkit');
-    const googleAIModule = require('@genkit-ai/google-genai');
+    // We use strings to further obfuscate the imports from the bundler
+    const GENKIT_PKG = 'genkit';
+    const GOOGLE_AI_PKG = '@genkit-ai/google-genai';
+    
+    const genkitModule = require(GENKIT_PKG);
+    const googleAIModule = require(GOOGLE_AI_PKG);
     
     if (genkitModule && genkitModule.genkit) {
       ai = genkitModule.genkit({
