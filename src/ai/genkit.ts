@@ -1,8 +1,8 @@
 /**
  * Browser-Safe Genkit Initializer
- * Prevents build crashes during Static Export by checking environment.
+ * Prevents build crashes during Static Export by checking environment and using dynamic requires.
  */
-import { z } from 'genkit';
+import { z } from 'zod'; // Use vanilla zod for build stability in browser
 
 let ai: any = null;
 
