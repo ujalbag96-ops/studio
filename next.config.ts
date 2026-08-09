@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   webpack: (config, { isServer }) => {
     if (!isServer) {
+      // Hardened fallback for browser/static environment
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
@@ -33,18 +34,15 @@ const nextConfig: NextConfig = {
         punycode: false,
         process: false,
         perf_hooks: false,
-        '@grpc/grpc-js': false,
-        '@genkit-ai/core': false,
-        '@genkit-ai/ai': false,
-        'genkit': false,
       };
 
+      // Aggressively ignore Node.js specific modules and AI frameworks during client-side bundling
       config.plugins.push(
         new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
           resource.request = resource.request.replace(/^node:/, '');
         }),
         new webpack.IgnorePlugin({
-          resourceRegExp: /^async_hooks$|^perf_hooks$|^child_process$|^fs$|^net$|^tls$|^dns$|^http2$|^genkit$|^@genkit-ai\/.*$/,
+          resourceRegExp: /^(async_hooks|perf_hooks|child_process|fs|net|tls|dns|http2|genkit|@genkit-ai\/.*|@opentelemetry\/.*)$/,
         })
       );
     }
