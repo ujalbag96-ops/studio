@@ -1,7 +1,7 @@
 /**
  * @fileOverview AI Localization Engine - Browser Optimized for Static Export.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const LocalizeNotificationInputSchema = z.object({
   message: z.string().describe('The message.'),

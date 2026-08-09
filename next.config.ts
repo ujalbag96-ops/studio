@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Hardened fallback for browser/static environment
+      // Comprehensive polyfills for browser/static environment
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
