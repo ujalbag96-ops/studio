@@ -44,7 +44,7 @@ const nextConfig: NextConfig = {
           resource.request = resource.request.replace(/^node:/, '');
         }),
         new webpack.IgnorePlugin({
-          resourceRegExp: /^async_hooks$|^perf_hooks$|^child_process$|^fs$|^net$|^tls$|^dns$|^http2$/,
+          resourceRegExp: /^async_hooks$|^perf_hooks$|^child_process$|^fs$|^net$|^tls$|^dns$|^http2$|^genkit$|^@genkit-ai\/.*$/,
         })
       );
     }

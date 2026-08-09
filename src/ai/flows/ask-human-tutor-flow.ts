@@ -1,10 +1,10 @@
 /**
  * @fileOverview AI Tutor Node - Browser Optimized for Static Export.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const AskHumanTutorInputSchema = z.object({
-  query: z.string().optional().describe('The student\'s academic query.'),
+  query: z.string().optional().describe("The student's academic query."),
   photoDataUri: z.string().optional().describe("A photo of an academic problem."),
   context: z.string().optional().describe('Lesson context.'),
   preferredLanguage: z.string().optional().default('en').describe('Language of response.'),
@@ -12,7 +12,7 @@ const AskHumanTutorInputSchema = z.object({
 export type AskHumanTutorInput = z.infer<typeof AskHumanTutorInputSchema>;
 
 const AskHumanTutorOutputSchema = z.object({
-  explanation: z.string().describe('The tutor\'s core response.'),
+  explanation: z.string().describe("The tutor's core response."),
   steps: z.array(z.string()).optional().describe('Logical steps.'),
   languageUsed: z.string().describe('Response language.'),
 });

@@ -1,7 +1,7 @@
 /**
  * @fileOverview AI Match Insight - Browser Optimized for Static Export.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const AiMatchInsightSummaryInputSchema = z.object({
   matchDescription: z.string(),
@@ -18,6 +18,6 @@ export type AiMatchInsightSummaryOutput = z.infer<typeof AiMatchInsightSummaryOu
 
 export async function aiMatchInsightSummary(input: AiMatchInsightSummaryInput): Promise<AiMatchInsightSummaryOutput> {
   return {
-    summary: "Match is looking intense! Team A is leading with high precision signals."
+    summary: "Match is looking intense! Teams are performing at high precision signals."
   };
 }

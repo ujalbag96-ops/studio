@@ -1,7 +1,7 @@
 /**
  * @fileOverview AI Quiz Engine - Browser Optimized for Static Export.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const GenerateQuizInputSchema = z.object({
   contentSummary: z.string().describe('The summary or context of the lesson/video content.'),
@@ -21,7 +21,6 @@ const GenerateQuizOutputSchema = z.object({
 export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
 
 export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQuizOutput> {
-  // Mocking for static build to avoid Node.js dependency errors
   return {
     questions: [
       { question: "What is the capital of India?", options: ["Mumbai", "New Delhi", "Kolkata", "Chennai"], correctIndex: 1 },
